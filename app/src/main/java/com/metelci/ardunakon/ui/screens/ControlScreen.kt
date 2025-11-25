@@ -218,6 +218,40 @@ fun ControlScreen(
     if (showProfileSelector) {
         AlertDialog(
             onDismissRequest = { showProfileSelector = false },
+            title = { Text("Select Profile") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    profiles.forEachIndexed { index, profile ->
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (index == currentProfileIndex) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        currentProfileIndex = index
+                                        showProfileSelector = false
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(profile.name, style = MaterialTheme.typography.bodyLarge)
+                                }
+                                
+                                IconButton(onClick = {
+                                    profileToEdit = profile
+                                    showProfileEditor = true
+                                    showProfileSelector = false
                                 }) {
                                     Icon(androidx.compose.material.icons.Icons.Default.Edit, "Edit")
                                 }
