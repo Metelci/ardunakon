@@ -74,8 +74,14 @@ class AppBluetoothManager(private val context: Context) {
         Log.d("Ardunakon", message)
     }
 
+    // Interface for both Classic and BLE connections
+    interface BluetoothConnection {
+        fun write(bytes: ByteArray)
+        fun cancel()
+    }
+
     // Active connections
-    private val connections = arrayOfNulls<ConnectedThread>(2)
+    private val connections = arrayOfNulls<BluetoothConnection>(2)
     // Saved devices for auto-reconnect
     private val savedDevices = arrayOfNulls<BluetoothDeviceModel>(2)
     private val shouldReconnect = booleanArrayOf(false, false)
@@ -197,7 +203,14 @@ class AppBluetoothManager(private val context: Context) {
         stopScan()
 
         val device = adapter?.getRemoteDevice(deviceModel.address) ?: return
-        ConnectThread(device, slot).start()
+        
+        if (deviceModel.type == DeviceType.LE) {
+            val bleConnection = BleConnection(device, slot)
+            connections[slot] = bleConnection
+            bleConnection.connect()
+        } else {
+            ConnectThread(device, slot).start()
+        }
     }
 
     fun disconnect(slot: Int) {
@@ -273,11 +286,33 @@ class AppBluetoothManager(private val context: Context) {
     private val _telemetry = MutableStateFlow<Telemetry?>(null)
     val telemetry: StateFlow<Telemetry?> = _telemetry.asStateFlow()
 
+    private fun parseTelemetry(packet: ByteArray) {
+        // Example Mapping: [START, TYPE, BAT_H, BAT_L, STAT, ..., END]
+        // This is a placeholder for the actual protocol
+        // Assuming Byte 2 is Battery Voltage (scaled x10)
+        val batteryRaw = packet[2].toInt() and 0xFF
+        val statusByte = packet[3].toInt() and 0xFF
+        
+        // Validation: Ignore noise
+        // Battery: 0-255 (0-25.5V) is physically possible, but let's filter obvious junk if needed.
+        // Status: Must be 0 or 1
+        if (statusByte > 1) return 
+
+        val battery = batteryRaw / 10f
+        val status = if (statusByte == 1) "Safe Mode" else "Active"
+        
+        _telemetry.value = Telemetry(battery, status)
+        if (isDebugMode) {
+            log("Telemetry: Bat=${battery}V, Stat=$status", LogType.SUCCESS)
+        }
+    }
+
     private inner class ConnectThread(private val device: BluetoothDevice, private val slot: Int) : Thread() {
         private var socket: BluetoothSocket? = null
 
         @SuppressLint("MissingPermission")
         override fun run() {
+
             if (!checkBluetoothPermission()) {
                 log("Connect failed: Missing permissions", LogType.ERROR)
                 updateConnectionState(slot, ConnectionState.ERROR)
@@ -291,41 +326,23 @@ class AppBluetoothManager(private val context: Context) {
 
             var connected = false
             
-            // Attempt 1: Secure Connection
+            // Attempt 1: Insecure Connection (Primary for HC-06)
             try {
-                log("Attempting SECURE connection...", LogType.INFO)
-                socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                log("Attempting INSECURE connection...", LogType.INFO)
+                socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
                 socket?.connect()
                 connected = true
-                log("Secure connection established.", LogType.SUCCESS)
+                log("Insecure connection established.", LogType.SUCCESS)
             } catch (e: Exception) {
-                Log.w("BT", "Secure connection failed", e)
-                log("Secure connection failed: ${e.message}", LogType.WARNING)
+                Log.w("BT", "Insecure connection failed", e)
+                log("Insecure connection failed: ${e.message}", LogType.WARNING)
                 try { socket?.close() } catch (e2: Exception) {}
             }
 
-            // Attempt 2: Insecure Connection (Fallback)
+            // Attempt 2: Reflection Method (Port 1 Hack) - Fallback for stubborn HC-06
             if (!connected) {
                 try {
                     // Give the stack time to reset
-                    try { Thread.sleep(500) } catch (e: InterruptedException) {}
-                    
-                    log("Attempting INSECURE connection (fallback)...", LogType.WARNING)
-                    socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
-                    socket?.connect()
-                    connected = true
-                    log("Insecure connection established.", LogType.SUCCESS)
-                } catch (e: Exception) {
-                    Log.e("BT", "Insecure connection failed", e)
-                    log("Insecure connection failed: ${e.message}", LogType.ERROR)
-                    try { socket?.close() } catch (e2: Exception) {}
-                }
-            }
-
-            // Attempt 3: Reflection Method (Port 1 Hack) - The Nuclear Option
-            if (!connected) {
-                try {
-                    // Give the stack time to reset again
                     try { Thread.sleep(500) } catch (e: InterruptedException) {}
 
                     log("Attempting REFLECTION connection (Port 1)...", LogType.WARNING)
@@ -359,7 +376,7 @@ class AppBluetoothManager(private val context: Context) {
         }
     }
 
-    private inner class ConnectedThread(private val socket: BluetoothSocket, private val slot: Int) : Thread() {
+    private inner class ConnectedThread(private val socket: BluetoothSocket, private val slot: Int) : Thread(), BluetoothConnection {
         private val outputStream: OutputStream = socket.outputStream
         private val inputStream: InputStream = socket.inputStream
         private val buffer = ByteArray(1024)
@@ -406,28 +423,9 @@ class AppBluetoothManager(private val context: Context) {
             }
         }
         
-        private fun parseTelemetry(packet: ByteArray) {
-            // Example Mapping: [START, TYPE, BAT_H, BAT_L, STAT, ..., END]
-            // This is a placeholder for the actual protocol
-            // Assuming Byte 2 is Battery Voltage (scaled x10)
-            val batteryRaw = packet[2].toInt() and 0xFF
-            val statusByte = packet[3].toInt() and 0xFF
-            
-            // Validation: Ignore noise
-            // Battery: 0-255 (0-25.5V) is physically possible, but let's filter obvious junk if needed.
-            // Status: Must be 0 or 1
-            if (statusByte > 1) return 
 
-            val battery = batteryRaw / 10f
-            val status = if (statusByte == 1) "Safe Mode" else "Active"
-            
-            _telemetry.value = Telemetry(battery, status)
-            if (isDebugMode) {
-                log("Telemetry: Bat=${battery}V, Stat=$status", LogType.SUCCESS)
-            }
-        }
 
-        fun write(bytes: ByteArray) {
+        override fun write(bytes: ByteArray) {
             try {
                 outputStream.write(bytes)
             } catch (e: IOException) {
@@ -436,7 +434,7 @@ class AppBluetoothManager(private val context: Context) {
             }
         }
 
-        fun cancel() {
+        override fun cancel() {
             try { socket.close() } catch (e: IOException) {}
         }
     }
@@ -450,6 +448,95 @@ class AppBluetoothManager(private val context: Context) {
             hasPermission(Manifest.permission.BLUETOOTH_SCAN) && hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
         } else {
             hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+    private inner class BleConnection(private val device: BluetoothDevice, private val slot: Int) : BluetoothConnection {
+        private var bluetoothGatt: android.bluetooth.BluetoothGatt? = null
+        private var txCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
+
+        // HM-10 / HC-08 Default UUIDs
+        private val SERVICE_UUID = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
+        private val CHAR_UUID = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
+
+        // Client Characteristic Configuration Descriptor (CCCD) for notifications
+        private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
+
+        @SuppressLint("MissingPermission")
+        fun connect() {
+            log("Connecting to BLE device ${device.name}...", LogType.INFO)
+            bluetoothGatt = device.connectGatt(context, false, gattCallback)
+        }
+
+        private val gattCallback = object : android.bluetooth.BluetoothGattCallback() {
+            @SuppressLint("MissingPermission")
+            override fun onConnectionStateChange(gatt: android.bluetooth.BluetoothGatt, status: Int, newState: Int) {
+                if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
+                    log("BLE Connected to GATT server.", LogType.SUCCESS)
+                    updateConnectionState(slot, ConnectionState.CONNECTED)
+                    // Discover services
+                    gatt.discoverServices()
+                } else if (newState == android.bluetooth.BluetoothProfile.STATE_DISCONNECTED) {
+                    log("BLE Disconnected from GATT server.", LogType.WARNING)
+                    updateConnectionState(slot, ConnectionState.DISCONNECTED)
+                    connections[slot] = null
+                }
+            }
+
+            @SuppressLint("MissingPermission")
+            override fun onServicesDiscovered(gatt: android.bluetooth.BluetoothGatt, status: Int) {
+                if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+                    val service = gatt.getService(SERVICE_UUID)
+                    if (service != null) {
+                        txCharacteristic = service.getCharacteristic(CHAR_UUID)
+                        if (txCharacteristic != null) {
+                            log("BLE Service & Characteristic found.", LogType.SUCCESS)
+                            
+                            // Enable Notifications
+                            gatt.setCharacteristicNotification(txCharacteristic, true)
+                            val descriptor = txCharacteristic!!.getDescriptor(CCCD_UUID)
+                            if (descriptor != null) {
+                                descriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                gatt.writeDescriptor(descriptor)
+                            }
+                        } else {
+                            log("BLE Characteristic not found!", LogType.ERROR)
+                        }
+                    } else {
+                        log("BLE Service not found!", LogType.ERROR)
+                    }
+                } else {
+                    log("BLE Service discovery failed: $status", LogType.ERROR)
+                }
+            }
+
+            override fun onCharacteristicChanged(gatt: android.bluetooth.BluetoothGatt, characteristic: android.bluetooth.BluetoothGattCharacteristic) {
+                // Incoming data
+                val data = characteristic.value
+                if (data != null && data.isNotEmpty()) {
+                    try {
+                        parseTelemetry(data)
+                    } catch (e: Exception) {
+                        // Ignore parsing errors
+                    }
+                }
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun write(bytes: ByteArray) {
+            if (bluetoothGatt != null && txCharacteristic != null) {
+                txCharacteristic!!.value = bytes
+                // Write type: NO_RESPONSE is faster and usually standard for UART
+                txCharacteristic!!.writeType = android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                bluetoothGatt!!.writeCharacteristic(txCharacteristic)
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun cancel() {
+            bluetoothGatt?.disconnect()
+            bluetoothGatt?.close()
+            bluetoothGatt = null
         }
     }
 }

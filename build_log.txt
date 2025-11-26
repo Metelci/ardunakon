@@ -1,0 +1,193 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+
+> Task :app:compileDebugKotlin FAILED
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:13 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:16 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:17 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:18 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:42 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:43 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:44 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:46 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:290:13 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:290:20 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:290:22 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:290:37 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:290:38 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:13 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:16 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:17 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:18 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:41 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:43 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:49 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:50 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:54 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:55 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:57 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:59 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:65 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:66 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:73 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:74 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:75 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:76 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:78 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:85 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:86 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:292:90 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:13 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:16 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:17 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:18 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:34 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:35 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:43 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:44 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:46 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:53 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:54 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:293:58 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:298:13 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:298:17 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:304:15 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:304:21 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:304:22 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:304:23 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:304:25 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:304:34 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:304:36 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:311:13 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:311:16 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:311:17 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:311:18 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:311:27 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:311:29 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:13 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:16 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:17 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:27 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:30 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:37 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:40 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:44 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:46 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:336:15 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:336:20 Expecting member declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:345:5 Expecting a top level declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:510:1 Expecting a top level declaration
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:209:33 Type mismatch: inferred type is BleConnection but AppBluetoothManager.BluetoothConnection? was expected
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:212:13 Unresolved reference: ConnectThread
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:46 Conflicting overloads: public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:284:46 Function declaration must have a name
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:286:39 Unresolved reference: slot
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:298:17 Conflicting overloads: public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:298:17 Function declaration must have a name
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:300:17 Unresolved reference: socket
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:300:26 Unresolved reference: device
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:301:17 Unresolved reference: socket
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:304:36 Conflicting overloads: public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:304:36 Function declaration must have a name
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:305:59 Unresolved reference: e
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:306:52 Unresolved reference: e
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:307:23 Unresolved reference: socket
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:311:29 Conflicting overloads: public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:311:29 Function declaration must have a name
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:317:55 Unresolved reference: device
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:318:21 Unresolved reference: socket
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:318:39 Unresolved reference: device
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:319:21 Unresolved reference: socket
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:325:27 Unresolved reference: socket
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:46 Conflicting overloads: public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:329:46 Function declaration must have a name
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:331:55 Unresolved reference: socket
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:331:65 Unresolved reference: slot
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:332:29 Unresolved reference: slot
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:332:37 Type mismatch: inferred type is ConnectedThread but AppBluetoothManager.BluetoothConnection? was expected
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:335:39 Unresolved reference: slot
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:336:20 Conflicting overloads: public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager, public final fun `<no name provided>`(): Unit defined in com.metelci.ardunakon.bluetooth.AppBluetoothManager
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:336:20 Function declaration must have a name
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:337:70 Unresolved reference: device
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:338:39 Unresolved reference: slot
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:343:19 Unresolved reference: socket
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:347:13 Modifier 'inner' is not applicable inside 'file'
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:347:113 Unresolved reference: BluetoothConnection
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:353:13 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:362:25 Unresolved reference: _incomingData
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:362:39 Variable expected
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:365:29 Unresolved reference: isDebugMode
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:367:29 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:378:37 Unresolved reference: parseTelemetry
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:386:21 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:387:21 Unresolved reference: updateConnectionState
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:388:21 Unresolved reference: connections
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:396:9 'write' overrides nothing
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:401:17 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:405:9 'cancel' overrides nothing
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:411:16 Unresolved reference: context
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:421:13 Modifier 'inner' is not applicable inside 'file'
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:421:101 Unresolved reference: BluetoothConnection
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:434:13 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:435:48 Unresolved reference: context
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:442:21 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:443:21 Unresolved reference: updateConnectionState
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:447:21 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:448:21 Unresolved reference: updateConnectionState
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:449:21 Unresolved reference: connections
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:460:29 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:470:29 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:473:25 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:476:21 Unresolved reference: log
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:485:25 Unresolved reference: parseTelemetry
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:494:9 'write' overrides nothing
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:504:9 'cancel' overrides nothing
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/ui/components/DebugConsoleDialog.kt:32:68 Unresolved reference: Telemetry
+e: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/ui/screens/ControlScreen.kt:94:39 Unresolved reference: telemetry
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3s
+26 actionable tasks: 1 executed, 25 up-to-date
