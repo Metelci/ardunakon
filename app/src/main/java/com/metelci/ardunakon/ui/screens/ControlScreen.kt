@@ -1,6 +1,7 @@
 package com.metelci.ardunakon.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -1026,34 +1027,33 @@ fun StatusCard(label: String, state: ConnectionState, rssi: Int, onClick: () -> 
 
 @Composable
 fun AuxButton(assigned: AssignedAux, manager: AppBluetoothManager) {
-    Button(
-        onClick = {
-            val data = ProtocolManager.formatButtonData(assigned.servoId, true)
-            manager.sendDataToSlot(data, assigned.slot)
-        },
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-        shape = RoundedCornerShape(16.dp),
+    Box(
         modifier = Modifier
             .size(width = 110.dp, height = 64.dp)
             .shadow(6.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color(0xFF2980B9), // Deep Blue
                         Color(0xFF6DD5FA)  // Cyan
                     )
-                ),
-                shape = RoundedCornerShape(16.dp)
+                )
             )
-            .border(1.dp, Color(0x80FFFFFF), RoundedCornerShape(16.dp)), // Semi-transparent white border
-        elevation = ButtonDefaults.buttonElevation(8.dp, 4.dp)
+            .clickable {
+                val data = ProtocolManager.formatButtonData(assigned.servoId, true)
+                manager.sendDataToSlot(data, assigned.slot)
+            }
+            .border(1.dp, Color(0x80FFFFFF), RoundedCornerShape(16.dp)),
+        contentAlignment = Alignment.Center
     ) {
         val roleSuffix = if (assigned.role.isNotBlank()) " • ${assigned.role}" else ""
         Text(
             "${assigned.config.label} (S${assigned.slot + 1}→${assigned.servoId})$roleSuffix", 
             color = Color.White,
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }
