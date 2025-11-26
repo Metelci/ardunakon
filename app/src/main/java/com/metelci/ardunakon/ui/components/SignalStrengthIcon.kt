@@ -30,7 +30,7 @@ fun SignalStrengthIcon(
     // < -95: 0 bars (or X)
 
     val bars = when {
-        rssi == 0 -> 0 // Disconnected or unknown
+        rssi == 0 -> return // Don't show anything if RSSI is unknown (e.g. Classic Bluetooth)
         rssi > -50 -> 4
         rssi > -65 -> 3
         rssi > -80 -> 2

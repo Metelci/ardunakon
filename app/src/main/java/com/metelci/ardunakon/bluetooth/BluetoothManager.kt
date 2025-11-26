@@ -466,6 +466,7 @@ class AppBluetoothManager(private val context: Context) {
         private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
 
         private var connectionJob: Job? = null
+        private var pollingJob: Job? = null
 
         @SuppressLint("MissingPermission")
         fun connect() {
@@ -494,11 +495,14 @@ class AppBluetoothManager(private val context: Context) {
         }
 
         private fun startRssiPolling() {
-            scope.launch {
+            pollingJob?.cancel()
+            pollingJob = scope.launch {
                 while (isActive && bluetoothGatt != null) {
                     delay(2000) // Poll every 2 seconds
                     try {
-                        bluetoothGatt?.readRemoteRssi()
+                        if (connections[slot] == this@BleConnection && _connectionStates.value[slot] == ConnectionState.CONNECTED) {
+                            bluetoothGatt?.readRemoteRssi()
+                        }
                     } catch (e: SecurityException) {
                         Log.e("BT", "RSSI read failed", e)
                     }
@@ -517,6 +521,7 @@ class AppBluetoothManager(private val context: Context) {
                     gatt.discoverServices()
                     startRssiPolling()
                 } else if (newState == android.bluetooth.BluetoothProfile.STATE_DISCONNECTED) {
+                    pollingJob?.cancel()
                     log("BLE Disconnected from GATT server.", LogType.WARNING)
                     updateConnectionState(slot, ConnectionState.DISCONNECTED)
                     connections[slot] = null
@@ -584,6 +589,7 @@ class AppBluetoothManager(private val context: Context) {
         @SuppressLint("MissingPermission")
         override fun cancel() {
             connectionJob?.cancel()
+            pollingJob?.cancel()
             bluetoothGatt?.disconnect()
             bluetoothGatt?.close()
             bluetoothGatt = null
