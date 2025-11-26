@@ -211,11 +211,13 @@ class AppBluetoothManager(private val context: Context) {
         }
     }
 
-    fun sendDataToAll(data: ByteArray) {
+    fun sendDataToAll(data: ByteArray, force: Boolean = false) {
+        if (_isEmergencyStopActive.value && !force) return
         connections.forEach { it?.write(data) }
     }
 
-    fun sendDataToSlot(data: ByteArray, slot: Int) {
+    fun sendDataToSlot(data: ByteArray, slot: Int, force: Boolean = false) {
+        if (_isEmergencyStopActive.value && !force) return
         if (slot in 0..1) {
             connections[slot]?.write(data)
         }

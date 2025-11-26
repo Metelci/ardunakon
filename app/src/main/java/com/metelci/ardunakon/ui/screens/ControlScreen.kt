@@ -260,10 +260,11 @@ fun ControlScreen(
                         // Reset E-Stop
                         bluetoothManager.setEmergencyStop(false)
                     } else {
-                        // Activate E-Stop
-                        val stopPacket = ProtocolManager.formatEStopData()
-                        bluetoothManager.sendDataToAll(stopPacket)
+                        // Activate E-Stop FIRST to block other threads
                         bluetoothManager.setEmergencyStop(true)
+                        // Then Force Send STOP packet
+                        val stopPacket = ProtocolManager.formatEStopData()
+                        bluetoothManager.sendDataToAll(stopPacket, force = true)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
