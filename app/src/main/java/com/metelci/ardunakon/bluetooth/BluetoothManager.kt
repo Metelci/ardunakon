@@ -202,6 +202,10 @@ class AppBluetoothManager(private val context: Context) {
         }
         stopScan()
 
+        // Ensure previous connection is closed
+        connections[slot]?.cancel()
+        connections[slot] = null
+
         val device = adapter?.getRemoteDevice(deviceModel.address) ?: return
         
         if (deviceModel.type == DeviceType.LE) {
@@ -479,6 +483,7 @@ class AppBluetoothManager(private val context: Context) {
                     log("BLE Disconnected from GATT server.", LogType.WARNING)
                     updateConnectionState(slot, ConnectionState.DISCONNECTED)
                     connections[slot] = null
+                    gatt.close() // Critical: Prevent resource leak
                 }
             }
 
