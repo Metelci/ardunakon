@@ -203,12 +203,10 @@ fun ControlScreen(
             verticalArrangement = Arrangement.Top
         ) {
         // Global Bluetooth status & E-STOP
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(bottom = 4.dp)
         ) {
             val anyConnected = connectionStates.any { it == ConnectionState.CONNECTED }
             val statusColor = if (anyConnected) {
@@ -217,7 +215,11 @@ fun ControlScreen(
                 if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Left side: Bluetooth status
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) {
                 IconButton(onClick = {
                     haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     showDeviceList = 0
@@ -249,7 +251,7 @@ fun ControlScreen(
                 }
             }
 
-            // E-STOP BUTTON (centered)
+            // Center: E-STOP BUTTON
             val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
 
             Button(
@@ -270,6 +272,7 @@ fun ControlScreen(
                 shape = CircleShape,
                 modifier = Modifier
                     .size(72.dp)
+                    .align(Alignment.Center)
                     .shadow(6.dp, CircleShape)
                     .background(
                         brush = if (isEStopActive) {
@@ -295,6 +298,7 @@ fun ControlScreen(
                 )
             }
 
+            // Right side: Reconnect button
             IconButton(
                 onClick = {
                     haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
@@ -305,6 +309,7 @@ fun ControlScreen(
                     }
                 },
                 modifier = Modifier
+                    .align(Alignment.CenterEnd)
                     .shadow(2.dp, CircleShape)
                     .background(pastelBrush, CircleShape)
                     .border(1.dp, Color(0xFFB0BEC5), CircleShape)

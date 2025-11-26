@@ -506,19 +506,30 @@ class AppBluetoothManager(private val context: Context) {
                     if (bytesRead > 0) {
                         val data = buffer.copyOf(bytesRead)
                         _incomingData.value = data
-                        
-                        // Log raw data only in Debug Mode
-                        if (isDebugMode) {
-                            val hex = data.joinToString("") { "%02X".format(it) }
+
+                        // Try to decode as text first for terminal display
+                        val decodedText = try {
+                            String(data, Charsets.UTF_8).trim()
+                        } catch (e: Exception) {
+                            null
+                        }
+
+                        // Log incoming data - always log for terminal visibility
+                        if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
+                            // Looks like text - display as string
+                            log("RX Slot ${slot + 1}: $decodedText", LogType.INFO)
+                        } else {
+                            // Binary data - display as hex
+                            val hex = data.joinToString(" ") { "%02X".format(it) }
                             log("RX Slot ${slot + 1}: $hex", LogType.INFO)
                         }
 
                         // Simple Packet Parsing (Looking for 0xAA ... 0x55)
                         for (byte in data) {
                             if (bufferIndex == 0 && byte != 0xAA.toByte()) continue // Wait for Start
-                            
+
                             packetBuffer[bufferIndex++] = byte
-                            
+
                             if (bufferIndex >= 10) { // Full Packet
                                 if (packetBuffer[9] == 0x55.toByte()) {
                                     parseTelemetry(packetBuffer)
@@ -822,6 +833,25 @@ class AppBluetoothManager(private val context: Context) {
                 @Suppress("DEPRECATION")
                 val data = characteristic.value
                 if (data != null && data.isNotEmpty()) {
+                    _incomingData.value = data
+
+                    // Try to decode as text first for terminal display
+                    val decodedText = try {
+                        String(data, Charsets.UTF_8).trim()
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    // Log incoming data - always log for terminal visibility
+                    if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
+                        // Looks like text - display as string
+                        log("RX Slot ${slot + 1}: $decodedText", LogType.INFO)
+                    } else {
+                        // Binary data - display as hex
+                        val hex = data.joinToString(" ") { "%02X".format(it) }
+                        log("RX Slot ${slot + 1}: $hex", LogType.INFO)
+                    }
+
                     try {
                         parseTelemetry(data)
                     } catch (e: Exception) {
@@ -838,6 +868,25 @@ class AppBluetoothManager(private val context: Context) {
             ) {
                 // Modern callback - value provided directly
                 if (value.isNotEmpty()) {
+                    _incomingData.value = value
+
+                    // Try to decode as text first for terminal display
+                    val decodedText = try {
+                        String(value, Charsets.UTF_8).trim()
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    // Log incoming data - always log for terminal visibility
+                    if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
+                        // Looks like text - display as string
+                        log("RX Slot ${slot + 1}: $decodedText", LogType.INFO)
+                    } else {
+                        // Binary data - display as hex
+                        val hex = value.joinToString(" ") { "%02X".format(it) }
+                        log("RX Slot ${slot + 1}: $hex", LogType.INFO)
+                    }
+
                     try {
                         parseTelemetry(value)
                     } catch (e: Exception) {
