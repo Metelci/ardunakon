@@ -252,10 +252,19 @@ fun ControlScreen(
             )
 
             // E-STOP BUTTON
+            val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
+            
             Button(
                 onClick = {
-                    val stopPacket = ProtocolManager.formatEStopData()
-                    bluetoothManager.sendDataToAll(stopPacket)
+                    if (isEStopActive) {
+                        // Reset E-Stop
+                        bluetoothManager.setEmergencyStop(false)
+                    } else {
+                        // Activate E-Stop
+                        val stopPacket = ProtocolManager.formatEStopData()
+                        bluetoothManager.sendDataToAll(stopPacket)
+                        bluetoothManager.setEmergencyStop(true)
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 shape = CircleShape,
@@ -263,20 +272,31 @@ fun ControlScreen(
                     .size(72.dp)
                     .shadow(6.dp, CircleShape)
                     .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                Color(0xFFFCE4EC),
-                                Color(0xFFE3F2FD),
-                                Color(0xFFE8F5E9)
+                        brush = if (isEStopActive) {
+                            Brush.radialGradient(
+                                colors = listOf(Color(0xFFFF5252), Color(0xFFD32F2F))
                             )
-                        ),
+                        } else {
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFFFCE4EC),
+                                    Color(0xFFE3F2FD),
+                                    Color(0xFFE8F5E9)
+                                )
+                            )
+                        },
                         shape = CircleShape
                     )
-                    .border(1.dp, Color(0xFFB0BEC5), CircleShape),
+                    .border(1.dp, if (isEStopActive) Color(0xFFB71C1C) else Color(0xFFB0BEC5), CircleShape),
                 contentPadding = PaddingValues(0.dp),
                 elevation = ButtonDefaults.buttonElevation(8.dp)
             ) {
-                Text("STOP", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text(
+                    if (isEStopActive) "RESET" else "STOP", 
+                    color = if (isEStopActive) Color.White else Color(0xFFFF5252), // Red text for STOP, White for RESET
+                    style = MaterialTheme.typography.titleLarge, 
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
             }
 
             // Slot 2

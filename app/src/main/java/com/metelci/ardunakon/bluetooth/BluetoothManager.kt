@@ -107,17 +107,32 @@ class AppBluetoothManager(private val context: Context) {
         startReconnectMonitor()
     }
 
+    // E-Stop State
+    private val _isEmergencyStopActive = MutableStateFlow(false)
+    val isEmergencyStopActive: StateFlow<Boolean> = _isEmergencyStopActive.asStateFlow()
+
+    fun setEmergencyStop(active: Boolean) {
+        _isEmergencyStopActive.value = active
+        if (active) {
+            log("E-STOP ACTIVATED: Blocking connections", LogType.WARNING)
+        } else {
+            log("E-STOP RELEASED: Connections allowed", LogType.SUCCESS)
+        }
+    }
+
     private fun startReconnectMonitor() {
         scope.launch {
             while (isActive) {
-                for (slot in 0..1) {
-                    if (shouldReconnect[slot] && 
-                        _connectionStates.value[slot] == ConnectionState.DISCONNECTED && 
-                        savedDevices[slot] != null) {
-                        
-                        log("Auto-reconnecting to ${savedDevices[slot]?.name}...", LogType.WARNING)
-                        updateConnectionState(slot, ConnectionState.RECONNECTING)
-                        connectToDevice(savedDevices[slot]!!, slot, isAutoReconnect = true)
+                if (!_isEmergencyStopActive.value) {
+                    for (slot in 0..1) {
+                        if (shouldReconnect[slot] && 
+                            _connectionStates.value[slot] == ConnectionState.DISCONNECTED && 
+                            savedDevices[slot] != null) {
+                            
+                            log("Auto-reconnecting to ${savedDevices[slot]?.name}...", LogType.WARNING)
+                            updateConnectionState(slot, ConnectionState.RECONNECTING)
+                            connectToDevice(savedDevices[slot]!!, slot, isAutoReconnect = true)
+                        }
                     }
                 }
                 delay(5000) // Check every 5 seconds
@@ -162,6 +177,10 @@ class AppBluetoothManager(private val context: Context) {
 
     fun connectToDevice(deviceModel: BluetoothDeviceModel, slot: Int, isAutoReconnect: Boolean = false) {
         if (slot !in 0..1) return
+        if (_isEmergencyStopActive.value) {
+            log("Connect failed: E-STOP ACTIVE", LogType.ERROR)
+            return
+        }
         if (!checkBluetoothPermission()) {
             log("Connect failed: Missing permissions", LogType.ERROR)
             return
