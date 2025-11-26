@@ -646,7 +646,7 @@ fun ControlScreen(
             },
             confirmButton = {
                 Button(
-                    onClick = { },
+                    onClick = { showDeviceList = null },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                     modifier = Modifier
                         .shadow(2.dp, RoundedCornerShape(12.dp))
