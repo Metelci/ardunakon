@@ -373,7 +373,7 @@ fun ControlScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                activeAuxButtons.filter { it.slot == 0 }.forEach { assigned ->
+                activeAuxButtons.filter { it.config.id <= 2 }.forEach { assigned ->
                     AuxButton(assigned, bluetoothManager)
                 }
             }
@@ -437,7 +437,7 @@ fun ControlScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                activeAuxButtons.filter { it.slot == 1 }.forEach { assigned ->
+                activeAuxButtons.filter { it.config.id > 2 }.forEach { assigned ->
                     AuxButton(assigned, bluetoothManager)
                 }
             }
