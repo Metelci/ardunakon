@@ -90,7 +90,12 @@ class AppBluetoothManager(private val context: Context) {
     private val receiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == BluetoothDevice.ACTION_FOUND) {
-                val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                val device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                }
                 val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
                 device?.let { addDevice(it, DeviceType.CLASSIC, rssi) }
             }
@@ -191,6 +196,29 @@ class AppBluetoothManager(private val context: Context) {
         connections.forEach { it?.write(data) }
     }
 
+    fun sendDataToSlot(data: ByteArray, slot: Int) {
+        if (slot in 0..1) {
+            connections[slot]?.write(data)
+        }
+    }
+
+    fun reconnectSavedDevices(): Boolean {
+        var started = false
+        for (slot in 0..1) {
+            val device = savedDevices[slot]
+            val state = _connectionStates.value[slot]
+            if (device != null && state != ConnectionState.CONNECTED && state != ConnectionState.CONNECTING) {
+                log("Manually reconnecting to ${device.name} (Slot ${slot + 1})", LogType.INFO)
+                connectToDevice(device, slot, isAutoReconnect = true)
+                started = true
+            }
+        }
+        if (!started) {
+            log("No saved devices to reconnect", LogType.WARNING)
+        }
+        return started
+    }
+
     private fun updateConnectionState(slot: Int, state: ConnectionState) {
         val list = _connectionStates.value.toMutableList()
         list[slot] = state
@@ -215,43 +243,70 @@ class AppBluetoothManager(private val context: Context) {
         } catch (e: IllegalArgumentException) {
             // Receiver not registered or already unregistered
         }
-        scope.cancel()
-        disconnect(0)
-        disconnect(1)
     }
 
-    private inner class ConnectThread(private val device: BluetoothDevice, private val slot: Int) : Thread() {
-        override fun run() {
-            try {
-                val socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                socket.connect()
-                
-                updateConnectionState(slot, ConnectionState.CONNECTED)
-                
-                val thread = ConnectedThread(socket, slot)
-                connections[slot] = thread
-                thread.start()
-            } catch (e: IOException) {
-                Log.e("BT", "Connection failed", e)
-                updateConnectionState(slot, ConnectionState.ERROR)
-                log("Failed to connect to ${device.name}", LogType.ERROR)
-                
-                if (shouldReconnect[slot]) {
-                    try { Thread.sleep(2000) } catch(e: InterruptedException) {}
-                    updateConnectionState(slot, ConnectionState.DISCONNECTED)
-                }
-            }
-        }
-    }
-
-    // Debug Mode Flag
-    // Debug Mode Flag
-    var isDebugMode: Boolean = com.metelci.ardunakon.BuildConfig.DEBUG
+    private val isDebugMode = com.metelci.ardunakon.BuildConfig.DEBUG
 
     // Telemetry State
     data class Telemetry(val batteryVoltage: Float, val status: String)
     private val _telemetry = MutableStateFlow<Telemetry?>(null)
     val telemetry: StateFlow<Telemetry?> = _telemetry.asStateFlow()
+
+    private inner class ConnectThread(private val device: BluetoothDevice, private val slot: Int) : Thread() {
+        private var socket: BluetoothSocket? = null
+
+        @SuppressLint("MissingPermission")
+        override fun run() {
+            if (!checkBluetoothPermission()) {
+                log("Connect failed: Missing permissions", LogType.ERROR)
+                updateConnectionState(slot, ConnectionState.ERROR)
+                return
+            }
+
+            adapter?.cancelDiscovery()
+
+            var connected = false
+            
+            // Attempt 1: Secure Connection
+            try {
+                socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                socket?.connect()
+                connected = true
+            } catch (e: Exception) {
+                Log.w("BT", "Secure connection failed, trying insecure...", e)
+                try { socket?.close() } catch (e2: Exception) {}
+            }
+
+            // Attempt 2: Insecure Connection (Fallback)
+            if (!connected) {
+                try {
+                    log("Secure failed, trying insecure...", LogType.WARNING)
+                    socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                    socket?.connect()
+                    connected = true
+                } catch (e: Exception) {
+                    Log.e("BT", "Insecure connection failed", e)
+                    try { socket?.close() } catch (e2: Exception) {}
+                }
+            }
+
+            if (connected && socket != null) {
+                // Connection successful
+                val connectedThread = ConnectedThread(socket!!, slot)
+                connections[slot] = connectedThread
+                connectedThread.start()
+
+                updateConnectionState(slot, ConnectionState.CONNECTED)
+            } else {
+                log("Connect failed: Could not connect", LogType.ERROR)
+                updateConnectionState(slot, ConnectionState.ERROR)
+            }
+        }
+
+        fun cancel() {
+            try { socket?.close() } catch (e: Exception) {}
+        }
+    }
 
     private inner class ConnectedThread(private val socket: BluetoothSocket, private val slot: Int) : Thread() {
         private val outputStream: OutputStream = socket.outputStream

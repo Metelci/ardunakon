@@ -15,7 +15,15 @@ data class Profile(
     val name: String,
     val buttonConfigs: List<ButtonConfig>,
     val isThrottleUnidirectional: Boolean = false, // false = -100 to 100 (Car), true = 0 to 100 (Drone/ESC)
-    val sensitivity: Float = 1.0f // 0.1 to 2.0
+    val sensitivity: Float = 1.0f, // 0.1 to 2.0
+    val auxAssignments: List<AuxAssignment> = emptyList()
+)
+
+data class AuxAssignment(
+    val id: Int,
+    val slot: Int,
+    val servoId: Int,
+    val role: String = ""
 )
 
 class ProfileManager(private val context: Context) {
@@ -32,6 +40,16 @@ class ProfileManager(private val context: Context) {
                 profileObj.put("name", profile.name)
                 profileObj.put("isThrottleUnidirectional", profile.isThrottleUnidirectional)
                 profileObj.put("sensitivity", profile.sensitivity.toDouble())
+                val assignmentsArray = JSONArray()
+                profile.auxAssignments.forEach { assign ->
+                    val assignObj = JSONObject()
+                    assignObj.put("id", assign.id)
+                    assignObj.put("slot", assign.slot)
+                    assignObj.put("servoId", assign.servoId)
+                    assignObj.put("role", assign.role)
+                    assignmentsArray.put(assignObj)
+                }
+                profileObj.put("auxAssignments", assignmentsArray)
                 
                 val buttonsArray = JSONArray()
                 profile.buttonConfigs.forEach { btn ->
@@ -86,6 +104,21 @@ class ProfileManager(private val context: Context) {
                 val name = profileObj.getString("name")
                 val isUnidirectional = profileObj.optBoolean("isThrottleUnidirectional", false)
                 val sensitivity = profileObj.optDouble("sensitivity", 1.0).toFloat()
+                val assignments = mutableListOf<AuxAssignment>()
+                if (profileObj.has("auxAssignments")) {
+                    val assignmentsArray = profileObj.getJSONArray("auxAssignments")
+                    for (k in 0 until assignmentsArray.length()) {
+                        val assignObj = assignmentsArray.getJSONObject(k)
+                        assignments.add(
+                            AuxAssignment(
+                                id = assignObj.getInt("id"),
+                                slot = assignObj.optInt("slot", 0),
+                                servoId = assignObj.optInt("servoId", assignObj.getInt("id")),
+                                role = assignObj.optString("role", "")
+                            )
+                        )
+                    }
+                }
                 
                 val buttons = mutableListOf<ButtonConfig>()
                 val buttonsArray = profileObj.getJSONArray("buttons")
@@ -101,7 +134,7 @@ class ProfileManager(private val context: Context) {
                         )
                     )
                 }
-                profiles.add(Profile(id, name, buttons, isUnidirectional, sensitivity))
+                profiles.add(Profile(id, name, buttons, isUnidirectional, sensitivity, assignments))
             }
             
             // If we successfully loaded plain text, save it back as encrypted immediately

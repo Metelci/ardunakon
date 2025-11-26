@@ -1,6 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -9,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -27,6 +30,15 @@ fun ProfileEditorDialog(
     var isUnidirectional by remember { mutableStateOf(profile?.isThrottleUnidirectional ?: false) }
     var buttonConfigs by remember { 
         mutableStateOf(profile?.buttonConfigs ?: com.metelci.ardunakon.model.defaultButtonConfigs) 
+    }
+    val pastelBrush = remember {
+        Brush.horizontalGradient(
+            colors = listOf(
+                Color(0xFFFCE4EC),
+                Color(0xFFE3F2FD),
+                Color(0xFFE8F5E9)
+            )
+        )
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -120,10 +132,18 @@ fun ProfileEditorDialog(
                 // Actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = Color(0xFFB2BEC3))
+                    TextButton(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
+                        modifier = Modifier
+                            .shadow(2.dp, RoundedCornerShape(12.dp))
+                            .background(pastelBrush, RoundedCornerShape(12.dp))
+                            .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
+                    ) {
+                        Text("Cancel", color = Color(0xFF2D3436))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -137,9 +157,13 @@ fun ProfileEditorDialog(
                             )
                             onSave(newProfile)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00B894))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                        modifier = Modifier
+                            .shadow(2.dp, RoundedCornerShape(12.dp))
+                            .background(pastelBrush, RoundedCornerShape(12.dp))
+                            .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
                     ) {
-                        Text("Save")
+                        Text("Save", color = Color(0xFF2D3436))
                     }
                 }
             }

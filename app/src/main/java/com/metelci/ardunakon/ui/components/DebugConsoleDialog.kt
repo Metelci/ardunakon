@@ -9,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.draw.shadow
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -102,10 +104,22 @@ fun DebugConsoleDialog(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF74B9FF))
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(2.dp, RoundedCornerShape(12.dp))
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFFFCE4EC),
+                                    Color(0xFFE3F2FD),
+                                    Color(0xFFE8F5E9)
+                                )
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
                 ) {
-                    Text("Close", color = Color.Black)
+                    Text("Close", color = Color(0xFF2D3436))
                 }
             }
         }
