@@ -124,6 +124,17 @@ fun TerminalDialog(
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("Enter command...", fontSize = 14.sp) },
                         singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Send
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onSend = {
+                                if (inputText.isNotBlank()) {
+                                    onSendCommand(inputText)
+                                    inputText = ""
+                                }
+                            }
+                        ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF74B9FF),
                             unfocusedBorderColor = Color(0xFFB0BEC5)

@@ -1097,6 +1097,7 @@ fun StatusCard(label: String, state: ConnectionState, rssi: Int, onClick: () -> 
 
 @Composable
 fun AuxButton(assigned: AssignedAux, manager: AppBluetoothManager) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     Box(
         modifier = Modifier
             .size(width = 110.dp, height = 64.dp)
@@ -1111,6 +1112,7 @@ fun AuxButton(assigned: AssignedAux, manager: AppBluetoothManager) {
                 )
             )
             .clickable {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                 val data = ProtocolManager.formatButtonData(assigned.servoId, true)
                 manager.sendDataToSlot(data, assigned.slot)
             }

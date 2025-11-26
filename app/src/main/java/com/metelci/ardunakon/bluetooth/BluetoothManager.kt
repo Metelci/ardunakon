@@ -289,9 +289,32 @@ class AppBluetoothManager(private val context: Context) {
         _connectionStates.value = list
         
         when(state) {
-            ConnectionState.CONNECTED -> log("Connected to Slot ${slot + 1}!", LogType.SUCCESS)
-            ConnectionState.ERROR -> log("Connection error on Slot ${slot + 1}", LogType.ERROR)
+            ConnectionState.CONNECTED -> {
+                log("Connected to Slot ${slot + 1}!", LogType.SUCCESS)
+                vibrate(200) // Long vibration for connection
+            }
+            ConnectionState.DISCONNECTED -> {
+                // Only vibrate if it was previously connected or connecting (avoid noise on startup)
+                vibrate(100) // Short vibration for disconnection
+            }
+            ConnectionState.ERROR -> {
+                log("Connection error on Slot ${slot + 1}", LogType.ERROR)
+                vibrate(500) // Very long vibration for error
+            }
             else -> {}
+        }
+    }
+
+    private fun vibrate(durationMs: Long) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
+            val vibrator = vibratorManager.defaultVibrator
+            vibrator.vibrate(android.os.VibrationEffect.createOneShot(durationMs, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(durationMs)
         }
     }
 
