@@ -22,7 +22,20 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
 
+// Standard SPP UUID (HC-06, Texas Instruments, Microchip, Telit Bluemod)
 private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+
+// Manufacturer-specific UUIDs for HC-06 variants
+private val MANUFACTURER_UUIDS = listOf(
+    // Standard SPP - Most HC-06 modules (Texas Instruments, Microchip, Telit)
+    UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"),
+    // Nordic Semiconductor nRF51822-based HC-06 clones
+    UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb"),
+    // Alternative Nordic UART Service
+    UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e"),
+    // Some HC-06 clones use non-standard UUIDs
+    UUID.fromString("00001106-0000-1000-8000-00805F9B34FB")
+)
 
 enum class ConnectionState {
     DISCONNECTED,
@@ -93,6 +106,9 @@ class AppBluetoothManager(private val context: Context) {
         }
     }
 
+    // Scan timeout job - only one active at a time
+    private var scanJob: Job? = null
+
     private val receiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == BluetoothDevice.ACTION_FOUND) {
@@ -152,13 +168,22 @@ class AppBluetoothManager(private val context: Context) {
             return
         }
         if (adapter == null || !adapter.isEnabled) return
+
+        // Cancel any previous scan job to prevent multiple timeouts
+        scanJob?.cancel()
+
         _scannedDevices.value = emptyList()
         try {
             if (adapter.isDiscovering) adapter.cancelDiscovery()
             adapter.startDiscovery()
             leScanner?.stopScan(leScanCallback)
             leScanner?.startScan(leScanCallback)
-            scope.launch { delay(10000); stopScan() }
+
+            // Start new scan timeout
+            scanJob = scope.launch {
+                delay(10000)
+                stopScan()
+            }
         } catch (e: SecurityException) {
             Log.e("BT", "Permission missing for scan", e)
             log("Scan failed: Permission missing", LogType.ERROR)
@@ -168,6 +193,7 @@ class AppBluetoothManager(private val context: Context) {
     }
 
     fun stopScan() {
+        scanJob?.cancel()
         adapter?.cancelDiscovery()
         try { leScanner?.stopScan(leScanCallback) } catch (e: Exception) {}
     }
@@ -276,6 +302,19 @@ class AppBluetoothManager(private val context: Context) {
     }
 
     fun cleanup() {
+        // Cancel the coroutine scope to prevent leaks
+        scope.cancel()
+
+        // Cancel scan job if active
+        scanJob?.cancel()
+
+        // Disconnect all active connections
+        for (i in 0..1) {
+            connections[i]?.cancel()
+            connections[i] = null
+        }
+
+        // Unregister broadcast receiver
         try {
             context.unregisterReceiver(receiver)
         } catch (e: IllegalArgumentException) {
@@ -326,21 +365,33 @@ class AppBluetoothManager(private val context: Context) {
             adapter?.cancelDiscovery()
 
             log("Starting connection to ${device.name} (${device.address})", LogType.INFO)
-            log("Using SPP UUID: $SPP_UUID", LogType.INFO)
 
             var connected = false
-            
-            // Attempt 1: Insecure Connection (Primary for HC-06)
-            try {
-                log("Attempting INSECURE connection...", LogType.INFO)
-                socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
-                socket?.connect()
-                connected = true
-                log("Insecure connection established.", LogType.SUCCESS)
-            } catch (e: Exception) {
-                Log.w("BT", "Insecure connection failed", e)
-                log("Insecure connection failed: ${e.message}", LogType.WARNING)
-                try { socket?.close() } catch (e2: Exception) {}
+
+            // Attempt 1: Try all manufacturer-specific UUIDs with insecure connection
+            for ((index, uuid) in MANUFACTURER_UUIDS.withIndex()) {
+                if (connected) break
+
+                try {
+                    val uuidDesc = when (index) {
+                        0 -> "Standard SPP (TI/Microchip/Telit)"
+                        1 -> "Nordic nRF51822 variant"
+                        2 -> "Nordic UART Service"
+                        3 -> "Alternative SPP"
+                        else -> "UUID $index"
+                    }
+
+                    log("Attempting INSECURE connection with $uuidDesc...", LogType.INFO)
+                    socket = device.createInsecureRfcommSocketToServiceRecord(uuid)
+                    socket?.connect()
+                    connected = true
+                    log("Connected successfully with $uuidDesc", LogType.SUCCESS)
+                } catch (e: Exception) {
+                    Log.w("BT", "UUID $index failed", e)
+                    try { socket?.close() } catch (e2: Exception) {}
+                    // Try next UUID
+                    try { Thread.sleep(200) } catch (e: InterruptedException) {}
+                }
             }
 
             // Attempt 2: Reflection Method (Port 1 Hack) - Fallback for stubborn HC-06
@@ -354,10 +405,46 @@ class AppBluetoothManager(private val context: Context) {
                     socket = m.invoke(device, 1) as BluetoothSocket
                     socket?.connect()
                     connected = true
-                    log("Reflection connection established.", LogType.SUCCESS)
+                    log("Reflection Port 1 connection established.", LogType.SUCCESS)
                 } catch (e: Exception) {
-                    Log.e("BT", "Reflection connection failed", e)
-                    log("Reflection connection failed: ${e.message}", LogType.ERROR)
+                    Log.w("BT", "Reflection Port 1 failed", e)
+                    try { socket?.close() } catch (e2: Exception) {}
+                }
+            }
+
+            // Attempt 3: Reflection Method (Multiple Ports) - Some manufacturers use different ports
+            if (!connected) {
+                for (port in listOf(2, 3, 4, 5)) {
+                    try {
+                        try { Thread.sleep(300) } catch (e: InterruptedException) {}
+
+                        log("Attempting REFLECTION connection (Port $port)...", LogType.WARNING)
+                        val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                        socket = m.invoke(device, port) as BluetoothSocket
+                        socket?.connect()
+                        connected = true
+                        log("Reflection Port $port connection established.", LogType.SUCCESS)
+                        break
+                    } catch (e: Exception) {
+                        Log.w("BT", "Reflection Port $port failed", e)
+                        try { socket?.close() } catch (e2: Exception) {}
+                    }
+                }
+            }
+
+            // Attempt 4: Secure connection (last resort - some HC-06 won't accept this)
+            if (!connected) {
+                try {
+                    try { Thread.sleep(500) } catch (e: InterruptedException) {}
+
+                    log("Attempting SECURE connection (last resort)...", LogType.WARNING)
+                    socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                    socket?.connect()
+                    connected = true
+                    log("Secure connection established.", LogType.SUCCESS)
+                } catch (e: Exception) {
+                    Log.e("BT", "Secure connection failed", e)
+                    log("All connection attempts failed: ${e.message}", LogType.ERROR)
                     try { socket?.close() } catch (e2: Exception) {}
                 }
             }
@@ -458,15 +545,39 @@ class AppBluetoothManager(private val context: Context) {
         private var bluetoothGatt: android.bluetooth.BluetoothGatt? = null
         private var txCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
 
-        // HM-10 / HC-08 Default UUIDs
-        private val SERVICE_UUID = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
-        private val CHAR_UUID = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
+        // HC-08 / HM-10 BLE Module UUID Variants
+        // Different manufacturers and firmware versions use different UUIDs
 
-        // Client Characteristic Configuration Descriptor (CCCD) for notifications
+        // Variant 1: Most common HC-08 and HM-10 modules (JNHuaMao, DSD TECH)
+        private val SERVICE_UUID_V1 = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
+        private val CHAR_UUID_V1 = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
+
+        // Variant 2: Nordic UART Service (Some HM-10 clones, Nordic-based HC-08)
+        private val SERVICE_UUID_V2 = UUID.fromString("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
+        private val CHAR_UUID_TX_V2 = UUID.fromString("6E400002-B5A3-F393-E0A9-E50E24DCCA9E") // TX (write)
+        private val CHAR_UUID_RX_V2 = UUID.fromString("6E400003-B5A3-F393-E0A9-E50E24DCCA9E") // RX (notify)
+
+        // Variant 3: Some HM-10 firmware versions (TI CC2540/CC2541)
+        private val SERVICE_UUID_V3 = UUID.fromString("0000FFF0-0000-1000-8000-00805F9B34FB")
+        private val CHAR_UUID_V3 = UUID.fromString("0000FFF1-0000-1000-8000-00805F9B34FB")
+
+        // Variant 4: Alternative HC-08 firmware
+        private val SERVICE_UUID_V4 = UUID.fromString("0000FFE5-0000-1000-8000-00805F9B34FB")
+        private val CHAR_UUID_V4 = UUID.fromString("0000FFE9-0000-1000-8000-00805F9B34FB")
+
+        // Client Characteristic Configuration Descriptor (CCCD) for notifications - standard
         private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
+
+        // Track which variant was successful
+        private var detectedVariant: Int = 0
 
         private var connectionJob: Job? = null
         private var pollingJob: Job? = null
+
+        // Write queue management - prevent write collisions
+        private val writeQueue = java.util.concurrent.LinkedBlockingQueue<ByteArray>()
+        private var writeJob: Job? = null
+        @Volatile private var isWriting = false
 
         @SuppressLint("MissingPermission")
         fun connect() {
@@ -514,9 +625,36 @@ class AppBluetoothManager(private val context: Context) {
             @SuppressLint("MissingPermission")
             override fun onConnectionStateChange(gatt: android.bluetooth.BluetoothGatt, status: Int, newState: Int) {
                 connectionJob?.cancel() // Cancel timeout
+
+                // Validate GATT status first - critical for preventing phantom connections
+                if (status != android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+                    log("BLE GATT operation failed with status: $status", LogType.ERROR)
+                    updateConnectionState(slot, ConnectionState.ERROR)
+                    pollingJob?.cancel()
+                    connections[slot] = null
+                    gatt.close()
+                    updateRssi(slot, 0)
+                    return
+                }
+
                 if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
                     log("BLE Connected to GATT server.", LogType.SUCCESS)
                     updateConnectionState(slot, ConnectionState.CONNECTED)
+
+                    // Request MTU increase for better throughput (default is 23 bytes, request 512)
+                    // This allows larger packets and reduces overhead for 20Hz joystick data
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        val mtuRequested = gatt.requestMtu(512)
+                        if (mtuRequested) {
+                            log("BLE MTU negotiation requested (512 bytes)", LogType.INFO)
+                        }
+                    }
+
+                    // Request connection priority HIGH for low latency (important for real-time control)
+                    // This reduces connection interval for faster data transmission
+                    gatt.requestConnectionPriority(android.bluetooth.BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                    log("BLE High priority connection requested", LogType.INFO)
+
                     // Discover services
                     gatt.discoverServices()
                     startRssiPolling()
@@ -536,35 +674,129 @@ class AppBluetoothManager(private val context: Context) {
                 }
             }
 
-            @SuppressLint("MissingPermission")
-            override fun onServicesDiscovered(gatt: android.bluetooth.BluetoothGatt, status: Int) {
+            override fun onMtuChanged(gatt: android.bluetooth.BluetoothGatt?, mtu: Int, status: Int) {
                 if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
-                    val service = gatt.getService(SERVICE_UUID)
-                    if (service != null) {
-                        txCharacteristic = service.getCharacteristic(CHAR_UUID)
-                        if (txCharacteristic != null) {
-                            log("BLE Service & Characteristic found.", LogType.SUCCESS)
-                            
-                            // Enable Notifications
-                            gatt.setCharacteristicNotification(txCharacteristic, true)
-                            val descriptor = txCharacteristic!!.getDescriptor(CCCD_UUID)
-                            if (descriptor != null) {
-                                descriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                                gatt.writeDescriptor(descriptor)
-                            }
-                        } else {
-                            log("BLE Characteristic not found!", LogType.ERROR)
-                        }
-                    } else {
-                        log("BLE Service not found!", LogType.ERROR)
-                    }
+                    log("BLE MTU changed to $mtu bytes (effective payload: ${mtu - 3} bytes)", LogType.SUCCESS)
                 } else {
-                    log("BLE Service discovery failed: $status", LogType.ERROR)
+                    log("BLE MTU negotiation failed, using default 23 bytes", LogType.WARNING)
                 }
             }
 
+            @SuppressLint("MissingPermission")
+            override fun onServicesDiscovered(gatt: android.bluetooth.BluetoothGatt, status: Int) {
+                if (status != android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+                    log("BLE Service discovery failed: $status", LogType.ERROR)
+                    return
+                }
+
+                // Try all UUID variants to find the correct one for this module
+                var serviceFound = false
+
+                // Variant 1: Standard HC-08/HM-10 (FFE0/FFE1) - Most common
+                var service = gatt.getService(SERVICE_UUID_V1)
+                if (service != null) {
+                    val char = service.getCharacteristic(CHAR_UUID_V1)
+                    if (char != null) {
+                        txCharacteristic = char
+                        detectedVariant = 1
+                        serviceFound = true
+                        log("BLE Module detected: Standard HC-08/HM-10 (FFE0/FFE1)", LogType.SUCCESS)
+                    }
+                }
+
+                // Variant 2: Nordic UART Service (NUS)
+                if (!serviceFound) {
+                    service = gatt.getService(SERVICE_UUID_V2)
+                    if (service != null) {
+                        // Nordic uses separate TX and RX characteristics
+                        val txChar = service.getCharacteristic(CHAR_UUID_TX_V2)
+                        val rxChar = service.getCharacteristic(CHAR_UUID_RX_V2)
+                        if (txChar != null) {
+                            txCharacteristic = txChar // Use TX for writing
+                            detectedVariant = 2
+                            serviceFound = true
+                            log("BLE Module detected: Nordic UART Service (NUS)", LogType.SUCCESS)
+
+                            // Enable notifications on RX characteristic if available
+                            if (rxChar != null) {
+                                gatt.setCharacteristicNotification(rxChar, true)
+                                val rxDescriptor = rxChar.getDescriptor(CCCD_UUID)
+                                if (rxDescriptor != null) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        gatt.writeDescriptor(rxDescriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                                    } else {
+                                        @Suppress("DEPRECATION")
+                                        rxDescriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                        @Suppress("DEPRECATION")
+                                        gatt.writeDescriptor(rxDescriptor)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Variant 3: TI CC2540/CC2541 HM-10 (FFF0/FFF1)
+                if (!serviceFound) {
+                    service = gatt.getService(SERVICE_UUID_V3)
+                    if (service != null) {
+                        val char = service.getCharacteristic(CHAR_UUID_V3)
+                        if (char != null) {
+                            txCharacteristic = char
+                            detectedVariant = 3
+                            serviceFound = true
+                            log("BLE Module detected: TI CC254x HM-10 (FFF0/FFF1)", LogType.SUCCESS)
+                        }
+                    }
+                }
+
+                // Variant 4: Alternative HC-08 (FFE5/FFE9)
+                if (!serviceFound) {
+                    service = gatt.getService(SERVICE_UUID_V4)
+                    if (service != null) {
+                        val char = service.getCharacteristic(CHAR_UUID_V4)
+                        if (char != null) {
+                            txCharacteristic = char
+                            detectedVariant = 4
+                            serviceFound = true
+                            log("BLE Module detected: Alternative HC-08 (FFE5/FFE9)", LogType.SUCCESS)
+                        }
+                    }
+                }
+
+                if (serviceFound && txCharacteristic != null) {
+                    // Start write queue processor
+                    startWriteQueue()
+
+                    // Enable Notifications on TX characteristic (except Nordic which was handled above)
+                    if (detectedVariant != 2) {
+                        gatt.setCharacteristicNotification(txCharacteristic, true)
+                        val descriptor = txCharacteristic!!.getDescriptor(CCCD_UUID)
+                        if (descriptor != null) {
+                            // Use API 33+ method or legacy method based on SDK version
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                gatt.writeDescriptor(descriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                descriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                @Suppress("DEPRECATION")
+                                gatt.writeDescriptor(descriptor)
+                            }
+                        }
+                    }
+                } else {
+                    log("BLE Service/Characteristic not found! Module may use unsupported UUIDs.", LogType.ERROR)
+                    // Log all available services for debugging
+                    gatt.services?.forEach { svc ->
+                        log("Available service: ${svc.uuid}", LogType.INFO)
+                    }
+                }
+            }
+
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             override fun onCharacteristicChanged(gatt: android.bluetooth.BluetoothGatt, characteristic: android.bluetooth.BluetoothGattCharacteristic) {
-                // Incoming data
+                // Incoming data - using legacy callback for compatibility
+                @Suppress("DEPRECATION")
                 val data = characteristic.value
                 if (data != null && data.isNotEmpty()) {
                     try {
@@ -574,15 +806,78 @@ class AppBluetoothManager(private val context: Context) {
                     }
                 }
             }
+
+            // API 33+ callback for characteristic changes
+            override fun onCharacteristicChanged(
+                gatt: android.bluetooth.BluetoothGatt,
+                characteristic: android.bluetooth.BluetoothGattCharacteristic,
+                value: ByteArray
+            ) {
+                // Modern callback - value provided directly
+                if (value.isNotEmpty()) {
+                    try {
+                        parseTelemetry(value)
+                    } catch (e: Exception) {
+                        // Ignore parsing errors
+                    }
+                }
+            }
+        }
+
+        private fun startWriteQueue() {
+            writeJob?.cancel()
+            writeJob = scope.launch {
+                while (isActive) {
+                    try {
+                        // Take from queue (blocking call)
+                        val data = writeQueue.take()
+
+                        // Skip if disconnected
+                        if (bluetoothGatt == null || txCharacteristic == null) continue
+
+                        // Perform actual write
+                        performWrite(data)
+
+                        // Small delay to prevent overwhelming BLE stack
+                        // BLE can typically handle ~100 packets/sec, we're sending at 20Hz (50ms)
+                        delay(10) // Extra 10ms buffer for safety
+                    } catch (e: InterruptedException) {
+                        // Queue interrupted, exit gracefully
+                        break
+                    } catch (e: Exception) {
+                        Log.e("BT", "Write queue error", e)
+                    }
+                }
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        private fun performWrite(bytes: ByteArray) {
+            // Use safe let-binding to prevent race conditions
+            val gatt = bluetoothGatt ?: return
+            val char = txCharacteristic ?: return
+
+            // Use API 33+ method or legacy method based on SDK version
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                gatt.writeCharacteristic(char, bytes, android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
+            } else {
+                @Suppress("DEPRECATION")
+                char.value = bytes
+                // Write type: NO_RESPONSE is faster and usually standard for UART
+                @Suppress("DEPRECATION")
+                char.writeType = android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                @Suppress("DEPRECATION")
+                gatt.writeCharacteristic(char)
+            }
         }
 
         @SuppressLint("MissingPermission")
         override fun write(bytes: ByteArray) {
-            if (bluetoothGatt != null && txCharacteristic != null) {
-                txCharacteristic!!.value = bytes
-                // Write type: NO_RESPONSE is faster and usually standard for UART
-                txCharacteristic!!.writeType = android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-                bluetoothGatt!!.writeCharacteristic(txCharacteristic)
+            // Add to queue instead of writing directly
+            // If queue is full (shouldn't happen at 20Hz), drop oldest packet
+            if (!writeQueue.offer(bytes)) {
+                writeQueue.poll() // Remove oldest
+                writeQueue.offer(bytes) // Add new
             }
         }
 
@@ -590,6 +885,8 @@ class AppBluetoothManager(private val context: Context) {
         override fun cancel() {
             connectionJob?.cancel()
             pollingJob?.cancel()
+            writeJob?.cancel()
+            writeQueue.clear()
             bluetoothGatt?.disconnect()
             bluetoothGatt?.close()
             bluetoothGatt = null

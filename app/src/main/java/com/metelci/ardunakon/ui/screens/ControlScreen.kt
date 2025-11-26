@@ -321,52 +321,60 @@ fun ControlScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Profile & Debug
+        // Profile & Debug - Compact buttons
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 48.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(
                 onClick = { showProfileSelector = true },
                 colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 modifier = Modifier
                     .weight(1f)
-                    .shadow(2.dp, RoundedCornerShape(12.dp))
-                    .background(pastelBrush, RoundedCornerShape(12.dp))
-                    .border(2.dp, Color(0xFF2D3436), RoundedCornerShape(12.dp))
+                    .height(32.dp)
+                    .shadow(1.dp, RoundedCornerShape(8.dp))
+                    .background(pastelBrush, RoundedCornerShape(8.dp))
+                    .border(1.dp, Color(0xFF2D3436), RoundedCornerShape(8.dp))
             ) {
-                Text("Profile", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2D3436))
+                Text("Profile", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2D3436))
             }
             Spacer(modifier = Modifier.width(4.dp))
             TextButton(
                 onClick = { showAuxAssignDialog = true },
                 colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 modifier = Modifier
                     .weight(1f)
-                    .shadow(2.dp, RoundedCornerShape(12.dp))
-                    .background(pastelBrush, RoundedCornerShape(12.dp))
-                    .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
+                    .height(32.dp)
+                    .shadow(1.dp, RoundedCornerShape(8.dp))
+                    .background(pastelBrush, RoundedCornerShape(8.dp))
+                    .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(8.dp))
             ) {
-                Text("Aux", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2D3436))
+                Text("Aux", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2D3436))
             }
             Spacer(modifier = Modifier.width(4.dp))
             TextButton(
                 onClick = { showDebugConsole = true },
                 colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 modifier = Modifier
                     .weight(1f)
-                    .shadow(2.dp, RoundedCornerShape(12.dp))
-                    .background(pastelBrush, RoundedCornerShape(12.dp))
-                    .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
+                    .height(32.dp)
+                    .shadow(1.dp, RoundedCornerShape(8.dp))
+                    .background(pastelBrush, RoundedCornerShape(8.dp))
+                    .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(8.dp))
         ) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = "Open Debug Console",
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(2.dp))
-                Text("Debug", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2D3436))
+                Text("Debug", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2D3436))
             }
         }
 
@@ -378,7 +386,7 @@ fun ControlScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Aux Buttons Column
+            // Left Aux Buttons Column (Device 1 / Slot 0)
             Column(
                 modifier = Modifier
                     .weight(0.2f)
@@ -386,7 +394,7 @@ fun ControlScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                activeAuxButtons.filter { it.config.id <= 2 }.forEach { assigned ->
+                activeAuxButtons.filter { it.slot == 0 }.forEach { assigned ->
                     AuxButton(assigned, bluetoothManager)
                 }
             }
@@ -442,7 +450,7 @@ fun ControlScreen(
                 }
             }
 
-            // Right Aux Buttons Column
+            // Right Aux Buttons Column (Device 2 / Slot 1)
             Column(
                 modifier = Modifier
                     .weight(0.2f)
@@ -450,7 +458,7 @@ fun ControlScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                activeAuxButtons.filter { it.config.id > 2 }.forEach { assigned ->
+                activeAuxButtons.filter { it.slot == 1 }.forEach { assigned ->
                     AuxButton(assigned, bluetoothManager)
                 }
             }
