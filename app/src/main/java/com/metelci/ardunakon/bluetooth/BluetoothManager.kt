@@ -465,25 +465,69 @@ class AppBluetoothManager(private val context: Context) {
         // Client Characteristic Configuration Descriptor (CCCD) for notifications
         private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
 
+        private var connectionJob: Job? = null
+
         @SuppressLint("MissingPermission")
         fun connect() {
             log("Connecting to BLE device ${device.name}...", LogType.INFO)
+            connectGattWithTimeout()
+        }
+
+        @SuppressLint("MissingPermission")
+        private fun connectGattWithTimeout() {
             bluetoothGatt = device.connectGatt(context, false, gattCallback)
+            
+            // Timeout logic
+            connectionJob = scope.launch {
+                delay(10000) // 10 second timeout
+                if (connections[slot] == this@BleConnection && 
+                    _connectionStates.value[slot] != ConnectionState.CONNECTED) {
+                    log("BLE Connection timed out. Retrying...", LogType.WARNING)
+                    bluetoothGatt?.close()
+                    bluetoothGatt = null
+                    // Simple retry once or switch to autoConnect=true could be better, 
+                    // but for now let's just try one more direct connect after a brief pause
+                    delay(500)
+                    bluetoothGatt = device.connectGatt(context, false, gattCallback)
+                }
+            }
+        }
+
+        private fun startRssiPolling() {
+            scope.launch {
+                while (isActive && bluetoothGatt != null) {
+                    delay(2000) // Poll every 2 seconds
+                    try {
+                        bluetoothGatt?.readRemoteRssi()
+                    } catch (e: SecurityException) {
+                        Log.e("BT", "RSSI read failed", e)
+                    }
+                }
+            }
         }
 
         private val gattCallback = object : android.bluetooth.BluetoothGattCallback() {
             @SuppressLint("MissingPermission")
             override fun onConnectionStateChange(gatt: android.bluetooth.BluetoothGatt, status: Int, newState: Int) {
+                connectionJob?.cancel() // Cancel timeout
                 if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
                     log("BLE Connected to GATT server.", LogType.SUCCESS)
                     updateConnectionState(slot, ConnectionState.CONNECTED)
                     // Discover services
                     gatt.discoverServices()
+                    startRssiPolling()
                 } else if (newState == android.bluetooth.BluetoothProfile.STATE_DISCONNECTED) {
                     log("BLE Disconnected from GATT server.", LogType.WARNING)
                     updateConnectionState(slot, ConnectionState.DISCONNECTED)
                     connections[slot] = null
                     gatt.close() // Critical: Prevent resource leak
+                    updateRssi(slot, 0)
+                }
+            }
+
+            override fun onReadRemoteRssi(gatt: android.bluetooth.BluetoothGatt?, rssi: Int, status: Int) {
+                if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+                    updateRssi(slot, rssi)
                 }
             }
 
@@ -539,6 +583,7 @@ class AppBluetoothManager(private val context: Context) {
 
         @SuppressLint("MissingPermission")
         override fun cancel() {
+            connectionJob?.cancel()
             bluetoothGatt?.disconnect()
             bluetoothGatt?.close()
             bluetoothGatt = null

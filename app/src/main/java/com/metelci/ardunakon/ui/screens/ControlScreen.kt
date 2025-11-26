@@ -69,6 +69,7 @@ import com.metelci.ardunakon.data.AuxAssignment
 import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.ui.components.JoystickControl
+import com.metelci.ardunakon.ui.components.SignalStrengthIcon
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -199,22 +200,34 @@ fun ControlScreen(
             } else {
                 if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
             }
-            val statusText = if (anyConnected) "Bluetooth Connected" else "Bluetooth Disconnected"
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Bluetooth,
-                    contentDescription = statusText,
-                    tint = statusColor
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = if (anyConnected) "Connected" else "Disconnected",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { showDeviceList = 0 }) {
+                    Icon(
+                        imageVector = Icons.Default.Bluetooth,
+                        contentDescription = "Bluetooth",
+                        tint = statusColor,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                
+                // Display RSSI for connected devices
+                if (anyConnected) {
+                    val connectedSlot = connectionStates.indexOfFirst { it == ConnectionState.CONNECTED }
+                    if (connectedSlot != -1) {
+                        SignalStrengthIcon(
+                            rssi = rssiValues[connectedSlot],
+                            color = statusColor
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Disconnected",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
             }
 
             IconButton(
@@ -921,8 +934,19 @@ fun ControlScreen(
                                 
                                 IconButton(onClick = {
                                     if (profiles.size > 1) {
+                                        val wasSelected = index == currentProfileIndex
+                                        val isBeforeSelected = index < currentProfileIndex
+                                        
                                         profiles.removeAt(index)
                                         profileManager.saveProfiles(profiles)
+                                        
+                                        if (isBeforeSelected) {
+                                            currentProfileIndex--
+                                        } else if (wasSelected) {
+                                            // If we deleted the selected profile, select the first one (or stay at 0 if it was 0)
+                                            currentProfileIndex = 0
+                                        }
+                                        // Ensure valid range
                                         if (currentProfileIndex >= profiles.size) currentProfileIndex = 0
                                     }
                                 }) {
