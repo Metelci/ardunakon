@@ -1035,21 +1035,25 @@ fun AuxButton(assigned: AssignedAux, manager: AppBluetoothManager) {
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .size(width = 110.dp, height = 64.dp)
-            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .shadow(6.dp, RoundedCornerShape(16.dp))
             .background(
-                brush = Brush.horizontalGradient(
+                brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFFCE4EC),
-                        Color(0xFFE3F2FD),
-                        Color(0xFFE8F5E9)
+                        Color(0xFF2980B9), // Deep Blue
+                        Color(0xFF6DD5FA)  // Cyan
                     )
                 ),
                 shape = RoundedCornerShape(16.dp)
             )
-            .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(16.dp)),
-        elevation = ButtonDefaults.buttonElevation(4.dp, 2.dp)
+            .border(1.dp, Color(0x80FFFFFF), RoundedCornerShape(16.dp)), // Semi-transparent white border
+        elevation = ButtonDefaults.buttonElevation(8.dp, 4.dp)
     ) {
         val roleSuffix = if (assigned.role.isNotBlank()) " • ${assigned.role}" else ""
-        Text("${assigned.config.label} (S${assigned.slot + 1}→${assigned.servoId})$roleSuffix", color = Color(0xFF2D3436))
+        Text(
+            "${assigned.config.label} (S${assigned.slot + 1}→${assigned.servoId})$roleSuffix", 
+            color = Color.White,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+        )
     }
 }
