@@ -77,7 +77,10 @@ fun JoystickControl(
                         (newPos.x - center.x).pow(2) + (newPos.y - center.y).pow(2)
                     )
 
-                    if (distance <= radius) {
+                    if (distance < radius * 0.1f) {
+                        // Deadzone: Snap to center
+                        knobPosition = center
+                    } else if (distance <= radius) {
                         knobPosition = newPos
                     } else {
                         // Constrain to circle

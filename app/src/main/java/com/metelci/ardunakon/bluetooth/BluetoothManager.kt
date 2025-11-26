@@ -307,6 +307,9 @@ class AppBluetoothManager(private val context: Context) {
             // Attempt 2: Insecure Connection (Fallback)
             if (!connected) {
                 try {
+                    // Give the stack time to reset
+                    try { Thread.sleep(500) } catch (e: InterruptedException) {}
+                    
                     log("Attempting INSECURE connection (fallback)...", LogType.WARNING)
                     socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
                     socket?.connect()
