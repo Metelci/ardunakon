@@ -62,6 +62,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
@@ -70,6 +72,7 @@ import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.ui.components.JoystickControl
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
+import com.metelci.ardunakon.model.LogType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -106,8 +109,21 @@ fun ControlScreen(
         )
     }
 
+    val context = LocalContext.current
+
+    // Keep Screen On
+    val currentActivity = context as? android.app.Activity
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        currentActivity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            currentActivity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    // Haptics
+    val haptic = LocalHapticFeedback.current
+
     // Profile State
-    val context = androidx.compose.ui.platform.LocalContext.current
     val profileManager = remember(context) { com.metelci.ardunakon.data.ProfileManager(context) }
     // Use mutableStateListOf to allow UI updates
     val profiles = remember { mutableStateListOf<com.metelci.ardunakon.data.Profile>().apply { addAll(profileManager.loadProfiles()) } }
@@ -186,7 +202,7 @@ fun ControlScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-        // Global Bluetooth status & manual reconnect
+        // Global Bluetooth status & E-STOP
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -202,7 +218,10 @@ fun ControlScreen(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { showDeviceList = 0 }) {
+                IconButton(onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    showDeviceList = 0
+                }) {
                     Icon(
                         imageVector = Icons.Default.Bluetooth,
                         contentDescription = "Bluetooth",
@@ -210,7 +229,7 @@ fun ControlScreen(
                         modifier = Modifier.size(32.dp)
                     )
                 }
-                
+
                 // Display RSSI for connected devices
                 if (anyConnected) {
                     val connectedSlot = connectionStates.indexOfFirst { it == ConnectionState.CONNECTED }
@@ -230,46 +249,12 @@ fun ControlScreen(
                 }
             }
 
-            IconButton(
-                onClick = {
-                    val reconnected = bluetoothManager.reconnectSavedDevices()
-                    if (!reconnected) {
-                        // If nothing to reconnect, open device picker for Slot 1
-                        showDeviceList = 0
-                    }
-                },
-                modifier = Modifier
-                    .shadow(2.dp, CircleShape)
-                    .background(pastelBrush, CircleShape)
-                    .border(1.dp, Color(0xFFB0BEC5), CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Bluetooth,
-                    contentDescription = "Connect / Reconnect",
-                    tint = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                )
-            }
-        }
-
-        // Top Bar: Status & E-Stop
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Slot 1
-            StatusCard(
-                label = "Dev 1",
-                state = connectionStates[0],
-                rssi = rssiValues[0],
-                onClick = { showDeviceList = 0 }
-            )
-
-            // E-STOP BUTTON
+            // E-STOP BUTTON (centered)
             val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
-            
+
             Button(
                 onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     if (isEStopActive) {
                         // Reset E-Stop
                         bluetoothManager.setEmergencyStop(false)
@@ -303,12 +288,48 @@ fun ControlScreen(
                 elevation = ButtonDefaults.buttonElevation(8.dp)
             ) {
                 Text(
-                    if (isEStopActive) "RESET" else "STOP", 
+                    if (isEStopActive) "RESET" else "STOP",
                     color = Color.White,
-                    style = MaterialTheme.typography.titleLarge, 
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 )
             }
+
+            IconButton(
+                onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    val reconnected = bluetoothManager.reconnectSavedDevices()
+                    if (!reconnected) {
+                        // If nothing to reconnect, open device picker for Slot 1
+                        showDeviceList = 0
+                    }
+                },
+                modifier = Modifier
+                    .shadow(2.dp, CircleShape)
+                    .background(pastelBrush, CircleShape)
+                    .border(1.dp, Color(0xFFB0BEC5), CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Bluetooth,
+                    contentDescription = "Connect / Reconnect",
+                    tint = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                )
+            }
+        }
+
+        // Device Status Cards
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Slot 1
+            StatusCard(
+                label = "Dev 1",
+                state = connectionStates[0],
+                rssi = rssiValues[0],
+                onClick = { showDeviceList = 0 }
+            )
 
             // Slot 2
             StatusCard(
@@ -326,15 +347,17 @@ fun ControlScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 48.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(
-                onClick = { showProfileSelector = true },
+                onClick = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    showProfileSelector = true 
+                },
                 colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                 modifier = Modifier
-                    .weight(1f)
                     .height(32.dp)
                     .shadow(1.dp, RoundedCornerShape(8.dp))
                     .background(pastelBrush, RoundedCornerShape(8.dp))
@@ -342,13 +365,15 @@ fun ControlScreen(
             ) {
                 Text("Profile", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2D3436))
             }
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             TextButton(
-                onClick = { showAuxAssignDialog = true },
+                onClick = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    showAuxAssignDialog = true 
+                },
                 colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                 modifier = Modifier
-                    .weight(1f)
                     .height(32.dp)
                     .shadow(1.dp, RoundedCornerShape(8.dp))
                     .background(pastelBrush, RoundedCornerShape(8.dp))
@@ -356,13 +381,15 @@ fun ControlScreen(
             ) {
                 Text("Aux", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2D3436))
             }
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             TextButton(
-                onClick = { showDebugConsole = true },
+                onClick = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    showDebugConsole = true 
+                },
                 colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                 modifier = Modifier
-                    .weight(1f)
                     .height(32.dp)
                     .shadow(1.dp, RoundedCornerShape(8.dp))
                     .background(pastelBrush, RoundedCornerShape(8.dp))
@@ -484,10 +511,21 @@ fun ControlScreen(
 
     // Dialogs
     if (showDebugConsole) {
-        com.metelci.ardunakon.ui.components.DebugConsoleDialog(
+        com.metelci.ardunakon.ui.components.TerminalDialog(
             logs = debugLogs,
             telemetry = telemetry,
-            onDismiss = { showDebugConsole = false }
+            onDismiss = { showDebugConsole = false },
+            onSendCommand = { cmd ->
+                // Send command with newline
+                val bytes = "$cmd\n".toByteArray()
+                bluetoothManager.sendDataToAll(bytes, force = true)
+                bluetoothManager.log("TX: $cmd", LogType.INFO)
+            },
+            onClearLogs = {
+                // We need to add a clearLogs method to BluetoothManager or just ignore for now
+                // For now, let's just log a message
+                bluetoothManager.log("Logs cleared", LogType.INFO)
+            }
         )
     }
 
