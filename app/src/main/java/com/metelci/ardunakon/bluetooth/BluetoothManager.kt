@@ -322,6 +322,25 @@ class AppBluetoothManager(private val context: Context) {
                 }
             }
 
+            // Attempt 3: Reflection Method (Port 1 Hack) - The Nuclear Option
+            if (!connected) {
+                try {
+                    // Give the stack time to reset again
+                    try { Thread.sleep(500) } catch (e: InterruptedException) {}
+
+                    log("Attempting REFLECTION connection (Port 1)...", LogType.WARNING)
+                    val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                    socket = m.invoke(device, 1) as BluetoothSocket
+                    socket?.connect()
+                    connected = true
+                    log("Reflection connection established.", LogType.SUCCESS)
+                } catch (e: Exception) {
+                    Log.e("BT", "Reflection connection failed", e)
+                    log("Reflection connection failed: ${e.message}", LogType.ERROR)
+                    try { socket?.close() } catch (e2: Exception) {}
+                }
+            }
+
             if (connected && socket != null) {
                 // Connection successful
                 val connectedThread = ConnectedThread(socket!!, slot)
