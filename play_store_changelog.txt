@@ -1,0 +1,7 @@
+What's New:
+
+🚀 **BLE Support**: Added full support for HC-08/HM-10 modules and improved HC-06 connection reliability.
+🎮 **Enhanced Controls**: Experience the new Haptic Feedback and "Keep Screen On" feature for uninterrupted control.
+💻 **Interactive Terminal**: Debug easier with the new, user-friendly Interactive Terminal.
+📶 **Connectivity**: Monitor signal strength with the new RSSI icon and enjoy more stable reconnections.
+🐛 **Improvements**: Various bug fixes, UI refinements, and performance optimizations.

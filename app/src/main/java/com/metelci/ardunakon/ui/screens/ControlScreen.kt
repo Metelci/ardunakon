@@ -421,7 +421,7 @@ fun ControlScreen(
             // Left Aux Buttons Column (Device 1 / Slot 0)
             Column(
                 modifier = Modifier
-                    .weight(0.2f)
+                    .weight(0.15f)
                     .padding(end = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -433,8 +433,8 @@ fun ControlScreen(
 
             // Center: Joysticks
             Row(
-                modifier = Modifier.weight(0.6f),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.weight(0.7f),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Left Stick (Movement)
@@ -485,7 +485,7 @@ fun ControlScreen(
             // Right Aux Buttons Column (Device 2 / Slot 1)
             Column(
                 modifier = Modifier
-                    .weight(0.2f)
+                    .weight(0.15f)
                     .padding(start = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
