@@ -265,27 +265,35 @@ class AppBluetoothManager(private val context: Context) {
 
             adapter?.cancelDiscovery()
 
+            log("Starting connection to ${device.name} (${device.address})", LogType.INFO)
+            log("Using SPP UUID: $SPP_UUID", LogType.INFO)
+
             var connected = false
             
             // Attempt 1: Secure Connection
             try {
+                log("Attempting SECURE connection...", LogType.INFO)
                 socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
                 socket?.connect()
                 connected = true
+                log("Secure connection established.", LogType.SUCCESS)
             } catch (e: Exception) {
-                Log.w("BT", "Secure connection failed, trying insecure...", e)
+                Log.w("BT", "Secure connection failed", e)
+                log("Secure connection failed: ${e.message}", LogType.WARNING)
                 try { socket?.close() } catch (e2: Exception) {}
             }
 
             // Attempt 2: Insecure Connection (Fallback)
             if (!connected) {
                 try {
-                    log("Secure failed, trying insecure...", LogType.WARNING)
+                    log("Attempting INSECURE connection (fallback)...", LogType.WARNING)
                     socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
                     socket?.connect()
                     connected = true
+                    log("Insecure connection established.", LogType.SUCCESS)
                 } catch (e: Exception) {
                     Log.e("BT", "Insecure connection failed", e)
+                    log("Insecure connection failed: ${e.message}", LogType.ERROR)
                     try { socket?.close() } catch (e2: Exception) {}
                 }
             }
@@ -298,7 +306,7 @@ class AppBluetoothManager(private val context: Context) {
 
                 updateConnectionState(slot, ConnectionState.CONNECTED)
             } else {
-                log("Connect failed: Could not connect", LogType.ERROR)
+                log("Connect failed: Could not establish socket to ${device.name}", LogType.ERROR)
                 updateConnectionState(slot, ConnectionState.ERROR)
             }
         }
@@ -314,6 +322,7 @@ class AppBluetoothManager(private val context: Context) {
         private val buffer = ByteArray(1024)
 
         override fun run() {
+            log("Socket opened for Slot ${slot + 1}", LogType.SUCCESS)
             val packetBuffer = ByteArray(20) // Small buffer for packet assembly
             var bufferIndex = 0
 
@@ -346,6 +355,7 @@ class AppBluetoothManager(private val context: Context) {
                     }
                 } catch (e: IOException) {
                     Log.e("BT", "Disconnected Slot $slot", e)
+                    log("Disconnected Slot ${slot + 1}: ${e.message}", LogType.ERROR)
                     updateConnectionState(slot, ConnectionState.DISCONNECTED)
                     connections[slot] = null
                     break
@@ -379,6 +389,7 @@ class AppBluetoothManager(private val context: Context) {
                 outputStream.write(bytes)
             } catch (e: IOException) {
                 Log.e("BT", "Write failed", e)
+                log("Write failed Slot ${slot + 1}: ${e.message}", LogType.ERROR)
             }
         }
 
