@@ -4,7 +4,15 @@
       "Bash(dir:*)",
       "Bash(find:*)",
       "Bash(git rev-parse:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(timeout /t 2)",
+      "Bash(nul)",
+      "Bash(findstr:*)",
+      "Bash(git rm:*)",
+      "Bash(.gradlew.bat assembleDebug)",
+      "Bash(gradlew.bat assembleDebug:*)",
+      "Bash(./gradlew.bat assembleDebug)",
+      "Bash(./gradlew.bat clean assembleDebug)"
     ],
     "deny": [],
     "ask": []
