@@ -73,3 +73,7 @@
     public static *** v(...);
     public static *** i(...);
 }
+
+# Missing rules detected by R8
+-dontwarn com.google.errorprone.annotations.Immutable
+-dontwarn javax.annotation.concurrent.GuardedBy
