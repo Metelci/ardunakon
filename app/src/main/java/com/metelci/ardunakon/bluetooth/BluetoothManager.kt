@@ -98,6 +98,8 @@ class AppBluetoothManager(private val context: Context) {
     // Saved devices for auto-reconnect
     private val savedDevices = arrayOfNulls<BluetoothDeviceModel>(2)
     private val shouldReconnect = booleanArrayOf(false, false)
+    // Connection mutex to prevent concurrent connection attempts
+    private val connectionMutex = arrayOf(kotlinx.coroutines.sync.Mutex(), kotlinx.coroutines.sync.Mutex())
 
     private val leScanner by lazy { adapter?.bluetoothLeScanner }
     private val leScanCallback = object : android.bluetooth.le.ScanCallback() {
@@ -217,29 +219,53 @@ class AppBluetoothManager(private val context: Context) {
             log("Connect failed: Missing permissions", LogType.ERROR)
             return
         }
-        
-        // Save for reconnect
-        savedDevices[slot] = deviceModel
-        shouldReconnect[slot] = true
 
-        if (!isAutoReconnect) {
-            updateConnectionState(slot, ConnectionState.CONNECTING)
-            log("Connecting to ${deviceModel.name}...", LogType.INFO)
-        }
-        stopScan()
+        // Check if connection is already in progress
+        scope.launch {
+            if (!connectionMutex[slot].tryLock()) {
+                log("Connection already in progress for Slot ${slot + 1}", LogType.WARNING)
+                return@launch
+            }
 
-        // Ensure previous connection is closed
-        connections[slot]?.cancel()
-        connections[slot] = null
+            // Save for reconnect
+            savedDevices[slot] = deviceModel
+            shouldReconnect[slot] = true
 
-        val device = adapter?.getRemoteDevice(deviceModel.address) ?: return
-        
-        if (deviceModel.type == DeviceType.LE) {
-            val bleConnection = BleConnection(device, slot)
-            connections[slot] = bleConnection
-            bleConnection.connect()
-        } else {
-            ConnectThread(device, slot).start()
+            if (!isAutoReconnect) {
+                updateConnectionState(slot, ConnectionState.CONNECTING)
+                log("Connecting to ${deviceModel.name}...", LogType.INFO)
+            }
+
+            // Cancel discovery BEFORE starting connection - discovery interferes with connection
+            try {
+                adapter?.cancelDiscovery()
+            } catch (e: SecurityException) {
+                log("Could not cancel discovery: Missing permission", LogType.WARNING)
+            }
+            stopScan()
+
+            // Ensure previous connection is closed
+            connections[slot]?.cancel()
+            connections[slot] = null
+
+            // Give BT stack time to clean up
+            delay(300)
+
+            val device = adapter?.getRemoteDevice(deviceModel.address)
+            if (device == null) {
+                connectionMutex[slot].unlock()
+                return@launch
+            }
+
+            if (deviceModel.type == DeviceType.LE) {
+                val bleConnection = BleConnection(device, slot)
+                connections[slot] = bleConnection
+                bleConnection.connect()
+                // Note: BLE connection unlocks mutex when connection completes
+            } else {
+                // ConnectThread will unlock the mutex when it finishes (success or failure)
+                ConnectThread(device, slot).start()
+            }
         }
     }
 
@@ -375,118 +401,156 @@ class AppBluetoothManager(private val context: Context) {
 
     private inner class ConnectThread(private val device: BluetoothDevice, private val slot: Int) : Thread() {
         private var socket: BluetoothSocket? = null
+        @Volatile private var cancelled = false
 
         @SuppressLint("MissingPermission")
         override fun run() {
-
-            if (!checkBluetoothPermission()) {
-                log("Connect failed: Missing permissions", LogType.ERROR)
-                updateConnectionState(slot, ConnectionState.ERROR)
-                return
-            }
-
-            adapter?.cancelDiscovery()
-
-            log("Starting connection to ${device.name} (${device.address})", LogType.INFO)
-
-            var connected = false
-
-            // Attempt 1: Try all manufacturer-specific UUIDs with insecure connection
-            for ((index, uuid) in MANUFACTURER_UUIDS.withIndex()) {
-                if (connected) break
-
-                try {
-                    val uuidDesc = when (index) {
-                        0 -> "Standard SPP (TI/Microchip/Telit)"
-                        1 -> "Nordic nRF51822 variant"
-                        2 -> "Nordic UART Service"
-                        3 -> "Alternative SPP"
-                        else -> "UUID $index"
-                    }
-
-                    log("Attempting INSECURE connection with $uuidDesc...", LogType.INFO)
-                    socket = device.createInsecureRfcommSocketToServiceRecord(uuid)
-                    socket?.connect()
-                    connected = true
-                    log("Connected successfully with $uuidDesc", LogType.SUCCESS)
-                } catch (e: Exception) {
-                    Log.w("BT", "UUID $index failed", e)
-                    try { socket?.close() } catch (e2: Exception) {}
-                    // Try next UUID
-                    try { Thread.sleep(200) } catch (e: InterruptedException) {}
+            try {
+                if (!checkBluetoothPermission()) {
+                    log("Connect failed: Missing permissions", LogType.ERROR)
+                    updateConnectionState(slot, ConnectionState.ERROR)
+                    return
                 }
-            }
 
-            // Attempt 2: Reflection Method (Port 1 Hack) - Fallback for stubborn HC-06
-            if (!connected) {
-                try {
-                    // Give the stack time to reset
-                    try { Thread.sleep(500) } catch (e: InterruptedException) {}
+                log("Starting connection to ${device.name} (${device.address})", LogType.INFO)
 
-                    log("Attempting REFLECTION connection (Port 1)...", LogType.WARNING)
-                    val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
-                    socket = m.invoke(device, 1) as BluetoothSocket
-                    socket?.connect()
-                    connected = true
-                    log("Reflection Port 1 connection established.", LogType.SUCCESS)
-                } catch (e: Exception) {
-                    Log.w("BT", "Reflection Port 1 failed", e)
-                    try { socket?.close() } catch (e2: Exception) {}
-                }
-            }
+                var connected = false
 
-            // Attempt 3: Reflection Method (Multiple Ports) - Some manufacturers use different ports
-            if (!connected) {
-                for (port in listOf(2, 3, 4, 5)) {
+                // HC-06 Connection Strategy:
+                // Most HC-06 modules work with INSECURE connection using Standard SPP UUID
+                // or Reflection Method (Port 1). We focus on these two methods first.
+
+                // Attempt 1: Standard SPP UUID with INSECURE connection (most reliable for HC-06)
+                if (!connected && !cancelled) {
                     try {
-                        try { Thread.sleep(300) } catch (e: InterruptedException) {}
-
-                        log("Attempting REFLECTION connection (Port $port)...", LogType.WARNING)
-                        val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
-                        socket = m.invoke(device, port) as BluetoothSocket
+                        log("Attempting INSECURE SPP connection (Standard HC-06)...", LogType.INFO)
+                        socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
                         socket?.connect()
                         connected = true
-                        log("Reflection Port $port connection established.", LogType.SUCCESS)
-                        break
+                        log("Connected successfully with Standard SPP", LogType.SUCCESS)
                     } catch (e: Exception) {
-                        Log.w("BT", "Reflection Port $port failed", e)
-                        try { socket?.close() } catch (e2: Exception) {}
+                        Log.w("BT", "Standard SPP failed: ${e.message}", e)
+                        closeSocketSafely(socket)
+                        socket = null
+                        // Longer delay to let BT stack recover
+                        if (!cancelled) safeSleep(1500)
                     }
                 }
-            }
 
-            // Attempt 4: Secure connection (last resort - some HC-06 won't accept this)
-            if (!connected) {
-                try {
-                    try { Thread.sleep(500) } catch (e: InterruptedException) {}
-
-                    log("Attempting SECURE connection (last resort)...", LogType.WARNING)
-                    socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                    socket?.connect()
-                    connected = true
-                    log("Secure connection established.", LogType.SUCCESS)
-                } catch (e: Exception) {
-                    Log.e("BT", "Secure connection failed", e)
-                    log("All connection attempts failed: ${e.message}", LogType.ERROR)
-                    try { socket?.close() } catch (e2: Exception) {}
+                // Attempt 2: Reflection Method (Port 1) - Most reliable fallback for HC-06
+                if (!connected && !cancelled) {
+                    try {
+                        log("Attempting REFLECTION connection (Port 1 - HC-06 Fallback)...", LogType.WARNING)
+                        val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                        socket = m.invoke(device, 1) as BluetoothSocket
+                        socket?.connect()
+                        connected = true
+                        log("Reflection Port 1 connection established.", LogType.SUCCESS)
+                    } catch (e: Exception) {
+                        Log.w("BT", "Reflection Port 1 failed: ${e.message}", e)
+                        closeSocketSafely(socket)
+                        socket = null
+                        if (!cancelled) safeSleep(1500)
+                    }
                 }
+
+                // Attempt 3: Try other manufacturer-specific UUIDs (for HC-06 clones)
+                if (!connected && !cancelled) {
+                    for ((index, uuid) in MANUFACTURER_UUIDS.withIndex()) {
+                        if (connected || cancelled) break
+                        if (index == 0) continue // Already tried Standard SPP
+
+                        try {
+                            val uuidDesc = when (index) {
+                                1 -> "Nordic nRF51822 variant"
+                                2 -> "Nordic UART Service"
+                                3 -> "Alternative SPP"
+                                else -> "UUID $index"
+                            }
+
+                            log("Attempting INSECURE connection with $uuidDesc...", LogType.INFO)
+                            socket = device.createInsecureRfcommSocketToServiceRecord(uuid)
+                            socket?.connect()
+                            connected = true
+                            log("Connected successfully with $uuidDesc", LogType.SUCCESS)
+                        } catch (e: Exception) {
+                            Log.w("BT", "UUID $index failed: ${e.message}", e)
+                            closeSocketSafely(socket)
+                            socket = null
+                            if (!cancelled) safeSleep(1000)
+                        }
+                    }
+                }
+
+                // Attempt 4: Try alternative reflection ports (rarely needed for HC-06)
+                if (!connected && !cancelled) {
+                    for (port in listOf(2, 3)) { // Only try ports 2-3 to avoid excessive attempts
+                        if (connected || cancelled) break
+
+                        try {
+                            log("Attempting REFLECTION connection (Port $port)...", LogType.WARNING)
+                            val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                            socket = m.invoke(device, port) as BluetoothSocket
+                            socket?.connect()
+                            connected = true
+                            log("Reflection Port $port connection established.", LogType.SUCCESS)
+                            break
+                        } catch (e: Exception) {
+                            Log.w("BT", "Reflection Port $port failed: ${e.message}", e)
+                            closeSocketSafely(socket)
+                            socket = null
+                            if (!cancelled) safeSleep(1000)
+                        }
+                    }
+                }
+
+                if (cancelled) {
+                    closeSocketSafely(socket)
+                    log("Connection attempt cancelled for ${device.name}", LogType.WARNING)
+                    updateConnectionState(slot, ConnectionState.DISCONNECTED)
+                    return
+                }
+
+                if (connected && socket != null) {
+                    // Connection successful
+                    val connectedThread = ConnectedThread(socket!!, slot)
+                    connections[slot] = connectedThread
+                    connectedThread.start()
+
+                    updateConnectionState(slot, ConnectionState.CONNECTED)
+                } else {
+                    closeSocketSafely(socket)
+                    log("Connect failed: Could not establish socket to ${device.name}", LogType.ERROR)
+                    updateConnectionState(slot, ConnectionState.ERROR)
+                }
+            } finally {
+                // Always unlock the mutex when connection attempt completes (success or failure)
+                connectionMutex[slot].unlock()
             }
+        }
 
-            if (connected && socket != null) {
-                // Connection successful
-                val connectedThread = ConnectedThread(socket!!, slot)
-                connections[slot] = connectedThread
-                connectedThread.start()
+        private fun closeSocketSafely(socket: BluetoothSocket?) {
+            if (socket == null) return
+            try {
+                socket.close()
+                // Give OS time to release resources
+                safeSleep(100)
+            } catch (e: Exception) {
+                Log.w("BT", "Socket close failed: ${e.message}", e)
+            }
+        }
 
-                updateConnectionState(slot, ConnectionState.CONNECTED)
-            } else {
-                log("Connect failed: Could not establish socket to ${device.name}", LogType.ERROR)
-                updateConnectionState(slot, ConnectionState.ERROR)
+        private fun safeSleep(ms: Long) {
+            try {
+                Thread.sleep(ms)
+            } catch (e: InterruptedException) {
+                cancelled = true
             }
         }
 
         fun cancel() {
-            try { socket?.close() } catch (e: Exception) {}
+            cancelled = true
+            closeSocketSafely(socket)
         }
     }
 
@@ -668,6 +732,8 @@ class AppBluetoothManager(private val context: Context) {
                     connections[slot] = null
                     gatt.close()
                     updateRssi(slot, 0)
+                    // Unlock mutex on failure
+                    connectionMutex[slot].unlock()
                     return
                 }
 
@@ -692,6 +758,9 @@ class AppBluetoothManager(private val context: Context) {
                     // Discover services
                     gatt.discoverServices()
                     startRssiPolling()
+
+                    // Unlock mutex on successful connection
+                    connectionMutex[slot].unlock()
                 } else if (newState == android.bluetooth.BluetoothProfile.STATE_DISCONNECTED) {
                     pollingJob?.cancel()
                     log("BLE Disconnected from GATT server.", LogType.WARNING)
@@ -699,6 +768,10 @@ class AppBluetoothManager(private val context: Context) {
                     connections[slot] = null
                     gatt.close() // Critical: Prevent resource leak
                     updateRssi(slot, 0)
+                    // Unlock mutex on disconnection (if it was locked during connection attempt)
+                    if (connectionMutex[slot].isLocked) {
+                        connectionMutex[slot].unlock()
+                    }
                 }
             }
 
