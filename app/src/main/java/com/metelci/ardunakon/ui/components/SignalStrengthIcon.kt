@@ -22,15 +22,15 @@ fun SignalStrengthIcon(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface
 ) {
-    // RSSI Levels
+    // RSSI Levels (in dBm)
     // > -50: 4 bars
     // -50 to -65: 3 bars
     // -65 to -80: 2 bars
     // -80 to -95: 1 bar
-    // < -95: 0 bars (or X)
+    // <= -95 or 0 (unknown): 0 bars
 
     val bars = when {
-        rssi == 0 -> return // Don't show anything if RSSI is unknown (e.g. Classic Bluetooth)
+        rssi == 0 -> 0
         rssi > -50 -> 4
         rssi > -65 -> 3
         rssi > -80 -> 2
@@ -63,13 +63,11 @@ fun SignalStrengthIcon(
                 )
             }
         }
-        if (rssi != 0) {
-            Text(
-                text = "$rssi dBm",
-                fontSize = 10.sp,
-                color = color,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        }
+        Text(
+            text = if (rssi == 0) "N/A" else "$rssi dBm",
+            fontSize = 10.sp,
+            color = color,
+            modifier = Modifier.padding(start = 4.dp)
+        )
     }
 }

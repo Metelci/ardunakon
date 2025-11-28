@@ -13,6 +13,7 @@ import android.os.Build
 import android.util.Log
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.protocol.ProtocolManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,20 +22,28 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
+import kotlin.experimental.xor
 
 // Standard SPP UUID (HC-06, Texas Instruments, Microchip, Telit Bluemod)
 private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
-// Manufacturer-specific UUIDs for HC-06 variants
+// Manufacturer-specific UUIDs for HC-06 variants and clones
+// Note: Standard SPP (00001101) is already tried in Attempts 1 & 5, so excluded here
 private val MANUFACTURER_UUIDS = listOf(
-    // Standard SPP - Most HC-06 modules (Texas Instruments, Microchip, Telit)
-    UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"),
-    // Nordic Semiconductor nRF51822-based HC-06 clones
+    // Nordic Semiconductor nRF51822-based HC-06 clones (common in Chinese clones)
     UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb"),
-    // Alternative Nordic UART Service
+    // Alternative Nordic UART Service (Nordic-based clones)
     UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e"),
-    // Some HC-06 clones use non-standard UUIDs
-    UUID.fromString("00001106-0000-1000-8000-00805F9B34FB")
+    // Object Push Profile - Some HC-06 clones (ZS-040, FC-114, linvor)
+    UUID.fromString("00001105-0000-1000-8000-00805F9B34FB"),
+    // OBEX Object Push - Alternative HC-06 clones
+    UUID.fromString("00001106-0000-1000-8000-00805F9B34FB"),
+    // Headset Profile - Some BT 2.0 HC-06 clones
+    UUID.fromString("00001108-0000-1000-8000-00805F9B34FB"),
+    // Raw RFCOMM - Some bare-metal HC-06 implementations
+    UUID.fromString("00000003-0000-1000-8000-00805F9B34FB"),
+    // Base UUID - Last resort for non-standard implementations
+    UUID.fromString("00000000-0000-1000-8000-00805F9B34FB")
 )
 
 enum class ConnectionState {
@@ -56,6 +65,14 @@ enum class DeviceType {
     CLASSIC, LE
 }
 
+data class ConnectionHealth(
+    val lastPacketAt: Long = 0L,
+    val rssiFailureCount: Int = 0,
+    val lastHeartbeatSeq: Int = 0,
+    val lastHeartbeatAt: Long = 0L,
+    val lastRttMs: Long = 0L
+)
+
 class AppBluetoothManager(private val context: Context) {
 
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -71,6 +88,9 @@ class AppBluetoothManager(private val context: Context) {
     private val _rssiValues = MutableStateFlow<List<Int>>(listOf(0, 0))
     val rssiValues: StateFlow<List<Int>> = _rssiValues.asStateFlow()
 
+    private val _health = MutableStateFlow<List<ConnectionHealth>>(listOf(ConnectionHealth(), ConnectionHealth()))
+    val health: StateFlow<List<ConnectionHealth>> = _health.asStateFlow()
+
     // Debug Logs
     private val _debugLogs = MutableStateFlow<List<LogEntry>>(emptyList())
     val debugLogs: StateFlow<List<LogEntry>> = _debugLogs.asStateFlow()
@@ -78,6 +98,8 @@ class AppBluetoothManager(private val context: Context) {
     // Incoming data from Arduino
     private val _incomingData = MutableStateFlow<ByteArray?>(null)
     val incomingData: StateFlow<ByteArray?> = _incomingData.asStateFlow()
+
+    private var keepAliveJob: Job? = null
 
     fun log(message: String, type: LogType = LogType.INFO) {
         val currentLogs = _debugLogs.value.toMutableList()
@@ -91,15 +113,25 @@ class AppBluetoothManager(private val context: Context) {
     interface BluetoothConnection {
         fun write(bytes: ByteArray)
         fun cancel()
+        fun requestRssi() {}
     }
 
     // Active connections
     private val connections = arrayOfNulls<BluetoothConnection>(2)
     // Saved devices for auto-reconnect
     private val savedDevices = arrayOfNulls<BluetoothDeviceModel>(2)
+    private val connectionTypes = arrayOfNulls<DeviceType>(2)
     private val shouldReconnect = booleanArrayOf(false, false)
     // Connection mutex to prevent concurrent connection attempts
     private val connectionMutex = arrayOf(kotlinx.coroutines.sync.Mutex(), kotlinx.coroutines.sync.Mutex())
+    private val lastStateChangeAt = longArrayOf(0L, 0L)
+    private val rssiFailures = intArrayOf(0, 0)
+    private val heartbeatSeq = intArrayOf(0, 0)
+    private val lastHeartbeatSentAt = longArrayOf(0L, 0L)
+    private val lastPacketAt = longArrayOf(0L, 0L)
+    private val lastRttMs = longArrayOf(0L, 0L)
+    private val heartbeatTimeoutMs = 12000L
+    private val missedHeartbeatAcks = intArrayOf(0, 0)
 
     private val leScanner by lazy { adapter?.bluetoothLeScanner }
     private val leScanCallback = object : android.bluetooth.le.ScanCallback() {
@@ -129,6 +161,7 @@ class AppBluetoothManager(private val context: Context) {
     init {
         context.registerReceiver(receiver, android.content.IntentFilter(BluetoothDevice.ACTION_FOUND))
         startReconnectMonitor()
+        startKeepAlivePings()
     }
 
     // E-Stop State
@@ -149,17 +182,59 @@ class AppBluetoothManager(private val context: Context) {
             while (isActive) {
                 if (!_isEmergencyStopActive.value) {
                     for (slot in 0..1) {
-                        if (shouldReconnect[slot] && 
-                            _connectionStates.value[slot] == ConnectionState.DISCONNECTED && 
+                        val currentState = _connectionStates.value[slot]
+                        // Reconnect if disconnected OR in error state (failed connection attempt)
+                        if (shouldReconnect[slot] &&
+                            (currentState == ConnectionState.DISCONNECTED || currentState == ConnectionState.ERROR) &&
                             savedDevices[slot] != null) {
-                            
+
                             log("Auto-reconnecting to ${savedDevices[slot]?.name}...", LogType.WARNING)
                             updateConnectionState(slot, ConnectionState.RECONNECTING)
                             connectToDevice(savedDevices[slot]!!, slot, isAutoReconnect = true)
                         }
                     }
                 }
-                delay(5000) // Check every 5 seconds
+                delay(3000) // Check every 3 seconds for fast recovery
+            }
+        }
+    }
+
+    private fun recordInbound(slot: Int) {
+        val now = System.currentTimeMillis()
+        lastPacketAt[slot] = now
+        rssiFailures[slot] = 0
+        missedHeartbeatAcks[slot] = 0
+        if (lastHeartbeatSentAt[slot] > 0 && now >= lastHeartbeatSentAt[slot]) {
+            lastRttMs[slot] = now - lastHeartbeatSentAt[slot]
+        }
+        updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
+    }
+
+    private fun startKeepAlivePings() {
+        keepAliveJob?.cancel()
+        keepAliveJob = scope.launch {
+            while (isActive) {
+                delay(4000)
+                val states = _connectionStates.value
+                states.forEachIndexed { index, state ->
+                    if (state == ConnectionState.CONNECTED && connections[index] != null) {
+                        heartbeatSeq[index] = (heartbeatSeq[index] + 1) and 0xFFFF
+                        val heartbeat = ProtocolManager.formatHeartbeatData(heartbeatSeq[index])
+                        // Force bypasses E-STOP so the link itself stays alive
+                        sendDataToSlot(heartbeat, index, force = true)
+                        lastHeartbeatSentAt[index] = System.currentTimeMillis()
+                        missedHeartbeatAcks[index]++
+                        updateHealth(index, heartbeatSeq[index], lastPacketAt[index], rssiFailures[index])
+
+                        // Require multiple missed acks before forcing reconnect
+                        val sinceLastPacket = System.currentTimeMillis() - lastPacketAt[index]
+                        if (missedHeartbeatAcks[index] >= 3 && lastPacketAt[index] > 0 && sinceLastPacket > heartbeatTimeoutMs) {
+                            log("Heartbeat timeout on Slot ${index + 1} after ${sinceLastPacket}ms (missed ${missedHeartbeatAcks[index]} acks)", LogType.ERROR)
+                            missedHeartbeatAcks[index] = 0
+                            forceReconnect(index, "Heartbeat timeout")
+                        }
+                    }
+                }
             }
         }
     }
@@ -169,7 +244,14 @@ class AppBluetoothManager(private val context: Context) {
             log("Scan failed: Missing permissions", LogType.ERROR)
             return
         }
-        if (adapter == null || !adapter.isEnabled) return
+        if (adapter == null) {
+            log("Scan failed: Bluetooth adapter unavailable", LogType.ERROR)
+            return
+        }
+        if (!adapter.isEnabled) {
+            log("Scan failed: Bluetooth is turned off", LogType.WARNING)
+            return
+        }
 
         // Cancel any previous scan job to prevent multiple timeouts
         scanJob?.cancel()
@@ -219,6 +301,10 @@ class AppBluetoothManager(private val context: Context) {
             log("Connect failed: Missing permissions", LogType.ERROR)
             return
         }
+        if (adapter == null || !adapter.isEnabled) {
+            log("Connect failed: Bluetooth is off", LogType.ERROR)
+            return
+        }
 
         // Check if connection is already in progress
         scope.launch {
@@ -229,7 +315,10 @@ class AppBluetoothManager(private val context: Context) {
 
             // Save for reconnect
             savedDevices[slot] = deviceModel
+            connectionTypes[slot] = deviceModel.type
             shouldReconnect[slot] = true
+            // Seed RSSI with last known scan value for immediate UI feedback
+            updateRssi(slot, deviceModel.rssi)
 
             if (!isAutoReconnect) {
                 updateConnectionState(slot, ConnectionState.CONNECTING)
@@ -248,8 +337,8 @@ class AppBluetoothManager(private val context: Context) {
             connections[slot]?.cancel()
             connections[slot] = null
 
-            // Give BT stack time to clean up
-            delay(300)
+            // Give BT stack time to clean up (minimal delay for fast reconnection)
+            delay(200)
 
             val device = adapter?.getRemoteDevice(deviceModel.address)
             if (device == null) {
@@ -292,6 +381,15 @@ class AppBluetoothManager(private val context: Context) {
         }
     }
 
+    fun requestRssi(slot: Int) {
+        if (slot !in 0..1) return
+        if (connectionTypes[slot] != DeviceType.LE) {
+            log("RSSI refresh not supported for classic devices", LogType.WARNING)
+            return
+        }
+        connections[slot]?.requestRssi()
+    }
+
     fun reconnectSavedDevices(): Boolean {
         var started = false
         for (slot in 0..1) {
@@ -310,6 +408,13 @@ class AppBluetoothManager(private val context: Context) {
     }
 
     private fun updateConnectionState(slot: Int, state: ConnectionState) {
+        val now = System.currentTimeMillis()
+        // Debounce noisy DISCONNECTED/ERROR flips to avoid UI spam
+        val isNoisyState = state == ConnectionState.DISCONNECTED || state == ConnectionState.ERROR
+        if (isNoisyState && (now - lastStateChangeAt[slot]) < 800) {
+            return
+        }
+        lastStateChangeAt[slot] = now
         val list = _connectionStates.value.toMutableList()
         list[slot] = state
         _connectionStates.value = list
@@ -318,6 +423,8 @@ class AppBluetoothManager(private val context: Context) {
             ConnectionState.CONNECTED -> {
                 log("Connected to Slot ${slot + 1}!", LogType.SUCCESS)
                 vibrate(200) // Long vibration for connection
+                lastPacketAt[slot] = now
+                updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
             }
             ConnectionState.DISCONNECTED -> {
                 // Only vibrate if it was previously connected or connecting (avoid noise on startup)
@@ -348,6 +455,27 @@ class AppBluetoothManager(private val context: Context) {
         val list = _rssiValues.value.toMutableList()
         list[slot] = rssi
         _rssiValues.value = list
+        updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
+    }
+
+    private fun updateHealth(slot: Int, seq: Int, packetAt: Long, failures: Int) {
+        val current = _health.value.toMutableList()
+        current[slot] = ConnectionHealth(packetAt, failures, seq, lastHeartbeatSentAt[slot], lastRttMs[slot])
+        _health.value = current
+    }
+
+    private fun forceReconnect(slot: Int, reason: String) {
+        log("Reconnecting Slot ${slot + 1}: $reason", LogType.WARNING)
+        connections[slot]?.cancel()
+        connections[slot] = null
+        if (connectionMutex[slot].isLocked) {
+            connectionMutex[slot].unlock()
+        }
+        updateConnectionState(slot, ConnectionState.ERROR)
+        updateRssi(slot, 0)
+        if (savedDevices[slot] != null) {
+            connectToDevice(savedDevices[slot]!!, slot, isAutoReconnect = true)
+        }
     }
 
     fun cleanup() {
@@ -356,6 +484,7 @@ class AppBluetoothManager(private val context: Context) {
 
         // Cancel scan job if active
         scanJob?.cancel()
+        keepAliveJob?.cancel()
 
         // Disconnect all active connections
         for (i in 0..1) {
@@ -379,20 +508,26 @@ class AppBluetoothManager(private val context: Context) {
     val telemetry: StateFlow<Telemetry?> = _telemetry.asStateFlow()
 
     private fun parseTelemetry(packet: ByteArray) {
-        // Example Mapping: [START, TYPE, BAT_H, BAT_L, STAT, ..., END]
-        // This is a placeholder for the actual protocol
-        // Assuming Byte 2 is Battery Voltage (scaled x10)
-        val batteryRaw = packet[2].toInt() and 0xFF
-        val statusByte = packet[3].toInt() and 0xFF
-        
-        // Validation: Ignore noise
-        // Battery: 0-255 (0-25.5V) is physically possible, but let's filter obvious junk if needed.
-        // Status: Must be 0 or 1
-        if (statusByte > 1) return 
+        // Expected schema aligned to ProtocolManager packets:
+        // [START][DEV][CMD][D1][D2][D3][D4][D5][CHK][END]
+        // We treat CMD_HEARTBEAT (0x03) as telemetry carrier: D1=battery (tenths), D2=status (0/1)
+        if (packet.size < 10) return
+        if (packet.first() != 0xAA.toByte() || packet.last() != 0x55.toByte()) return
+
+        // Verify checksum to avoid junk telemetry
+        var xor: Byte = 0
+        for (i in 1..7) xor = xor xor packet[i]
+        if (xor != packet[8]) return
+
+        if (packet[2] != com.metelci.ardunakon.protocol.ProtocolManager.CMD_HEARTBEAT) return
+
+        val batteryRaw = packet[3].toInt() and 0xFF
+        val statusByte = packet[4].toInt() and 0xFF
+        if (statusByte > 1) return
 
         val battery = batteryRaw / 10f
         val status = if (statusByte == 1) "Safe Mode" else "Active"
-        
+
         _telemetry.value = Telemetry(battery, status)
         if (isDebugMode) {
             log("Telemetry: Bat=${battery}V, Stat=$status", LogType.SUCCESS)
@@ -458,13 +593,16 @@ class AppBluetoothManager(private val context: Context) {
                 if (!connected && !cancelled) {
                     for ((index, uuid) in MANUFACTURER_UUIDS.withIndex()) {
                         if (connected || cancelled) break
-                        if (index == 0) continue // Already tried Standard SPP
 
                         try {
                             val uuidDesc = when (index) {
-                                1 -> "Nordic nRF51822 variant"
-                                2 -> "Nordic UART Service"
-                                3 -> "Alternative SPP"
+                                0 -> "Nordic nRF51822 variant"
+                                1 -> "Nordic UART Service"
+                                2 -> "Object Push Profile (ZS-040/FC-114)"
+                                3 -> "OBEX Object Push"
+                                4 -> "Headset Profile (BT 2.0)"
+                                5 -> "Raw RFCOMM"
+                                6 -> "Base UUID fallback"
                                 else -> "UUID $index"
                             }
 
@@ -501,6 +639,23 @@ class AppBluetoothManager(private val context: Context) {
                             socket = null
                             if (!cancelled) safeSleep(1000)
                         }
+                    }
+                }
+
+                // Attempt 5: Last resort - Try SECURE connection with Standard SPP
+                // Some modules (rare HC-05 variants) require secure pairing
+                if (!connected && !cancelled) {
+                    try {
+                        log("Attempting SECURE SPP connection (last resort)...", LogType.WARNING)
+                        socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                        socket?.connect()
+                        connected = true
+                        log("Connected successfully with SECURE SPP", LogType.SUCCESS)
+                    } catch (e: Exception) {
+                        Log.w("BT", "Secure SPP failed: ${e.message}", e)
+                        closeSocketSafely(socket)
+                        socket = null
+                        if (!cancelled) safeSleep(1000)
                     }
                 }
 
@@ -570,6 +725,7 @@ class AppBluetoothManager(private val context: Context) {
                     if (bytesRead > 0) {
                         val data = buffer.copyOf(bytesRead)
                         _incomingData.value = data
+                        recordInbound(slot)
 
                         // Try to decode as text first for terminal display
                         val decodedText = try {
@@ -626,6 +782,10 @@ class AppBluetoothManager(private val context: Context) {
         override fun cancel() {
             try { socket.close() } catch (e: IOException) {}
         }
+
+        override fun requestRssi() {
+            // Classic SPP does not support remote RSSI polling
+        }
     }
 
     private fun hasPermission(permission: String): Boolean {
@@ -643,25 +803,35 @@ class AppBluetoothManager(private val context: Context) {
         private var bluetoothGatt: android.bluetooth.BluetoothGatt? = null
         private var txCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
 
-        // HC-08 / HM-10 BLE Module UUID Variants
+        // HC-08 / HM-10 / AT-09 / MLT-BT05 BLE Module UUID Variants
         // Different manufacturers and firmware versions use different UUIDs
+        // This comprehensive list supports all major clones and variants
 
-        // Variant 1: Most common HC-08 and HM-10 modules (JNHuaMao, DSD TECH)
+        // Variant 1: Most common HC-08 and HM-10 modules (JNHuaMao, DSD TECH, Bolutek)
         private val SERVICE_UUID_V1 = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
         private val CHAR_UUID_V1 = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
 
-        // Variant 2: Nordic UART Service (Some HM-10 clones, Nordic-based HC-08)
+        // Variant 2: Nordic UART Service (NUS) - Nordic nRF51822/nRF52 based modules
+        // Used by: Some HM-10 clones, Nordic-based HC-08, Adafruit Bluefruit
         private val SERVICE_UUID_V2 = UUID.fromString("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
         private val CHAR_UUID_TX_V2 = UUID.fromString("6E400002-B5A3-F393-E0A9-E50E24DCCA9E") // TX (write)
         private val CHAR_UUID_RX_V2 = UUID.fromString("6E400003-B5A3-F393-E0A9-E50E24DCCA9E") // RX (notify)
 
-        // Variant 3: Some HM-10 firmware versions (TI CC2540/CC2541)
+        // Variant 3: TI CC2540/CC2541 HM-10 firmware (original JNHuaMao firmware)
         private val SERVICE_UUID_V3 = UUID.fromString("0000FFF0-0000-1000-8000-00805F9B34FB")
         private val CHAR_UUID_V3 = UUID.fromString("0000FFF1-0000-1000-8000-00805F9B34FB")
 
-        // Variant 4: Alternative HC-08 firmware
+        // Variant 4: Alternative HC-08 firmware (some Chinese clones)
         private val SERVICE_UUID_V4 = UUID.fromString("0000FFE5-0000-1000-8000-00805F9B34FB")
         private val CHAR_UUID_V4 = UUID.fromString("0000FFE9-0000-1000-8000-00805F9B34FB")
+
+        // Variant 5: AT-09 BLE Module (CC2541-based, similar to HM-10)
+        private val SERVICE_UUID_V5 = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
+        private val CHAR_UUID_V5 = UUID.fromString("0000FFE4-0000-1000-8000-00805F9B34FB")
+
+        // Variant 6: MLT-BT05 and other TI-based clones
+        private val SERVICE_UUID_V6 = UUID.fromString("0000FFF0-0000-1000-8000-00805F9B34FB")
+        private val CHAR_UUID_V6 = UUID.fromString("0000FFF6-0000-1000-8000-00805F9B34FB")
 
         // Client Characteristic Configuration Descriptor (CCCD) for notifications - standard
         private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
@@ -675,7 +845,6 @@ class AppBluetoothManager(private val context: Context) {
         // Write queue management - prevent write collisions
         private val writeQueue = java.util.concurrent.LinkedBlockingQueue<ByteArray>()
         private var writeJob: Job? = null
-        @Volatile private var isWriting = false
 
         @SuppressLint("MissingPermission")
         fun connect() {
@@ -686,22 +855,54 @@ class AppBluetoothManager(private val context: Context) {
         @SuppressLint("MissingPermission")
         private fun connectGattWithTimeout() {
             bluetoothGatt = device.connectGatt(context, false, gattCallback)
-            
-            // Timeout logic
+
+            // Timeout logic with retry
             connectionJob = scope.launch {
                 delay(10000) // 10 second timeout
-                if (connections[slot] == this@BleConnection && 
+                if (connections[slot] == this@BleConnection &&
                     _connectionStates.value[slot] != ConnectionState.CONNECTED) {
-                    log("BLE Connection timed out. Retrying...", LogType.WARNING)
+                    log("BLE Connection timed out. Retrying once...", LogType.WARNING)
                     bluetoothGatt?.close()
                     bluetoothGatt = null
-                    // Simple retry once or switch to autoConnect=true could be better, 
-                    // but for now let's just try one more direct connect after a brief pause
                     delay(500)
+
+                    // Retry once
                     bluetoothGatt = device.connectGatt(context, false, gattCallback)
+
+                    // Second timeout - if this fails, mark as ERROR for auto-reconnect
+                    delay(10000)
+                    if (connections[slot] == this@BleConnection &&
+                        _connectionStates.value[slot] != ConnectionState.CONNECTED) {
+                        log("BLE Connection failed after retry", LogType.ERROR)
+                        bluetoothGatt?.close()
+                        bluetoothGatt = null
+                        updateConnectionState(slot, ConnectionState.ERROR)
+                        connections[slot] = null
+                        connectionMutex[slot].unlock()
+                    }
                 }
             }
         }
+
+    private fun updateHealth(slot: Int, seq: Int, packetAt: Long, failures: Int) {
+        val current = _health.value.toMutableList()
+        current[slot] = ConnectionHealth(packetAt, failures, seq, lastHeartbeatSentAt[slot])
+        _health.value = current
+    }
+
+    private fun forceReconnect(slot: Int, reason: String) {
+        log("Reconnecting Slot ${slot + 1}: $reason", LogType.WARNING)
+        connections[slot]?.cancel()
+        connections[slot] = null
+        if (connectionMutex[slot].isLocked) {
+            connectionMutex[slot].unlock()
+        }
+        updateConnectionState(slot, ConnectionState.ERROR)
+        updateRssi(slot, 0)
+        if (savedDevices[slot] != null) {
+            connectToDevice(savedDevices[slot]!!, slot, isAutoReconnect = true)
+        }
+    }
 
         private fun startRssiPolling() {
             pollingJob?.cancel()
@@ -778,6 +979,20 @@ class AppBluetoothManager(private val context: Context) {
             override fun onReadRemoteRssi(gatt: android.bluetooth.BluetoothGatt?, rssi: Int, status: Int) {
                 if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
                     updateRssi(slot, rssi)
+                    rssiFailures[slot] = 0
+                    updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
+                } else {
+                    // Only enforce RSSI-based reconnects for BLE devices
+                    if (connectionTypes[slot] == DeviceType.LE) {
+                        rssiFailures[slot] = (rssiFailures[slot] + 1).coerceAtMost(10)
+                        updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
+                        if (rssiFailures[slot] >= 3) {
+                            log("RSSI read failures on Slot ${slot + 1}: ${rssiFailures[slot]}", LogType.WARNING)
+                        }
+                        if (rssiFailures[slot] >= 5) {
+                            forceReconnect(slot, "RSSI polling failed ${rssiFailures[slot]} times")
+                        }
+                    }
                 }
             }
 
@@ -800,14 +1015,25 @@ class AppBluetoothManager(private val context: Context) {
                 var serviceFound = false
 
                 // Variant 1: Standard HC-08/HM-10 (FFE0/FFE1) - Most common
+                // Also check for AT-09 variant (FFE0/FFE4) which shares the same service UUID
                 var service = gatt.getService(SERVICE_UUID_V1)
                 if (service != null) {
-                    val char = service.getCharacteristic(CHAR_UUID_V1)
+                    // Try standard HM-10 characteristic first (FFE1)
+                    var char = service.getCharacteristic(CHAR_UUID_V1)
                     if (char != null) {
                         txCharacteristic = char
                         detectedVariant = 1
                         serviceFound = true
                         log("BLE Module detected: Standard HC-08/HM-10 (FFE0/FFE1)", LogType.SUCCESS)
+                    } else {
+                        // Try AT-09 characteristic (FFE4) as fallback for same service
+                        char = service.getCharacteristic(CHAR_UUID_V5)
+                        if (char != null) {
+                            txCharacteristic = char
+                            detectedVariant = 5
+                            serviceFound = true
+                            log("BLE Module detected: AT-09 (FFE0/FFE4)", LogType.SUCCESS)
+                        }
                     }
                 }
 
@@ -844,15 +1070,26 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // Variant 3: TI CC2540/CC2541 HM-10 (FFF0/FFF1)
+                // Also check for MLT-BT05 variant (FFF0/FFF6) which shares the same service UUID
                 if (!serviceFound) {
                     service = gatt.getService(SERVICE_UUID_V3)
                     if (service != null) {
-                        val char = service.getCharacteristic(CHAR_UUID_V3)
+                        // Try TI HM-10 characteristic first (FFF1)
+                        var char = service.getCharacteristic(CHAR_UUID_V3)
                         if (char != null) {
                             txCharacteristic = char
                             detectedVariant = 3
                             serviceFound = true
                             log("BLE Module detected: TI CC254x HM-10 (FFF0/FFF1)", LogType.SUCCESS)
+                        } else {
+                            // Try MLT-BT05 characteristic (FFF6) as fallback for same service
+                            char = service.getCharacteristic(CHAR_UUID_V6)
+                            if (char != null) {
+                                txCharacteristic = char
+                                detectedVariant = 6
+                                serviceFound = true
+                                log("BLE Module detected: MLT-BT05/TI Clone (FFF0/FFF6)", LogType.SUCCESS)
+                            }
                         }
                     }
                 }
@@ -867,6 +1104,34 @@ class AppBluetoothManager(private val context: Context) {
                             detectedVariant = 4
                             serviceFound = true
                             log("BLE Module detected: Alternative HC-08 (FFE5/FFE9)", LogType.SUCCESS)
+                        }
+                    }
+                }
+
+                // Variant 5: Handled in Variant 1 block (AT-09 shares FFE0 service with HM-10)
+                // Variant 6: Handled in Variant 3 block (MLT-BT05 shares FFF0 service with TI HM-10)
+
+                // Variant 7: Generic Serial Discovery (Fallback)
+                // Look for ANY characteristic that supports WRITE (or WRITE_NO_RESPONSE) and NOTIFY
+                if (!serviceFound) {
+                    log("Known UUIDs not found. Attempting generic discovery...", LogType.WARNING)
+                    
+                    val services = gatt.services
+                    for (svc in services) {
+                        if (serviceFound) break
+                        
+                        for (char in svc.characteristics) {
+                            val props = char.properties
+                            val hasWrite = (props and (android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE or android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0
+                            val hasNotify = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
+                            
+                            if (hasWrite && hasNotify) {
+                                txCharacteristic = char
+                                detectedVariant = 7 // Generic
+                                serviceFound = true
+                                log("BLE Module detected: Generic Serial (${char.uuid})", LogType.SUCCESS)
+                                break
+                            }
                         }
                     }
                 }
@@ -907,6 +1172,7 @@ class AppBluetoothManager(private val context: Context) {
                 val data = characteristic.value
                 if (data != null && data.isNotEmpty()) {
                     _incomingData.value = data
+                    recordInbound(slot)
 
                     // Try to decode as text first for terminal display
                     val decodedText = try {
@@ -942,6 +1208,7 @@ class AppBluetoothManager(private val context: Context) {
                 // Modern callback - value provided directly
                 if (value.isNotEmpty()) {
                     _incomingData.value = value
+                    recordInbound(slot)
 
                     // Try to decode as text first for terminal display
                     val decodedText = try {
@@ -1023,6 +1290,14 @@ class AppBluetoothManager(private val context: Context) {
             if (!writeQueue.offer(bytes)) {
                 writeQueue.poll() // Remove oldest
                 writeQueue.offer(bytes) // Add new
+            }
+        }
+
+        override fun requestRssi() {
+            try {
+                bluetoothGatt?.readRemoteRssi()
+            } catch (e: SecurityException) {
+                Log.e("BT", "Manual RSSI read failed", e)
             }
         }
 

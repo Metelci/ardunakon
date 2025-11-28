@@ -1,6 +1,7 @@
 package com.metelci.ardunakon
 
 import android.Manifest
+import android.bluetooth.BluetoothManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -44,6 +45,7 @@ class MainActivity : ComponentActivity() {
     private var isBound by mutableStateOf(false)
     private var showPermissionDialog by mutableStateOf(false)
     private var permissionsDenied by mutableStateOf(false)
+    private var showBluetoothOffDialog by mutableStateOf(false)
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -128,11 +130,22 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+
+                    if (showBluetoothOffDialog) {
+                        BluetoothOffDialog(
+                            onDismiss = { showBluetoothOffDialog = false },
+                            onTurnOn = {
+                                showBluetoothOffDialog = false
+                                promptEnableBluetooth()
+                            }
+                        )
+                    }
                 }
             }
         }
 
         checkAndRequestPermissions()
+        checkBluetoothEnabled()
     }
 
     override fun onDestroy() {
@@ -141,6 +154,11 @@ class MainActivity : ComponentActivity() {
             unbindService(connection)
             isBound = false
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        checkBluetoothEnabled()
     }
 
     private fun checkAndRequestPermissions() {
@@ -159,6 +177,43 @@ class MainActivity : ComponentActivity() {
 
         permissionLauncher.launch(permissions)
     }
+
+    private fun checkBluetoothEnabled() {
+        val bluetoothAdapter = (getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
+        showBluetoothOffDialog = bluetoothAdapter == null || !bluetoothAdapter.isEnabled
+    }
+
+    private fun promptEnableBluetooth() {
+        try {
+            val enableIntent = Intent(android.bluetooth.BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            startActivity(enableIntent)
+        } catch (e: Exception) {
+            showBluetoothOffDialog = true
+        }
+    }
+}
+
+@Composable
+fun BluetoothOffDialog(
+    onDismiss: () -> Unit,
+    onTurnOn: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Turn on Bluetooth") },
+        text = {
+            Text(
+                "Bluetooth is off. Enable it to scan and maintain device connections.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            Button(onClick = onTurnOn) { Text("Enable") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Later") }
+        }
+    )
 }
 
 @Composable

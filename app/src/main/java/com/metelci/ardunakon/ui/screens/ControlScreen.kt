@@ -94,6 +94,7 @@ fun ControlScreen(
     val scannedDevices by bluetoothManager.scannedDevices.collectAsState()
     val connectionStates by bluetoothManager.connectionStates.collectAsState()
     val rssiValues by bluetoothManager.rssiValues.collectAsState()
+    val health by bluetoothManager.health.collectAsState()
     val debugLogs by bluetoothManager.debugLogs.collectAsState()
     val telemetry by bluetoothManager.telemetry.collectAsState()
     val activeAuxButtons = remember { mutableStateListOf<AssignedAux>() }
@@ -208,46 +209,63 @@ fun ControlScreen(
                 .fillMaxWidth()
                 .padding(bottom = 4.dp)
         ) {
-            val anyConnected = connectionStates.any { it == ConnectionState.CONNECTED }
-            val statusColor = if (anyConnected) {
-                Color(0xFF00C853)
-            } else {
-                if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
-            }
-
             // Left side: Bluetooth status
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
-                IconButton(onClick = {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                    showDeviceList = 0
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Bluetooth,
-                        contentDescription = "Bluetooth",
-                        tint = statusColor,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-
-                // Display RSSI for connected devices
-                if (anyConnected) {
-                    val connectedSlot = connectionStates.indexOfFirst { it == ConnectionState.CONNECTED }
-                    if (connectedSlot != -1) {
-                        SignalStrengthIcon(
-                            rssi = rssiValues[connectedSlot],
-                            color = statusColor
-                        )
+                (0..1).forEach { slotIndex ->
+                    val state = connectionStates[slotIndex]
+                    val stateColor = when (state) {
+                        ConnectionState.CONNECTED -> Color(0xFF00C853)
+                        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
+                        ConnectionState.ERROR -> Color(0xFFFF5252)
+                        else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
                     }
-                } else {
-                    Text(
-                        text = "Disconnected",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+
+                    val slotHealth = health.getOrNull(slotIndex)
+                    val lastPacketAgo = slotHealth?.lastPacketAt?.takeIf { it > 0 }?.let {
+                        val delta = System.currentTimeMillis() - it
+                        "${(delta / 1000).coerceAtLeast(0)}s"
+                    } ?: "n/a"
+                    val rtt = slotHealth?.lastRttMs?.takeIf { it > 0 }?.let { "${it}ms" } ?: "n/a"
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        IconButton(onClick = {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            showDeviceList = slotIndex
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Bluetooth,
+                                contentDescription = "Bluetooth Slot ${slotIndex + 1}",
+                                tint = stateColor,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        SignalStrengthIcon(
+                            rssi = rssiValues[slotIndex],
+                            color = stateColor
+                        )
+                        Text(
+                            text = "Slot ${slotIndex + 1}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
+                        )
+                        Text(
+                            text = "pkt $lastPacketAgo · rssi ${slotHealth?.rssiFailureCount ?: 0} · rtt $rtt",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
+                        )
+                        TextButton(
+                            onClick = { bluetoothManager.requestRssi(slotIndex) },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.height(26.dp)
+                        ) {
+                            Text("Refresh", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
             }
 
@@ -410,7 +428,7 @@ fun ControlScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
         // Joysticks with Aux Buttons on sides
         Row(
@@ -772,7 +790,7 @@ fun ControlScreen(
                                 ) {
                                     Column {
                                         Text(labelText, color = if (isDarkTheme) Color.White else Color(0xFF2D3436), style = MaterialTheme.typography.bodyMedium)
-                                        Text("Slot ${slot + 1} • Servo $servoText${if (roleText.isNotBlank()) " • $roleText" else ""}",
+                                        Text("Slot ${slot + 1} - Servo $servoText${if (roleText.isNotBlank()) " - $roleText" else ""}",
                                             color = Color(0xFF546E7A),
                                             style = MaterialTheme.typography.labelSmall)
                                     }
@@ -1124,9 +1142,9 @@ fun AuxButton(assigned: AssignedAux, manager: AppBluetoothManager) {
             .border(1.dp, Color(0x80FFFFFF), RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.Center
     ) {
-        val roleSuffix = if (assigned.role.isNotBlank()) " • ${assigned.role}" else ""
+        val roleSuffix = if (assigned.role.isNotBlank()) " - ${assigned.role}" else ""
         Text(
-            "${assigned.config.label} (S${assigned.slot + 1}→${assigned.servoId})$roleSuffix", 
+            "${assigned.config.label} (S${assigned.slot + 1}/Servo ${assigned.servoId})$roleSuffix",
             color = Color.White,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
