@@ -127,7 +127,12 @@ fun ControlScreen(
     // Profile State
     val profileManager = remember(context) { com.metelci.ardunakon.data.ProfileManager(context) }
     // Use mutableStateListOf to allow UI updates
-    val profiles = remember { mutableStateListOf<com.metelci.ardunakon.data.Profile>().apply { addAll(profileManager.loadProfiles()) } }
+    val profiles = remember { mutableStateListOf<com.metelci.ardunakon.data.Profile>() }
+
+    // Load profiles asynchronously
+    LaunchedEffect(Unit) {
+        profiles.addAll(profileManager.loadProfiles())
+    }
     
     var currentProfileIndex by remember { mutableStateOf(0) }
     
@@ -743,6 +748,8 @@ fun ControlScreen(
     // Profile Editor State
     var showProfileEditor by remember { mutableStateOf(false) }
     var profileToEdit by remember { mutableStateOf<com.metelci.ardunakon.data.Profile?>(null) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var profileIndexToDelete by remember { mutableStateOf(-1) }
 
     // Aux assignment dialog
     if (showAuxAssignDialog) {
@@ -818,10 +825,12 @@ fun ControlScreen(
                                     OutlinedTextField(
                                         value = labelText,
                                         onValueChange = { new ->
-                                            labelText = new
-                                            val servoId = servoText.toIntOrNull() ?: config.id
-                                            val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                            tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
+                                            if (new.length <= 20 && new.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".-_" }) {
+                                                labelText = new
+                                                val servoId = servoText.toIntOrNull() ?: config.id
+                                                val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
+                                                tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
+                                            }
                                         },
                                         label = { Text("Label", color = if (isDarkTheme) Color.White else Color(0xFF2D3436)) },
                                         singleLine = true,
@@ -836,10 +845,14 @@ fun ControlScreen(
                                     OutlinedTextField(
                                         value = commandText,
                                         onValueChange = { new ->
-                                            commandText = new.filter { it.isDigit() }
-                                            val servoId = servoText.toIntOrNull() ?: config.id
-                                            val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                            tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
+                                            val filtered = new.filter { it.isDigit() }
+                                            val value = filtered.toIntOrNull()
+                                            if (filtered.isEmpty() || (value != null && value in 0..255)) {
+                                                commandText = filtered
+                                                val servoId = servoText.toIntOrNull() ?: config.id
+                                                val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
+                                                tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
+                                            }
                                         },
                                         label = { Text("Command", color = if (isDarkTheme) Color.White else Color(0xFF2D3436)) },
                                         singleLine = true,
@@ -878,10 +891,14 @@ fun ControlScreen(
                                     OutlinedTextField(
                                         value = servoText,
                                         onValueChange = { new ->
-                                            servoText = new.filter { it.isDigit() }
-                                            val servoId = servoText.toIntOrNull() ?: config.id
-                                            val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                            tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
+                                            val filtered = new.filter { it.isDigit() }
+                                            val value = filtered.toIntOrNull()
+                                            if (filtered.isEmpty() || (value != null && value in 0..255)) {
+                                                servoText = filtered
+                                                val servoId = servoText.toIntOrNull() ?: config.id
+                                                val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
+                                                tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
+                                            }
                                         },
                                         label = { Text("Servo", color = if (isDarkTheme) Color.White else Color(0xFF2D3436)) },
                                         singleLine = true,
@@ -896,10 +913,12 @@ fun ControlScreen(
                                     OutlinedTextField(
                                         value = roleText,
                                         onValueChange = { new ->
-                                            roleText = new
-                                            val servoId = servoText.toIntOrNull() ?: config.id
-                                            val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                            tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
+                                            if (new.length <= 30 && new.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".-_/()" }) {
+                                                roleText = new
+                                                val servoId = servoText.toIntOrNull() ?: config.id
+                                                val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
+                                                tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
+                                            }
                                         },
                                         label = { Text("Role", color = if (isDarkTheme) Color.White else Color(0xFF2D3436)) },
                                         singleLine = true,
@@ -927,7 +946,9 @@ fun ControlScreen(
                             auxAssignments = tempAssignments.values.map { AuxAssignment(it.config.id, it.slot, it.servoId, it.role) }
                         )
                         profiles[currentProfileIndex] = updatedProfile
-                        profileManager.saveProfiles(profiles)
+                        coroutineScope.launch {
+                            profileManager.saveProfiles(profiles)
+                        }
                         showAuxAssignDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
@@ -944,7 +965,9 @@ fun ControlScreen(
                         activeAuxButtons.clear()
                         val updatedProfile = currentProfile.copy(auxAssignments = emptyList())
                         profiles[currentProfileIndex] = updatedProfile
-                        profileManager.saveProfiles(profiles)
+                        coroutineScope.launch {
+                            profileManager.saveProfiles(profiles)
+                        }
                         showAuxAssignDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
@@ -1003,20 +1026,8 @@ fun ControlScreen(
                                 
                                 IconButton(onClick = {
                                     if (profiles.size > 1) {
-                                        val wasSelected = index == currentProfileIndex
-                                        val isBeforeSelected = index < currentProfileIndex
-                                        
-                                        profiles.removeAt(index)
-                                        profileManager.saveProfiles(profiles)
-                                        
-                                        if (isBeforeSelected) {
-                                            currentProfileIndex--
-                                        } else if (wasSelected) {
-                                            // If we deleted the selected profile, select the first one (or stay at 0 if it was 0)
-                                            currentProfileIndex = 0
-                                        }
-                                        // Ensure valid range
-                                        if (currentProfileIndex >= profiles.size) currentProfileIndex = 0
+                                        profileIndexToDelete = index
+                                        showDeleteConfirmation = true
                                     }
                                 }) {
                                     Icon(Icons.Default.Delete, "Delete", tint = Color(0xFFFF7675))
@@ -1057,7 +1068,7 @@ fun ControlScreen(
     if (showProfileEditor) {
         com.metelci.ardunakon.ui.components.ProfileEditorDialog(
             profile = profileToEdit,
-            onDismiss = { },
+            onDismiss = { showProfileEditor = false },
             onSave = { newProfile ->
                 val index = profiles.indexOfFirst { it.id == newProfile.id }
                 if (index != -1) {
@@ -1065,7 +1076,55 @@ fun ControlScreen(
                 } else {
                     profiles.add(newProfile)
                 }
-                profileManager.saveProfiles(profiles)
+                coroutineScope.launch {
+                    profileManager.saveProfiles(profiles)
+                }
+                showProfileEditor = false
+            }
+        )
+    }
+
+    if (showDeleteConfirmation) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Profile") },
+            text = {
+                Text("Are you sure you want to delete \"${profiles.getOrNull(profileIndexToDelete)?.name ?: "this profile"}\"?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (profileIndexToDelete in profiles.indices) {
+                            val wasSelected = profileIndexToDelete == currentProfileIndex
+                            val isBeforeSelected = profileIndexToDelete < currentProfileIndex
+
+                            profiles.removeAt(profileIndexToDelete)
+                            coroutineScope.launch {
+                                profileManager.saveProfiles(profiles)
+                            }
+
+                            if (isBeforeSelected) {
+                                currentProfileIndex--
+                            } else if (wasSelected) {
+                                currentProfileIndex = 0
+                            }
+                            if (currentProfileIndex >= profiles.size) currentProfileIndex = 0
+                        }
+                        showDeleteConfirmation = false
+                        profileIndexToDelete = -1
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF7675))
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDeleteConfirmation = false
+                    profileIndexToDelete = -1
+                }) {
+                    Text("Cancel")
+                }
             }
         )
     }

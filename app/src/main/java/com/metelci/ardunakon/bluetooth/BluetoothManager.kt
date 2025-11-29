@@ -526,6 +526,15 @@ class AppBluetoothManager(private val context: Context) {
         if (statusByte > 1) return
 
         val battery = batteryRaw / 10f
+
+        // Validate battery voltage is within reasonable bounds (0V to 30V)
+        if (battery < 0f || battery > 30f) {
+            if (isDebugMode) {
+                log("Invalid telemetry: voltage ${battery}V out of range", LogType.WARNING)
+            }
+            return
+        }
+
         val status = if (statusByte == 1) "Safe Mode" else "Active"
 
         _telemetry.value = Telemetry(battery, status)
@@ -883,26 +892,6 @@ class AppBluetoothManager(private val context: Context) {
                 }
             }
         }
-
-    private fun updateHealth(slot: Int, seq: Int, packetAt: Long, failures: Int) {
-        val current = _health.value.toMutableList()
-        current[slot] = ConnectionHealth(packetAt, failures, seq, lastHeartbeatSentAt[slot])
-        _health.value = current
-    }
-
-    private fun forceReconnect(slot: Int, reason: String) {
-        log("Reconnecting Slot ${slot + 1}: $reason", LogType.WARNING)
-        connections[slot]?.cancel()
-        connections[slot] = null
-        if (connectionMutex[slot].isLocked) {
-            connectionMutex[slot].unlock()
-        }
-        updateConnectionState(slot, ConnectionState.ERROR)
-        updateRssi(slot, 0)
-        if (savedDevices[slot] != null) {
-            connectToDevice(savedDevices[slot]!!, slot, isAutoReconnect = true)
-        }
-    }
 
         private fun startRssiPolling() {
             pollingJob?.cancel()

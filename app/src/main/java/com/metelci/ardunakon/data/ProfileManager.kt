@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.model.defaultButtonConfigs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -31,7 +33,7 @@ class ProfileManager(private val context: Context) {
     private val fileName = "profiles.json"
     private val securityManager = com.metelci.ardunakon.security.SecurityManager()
 
-    fun saveProfiles(profiles: List<Profile>) {
+    suspend fun saveProfiles(profiles: List<Profile>) = withContext(Dispatchers.IO) {
         try {
             val jsonArray = JSONArray()
             profiles.forEach { profile ->
@@ -50,7 +52,7 @@ class ProfileManager(private val context: Context) {
                     assignmentsArray.put(assignObj)
                 }
                 profileObj.put("auxAssignments", assignmentsArray)
-                
+
                 val buttonsArray = JSONArray()
                 profile.buttonConfigs.forEach { btn ->
                     val btnObj = JSONObject()
@@ -63,10 +65,10 @@ class ProfileManager(private val context: Context) {
                 profileObj.put("buttons", buttonsArray)
                 jsonArray.put(profileObj)
             }
-            
+
             val jsonString = jsonArray.toString()
             val encryptedData = securityManager.encrypt(jsonString)
-            
+
             val file = File(context.filesDir, fileName)
             file.writeText(encryptedData)
         } catch (e: Exception) {
@@ -74,17 +76,17 @@ class ProfileManager(private val context: Context) {
         }
     }
 
-    fun loadProfiles(): List<Profile> {
+    suspend fun loadProfiles(): List<Profile> = withContext(Dispatchers.IO) {
         val profiles = mutableListOf<Profile>()
         val file = File(context.filesDir, fileName)
-        
+
         if (!file.exists()) {
-            return createDefaultProfiles()
+            return@withContext createDefaultProfiles()
         }
 
         try {
             val fileContent = file.readText()
-            
+
             // Attempt to decrypt
             val jsonString = try {
                 securityManager.decrypt(fileContent)
@@ -93,12 +95,12 @@ class ProfileManager(private val context: Context) {
                 Log.w("ProfileManager", "Decryption failed, assuming plain text migration", e)
                 fileContent
             }
-            
+
             val jsonArray = JSONArray(jsonString)
-            
+
             for (i in 0 until jsonArray.length()) {
                 val profileObj = jsonArray.getJSONObject(i)
-                
+
                 // Handle legacy profiles without ID
                 val id = if (profileObj.has("id")) profileObj.getString("id") else UUID.randomUUID().toString()
                 val name = profileObj.getString("name")
@@ -119,10 +121,10 @@ class ProfileManager(private val context: Context) {
                         )
                     }
                 }
-                
+
                 val buttons = mutableListOf<ButtonConfig>()
                 val buttonsArray = profileObj.getJSONArray("buttons")
-                
+
                 for (j in 0 until buttonsArray.length()) {
                     val btnObj = buttonsArray.getJSONObject(j)
                     buttons.add(
@@ -136,18 +138,18 @@ class ProfileManager(private val context: Context) {
                 }
                 profiles.add(Profile(id, name, buttons, isUnidirectional, sensitivity, assignments))
             }
-            
+
             // If we successfully loaded plain text, save it back as encrypted immediately
             if (fileContent == jsonString) {
                 saveProfiles(profiles)
             }
-            
+
         } catch (e: Exception) {
             Log.e("ProfileManager", "Error loading profiles", e)
-            return createDefaultProfiles()
+            return@withContext createDefaultProfiles()
         }
-        
-        return profiles
+
+        return@withContext profiles
     }
     
     fun createDefaultProfiles(): List<Profile> {
