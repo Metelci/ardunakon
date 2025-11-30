@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -203,6 +206,8 @@ fun ControlScreen(
     }
 
     // UI Layout with theme toggle
+    val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -224,20 +229,25 @@ fun ControlScreen(
                         }
                     )
                 )
+                .padding(safeDrawingPadding)
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-        // Global Bluetooth status & E-STOP
-        Box(
+        // Global Bluetooth status & E-STOP - Centered Layout
+        val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
+
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 4.dp)
+                .padding(bottom = 4.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left side: Bluetooth status
+            // Left side: Signal Strength Indicators
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.align(Alignment.CenterStart)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 (0..1).forEach { slotIndex ->
                     val state = connectionStates[slotIndex]
@@ -248,55 +258,17 @@ fun ControlScreen(
                         else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
                     }
 
-                    val slotHealth = health.getOrNull(slotIndex)
-                    val lastPacketAgo = slotHealth?.lastPacketAt?.takeIf { it > 0 }?.let {
-                        val delta = System.currentTimeMillis() - it
-                        "${(delta / 1000).coerceAtLeast(0)}s"
-                    } ?: "n/a"
-                    val rtt = slotHealth?.lastRttMs?.takeIf { it > 0 }?.let { "${it}ms" } ?: "n/a"
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(end = 4.dp)
-                    ) {
-                        IconButton(onClick = {
-                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                            showDeviceList = slotIndex
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Bluetooth,
-                                contentDescription = "Bluetooth Slot ${slotIndex + 1}",
-                                tint = stateColor,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        SignalStrengthIcon(
-                            rssi = rssiValues[slotIndex],
-                            color = stateColor
-                        )
-                        Text(
-                            text = "Slot ${slotIndex + 1}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                        )
-                        Text(
-                            text = "pkt $lastPacketAgo | rssi ${slotHealth?.rssiFailureCount ?: 0} | rtt $rtt",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
-                        )
-                        TextButton(
-                            onClick = { bluetoothManager.requestRssi(slotIndex) },
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                            modifier = Modifier.height(26.dp)
-                        ) {
-                            Text("Refresh", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
+                    SignalStrengthIcon(
+                        rssi = rssiValues[slotIndex],
+                        color = stateColor,
+                        modifier = Modifier
+                    )
                 }
             }
 
-            // Center: E-STOP BUTTON
-            val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
+            Spacer(modifier = Modifier.width(12.dp))
 
+            // Center: E-STOP BUTTON
             Button(
                 onClick = {
                     haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
@@ -315,7 +287,6 @@ fun ControlScreen(
                 shape = CircleShape,
                 modifier = Modifier
                     .size(72.dp)
-                    .align(Alignment.Center)
                     .shadow(6.dp, CircleShape)
                     .background(
                         brush = if (isEStopActive) {
@@ -341,37 +312,56 @@ fun ControlScreen(
                 )
             }
 
-            // Right side: Reconnect button
-            // Right side: Reconnect button
-            IconButton(
-                onClick = {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                    val reconnected = bluetoothManager.reconnectSavedDevices()
-                    if (!reconnected) {
-                        // If nothing to reconnect, open device picker for Slot 1
-                        showDeviceList = 0
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 64.dp)
-                    .shadow(2.dp, CircleShape)
-                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                    .border(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64), CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Bluetooth,
-                    contentDescription = "Connect / Reconnect",
-                    tint = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                )
-            }
+            Spacer(modifier = Modifier.width(12.dp))
 
-            // Menu Button (Top Right, next to Reconnect)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 16.dp)
+            // Right side: Control buttons
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Bluetooth Reconnect button
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        val reconnected = bluetoothManager.reconnectSavedDevices()
+                        if (!reconnected) {
+                            // If nothing to reconnect, open device picker for Slot 1
+                            showDeviceList = 0
+                        }
+                    },
+                    modifier = Modifier
+                        .shadow(2.dp, CircleShape)
+                        .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                        .border(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Bluetooth,
+                        contentDescription = "Connect / Reconnect",
+                        tint = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                    )
+                }
+
+                // Theme Toggle Button
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        onThemeToggle()
+                    },
+                    modifier = Modifier
+                        .shadow(2.dp, CircleShape)
+                        .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                        .border(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                        contentDescription = "Toggle Theme",
+                        tint = if (isDarkTheme) Color(0xFFFFD700) else Color(0xFF2D3436),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Menu Button
+                Box {
                 IconButton(
                     onClick = {
                         haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
@@ -418,8 +408,50 @@ fun ControlScreen(
                         }
                     )
                 }
+                }
             }
         }
+
+        // Bluetooth slot information row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.Top
+        ) {
+            (0..1).forEach { slotIndex ->
+                val slotHealth = health.getOrNull(slotIndex)
+                val lastPacketAgo = slotHealth?.lastPacketAt?.takeIf { it > 0 }?.let {
+                    val delta = System.currentTimeMillis() - it
+                    "${(delta / 1000).coerceAtLeast(0)}s"
+                } ?: "n/a"
+                val rtt = slotHealth?.lastRttMs?.takeIf { it > 0 }?.let { "${it}ms" } ?: "n/a"
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Text(
+                        text = "Slot ${slotIndex + 1}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
+                    )
+                    Text(
+                        text = "pkt $lastPacketAgo | rssi ${slotHealth?.rssiFailureCount ?: 0} | rtt $rtt",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
+                    )
+                    TextButton(
+                        onClick = { bluetoothManager.requestRssi(slotIndex) },
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                        modifier = Modifier.height(26.dp)
+                    ) {
+                        Text("Refresh", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Device Status Cards
         Row(
@@ -432,7 +464,8 @@ fun ControlScreen(
                 label = "Dev 1",
                 state = connectionStates[0],
                 rssi = rssiValues[0],
-                onClick = { showDeviceList = 0 }
+                onClick = { showDeviceList = 0 },
+                isDarkTheme = isDarkTheme
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -442,7 +475,8 @@ fun ControlScreen(
                 label = "Dev 2",
                 state = connectionStates[1],
                 rssi = rssiValues[1],
-                onClick = { showDeviceList = 1 }
+                onClick = { showDeviceList = 1 },
+                isDarkTheme = isDarkTheme
             )
         }
 
@@ -553,15 +587,8 @@ fun ControlScreen(
             ) {
                 // Left Stick (Movement)
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        "Move",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
                     JoystickControl(
                         onMoved = { state ->
                             leftJoystick = Pair(
@@ -571,12 +598,17 @@ fun ControlScreen(
                         },
                         size = joystickSize
                     )
+                    Text(
+                        "Move",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
 
                 // Right Stick (Throttle)
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     JoystickControl(
                         onMoved = { state ->
@@ -609,22 +641,6 @@ fun ControlScreen(
                 }
             }
         }
-        }
-
-        // Theme Toggle Button (Bottom Right)
-        FloatingActionButton(
-            onClick = onThemeToggle,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 64.dp, bottom = 16.dp),
-            containerColor = if (isDarkTheme) Color(0xFF2D3436) else Color.White,
-            contentColor = if (isDarkTheme) Color(0xFFFFD700) else Color(0xFF2D3436)
-        ) {
-            Icon(
-                imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
-                contentDescription = "Toggle Theme",
-                modifier = Modifier.size(24.dp)
-            )
         }
     }
 
@@ -1255,12 +1271,9 @@ fun ControlScreen(
 
 
 @Composable
-fun StatusCard(label: String, state: ConnectionState, rssi: Int, onClick: () -> Unit) {
-    val color = when(state) {
-        ConnectionState.CONNECTED -> Color(0xFFA5D6A7)
-        ConnectionState.CONNECTING -> Color(0xFFFFE082)
-        else -> Color(0xFFEF9A9A)
-    }
+fun StatusCard(label: String, state: ConnectionState, @Suppress("UNUSED_PARAMETER") rssi: Int, onClick: () -> Unit, @Suppress("UNUSED_PARAMETER") isDarkTheme: Boolean) {
+    // Electric yellow for all states
+    val color = Color(0xFFFFFF00)
     val stateText = when(state) {
         ConnectionState.CONNECTED -> "Connected"
         ConnectionState.CONNECTING -> "Connecting..."
@@ -1268,34 +1281,26 @@ fun StatusCard(label: String, state: ConnectionState, rssi: Int, onClick: () -> 
         ConnectionState.ERROR -> "Error"
         ConnectionState.DISCONNECTED -> "Disconnected"
     }
-    
-    Card(
+
+    androidx.compose.material3.OutlinedButton(
+        onClick = onClick,
         modifier = Modifier
             .widthIn(min = 150.dp)
-            .shadow(4.dp, RoundedCornerShape(16.dp))
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = color)
+            .height(36.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = color
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "$label: $stateText",
-                color = Color(0xFF2D3436),
                 style = MaterialTheme.typography.labelMedium
             )
-            if (state == ConnectionState.CONNECTED) {
-                Spacer(modifier = Modifier.width(8.dp))
-                val bars = when {
-                    rssi > -60 -> 4
-                    rssi > -70 -> 3
-                    rssi > -80 -> 2
-                    else -> 1
-                }
-                Text("l".repeat(bars), style = MaterialTheme.typography.labelSmall, color = Color(0xFF2D3436))
-            }
         }
     }
 }

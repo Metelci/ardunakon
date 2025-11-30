@@ -1,4 +1,25 @@
-What's New in v0.1.3-alpha:
+What's New in v0.1.4-alpha:
+
+🎨 **UI/UX Enhancements**:
+   • **Fullscreen Optimization**: Fixed layout to properly respect system notification bar and navigation buttons - no more overlapping UI elements!
+   • **Centered Control Layout**: Reorganized E-STOP, signal indicators, and control buttons into a clean centered layout for better visibility and balance.
+   • **Electric Yellow Device Buttons**: Dev 1 and Dev 2 status buttons now use bright electric yellow for instant visibility.
+   • **Streamlined Interface**: Removed redundant Bluetooth icons and optimized joystick alignment for a cleaner look.
+   • **Theme Toggle Relocated**: Theme switcher moved to top bar alongside Bluetooth and menu buttons for easier access.
+
+🎯 **Layout Improvements**:
+   • **Perfect Joystick Alignment**: Both joysticks now align perfectly at the same height with labels consistently positioned below.
+   • **Centered Slot Info**: Slot 1 and Slot 2 information displayed side-by-side at center for better readability.
+   • **Optimized Spacing**: Improved icon positioning throughout the app for better visual balance.
+
+🛠️ **Technical Updates**:
+   • Enabled edge-to-edge display with proper WindowInsets handling
+   • Applied safe drawing padding to prevent system UI overlap
+   • Cleaned up code warnings and improved build efficiency
+
+---
+
+Previous Release - v0.1.3-alpha:
 
 🎨 **UI & Visibility Overhaul**:
    • **High Contrast Buttons**: Replaced pastel buttons with standard Material Design outlined buttons for better visibility in all lighting conditions.
