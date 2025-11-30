@@ -72,6 +72,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
@@ -129,7 +131,7 @@ fun ControlScreen(
     }
 
     // Haptics
-    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
 
     // Profile State
     val profileManager = remember(context) { com.metelci.ardunakon.data.ProfileManager(context) }
@@ -271,7 +273,7 @@ fun ControlScreen(
             // Center: E-STOP BUTTON
             Button(
                 onClick = {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     if (isEStopActive) {
                         // Reset E-Stop
                         bluetoothManager.setEmergencyStop(false)
@@ -322,7 +324,7 @@ fun ControlScreen(
                 // Bluetooth Reconnect button
                 IconButton(
                     onClick = {
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         val reconnected = bluetoothManager.reconnectSavedDevices()
                         if (!reconnected) {
                             // If nothing to reconnect, open device picker for Slot 1
@@ -344,7 +346,7 @@ fun ControlScreen(
                 // Theme Toggle Button
                 IconButton(
                     onClick = {
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         onThemeToggle()
                     },
                     modifier = Modifier
@@ -364,7 +366,7 @@ fun ControlScreen(
                 Box {
                 IconButton(
                     onClick = {
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         showOverflowMenu = !showOverflowMenu
                     },
                     modifier = Modifier
@@ -388,6 +390,7 @@ fun ControlScreen(
                         text = { Text("Help") },
                         leadingIcon = { Icon(Icons.Default.Help, null) },
                         onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             showHelpDialog = true
                             showOverflowMenu = false
                         }
@@ -396,6 +399,7 @@ fun ControlScreen(
                         text = { Text("About") },
                         leadingIcon = { Icon(Icons.Outlined.Info, null) },
                         onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             showAboutDialog = true
                             showOverflowMenu = false
                         }
@@ -403,6 +407,7 @@ fun ControlScreen(
                     DropdownMenuItem(
                         text = { Text("Legacy Reflection Connect: ${if (allowReflection) "On" else "Off"}") },
                         onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             allowReflection = !allowReflection
                             showOverflowMenu = false
                         }
@@ -441,7 +446,10 @@ fun ControlScreen(
                         color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
                     )
                     TextButton(
-                        onClick = { bluetoothManager.requestRssi(slotIndex) },
+                        onClick = { 
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            bluetoothManager.requestRssi(slotIndex) 
+                        },
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                         modifier = Modifier.height(26.dp)
                     ) {
@@ -492,7 +500,7 @@ fun ControlScreen(
         ) {
             androidx.compose.material3.OutlinedButton(
                 onClick = { 
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     showProfileSelector = true 
                 },
                 modifier = Modifier.height(36.dp),
@@ -507,7 +515,7 @@ fun ControlScreen(
             Spacer(modifier = Modifier.width(8.dp))
             androidx.compose.material3.OutlinedButton(
                 onClick = { 
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     showAuxAssignDialog = true 
                 },
                 modifier = Modifier.height(36.dp),
@@ -522,7 +530,7 @@ fun ControlScreen(
             Spacer(modifier = Modifier.width(8.dp))
             androidx.compose.material3.OutlinedButton(
                 onClick = { 
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     showDebugConsole = true 
                 },
                 modifier = Modifier.height(36.dp),
@@ -718,6 +726,7 @@ fun ControlScreen(
                     // Scan button
                     androidx.compose.material3.OutlinedButton(
                         onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             isScanning = true
                             bluetoothManager.startScan()
                             // Auto-stop scanning indication after 5 seconds
@@ -797,6 +806,7 @@ fun ControlScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
+                                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                             bluetoothManager.connectToDevice(device, showDeviceList!!)
                                             showDeviceList = null
                                         },
@@ -1272,6 +1282,7 @@ fun ControlScreen(
 
 @Composable
 fun StatusCard(label: String, state: ConnectionState, @Suppress("UNUSED_PARAMETER") rssi: Int, onClick: () -> Unit, @Suppress("UNUSED_PARAMETER") isDarkTheme: Boolean) {
+    val view = LocalView.current
     // Electric yellow for all states
     val color = Color(0xFFFFFF00)
     val stateText = when(state) {
@@ -1283,7 +1294,10 @@ fun StatusCard(label: String, state: ConnectionState, @Suppress("UNUSED_PARAMETE
     }
 
     androidx.compose.material3.OutlinedButton(
-        onClick = onClick,
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            onClick()
+        },
         modifier = Modifier
             .widthIn(min = 150.dp)
             .height(36.dp),
@@ -1307,7 +1321,7 @@ fun StatusCard(label: String, state: ConnectionState, @Suppress("UNUSED_PARAMETE
 
 @Composable
 fun AuxButton(assigned: AssignedAux, manager: AppBluetoothManager) {
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val view = androidx.compose.ui.platform.LocalView.current
     Box(
         modifier = Modifier
             .size(width = 110.dp, height = 64.dp)
@@ -1322,7 +1336,7 @@ fun AuxButton(assigned: AssignedAux, manager: AppBluetoothManager) {
                 )
             )
             .clickable {
-                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
                 val data = ProtocolManager.formatButtonData(assigned.servoId, true)
                 manager.sendDataToSlot(data, assigned.slot)
             }

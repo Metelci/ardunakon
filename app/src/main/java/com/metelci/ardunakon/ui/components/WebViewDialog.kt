@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 
 /**
  * WebView dialog for displaying web content inside the app.
@@ -30,6 +32,7 @@ fun WebViewDialog(
     onDismiss: () -> Unit,
     isDarkTheme: Boolean = true
 ) {
+    val view = LocalView.current
     var isLoading by remember { mutableStateOf(true) }
 
     Dialog(
@@ -72,7 +75,10 @@ fun WebViewDialog(
                             )
                         }
                     }
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onDismiss()
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",

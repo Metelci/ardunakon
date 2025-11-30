@@ -24,6 +24,8 @@ import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +36,7 @@ fun TerminalDialog(
     onSendCommand: (String) -> Unit,
     onClearLogs: () -> Unit
 ) {
+    val view = LocalView.current
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -68,10 +71,16 @@ fun TerminalDialog(
                     }
                 }
                 Row {
-                    IconButton(onClick = onClearLogs) {
+                    IconButton(onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onClearLogs()
+                    }) {
                         Icon(Icons.Default.Delete, "Clear Logs", tint = Color(0xFFB0BEC5))
                     }
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onDismiss()
+                    }) {
                         Icon(Icons.Default.Close, "Close")
                     }
                 }
@@ -143,6 +152,7 @@ fun TerminalDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             if (inputText.isNotBlank()) {
                                 onSendCommand(inputText)
                                 inputText = ""

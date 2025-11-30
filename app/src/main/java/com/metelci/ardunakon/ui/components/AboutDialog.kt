@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import com.metelci.ardunakon.BuildConfig
 
 /**
@@ -32,6 +34,7 @@ fun AboutDialog(
     onDismiss: () -> Unit,
     isDarkTheme: Boolean = true
 ) {
+    val view = LocalView.current
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
 
     AlertDialog(
@@ -103,7 +106,10 @@ fun AboutDialog(
 
                 // GitHub link button
                 OutlinedButton(
-                    onClick = { webUrlToOpen = "https://github.com/metelci/ardunakon" },
+                    onClick = { 
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        webUrlToOpen = "https://github.com/metelci/ardunakon" 
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2)
@@ -135,7 +141,10 @@ fun AboutDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                onDismiss()
+            }) {
                 Text(
                     "Close",
                     color = Color(0xFF74B9FF)
