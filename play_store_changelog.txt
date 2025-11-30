@@ -1,13 +1,13 @@
-What's New in v0.1.2-alpha:
+What's New in v0.1.3-alpha:
 
-🚀 **New Board Support**:
-   • **Arduino Uno R4 Wifi & Uno Q**: Added native BLE support. No external modules needed!
-   • **Clone HM-10 Support**: Enhanced "Generic Discovery" engine now connects to almost any HM-10 clone (CC41, MLT-BT05, etc.).
+🎨 **UI & Visibility Overhaul**:
+   • **High Contrast Buttons**: Replaced pastel buttons with standard Material Design outlined buttons for better visibility in all lighting conditions.
+   • **Responsive Joysticks**: Fixed layout issues where joysticks were cut off on some screens. They now adapt perfectly to your device.
+   • **Refined Layout**: Wider "Help" dialog and optimized button placement for easier access.
 
-🛡️ **Military-Grade Stability**:
-   • **HC-06 Clones**: Added automatic bonding checks and radio settling delays for rock-solid connections.
-   • **Maximum Compatibility**: Now supports 12+ manufacturer UUID variants for rare and difficult HC-06 clones.
+📚 **Offline Documentation**:
+   • **No Internet? No Problem!**: The full Setup Guide, Troubleshooting, and Compatibility docs are now built-in. Read them anytime, anywhere, without needing a connection.
 
-✨ **Improvements**:
-   • **Smart Discovery**: App now intelligently detects if a device uses "Unified" (Single Char) or "Split" (TX/RX) UART services.
-   • **Dynamic Write Types**: Automatically selects the fastest and most reliable write mode for your specific module.
+🐛 **Bug Fixes**:
+   • Fixed a crash related to Bluetooth reconnection monitoring.
+   • Fixed broken links in the Help section.

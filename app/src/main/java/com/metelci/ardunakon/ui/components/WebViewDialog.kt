@@ -24,7 +24,8 @@ import androidx.compose.ui.window.DialogProperties
  */
 @Composable
 fun WebViewDialog(
-    url: String,
+    url: String = "",
+    htmlContent: String? = null,
     title: String = "Documentation",
     onDismiss: () -> Unit,
     isDarkTheme: Boolean = true
@@ -120,7 +121,11 @@ fun WebViewDialog(
                                 displayZoomControls = false
                                 setSupportZoom(true)
                             }
-                            loadUrl(url)
+                            if (htmlContent != null) {
+                                loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+                            } else {
+                                loadUrl(url)
+                            }
                         }
                     },
                     modifier = Modifier

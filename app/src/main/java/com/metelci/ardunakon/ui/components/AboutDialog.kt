@@ -34,17 +34,6 @@ fun AboutDialog(
 ) {
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
 
-    // Pastel gradient for buttons (matching existing design)
-    val pastelBrush = remember {
-        Brush.horizontalGradient(
-            colors = listOf(
-                Color(0xFFFCE4EC),
-                Color(0xFFE3F2FD),
-                Color(0xFFE8F5E9)
-            )
-        )
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxWidth(0.9f),
@@ -113,26 +102,24 @@ fun AboutDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // GitHub link button
-                Button(
+                OutlinedButton(
                     onClick = { webUrlToOpen = "https://github.com/metelci/ardunakon" },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(2.dp, RoundedCornerShape(12.dp))
-                        .background(pastelBrush, RoundedCornerShape(12.dp))
-                        .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2)
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2)
+                    )
                 ) {
                     Icon(
                         imageVector = Icons.Default.OpenInNew,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = Color(0xFF2D3436)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "View on GitHub",
-                        color = Color(0xFF2D3436)
-                    )
+                    Text("View on GitHub")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

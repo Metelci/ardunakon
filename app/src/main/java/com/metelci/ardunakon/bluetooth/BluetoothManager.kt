@@ -111,6 +111,10 @@ class AppBluetoothManager(private val context: Context) {
     private val _incomingData = MutableStateFlow<ByteArray?>(null)
     val incomingData: StateFlow<ByteArray?> = _incomingData.asStateFlow()
 
+    // E-Stop State
+    private val _isEmergencyStopActive = MutableStateFlow(false)
+    val isEmergencyStopActive: StateFlow<Boolean> = _isEmergencyStopActive.asStateFlow()
+
     private var keepAliveJob: Job? = null
 
     fun log(message: String, type: LogType = LogType.INFO) {
@@ -175,10 +179,6 @@ class AppBluetoothManager(private val context: Context) {
         startReconnectMonitor()
         startKeepAlivePings()
     }
-
-    // E-Stop State
-    private val _isEmergencyStopActive = MutableStateFlow(false)
-    val isEmergencyStopActive: StateFlow<Boolean> = _isEmergencyStopActive.asStateFlow()
 
     fun setEmergencyStop(active: Boolean) {
         _isEmergencyStopActive.value = active
@@ -317,7 +317,8 @@ class AppBluetoothManager(private val context: Context) {
             log("Connect failed: Missing permissions", LogType.ERROR)
             return
         }
-        if (adapter == null || !adapter.isEnabled) {
+        val localAdapter = adapter
+        if (localAdapter == null || !localAdapter.isEnabled) {
             log("Connect failed: Bluetooth is off", LogType.ERROR)
             return
         }
@@ -343,7 +344,7 @@ class AppBluetoothManager(private val context: Context) {
 
             // Cancel discovery BEFORE starting connection - discovery interferes with connection
             try {
-                adapter?.cancelDiscovery()
+                localAdapter.cancelDiscovery()
             } catch (e: SecurityException) {
                 log("Could not cancel discovery: Missing permission", LogType.WARNING)
             }
@@ -356,7 +357,7 @@ class AppBluetoothManager(private val context: Context) {
             // Give BT stack time to clean up (minimal delay for fast reconnection)
             delay(200)
 
-            val device = adapter?.getRemoteDevice(deviceModel.address)
+            val device = localAdapter.getRemoteDevice(deviceModel.address)
             if (device == null) {
                 connectionMutex[slot].unlock()
                 return@launch

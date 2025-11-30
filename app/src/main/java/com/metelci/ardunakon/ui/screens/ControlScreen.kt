@@ -109,15 +109,9 @@ fun ControlScreen(
     val activeAuxButtons = remember { mutableStateListOf<AssignedAux>() }
     var showAuxAssignDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val pastelBrush = remember {
-        Brush.horizontalGradient(
-            colors = listOf(
-                Color(0xFFFCE4EC),
-                Color(0xFFE3F2FD),
-                Color(0xFFE8F5E9)
-            )
-        )
-    }
+
+    // Removed pastelBrush for better visibility
+
 
     val context = LocalContext.current
     var allowReflection by remember { mutableStateOf(false) }
@@ -348,6 +342,7 @@ fun ControlScreen(
             }
 
             // Right side: Reconnect button
+            // Right side: Reconnect button
             IconButton(
                 onClick = {
                     haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
@@ -359,9 +354,10 @@ fun ControlScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
+                    .padding(end = 64.dp)
                     .shadow(2.dp, CircleShape)
-                    .background(pastelBrush, CircleShape)
-                    .border(1.dp, Color(0xFFB0BEC5), CircleShape)
+                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                    .border(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64), CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Bluetooth,
@@ -369,112 +365,29 @@ fun ControlScreen(
                     tint = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
                 )
             }
-        }
 
-        // Device Status Cards
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Slot 1
-            StatusCard(
-                label = "Dev 1",
-                state = connectionStates[0],
-                rssi = rssiValues[0],
-                onClick = { showDeviceList = 0 }
-            )
-
-            // Slot 2
-            StatusCard(
-                label = "Dev 2",
-                state = connectionStates[1],
-                rssi = rssiValues[1],
-                onClick = { showDeviceList = 1 }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Profile & Debug - Compact buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 48.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(
-                onClick = { 
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
-                    showProfileSelector = true 
-                },
-                colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+            // Menu Button (Top Right, next to Reconnect)
+            Box(
                 modifier = Modifier
-                    .height(32.dp)
-                    .shadow(1.dp, RoundedCornerShape(8.dp))
-                    .background(pastelBrush, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0xFF2D3436), RoundedCornerShape(8.dp))
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp)
             ) {
-                Text("Profile", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2D3436))
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-            TextButton(
-                onClick = { 
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
-                    showAuxAssignDialog = true 
-                },
-                colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                modifier = Modifier
-                    .height(32.dp)
-                    .shadow(1.dp, RoundedCornerShape(8.dp))
-                    .background(pastelBrush, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(8.dp))
-            ) {
-                Text("Aux", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2D3436))
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-            TextButton(
-                onClick = { 
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
-                    showDebugConsole = true 
-                },
-                colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                modifier = Modifier
-                    .height(32.dp)
-                    .shadow(1.dp, RoundedCornerShape(8.dp))
-                    .background(pastelBrush, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(8.dp))
-        ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Open Debug Console",
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Text("Debug", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2D3436))
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-            Box {
                 IconButton(
                     onClick = {
                         haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
                         showOverflowMenu = !showOverflowMenu
                     },
                     modifier = Modifier
-                        .size(32.dp)
-                        .shadow(1.dp, CircleShape)
-                        .background(pastelBrush, CircleShape)
-                        .border(1.dp, Color(0xFFB0BEC5), CircleShape)
+                        .size(36.dp)
+                        .shadow(2.dp, CircleShape)
+                        .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                        .border(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64), CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Menu",
                         tint = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
                 DropdownMenu(
@@ -508,11 +421,114 @@ fun ControlScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Joysticks with Aux Buttons on sides
+        // Device Status Cards
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Slot 1
+            StatusCard(
+                label = "Dev 1",
+                state = connectionStates[0],
+                rssi = rssiValues[0],
+                onClick = { showDeviceList = 0 }
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Slot 2
+            StatusCard(
+                label = "Dev 2",
+                state = connectionStates[1],
+                rssi = rssiValues[1],
+                onClick = { showDeviceList = 1 }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Profile & Debug - Standard Buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.OutlinedButton(
+                onClick = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    showProfileSelector = true 
+                },
+                modifier = Modifier.height(36.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436))
+            ) {
+                Text("Profile", style = MaterialTheme.typography.labelMedium)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            androidx.compose.material3.OutlinedButton(
+                onClick = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    showAuxAssignDialog = true 
+                },
+                modifier = Modifier.height(36.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436))
+            ) {
+                Text("Aux", style = MaterialTheme.typography.labelMedium)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            androidx.compose.material3.OutlinedButton(
+                onClick = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    showDebugConsole = true 
+                },
+                modifier = Modifier.height(36.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Open Debug Console",
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Debug", style = MaterialTheme.typography.labelMedium)
+            }
+
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Joysticks with Aux Buttons on sides - Responsive Layout
+        val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+        val screenHeight = configuration.screenHeightDp.dp
+        val screenWidth = configuration.screenWidthDp.dp
+        
+        // Estimate available space (Screen height - top content approx 250dp)
+        // This is an approximation but safer than BoxWithConstraints which caused issues
+        val availableHeight = (screenHeight - 250.dp).coerceAtLeast(150.dp)
+        val availableWidth = screenWidth
+        
+        val maxJoystickWidth = availableWidth * 0.35f
+        val maxJoystickHeight = availableHeight
+        val joystickSize = minOf(maxJoystickWidth, maxJoystickHeight, 220.dp)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f), // Take remaining vertical space
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -536,15 +552,15 @@ fun ControlScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Left Stick (Movement)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         "Move",
                         style = MaterialTheme.typography.labelMedium,
                         color = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
                     JoystickControl(
                         onMoved = { state ->
@@ -553,14 +569,14 @@ fun ControlScreen(
                                 state.y * currentProfile.sensitivity
                             )
                         },
-                        size = 200.dp
+                        size = joystickSize
                     )
                 }
 
                 // Right Stick (Throttle)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     JoystickControl(
                         onMoved = { state ->
@@ -569,13 +585,13 @@ fun ControlScreen(
                                 state.y * currentProfile.sensitivity
                             )
                         },
-                        size = 200.dp
+                        size = joystickSize
                     )
                     Text(
-                        if (currentProfile.isThrottleUnidirectional) "Throttle\n(0-100%)" else "Throttle\n(+/-)",
+                        if (currentProfile.isThrottleUnidirectional) "Throttle (0-100%)" else "Throttle (+/-)",
                         style = MaterialTheme.typography.labelMedium,
                         color = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                        modifier = Modifier.padding(start = 8.dp)
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
@@ -600,7 +616,7 @@ fun ControlScreen(
             onClick = onThemeToggle,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp),
+                .padding(end = 64.dp, bottom = 16.dp),
             containerColor = if (isDarkTheme) Color(0xFF2D3436) else Color.White,
             contentColor = if (isDarkTheme) Color(0xFFFFD700) else Color(0xFF2D3436)
         ) {
@@ -684,7 +700,7 @@ fun ControlScreen(
                     Divider(color = Color(0xFFB0BEC5), thickness = 1.dp)
 
                     // Scan button
-                    Button(
+                    androidx.compose.material3.OutlinedButton(
                         onClick = {
                             isScanning = true
                             bluetoothManager.startScan()
@@ -694,12 +710,12 @@ fun ControlScreen(
                                 isScanning = false
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(2.dp, RoundedCornerShape(12.dp))
-                            .background(pastelBrush, RoundedCornerShape(12.dp))
-                            .border(2.dp, Color(0xFF2D3436), RoundedCornerShape(12.dp)),
+                            .fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF2D3436)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2D3436)),
                         enabled = !isScanning
                     ) {
                         Icon(
@@ -710,7 +726,6 @@ fun ControlScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             if (isScanning) "Scanning..." else "Scan for Devices",
-                            color = Color(0xFF2D3436),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -822,14 +837,11 @@ fun ControlScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = { showDeviceList = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    modifier = Modifier
-                        .shadow(2.dp, RoundedCornerShape(12.dp))
-                        .background(pastelBrush, RoundedCornerShape(12.dp))
-                        .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
-                ) { Text("Close", color = Color(0xFF2D3436)) }
+                TextButton(
+                    onClick = { showDeviceList = null }
+                ) {
+                    Text("Close", color = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2))
+                }
             }
         )
     }
@@ -962,19 +974,30 @@ fun ControlScreen(
                                 ) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                         (0..1).forEach { s ->
-                                            TextButton(
+                                            androidx.compose.material3.OutlinedButton(
                                                 onClick = {
                                                     slot = s
                                                     val servoId = servoText.toIntOrNull() ?: config.id
                                                     val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
                                                     tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
                                                 },
-                                                colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
-                                                modifier = Modifier
-                                                    .shadow(1.dp, RoundedCornerShape(10.dp))
-                                                    .background(pastelBrush, RoundedCornerShape(10.dp))
-                                                    .border(1.dp, if (slot == s) Color(0xFF2D3436) else Color(0xFFB0BEC5), RoundedCornerShape(10.dp))
-                                            ) { Text("Slot ${s + 1}", color = Color(0xFF2D3436)) }
+                                                colors = ButtonDefaults.outlinedButtonColors(
+                                                    containerColor = if (slot == s) {
+                                                        if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0)
+                                                    } else Color.Transparent,
+                                                    contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                                                ),
+                                                border = androidx.compose.foundation.BorderStroke(
+                                                    1.dp, 
+                                                    if (slot == s) {
+                                                        if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                                                    } else {
+                                                        if (isDarkTheme) Color(0xFF546E7A) else Color(0xFFB0BEC5)
+                                                    }
+                                                ),
+                                                modifier = Modifier.height(36.dp),
+                                                contentPadding = PaddingValues(horizontal = 8.dp)
+                                            ) { Text("Slot ${s + 1}", style = MaterialTheme.typography.labelSmall) }
                                         }
                                     }
                                     OutlinedTextField(
@@ -1038,15 +1061,14 @@ fun ControlScreen(
                         coroutineScope.launch { saveProfilesSafely() }
                         showAuxAssignDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    modifier = Modifier
-                        .shadow(2.dp, RoundedCornerShape(12.dp))
-                        .background(pastelBrush, RoundedCornerShape(12.dp))
-                        .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
-                ) { Text("Done", color = Color(0xFF2D3436)) }
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2),
+                        contentColor = if (isDarkTheme) Color(0xFF2D3436) else Color.White
+                    )
+                ) { Text("Done") }
             },
             dismissButton = {
-                Button(
+                TextButton(
                     onClick = {
                         tempAssignments.clear()
                         activeAuxButtons.clear()
@@ -1055,12 +1077,10 @@ fun ControlScreen(
                         coroutineScope.launch { saveProfilesSafely() }
                         showAuxAssignDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    modifier = Modifier
-                        .shadow(2.dp, RoundedCornerShape(12.dp))
-                        .background(pastelBrush, RoundedCornerShape(12.dp))
-                        .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
-                ) { Text("Clear All", color = Color(0xFF2D3436)) }
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFFFF5252)
+                    )
+                ) { Text("Clear All") }
             }
         )
     }
@@ -1088,16 +1108,18 @@ fun ControlScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                TextButton(
+                                androidx.compose.material3.OutlinedButton(
                                     onClick = {
                                         currentProfileIndex = index
                                     },
-                                    colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .shadow(2.dp, RoundedCornerShape(10.dp))
-                                        .background(pastelBrush, RoundedCornerShape(10.dp))
-                                        .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(10.dp))
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp, 
+                                        if (isDarkTheme) Color(0xFF546E7A) else Color(0xFFB0BEC5)
+                                    )
                                 ) {
                                     Text(profile.name, style = MaterialTheme.typography.bodyLarge)
                                 }
@@ -1121,17 +1143,19 @@ fun ControlScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(
+                    androidx.compose.material3.OutlinedButton(
                         onClick = {
                             profileToEdit = null
                             showProfileEditor = true
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(2.dp, RoundedCornerShape(12.dp))
-                            .background(pastelBrush, RoundedCornerShape(12.dp))
-                            .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, 
+                            if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                        )
                     ) {
                         Text("Create New Profile")
                     }
@@ -1139,12 +1163,7 @@ fun ControlScreen(
             },
             confirmButton = {
                 TextButton(
-                    onClick = { showProfileSelector = false },
-                    colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
-                    modifier = Modifier
-                        .shadow(2.dp, RoundedCornerShape(12.dp))
-                        .background(pastelBrush, RoundedCornerShape(12.dp))
-                        .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
+                    onClick = { showProfileSelector = false }
                 ) { Text("Close") }
             }
         )

@@ -45,11 +45,7 @@ fun HelpDialog(
         "docs/troubleshooting.txt",
         "docs/compatibility.txt"
     )
-    val onlineUrls = listOf(
-        "https://github.com/metelci/ardunakon/blob/main/arduino_sketches/SETUP_GUIDE.md",
-        "https://github.com/metelci/ardunakon/blob/main/HC06_TROUBLESHOOTING.md",
-        "https://github.com/metelci/ardunakon/blob/main/BLUETOOTH_COMPATIBILITY.md"
-    )
+
 
     // Load content for selected tab
     val content = remember(selectedTab) {
@@ -70,7 +66,7 @@ fun HelpDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.9f)
                 .heightIn(max = 600.dp)
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
@@ -162,10 +158,11 @@ fun HelpDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // "View Full Guide Online" button
+                // "View Full Guide" button
                 Button(
                     onClick = {
-                        webUrlToOpen = onlineUrls[selectedTab]
+                        // Trigger the dialog with current content
+                        webUrlToOpen = "offline" 
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                     modifier = Modifier
@@ -182,7 +179,7 @@ fun HelpDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "View Full Guide Online",
+                        "View Full Guide",
                         color = Color(0xFF2D3436)
                     )
                 }
@@ -190,10 +187,34 @@ fun HelpDialog(
         }
     }
 
-    // In-app web view for online documentation
-    webUrlToOpen?.let { url ->
+    // In-app web view for offline documentation
+    webUrlToOpen?.let { _ ->
+        // Generate simple HTML for the text content
+        val bgColor = if (isDarkTheme) "#1E1E2E" else "#FFFFFF"
+        val textColor = if (isDarkTheme) "#E0E0E0" else "#212121"
+        val htmlContent = """
+            <html>
+            <head>
+            <style>
+            body {
+                background-color: $bgColor;
+                color: $textColor;
+                font-family: monospace;
+                padding: 16px;
+                white-space: pre-wrap;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            </style>
+            </head>
+            <body>
+            ${content}
+            </body>
+            </html>
+        """.trimIndent()
+
         WebViewDialog(
-            url = url,
+            htmlContent = htmlContent,
             title = "${tabs[selectedTab]} Guide",
             onDismiss = { webUrlToOpen = null },
             isDarkTheme = isDarkTheme

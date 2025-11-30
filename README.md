@@ -68,7 +68,7 @@ Requires external Bluetooth module.
 3. Upload the sketch
 4. Device will appear as "HC-05", "HC-06", "HM-10", or custom name
 
-**📖 Full Setup Guide**: See `arduino_sketches/SETUP_GUIDE.md` for complete wiring diagrams, troubleshooting, and advanced configuration.
+**📖 Full Setup Guide**: See `arduino_sketches/SETUP_GUIDE.md` or check the **built-in offline Help** in the app.
 
 ---
 
