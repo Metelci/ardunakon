@@ -1,5 +1,6 @@
 package com.metelci.ardunakon.ui.components
 
+import android.os.Build
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -98,6 +99,10 @@ fun WebViewDialog(
                 AndroidView(
                     factory = { context ->
                         WebView(context).apply {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                WebView.startSafeBrowsing(context, null)
+                                settings.safeBrowsingEnabled = true
+                            }
                             webViewClient = object : WebViewClient() {
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     super.onPageFinished(view, url)
@@ -107,6 +112,8 @@ fun WebViewDialog(
                             settings.apply {
                                 javaScriptEnabled = true
                                 domStorageEnabled = true
+                                allowFileAccess = false
+                                allowContentAccess = false
                                 loadWithOverviewMode = true
                                 useWideViewPort = true
                                 builtInZoomControls = true

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.model.defaultButtonConfigs
+import com.metelci.ardunakon.security.AuthRequiredException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -71,6 +72,8 @@ class ProfileManager(private val context: Context) {
 
             val file = File(context.filesDir, fileName)
             file.writeText(encryptedData)
+        } catch (e: AuthRequiredException) {
+            throw e
         } catch (e: Exception) {
             Log.e("ProfileManager", "Error saving profiles", e)
         }
@@ -88,13 +91,7 @@ class ProfileManager(private val context: Context) {
             val fileContent = file.readText()
 
             // Attempt to decrypt
-            val jsonString = try {
-                securityManager.decrypt(fileContent)
-            } catch (e: Exception) {
-                // Decryption failed, likely legacy plain text
-                Log.w("ProfileManager", "Decryption failed, assuming plain text migration", e)
-                fileContent
-            }
+            val jsonString = securityManager.decrypt(fileContent)
 
             val jsonArray = JSONArray(jsonString)
 
@@ -139,12 +136,8 @@ class ProfileManager(private val context: Context) {
                 profiles.add(Profile(id, name, buttons, isUnidirectional, sensitivity, assignments))
             }
 
-            // If we successfully loaded plain text, save it back as encrypted immediately
-            if (fileContent == jsonString) {
-                saveProfiles(profiles)
-            }
-
         } catch (e: Exception) {
+            if (e is AuthRequiredException) throw e
             Log.e("ProfileManager", "Error loading profiles", e)
             return@withContext createDefaultProfiles()
         }

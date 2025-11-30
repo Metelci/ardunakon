@@ -25,6 +25,7 @@ class BluetoothService : Service() {
     lateinit var bluetoothManager: AppBluetoothManager
     private var wakeLock: PowerManager.WakeLock? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var wakeLockTimeoutJob: Job? = null
 
     inner class LocalBinder : Binder() {
         fun getService(): BluetoothService = this@BluetoothService
@@ -47,12 +48,23 @@ class BluetoothService : Service() {
                 
                 if (hasActiveConnection) {
                     if (wakeLock?.isHeld == false) {
-                        wakeLock?.acquire(4 * 60 * 60 * 1000L) // 4 hours max
+                        wakeLock?.acquire(60 * 60 * 1000L) // 1 hour max
+                        wakeLockTimeoutJob?.cancel()
+                        wakeLockTimeoutJob = scope.launch {
+                            delay(60 * 60 * 1000L)
+                            if (wakeLock?.isHeld == true) {
+                                wakeLock?.release()
+                                bluetoothManager.disconnect(0)
+                                bluetoothManager.disconnect(1)
+                                bluetoothManager.reconnectSavedDevices()
+                            }
+                        }
                     }
                 } else {
                     if (wakeLock?.isHeld == true) {
                         wakeLock?.release()
                     }
+                    wakeLockTimeoutJob?.cancel()
                 }
             }
         }

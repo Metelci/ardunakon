@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
     private var showPermissionDialog by mutableStateOf(false)
     private var permissionsDenied by mutableStateOf(false)
     private var showBluetoothOffDialog by mutableStateOf(false)
+    private var serviceStarted = false
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -66,6 +67,7 @@ class MainActivity : ComponentActivity() {
         if (allGranted) {
             // Permissions granted, service will handle scanning when requested
             permissionsDenied = false
+            startAndBindServiceIfPermitted()
         } else {
             // Check if any permission was permanently denied
             val deniedPermissions = permissions.filterValues { !it }.keys
@@ -82,11 +84,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         // Start and Bind Service
-        Intent(this, BluetoothService::class.java).also { intent ->
-            ContextCompat.startForegroundService(this, intent) // Start foreground safely
-            bindService(intent, connection, Context.BIND_AUTO_CREATE)
-        }
-
         setContent {
             var isDarkTheme by remember { mutableStateOf(true) }
 
@@ -145,6 +142,9 @@ class MainActivity : ComponentActivity() {
         }
 
         checkAndRequestPermissions()
+        if (hasBluetoothPermissions()) {
+            startAndBindServiceIfPermitted()
+        }
         checkBluetoothEnabled()
     }
 
@@ -159,6 +159,9 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         checkBluetoothEnabled()
+        if (hasBluetoothPermissions()) {
+            startAndBindServiceIfPermitted()
+        }
     }
 
     private fun checkAndRequestPermissions() {
@@ -175,7 +178,32 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        if (hasBluetoothPermissions()) {
+            startAndBindServiceIfPermitted()
+            return
+        }
+
         permissionLauncher.launch(permissions)
+    }
+
+    private fun hasBluetoothPermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun startAndBindServiceIfPermitted() {
+        if (serviceStarted) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasBluetoothPermissions()) return
+
+        Intent(this, BluetoothService::class.java).also { intent ->
+            ContextCompat.startForegroundService(this, intent) // Start foreground safely
+            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+            serviceStarted = true
+        }
     }
 
     private fun checkBluetoothEnabled() {
@@ -236,6 +264,15 @@ fun PermissionDeniedDialog(
                     "Without these permissions, the app cannot scan for or connect to Bluetooth modules.",
                     style = MaterialTheme.typography.bodySmall
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Why we need this:",
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("- Bluetooth: required to scan, pair, and stream control data to your boards.", style = MaterialTheme.typography.labelSmall)
+                Text("- Location (pre-Android 12): Android mandates location permission for BLE scans.", style = MaterialTheme.typography.labelSmall)
+                Text("- Data stays on-device; profiles are encrypted with the system keystore.", style = MaterialTheme.typography.labelSmall)
             }
         },
         confirmButton = {

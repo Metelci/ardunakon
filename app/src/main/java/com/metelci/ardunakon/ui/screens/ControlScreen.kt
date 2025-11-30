@@ -78,6 +78,7 @@ import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.ui.components.JoystickControl
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.security.AuthRequiredException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -119,6 +120,7 @@ fun ControlScreen(
     }
 
     val context = LocalContext.current
+    var allowReflection by remember { mutableStateOf(false) }
 
     // Keep Screen On
     val currentActivity = context as? android.app.Activity
@@ -136,10 +138,26 @@ fun ControlScreen(
     val profileManager = remember(context) { com.metelci.ardunakon.data.ProfileManager(context) }
     // Use mutableStateListOf to allow UI updates
     val profiles = remember { mutableStateListOf<com.metelci.ardunakon.data.Profile>() }
+    var securityErrorMessage by remember { mutableStateOf<String?>(null) }
+    val saveProfilesSafely: suspend () -> Unit = {
+        try {
+            profileManager.saveProfiles(profiles)
+        } catch (e: AuthRequiredException) {
+            securityErrorMessage = e.message ?: "Unlock your device to save encrypted profiles."
+        }
+    }
 
     // Load profiles asynchronously
     LaunchedEffect(Unit) {
-        profiles.addAll(profileManager.loadProfiles())
+        try {
+            profiles.addAll(profileManager.loadProfiles())
+        } catch (e: AuthRequiredException) {
+            securityErrorMessage = e.message ?: "Unlock your device to load encrypted profiles."
+            profiles.addAll(profileManager.createDefaultProfiles())
+        }
+    }
+    LaunchedEffect(allowReflection) {
+        bluetoothManager.allowReflectionFallback = allowReflection
     }
     
     var currentProfileIndex by remember { mutableStateOf(0) }
@@ -267,7 +285,7 @@ fun ControlScreen(
                             color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
                         )
                         Text(
-                            text = "pkt $lastPacketAgo · rssi ${slotHealth?.rssiFailureCount ?: 0} · rtt $rtt",
+                            text = "pkt $lastPacketAgo | rssi ${slotHealth?.rssiFailureCount ?: 0} | rtt $rtt",
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
                         )
@@ -476,6 +494,13 @@ fun ControlScreen(
                         leadingIcon = { Icon(Icons.Outlined.Info, null) },
                         onClick = {
                             showAboutDialog = true
+                            showOverflowMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Legacy Reflection Connect: ${if (allowReflection) "On" else "Off"}") },
+                        onClick = {
+                            allowReflection = !allowReflection
                             showOverflowMenu = false
                         }
                     )
@@ -1010,9 +1035,7 @@ fun ControlScreen(
                             auxAssignments = tempAssignments.values.map { AuxAssignment(it.config.id, it.slot, it.servoId, it.role) }
                         )
                         profiles[currentProfileIndex] = updatedProfile
-                        coroutineScope.launch {
-                            profileManager.saveProfiles(profiles)
-                        }
+                        coroutineScope.launch { saveProfilesSafely() }
                         showAuxAssignDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
@@ -1029,9 +1052,7 @@ fun ControlScreen(
                         activeAuxButtons.clear()
                         val updatedProfile = currentProfile.copy(auxAssignments = emptyList())
                         profiles[currentProfileIndex] = updatedProfile
-                        coroutineScope.launch {
-                            profileManager.saveProfiles(profiles)
-                        }
+                        coroutineScope.launch { saveProfilesSafely() }
                         showAuxAssignDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
@@ -1141,7 +1162,7 @@ fun ControlScreen(
                     profiles.add(newProfile)
                 }
                 coroutineScope.launch {
-                    profileManager.saveProfiles(profiles)
+                    saveProfilesSafely()
                 }
                 showProfileEditor = false
             }
@@ -1163,9 +1184,7 @@ fun ControlScreen(
                             val isBeforeSelected = profileIndexToDelete < currentProfileIndex
 
                             profiles.removeAt(profileIndexToDelete)
-                            coroutineScope.launch {
-                                profileManager.saveProfiles(profiles)
-                            }
+                            coroutineScope.launch { saveProfilesSafely() }
 
                             if (isBeforeSelected) {
                                 currentProfileIndex--
@@ -1189,6 +1208,27 @@ fun ControlScreen(
                 }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    securityErrorMessage?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { securityErrorMessage = null },
+            title = { Text("Unlock Required") },
+            text = { Text(msg) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        securityErrorMessage = null
+                        try {
+                            context.startActivity(android.content.Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS))
+                        } catch (_: Exception) {}
+                    }
+                ) { Text("Open Security Settings") }
+            },
+            dismissButton = {
+                TextButton(onClick = { securityErrorMessage = null }) { Text("Close") }
             }
         )
     }

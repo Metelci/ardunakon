@@ -101,6 +101,7 @@ class AppBluetoothManager(private val context: Context) {
 
     private val _health = MutableStateFlow<List<ConnectionHealth>>(listOf(ConnectionHealth(), ConnectionHealth()))
     val health: StateFlow<List<ConnectionHealth>> = _health.asStateFlow()
+    var allowReflectionFallback: Boolean = false
 
     // Debug Logs
     private val _debugLogs = MutableStateFlow<List<LogEntry>>(emptyList())
@@ -288,6 +289,10 @@ class AppBluetoothManager(private val context: Context) {
     }
 
     fun stopScan() {
+        if (!checkBluetoothPermission()) {
+            log("Stop scan skipped: Missing permissions", LogType.WARNING)
+            return
+        }
         scanJob?.cancel()
         adapter?.cancelDiscovery()
         try { leScanner?.stopScan(leScanCallback) } catch (e: Exception) {}
@@ -394,6 +399,10 @@ class AppBluetoothManager(private val context: Context) {
 
     fun requestRssi(slot: Int) {
         if (slot !in 0..1) return
+        if (!checkBluetoothPermission()) {
+            log("RSSI refresh failed: Missing permissions", LogType.ERROR)
+            return
+        }
         if (connectionTypes[slot] != DeviceType.LE) {
             log("RSSI refresh not supported for classic devices", LogType.WARNING)
             return
@@ -618,7 +627,7 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // Attempt 2: Reflection Method (Port 1) - Most reliable fallback for HC-06
-                if (!connected && !cancelled) {
+                if (!connected && !cancelled && allowReflectionFallback) {
                     try {
                         log("Attempting REFLECTION connection (Port 1 - HC-06 Fallback)...", LogType.WARNING)
                         val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
@@ -913,12 +922,22 @@ class AppBluetoothManager(private val context: Context) {
 
         @SuppressLint("MissingPermission")
         fun connect() {
+            if (!checkBluetoothPermission()) {
+                updateConnectionState(slot, ConnectionState.ERROR)
+                log("BLE connect failed: Missing permissions", LogType.ERROR)
+                return
+            }
             log("Connecting to BLE device ${device.name}...", LogType.INFO)
             connectGattWithTimeout()
         }
 
         @SuppressLint("MissingPermission")
         private fun connectGattWithTimeout() {
+            if (!checkBluetoothPermission()) {
+                updateConnectionState(slot, ConnectionState.ERROR)
+                log("BLE connect failed: Missing permissions", LogType.ERROR)
+                return
+            }
             bluetoothGatt = device.connectGatt(context, false, gattCallback)
 
             // Timeout logic with retry
@@ -956,6 +975,11 @@ class AppBluetoothManager(private val context: Context) {
                     delay(2000) // Poll every 2 seconds
                     try {
                         if (connections[slot] == this@BleConnection && _connectionStates.value[slot] == ConnectionState.CONNECTED) {
+                            if (!checkBluetoothPermission()) {
+                                log("RSSI polling halted: Missing permissions", LogType.WARNING)
+                                delay(2000)
+                                continue
+                            }
                             bluetoothGatt?.readRemoteRssi()
                         }
                     } catch (e: SecurityException) {
@@ -1415,6 +1439,10 @@ class AppBluetoothManager(private val context: Context) {
 
         override fun requestRssi() {
             try {
+                if (!checkBluetoothPermission()) {
+                    log("Manual RSSI read skipped: Missing permissions", LogType.WARNING)
+                    return
+                }
                 bluetoothGatt?.readRemoteRssi()
             } catch (e: SecurityException) {
                 Log.e("BT", "Manual RSSI read failed", e)
