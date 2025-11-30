@@ -1,10 +1,13 @@
-What's New in v0.1.1-alpha:
+What's New in v0.1.2-alpha:
 
-🔧 **HC-06 Connection Hotfix**: Major improvements to HC-06 Bluetooth connection stability and reliability.
-   • Fixed connection mutex preventing concurrent connection attempts
-   • Optimized connection strategy with proper timing (1500ms delays between attempts)
-   • Added proper socket cleanup to prevent resource leaks
-   • Discovery now cancelled before connection to prevent interference
-   • Prioritized most reliable HC-06 connection methods (Standard SPP and Reflection Port 1)
-🐛 **Bug Fixes**: Resolved issues causing HC-06 connection failures and timeouts.
-⚡ **Performance**: Reduced excessive connection attempts and improved Bluetooth stack recovery.
+🚀 **New Board Support**:
+   • **Arduino Uno R4 Wifi & Uno Q**: Added native BLE support. No external modules needed!
+   • **Clone HM-10 Support**: Enhanced "Generic Discovery" engine now connects to almost any HM-10 clone (CC41, MLT-BT05, etc.).
+
+🛡️ **Military-Grade Stability**:
+   • **HC-06 Clones**: Added automatic bonding checks and radio settling delays for rock-solid connections.
+   • **Maximum Compatibility**: Now supports 12+ manufacturer UUID variants for rare and difficult HC-06 clones.
+
+✨ **Improvements**:
+   • **Smart Discovery**: App now intelligently detects if a device uses "Unified" (Single Char) or "Split" (TX/RX) UART services.
+   • **Dynamic Write Types**: Automatically selects the fastest and most reliable write mode for your specific module.

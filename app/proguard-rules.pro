@@ -74,6 +74,14 @@
     public static *** i(...);
 }
 
+# Keep asset files and documentation utility
+-keep class **.assets.** { *; }
+-keep class com.metelci.ardunakon.util.AssetReader { *; }
+
+# Keep UI components (Help and About dialogs)
+-keep class com.metelci.ardunakon.ui.components.HelpDialog { *; }
+-keep class com.metelci.ardunakon.ui.components.AboutDialog { *; }
+
 # Missing rules detected by R8
 -dontwarn com.google.errorprone.annotations.Immutable
 -dontwarn javax.annotation.concurrent.GuardedBy

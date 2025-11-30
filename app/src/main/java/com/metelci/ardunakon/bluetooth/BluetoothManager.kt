@@ -28,21 +28,32 @@ import kotlin.experimental.xor
 private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
 // Manufacturer-specific UUIDs for HC-06 variants and clones
+// COMPREHENSIVE LIST - Covers maximum number of HC-06 clone variants
 // Note: Standard SPP (00001101) is already tried in Attempts 1 & 5, so excluded here
 private val MANUFACTURER_UUIDS = listOf(
-    // Nordic Semiconductor nRF51822-based HC-06 clones (common in Chinese clones)
+    // Nordic Semiconductor nRF51822-based HC-06 clones (VERY common in Chinese clones)
     UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb"),
-    // Alternative Nordic UART Service (Nordic-based clones)
+    // Alternative Nordic UART Service (Nordic-based clones, nRF51/nRF52)
     UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e"),
-    // Object Push Profile - Some HC-06 clones (ZS-040, FC-114, linvor)
+    // Object Push Profile - Many HC-06 clones (ZS-040, FC-114, linvor, JY-MCU)
     UUID.fromString("00001105-0000-1000-8000-00805F9B34FB"),
-    // OBEX Object Push - Alternative HC-06 clones
+    // OBEX Object Push - Alternative HC-06 clones (some linvor firmware)
     UUID.fromString("00001106-0000-1000-8000-00805F9B34FB"),
-    // Headset Profile - Some BT 2.0 HC-06 clones
+    // Headset Profile - BT 2.0 HC-06 clones (older firmware)
     UUID.fromString("00001108-0000-1000-8000-00805F9B34FB"),
-    // Raw RFCOMM - Some bare-metal HC-06 implementations
+    // Hands-Free Profile - Some HC-06 modules configured as hands-free
+    UUID.fromString("0000111E-0000-1000-8000-00805F9B34FB"),
+    // A/V Remote Control Profile - Rare HC-06 clones
+    UUID.fromString("0000110E-0000-1000-8000-00805F9B34FB"),
+    // Advanced Audio Distribution Profile - Some multimedia HC-06 clones
+    UUID.fromString("0000110D-0000-1000-8000-00805F9B34FB"),
+    // Dial-up Networking Profile - Older HC-06 firmware
+    UUID.fromString("00001103-0000-1000-8000-00805F9B34FB"),
+    // LAN Access Profile - Some network-oriented HC-06 clones
+    UUID.fromString("00001102-0000-1000-8000-00805F9B34FB"),
+    // Raw RFCOMM - Bare-metal HC-06 implementations
     UUID.fromString("00000003-0000-1000-8000-00805F9B34FB"),
-    // Base UUID - Last resort for non-standard implementations
+    // Base UUID - Last resort for completely non-standard implementations
     UUID.fromString("00000000-0000-1000-8000-00805F9B34FB")
 )
 
@@ -558,6 +569,30 @@ class AppBluetoothManager(private val context: Context) {
 
                 log("Starting connection to ${device.name} (${device.address})", LogType.INFO)
 
+                // MILITARY GRADE STABILITY: Ensure discovery is cancelled and radio is settled
+                if (adapter?.isDiscovering == true) {
+                    adapter.cancelDiscovery()
+                    log("Cancelling discovery for stability...", LogType.INFO)
+                    safeSleep(300) // Let radio settle
+                }
+
+                // MILITARY GRADE STABILITY: Check bonding state
+                if (device.bondState == BluetoothDevice.BOND_NONE) {
+                    log("Device not bonded. Initiating pairing...", LogType.WARNING)
+                    device.createBond()
+                    // Wait for bonding (simple timeout-based wait)
+                    var bondWait = 0
+                    while (device.bondState != BluetoothDevice.BOND_BONDED && bondWait < 100 && !cancelled) {
+                        safeSleep(100)
+                        bondWait++
+                    }
+                    if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                        log("Pairing might have failed or timed out. Proceeding anyway...", LogType.WARNING)
+                    } else {
+                        log("Pairing successful!", LogType.SUCCESS)
+                    }
+                }
+
                 var connected = false
 
                 // HC-06 Connection Strategy:
@@ -573,11 +608,12 @@ class AppBluetoothManager(private val context: Context) {
                         connected = true
                         log("Connected successfully with Standard SPP", LogType.SUCCESS)
                     } catch (e: Exception) {
+                        log("Standard SPP failed: ${e.message}", LogType.ERROR)
                         Log.w("BT", "Standard SPP failed: ${e.message}", e)
                         closeSocketSafely(socket)
                         socket = null
-                        // Longer delay to let BT stack recover
-                        if (!cancelled) safeSleep(1500)
+                        // HC-06 clones need longer delay to recover from failed attempts
+                        if (!cancelled) safeSleep(2000)
                     }
                 }
 
@@ -591,10 +627,12 @@ class AppBluetoothManager(private val context: Context) {
                         connected = true
                         log("Reflection Port 1 connection established.", LogType.SUCCESS)
                     } catch (e: Exception) {
+                        log("Reflection Port 1 failed: ${e.message}", LogType.ERROR)
                         Log.w("BT", "Reflection Port 1 failed: ${e.message}", e)
                         closeSocketSafely(socket)
                         socket = null
-                        if (!cancelled) safeSleep(1500)
+                        // HC-06 clones often need recovery time after reflection attempts
+                        if (!cancelled) safeSleep(2000)
                     }
                 }
 
@@ -603,28 +641,35 @@ class AppBluetoothManager(private val context: Context) {
                     for ((index, uuid) in MANUFACTURER_UUIDS.withIndex()) {
                         if (connected || cancelled) break
 
-                        try {
-                            val uuidDesc = when (index) {
-                                0 -> "Nordic nRF51822 variant"
-                                1 -> "Nordic UART Service"
-                                2 -> "Object Push Profile (ZS-040/FC-114)"
-                                3 -> "OBEX Object Push"
-                                4 -> "Headset Profile (BT 2.0)"
-                                5 -> "Raw RFCOMM"
-                                6 -> "Base UUID fallback"
-                                else -> "UUID $index"
-                            }
+                        val uuidDesc = when (index) {
+                            0 -> "Nordic nRF51822 variant (Chinese clones)"
+                            1 -> "Nordic UART Service (nRF51/52)"
+                            2 -> "Object Push Profile (ZS-040/FC-114/linvor)"
+                            3 -> "OBEX Object Push (linvor firmware)"
+                            4 -> "Headset Profile (BT 2.0 clones)"
+                            5 -> "Hands-Free Profile (HFP clones)"
+                            6 -> "A/V Remote Control (rare clones)"
+                            7 -> "Advanced Audio Distribution (multimedia clones)"
+                            8 -> "Dial-up Networking (older firmware)"
+                            9 -> "LAN Access Profile (network clones)"
+                            10 -> "Raw RFCOMM (bare-metal)"
+                            11 -> "Base UUID (non-standard fallback)"
+                            else -> "UUID $index"
+                        }
 
+                        try {
                             log("Attempting INSECURE connection with $uuidDesc...", LogType.INFO)
                             socket = device.createInsecureRfcommSocketToServiceRecord(uuid)
                             socket?.connect()
                             connected = true
                             log("Connected successfully with $uuidDesc", LogType.SUCCESS)
                         } catch (e: Exception) {
+                            log("$uuidDesc failed: ${e.message}", LogType.ERROR)
                             Log.w("BT", "UUID $index failed: ${e.message}", e)
                             closeSocketSafely(socket)
                             socket = null
-                            if (!cancelled) safeSleep(1000)
+                            // HC-06 clones need consistent delays between UUID attempts
+                            if (!cancelled) safeSleep(1500)
                         }
                     }
                 }
@@ -643,6 +688,7 @@ class AppBluetoothManager(private val context: Context) {
                             log("Reflection Port $port connection established.", LogType.SUCCESS)
                             break
                         } catch (e: Exception) {
+                            log("Reflection Port $port failed: ${e.message}", LogType.ERROR)
                             Log.w("BT", "Reflection Port $port failed: ${e.message}", e)
                             closeSocketSafely(socket)
                             socket = null
@@ -661,6 +707,7 @@ class AppBluetoothManager(private val context: Context) {
                         connected = true
                         log("Connected successfully with SECURE SPP", LogType.SUCCESS)
                     } catch (e: Exception) {
+                        log("SECURE SPP failed: ${e.message}", LogType.ERROR)
                         Log.w("BT", "Secure SPP failed: ${e.message}", e)
                         closeSocketSafely(socket)
                         socket = null
@@ -684,7 +731,12 @@ class AppBluetoothManager(private val context: Context) {
                     updateConnectionState(slot, ConnectionState.CONNECTED)
                 } else {
                     closeSocketSafely(socket)
-                    log("Connect failed: Could not establish socket to ${device.name}", LogType.ERROR)
+                    log("============================================", LogType.ERROR)
+                    log("ALL CONNECTION METHODS FAILED for ${device.name}", LogType.ERROR)
+                    log("Tried: SPP, Reflection Ports 1-3, 12 UUIDs, Secure SPP", LogType.ERROR)
+                    log("Module may be defective or incompatible", LogType.ERROR)
+                    log("See HC06_TROUBLESHOOTING.md for help", LogType.ERROR)
+                    log("============================================", LogType.ERROR)
                     updateConnectionState(slot, ConnectionState.ERROR)
                 }
             } finally {
@@ -841,6 +893,10 @@ class AppBluetoothManager(private val context: Context) {
         // Variant 6: MLT-BT05 and other TI-based clones
         private val SERVICE_UUID_V6 = UUID.fromString("0000FFF0-0000-1000-8000-00805F9B34FB")
         private val CHAR_UUID_V6 = UUID.fromString("0000FFF6-0000-1000-8000-00805F9B34FB")
+
+        // Variant 9: ArduinoBLE Library Standard Example (Uno R4 Wifi / Nano 33 IoT)
+        private val SERVICE_UUID_V9 = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")
+        private val CHAR_UUID_V9 = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214")
 
         // Client Characteristic Configuration Descriptor (CCCD) for notifications - standard
         private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
@@ -1097,10 +1153,24 @@ class AppBluetoothManager(private val context: Context) {
                     }
                 }
 
+                // Variant 9: ArduinoBLE Library Standard Example (Uno R4 Wifi / Nano 33 IoT)
+                if (!serviceFound) {
+                    service = gatt.getService(SERVICE_UUID_V9)
+                    if (service != null) {
+                        val char = service.getCharacteristic(CHAR_UUID_V9)
+                        if (char != null) {
+                            txCharacteristic = char
+                            detectedVariant = 9
+                            serviceFound = true
+                            log("BLE Module detected: Arduino R4 Wifi / Nano 33 IoT", LogType.SUCCESS)
+                        }
+                    }
+                }
+
                 // Variant 5: Handled in Variant 1 block (AT-09 shares FFE0 service with HM-10)
                 // Variant 6: Handled in Variant 3 block (MLT-BT05 shares FFF0 service with TI HM-10)
 
-                // Variant 7: Generic Serial Discovery (Fallback)
+                // Variant 7 & 8: Generic Serial Discovery (Fallback)
                 // Look for ANY characteristic that supports WRITE (or WRITE_NO_RESPONSE) and NOTIFY
                 if (!serviceFound) {
                     log("Known UUIDs not found. Attempting generic discovery...", LogType.WARNING)
@@ -1109,17 +1179,64 @@ class AppBluetoothManager(private val context: Context) {
                     for (svc in services) {
                         if (serviceFound) break
                         
+                        // Strategy A: Look for a single characteristic that is both Writable and Notifiable/Indicatable (HM-10 style)
                         for (char in svc.characteristics) {
                             val props = char.properties
                             val hasWrite = (props and (android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE or android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0
                             val hasNotify = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
+                            val hasIndicate = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
                             
-                            if (hasWrite && hasNotify) {
+                            if (hasWrite && (hasNotify || hasIndicate)) {
                                 txCharacteristic = char
-                                detectedVariant = 7 // Generic
+                                detectedVariant = 7 // Generic Unified
                                 serviceFound = true
-                                log("BLE Module detected: Generic Serial (${char.uuid})", LogType.SUCCESS)
+                                val type = if (hasNotify) "Notify" else "Indicate"
+                                log("BLE Module detected: Generic Unified (${char.uuid}) [$type]", LogType.SUCCESS)
                                 break
+                            }
+                        }
+
+                        // Strategy B: Look for separate Write and Notify/Indicate characteristics in the same service (Nordic/Zephyr style)
+                        if (!serviceFound) {
+                            var writeChar: android.bluetooth.BluetoothGattCharacteristic? = null
+                            var notifyChar: android.bluetooth.BluetoothGattCharacteristic? = null
+
+                            for (char in svc.characteristics) {
+                                val props = char.properties
+                                val hasWrite = (props and (android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE or android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0
+                                val hasNotify = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
+                                val hasIndicate = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+
+                                if (hasWrite && writeChar == null) writeChar = char
+                                if ((hasNotify || hasIndicate) && notifyChar == null) notifyChar = char
+                            }
+
+                            if (writeChar != null && notifyChar != null) {
+                                txCharacteristic = writeChar
+                                detectedVariant = 8 // Generic Split
+                                serviceFound = true
+                                val type = if ((notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) "Notify" else "Indicate"
+                                log("BLE Module detected: Generic Split (TX: ${writeChar.uuid}, RX: ${notifyChar.uuid}) [$type]", LogType.SUCCESS)
+
+                                // Enable notifications/indications on the separate RX characteristic
+                                val enableIndication = (notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                                gatt.setCharacteristicNotification(notifyChar, true)
+                                val rxDescriptor = notifyChar.getDescriptor(CCCD_UUID)
+                                if (rxDescriptor != null) {
+                                    val descriptorValue = if (enableIndication) 
+                                        android.bluetooth.BluetoothGattDescriptor.ENABLE_INDICATION_VALUE 
+                                    else 
+                                        android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                        
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        gatt.writeDescriptor(rxDescriptor, descriptorValue)
+                                    } else {
+                                        @Suppress("DEPRECATION")
+                                        rxDescriptor.value = descriptorValue
+                                        @Suppress("DEPRECATION")
+                                        gatt.writeDescriptor(rxDescriptor)
+                                    }
+                                }
                             }
                         }
                     }
@@ -1129,17 +1246,25 @@ class AppBluetoothManager(private val context: Context) {
                     // Start write queue processor
                     startWriteQueue()
 
-                    // Enable Notifications on TX characteristic (except Nordic which was handled above)
-                    if (detectedVariant != 2) {
+                    // Enable Notifications on TX characteristic (except Nordic and Generic Split which were handled above)
+                    if (detectedVariant != 2 && detectedVariant != 8) {
+                        // Check if we need to enable Indication or Notification
+                        val enableIndication = (txCharacteristic!!.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                        
                         gatt.setCharacteristicNotification(txCharacteristic, true)
                         val descriptor = txCharacteristic!!.getDescriptor(CCCD_UUID)
                         if (descriptor != null) {
+                            val descriptorValue = if (enableIndication) 
+                                android.bluetooth.BluetoothGattDescriptor.ENABLE_INDICATION_VALUE 
+                            else 
+                                android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+
                             // Use API 33+ method or legacy method based on SDK version
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                gatt.writeDescriptor(descriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                                gatt.writeDescriptor(descriptor, descriptorValue)
                             } else {
                                 @Suppress("DEPRECATION")
-                                descriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                descriptor.value = descriptorValue
                                 @Suppress("DEPRECATION")
                                 gatt.writeDescriptor(descriptor)
                             }
@@ -1258,15 +1383,21 @@ class AppBluetoothManager(private val context: Context) {
             val gatt = bluetoothGatt ?: return
             val char = txCharacteristic ?: return
 
+            // Check if characteristic supports WRITE_NO_RESPONSE
+            val writeType = if ((char.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
+                android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+            } else {
+                android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            }
+
             // Use API 33+ method or legacy method based on SDK version
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                gatt.writeCharacteristic(char, bytes, android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
+                gatt.writeCharacteristic(char, bytes, writeType)
             } else {
                 @Suppress("DEPRECATION")
                 char.value = bytes
-                // Write type: NO_RESPONSE is faster and usually standard for UART
                 @Suppress("DEPRECATION")
-                char.writeType = android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                char.writeType = writeType
                 @Suppress("DEPRECATION")
                 gatt.writeCharacteristic(char)
             }

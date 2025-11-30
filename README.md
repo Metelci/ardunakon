@@ -1,7 +1,7 @@
 # Ardunakon 🎮📡
 **The Ultimate Arduino Bluetooth Controller**
 
-Ardunakon is a professional-grade Android application designed to control Arduino projects (RC cars, drones, boats, robots) via Bluetooth Classic (HC-05/HC-06) or BLE (HM-10). It replaces generic controller apps with a robust, crash-proof, and highly customizable interface.
+Ardunakon is a professional-grade Android application designed to control Arduino projects (RC cars, drones, boats, robots) via Bluetooth Classic or BLE. Fully supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and **classic Arduino UNO** with HC-05/HC-06 or HM-10 modules. It replaces generic controller apps with a robust, crash-proof, and highly customizable interface.
 
 ## 🚀 Key Features
 
@@ -29,18 +29,53 @@ Ardunakon is a professional-grade Android application designed to control Arduin
 2.  Grant **Bluetooth** and **Location** permissions when prompted (required for scanning).
 
 ### 2. Arduino Setup
-Flash your Arduino with the provided sketch. The app uses a simple 10-byte binary protocol.
 
-**Wiring (HC-05/06):**
-*   **VCC** → 5V
-*   **GND** → GND
-*   **TX** → Arduino Pin 10 (RX)
-*   **RX** → Arduino Pin 11 (TX)
+Choose your Arduino board and follow the setup guide:
+
+#### ✨ **Arduino UNO Q** (2025 Latest Board)
+The Arduino UNO Q features **built-in Bluetooth 5.1 BLE** - no external module needed!
+
+1. Open `arduino_sketches/ArdunakonUnoQ/ArdunakonUnoQ.ino`
+2. Install **ArduinoBLE** library
+3. Upload to your Arduino UNO Q
+4. Device will appear as **"ArdunakonQ"** in the app
+
+**No external Bluetooth module required!** ✅
+
+---
+
+#### 🔥 **Arduino UNO R4 WiFi**
+The R4 WiFi has **built-in BLE** via the ESP32-S3 module.
+
+1. Open `arduino_sketches/ArdunakonR4WiFi/ArdunakonR4WiFi.ino`
+2. Install **ArduinoBLE** library
+3. Upload to your Arduino R4 WiFi
+4. Device will appear as **"ArdunakonR4"** in the app
+
+**No external Bluetooth module required!** ✅
+
+---
+
+#### 🎛️ **Classic Arduino UNO** (with HC-05/HC-06 or HM-10)
+Requires external Bluetooth module.
+
+1. Open `arduino_sketches/ArdunakonClassicUno/ArdunakonClassicUno.ino`
+2. Wire your HC-05/HC-06 or HM-10 module:
+   - **VCC** → 5V
+   - **GND** → GND
+   - **TX** → Arduino Pin 10 (RX)
+   - **RX** → Arduino Pin 11 (TX)
+3. Upload the sketch
+4. Device will appear as "HC-05", "HC-06", "HM-10", or custom name
+
+**📖 Full Setup Guide**: See `arduino_sketches/SETUP_GUIDE.md` for complete wiring diagrams, troubleshooting, and advanced configuration.
+
+---
 
 ### 3. Connecting
 1.  Open Ardunakon.
 2.  Tap **"Dev 1"** (Slot 1) or **"Dev 2"** (Slot 2).
-3.  Select your Bluetooth module from the list.
+3.  Select your Arduino from the device list.
 4.  The status card will turn **Green** upon connection.
 
 ## 📝 Protocol Overview
@@ -80,9 +115,11 @@ Whether you're driving an RC car, piloting a drone, or controlling a complex rob
 *   **⚡ Auto-Connect**: Seamlessly reconnects if signal is lost, keeping you in control.
 
 **Compatible With:**
-*   Bluetooth Classic (HC-05, HC-06)
-*   Bluetooth LE (HM-10, AT-09)
-*   Any Arduino, ESP32, or STM32 project!
+*   **Latest Arduino Boards**: UNO Q (2025), UNO R4 WiFi (built-in BLE) - **Native Support Added!**
+*   **Bluetooth Classic**: HC-05, HC-06 (and all clones) - **Now with Military-Grade Stability**
+*   **Bluetooth LE**: HM-10, AT-09, MLT-BT05, TI CC2541 (Generic Discovery Engine supports 99% of clones)
+*   **Classic Arduino**: UNO, Nano, Mega with external modules
+*   Any ESP32 or STM32 project!
 
 **Get Started in Seconds:**
 1.  Connect your Bluetooth module to your Arduino (RX/TX).

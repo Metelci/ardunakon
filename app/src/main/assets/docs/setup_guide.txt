@@ -1,0 +1,334 @@
+====================================================================================================
+ARDUNAKON - ARDUINO SETUP GUIDE
+====================================================================================================
+
+Complete setup instructions for all supported Arduino boards.
+
+====================================================================================================
+SUPPORTED HARDWARE
+====================================================================================================
+
+FULLY SUPPORTED BOARDS:
+1. Arduino UNO Q (Qualcomm QRB2210 + STM32U585) - Built-in Bluetooth 5.1 BLE
+2. Arduino UNO R4 WiFi (Renesas RA4M1 + ESP32-S3) - Built-in BLE
+3. Classic Arduino UNO (ATmega328P) - Requires external HC-05/HC-06 module
+
+FULLY SUPPORTED BLUETOOTH MODULES:
+- Bluetooth Classic: HC-05, HC-06 (and all clones)
+- Bluetooth Low Energy (BLE): HM-10, AT-09, MLT-BT05, TI CC2540/CC2541 (and ALL clone variants)
+
+NOTE: The Ardunakon app supports 7 HM-10 UUID variants including all common clone modules.
+
+====================================================================================================
+QUICK START BY BOARD
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+OPTION 1: ARDUINO UNO Q (LATEST 2025 BOARD)
+----------------------------------------------------------------------------------------------------
+
+WHAT YOU NEED:
+- Arduino UNO Q board ($44-$59)
+- USB-C cable
+- Motor driver (L298N or similar)
+- Power supply for motors
+
+SOFTWARE SETUP:
+1. Install Arduino IDE 2.x or Arduino App Lab
+2. Install ArduinoBLE library:
+   Tools → Manage Libraries → Search "ArduinoBLE" → Install
+3. Open arduino_sketches/ArdunakonUnoQ/ArdunakonUnoQ.ino
+4. Select Board: Tools → Board → Arduino UNO Q
+5. Click Upload
+
+WIRING:
+Built-in Bluetooth - No external module needed!
+
+Motor Driver (Example: L298N):
+  Arduino UNO Q    →    L298N Motor Driver
+  ─────────────────────────────────────────
+  Pin 9 (PWM)      →    ENA (Left Motor Speed)
+  Pin 8            →    IN1 (Left Motor Dir 1)
+  Pin 7            →    IN2 (Left Motor Dir 2)
+  Pin 6 (PWM)      →    ENB (Right Motor Speed)
+  Pin 5            →    IN3 (Right Motor Dir 1)
+  Pin 4            →    IN4 (Right Motor Dir 2)
+  GND              →    GND
+
+Battery Voltage Monitor (Optional):
+  Arduino UNO Q    →    Voltage Divider
+  ─────────────────────────────────────────
+  Pin A0           →    10kΩ → Battery+
+                        30kΩ → GND
+
+CONNECTING TO ARDUNAKON APP:
+1. Upload sketch to Arduino UNO Q
+2. Open Ardunakon app on Android
+3. Tap "Dev 1" or "Dev 2"
+4. Look for "ArdunakonQ" in the device list
+5. Tap to connect - Status will turn Green
+
+----------------------------------------------------------------------------------------------------
+OPTION 2: ARDUINO UNO R4 WIFI
+----------------------------------------------------------------------------------------------------
+
+WHAT YOU NEED:
+- Arduino UNO R4 WiFi board
+- USB-C cable
+- Motor driver (L298N or similar)
+- Power supply for motors
+
+SOFTWARE SETUP:
+1. Install Arduino IDE 2.x
+2. Install UNO R4 WiFi board support:
+   Tools → Board → Boards Manager → Search "Arduino UNO R4" → Install
+3. Install ArduinoBLE library:
+   Tools → Manage Libraries → Search "ArduinoBLE" → Install
+4. Open arduino_sketches/ArdunakonR4WiFi/ArdunakonR4WiFi.ino
+5. Select Board: Tools → Board → Arduino UNO R4 WiFi
+6. Click Upload
+
+WIRING:
+Built-in Bluetooth - No external module needed!
+
+Motor Driver (Example: L298N):
+  Arduino R4 WiFi  →    L298N Motor Driver
+  ─────────────────────────────────────────
+  Pin 9 (PWM)      →    ENA (Left Motor Speed)
+  Pin 8            →    IN1 (Left Motor Dir 1)
+  Pin 7            →    IN2 (Left Motor Dir 2)
+  Pin 6 (PWM)      →    ENB (Right Motor Speed)
+  Pin 5            →    IN3 (Right Motor Dir 1)
+  Pin 4            →    IN4 (Right Motor Dir 2)
+  GND              →    GND
+
+CONNECTING TO ARDUNAKON APP:
+1. Upload sketch to Arduino R4 WiFi
+2. Open Ardunakon app on Android
+3. Tap "Dev 1" or "Dev 2"
+4. Look for "ArdunakonR4" in the device list
+5. Tap to connect - Status will turn Green
+
+----------------------------------------------------------------------------------------------------
+OPTION 3: CLASSIC ARDUINO UNO (WITH HC-05/HC-06)
+----------------------------------------------------------------------------------------------------
+
+WHAT YOU NEED:
+- Classic Arduino UNO board
+- HC-05 or HC-06 Bluetooth module
+- USB cable (Type B)
+- Motor driver (L298N or similar)
+- Power supply for motors
+
+SOFTWARE SETUP:
+1. Install Arduino IDE 2.x (or 1.8.x)
+2. Open arduino_sketches/ArdunakonClassicUno/ArdunakonClassicUno.ino
+3. Select Board: Tools → Board → Arduino UNO
+4. Click Upload
+
+WIRING:
+
+HC-05/HC-06 Bluetooth Module:
+  Arduino UNO      →    HC-05/HC-06
+  ─────────────────────────────────────
+  5V               →    VCC
+  GND              →    GND
+  Pin 10 (RX)      →    TX (Bluetooth TX)
+  Pin 11 (TX)      →    RX (Bluetooth RX)
+
+WARNING: HC-05/HC-06 RX pin is usually 3.3V tolerant. If your module requires voltage divider:
+  Arduino Pin 11 → 1kΩ → HC-05 RX
+                          2kΩ → GND
+
+Motor Driver (Example: L298N):
+  Arduino UNO      →    L298N Motor Driver
+  ─────────────────────────────────────────
+  Pin 9 (PWM)      →    ENA (Left Motor Speed)
+  Pin 8            →    IN1 (Left Motor Dir 1)
+  Pin 7            →    IN2 (Left Motor Dir 2)
+  Pin 6 (PWM)      →    ENB (Right Motor Speed)
+  Pin 5            →    IN3 (Right Motor Dir 1)
+  Pin 4            →    IN4 (Right Motor Dir 2)
+  GND              →    GND
+
+HC-05/HC-06 CONFIGURATION (OPTIONAL):
+Most HC-05/HC-06 modules work with default settings (9600 baud).
+
+Common AT commands:
+- AT → Test connection (should respond "OK")
+- AT+NAMEArdunakonUno → Set device name
+- AT+BAUD4 → Set to 9600 baud (default)
+- AT+PIN1234 → Set pairing PIN
+
+CONNECTING TO ARDUNAKON APP:
+1. Upload sketch to Arduino UNO
+2. Power on Arduino (HC-05/06 LED should blink rapidly)
+3. Open Ardunakon app on Android
+4. Tap "Dev 1" or "Dev 2"
+5. Look for "HC-05", "HC-06", or custom name in the device list
+6. Tap to connect - Status will turn Green
+
+----------------------------------------------------------------------------------------------------
+OPTION 4: USING HM-10 BLE MODULE WITH CLASSIC ARDUINO UNO
+----------------------------------------------------------------------------------------------------
+
+WHAT YOU NEED:
+- Classic Arduino UNO
+- HM-10 BLE module (or any clone: AT-09, MLT-BT05, etc.)
+- USB cable
+- Motor driver
+
+WIRING:
+  Arduino UNO      →    HM-10
+  ─────────────────────────────────────
+  3.3V or 5V*      →    VCC
+  GND              →    GND
+  Pin 10 (RX)      →    TX
+  Pin 11 (TX)      →    RX**
+
+*Check your HM-10 module datasheet - some are 5V tolerant, others need 3.3V
+**Use voltage divider if module is 3.3V only:
+  Arduino Pin 11 → 1kΩ → HM-10 RX
+                          2kΩ → GND
+
+The Ardunakon app will automatically detect HM-10 and all clone variants using 7 different UUID combinations.
+
+====================================================================================================
+CUSTOMIZING THE SKETCH
+====================================================================================================
+
+PIN CONFIGURATION:
+Edit these lines in any sketch to match your hardware:
+
+  #define MOTOR_LEFT_PWM    9   // Left motor PWM
+  #define MOTOR_LEFT_DIR1   8   // Left motor direction 1
+  #define MOTOR_LEFT_DIR2   7   // Left motor direction 2
+  #define MOTOR_RIGHT_PWM   6   // Right motor PWM
+  #define MOTOR_RIGHT_DIR1  5   // Right motor direction 1
+  #define MOTOR_RIGHT_DIR2  4   // Right motor direction 2
+
+STEERING MODES:
+
+Tank Steering (Default):
+  - Left joystick Y → Left motor
+  - Right joystick Y → Right motor
+
+Car Steering (Differential):
+  - Right joystick Y → Forward/backward
+  - Left joystick X → Left/right turn
+  - Code combines throttle + steering for differential drive
+
+====================================================================================================
+TROUBLESHOOTING
+====================================================================================================
+
+ARDUINO UNO Q / R4 WIFI:
+
+Problem: BLE not starting
+Solution: Make sure ArduinoBLE library is installed
+         Check Serial Monitor for "Starting BLE failed!" message
+
+Problem: Can't see device in Ardunakon scan
+Solution: Reset Arduino board
+         Check if device name appears in Android Bluetooth settings
+         Make sure Android Bluetooth is ON and Location permission granted
+
+CLASSIC UNO WITH HC-05/HC-06:
+
+Problem: No connection
+Solution: Check wiring (TX→RX, RX→TX)
+         Verify HC-05/06 LED is blinking (not solid)
+         Check baud rate matches (9600 in both sketch and module)
+
+Problem: Receiving garbage data
+Solution: Baud rate mismatch - reconfigure HC-05/06 to 9600
+         Check if voltage divider is needed for RX pin
+
+HM-10 CLONES:
+
+Problem: Device found but won't connect
+Solution: The Ardunakon app tries 7 UUID variants automatically
+         Wait 15-20 seconds during connection attempts
+         Some clones need 115200 baud instead of 9600
+
+Problem: Connects but no data
+Solution: Check TX/RX wiring
+         Verify packet format in Serial Monitor
+         Make sure HM-10 is in transparent mode (not AT command mode)
+
+====================================================================================================
+PROTOCOL REFERENCE
+====================================================================================================
+
+PACKET STRUCTURE (10 bytes):
+  [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
+
+- START: Always 0xAA
+- DEV_ID: Device ID (usually 0x01)
+- CMD: Command type
+- D1-D5: Data payload (5 bytes)
+- CHECKSUM: XOR of bytes 1-7
+- END: Always 0x55
+
+COMMANDS:
+
+CMD_JOYSTICK (0x01) - Joystick data @ 20Hz
+  D1 = Left X  (0-200, 100 is center)
+  D2 = Left Y  (0-200, 100 is center)
+  D3 = Right X (0-200, 100 is center)
+  D4 = Right Y (0-200, 100 is center)
+  D5 = Aux bits (bitfield for buttons)
+
+CMD_BUTTON (0x02) - Button press/release
+  D1 = Button ID (1-255)
+  D2 = State (1=pressed, 0=released)
+  D3-D5 = Unused (0)
+
+CMD_HEARTBEAT (0x03) - Connection keep-alive
+  App → Arduino:
+    D1-D2 = Sequence number (for RTT)
+    D3-D4 = Uptime (milliseconds)
+  Arduino → App:
+    D1 = Battery voltage * 10 (e.g., 124 = 12.4V)
+    D2 = Status (0=Active, 1=Safe Mode)
+
+CMD_ESTOP (0x04) - Emergency stop
+  D1-D5 = All zeros
+  Immediately stops all motors
+
+====================================================================================================
+SAFETY FEATURES
+====================================================================================================
+
+All sketches include:
+✓ Checksum validation - Rejects corrupted packets
+✓ Timeout protection - Stops motors if no data for 2 seconds
+✓ Emergency stop - Instant motor cutoff
+✓ Heartbeat monitoring - Detects dead connections
+
+====================================================================================================
+EXAMPLE PROJECTS
+====================================================================================================
+
+RC CAR (TANK STEERING):
+- Left joystick Y → Left motor
+- Right joystick Y → Right motor
+- Button 1 → Headlights
+- Button 2 → Horn/Buzzer
+
+ROBOT ARM:
+- Left joystick X/Y → Base rotation + Shoulder
+- Right joystick X/Y → Elbow + Wrist
+- Buttons → Gripper open/close
+
+DRONE (THROTTLE MODE):
+- Use "Drone/Boat Mode" profile in app
+- Right joystick Y → Throttle (0-100%)
+- Left joystick → Pitch/Roll
+
+====================================================================================================
+
+Happy Making! 🚀
+
+For full documentation with images and links, tap "View Full Guide Online" button.
+For issues or questions, visit the GitHub repository.

@@ -27,8 +27,11 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,6 +40,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -90,6 +95,9 @@ fun ControlScreen(
     var showDeviceList by remember { mutableStateOf<Int?>(null) }
     var showProfileSelector by remember { mutableStateOf(false) }
     var showDebugConsole by remember { mutableStateOf(false) }
+    var showHelpDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
 
     val scannedDevices by bluetoothManager.scannedDevices.collectAsState()
     val connectionStates by bluetoothManager.connectionStates.collectAsState()
@@ -431,6 +439,48 @@ fun ControlScreen(
                 Spacer(modifier = Modifier.width(2.dp))
                 Text("Debug", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2D3436))
             }
+            Spacer(modifier = Modifier.width(6.dp))
+            Box {
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        showOverflowMenu = !showOverflowMenu
+                    },
+                    modifier = Modifier
+                        .size(32.dp)
+                        .shadow(1.dp, CircleShape)
+                        .background(pastelBrush, CircleShape)
+                        .border(1.dp, Color(0xFFB0BEC5), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Menu",
+                        tint = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                DropdownMenu(
+                    expanded = showOverflowMenu,
+                    onDismissRequest = { showOverflowMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Help") },
+                        leadingIcon = { Icon(Icons.Default.Help, null) },
+                        onClick = {
+                            showHelpDialog = true
+                            showOverflowMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("About") },
+                        leadingIcon = { Icon(Icons.Outlined.Info, null) },
+                        onClick = {
+                            showAboutDialog = true
+                            showOverflowMenu = false
+                        }
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(48.dp))
@@ -554,6 +604,20 @@ fun ControlScreen(
                 // For now, let's just log a message
                 bluetoothManager.log("Logs cleared", LogType.INFO)
             }
+        )
+    }
+
+    if (showHelpDialog) {
+        com.metelci.ardunakon.ui.components.HelpDialog(
+            onDismiss = { showHelpDialog = false },
+            isDarkTheme = isDarkTheme
+        )
+    }
+
+    if (showAboutDialog) {
+        com.metelci.ardunakon.ui.components.AboutDialog(
+            onDismiss = { showAboutDialog = false },
+            isDarkTheme = isDarkTheme
         )
     }
 
