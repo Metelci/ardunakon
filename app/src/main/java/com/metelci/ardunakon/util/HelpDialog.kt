@@ -166,7 +166,7 @@ fun HelpDialog(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally)
                         .shadow(2.dp, RoundedCornerShape(12.dp))
                         .background(pastelBrush, RoundedCornerShape(12.dp))
                         .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
@@ -189,29 +189,90 @@ fun HelpDialog(
 
     // In-app web view for offline documentation
     webUrlToOpen?.let { _ ->
-        // Generate simple HTML for the text content
+        // Generate HTML for the text content with proper anchor link support
         val bgColor = if (isDarkTheme) "#1E1E2E" else "#FFFFFF"
         val textColor = if (isDarkTheme) "#E0E0E0" else "#212121"
+        val linkColor = if (isDarkTheme) "#74B9FF" else "#1976D2"
+        
+        // Escape HTML in content but preserve anchor tags
+        val processedContent = content
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            // Re-enable anchor tags
+            .replace("&lt;a href=\"#", "<a href=\"#")
+            .replace("\"&gt;", "\">")
+            .replace("&lt;/a&gt;", "</a>")
+            .replace("&lt;a id=\"", "<a id=\"")
+        
         val htmlContent = """
             <html>
             <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
             body {
                 background-color: $bgColor;
                 color: $textColor;
                 font-family: monospace;
                 padding: 16px;
+                padding-right: 60px;
                 white-space: pre-wrap;
                 font-size: 14px;
                 line-height: 1.5;
+                word-wrap: break-word;
+            }
+            a {
+                color: $linkColor;
+                text-decoration: underline;
+                cursor: pointer;
+            }
+            a:visited {
+                color: $linkColor;
+            }
+            #backToTop {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 48px;
+                height: 48px;
+                background-color: $linkColor;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                font-size: 24px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;
+            }
+            #backToTop:hover {
+                background-color: ${if (isDarkTheme) "#90CAF9" else "#1565C0"};
+                transform: scale(1.1);
+            }
+            #backToTop:active {
+                transform: scale(0.95);
             }
             </style>
+            <script>
+            function scrollToTop() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+            </script>
             </head>
             <body>
-            ${content}
+            ${processedContent}
+            <button id="backToTop" onclick="scrollToTop()" aria-label="Back to top">↑</button>
             </body>
             </html>
         """.trimIndent()
+
 
         WebViewDialog(
             htmlContent = htmlContent,

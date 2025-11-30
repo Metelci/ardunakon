@@ -445,13 +445,18 @@ fun ControlScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
                     )
-                    TextButton(
+                    androidx.compose.material3.OutlinedButton(
                         onClick = { 
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             bluetoothManager.requestRssi(slotIndex) 
                         },
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                        modifier = Modifier.height(26.dp)
+                        modifier = Modifier.height(26.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFFD500F9)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD500F9)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
                         Text("Refresh", style = MaterialTheme.typography.labelSmall)
                     }
@@ -493,8 +498,7 @@ fun ControlScreen(
         // Profile & Debug - Standard Buttons
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1299,7 +1303,6 @@ fun StatusCard(label: String, state: ConnectionState, @Suppress("UNUSED_PARAMETE
             onClick()
         },
         modifier = Modifier
-            .widthIn(min = 150.dp)
             .height(36.dp),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
         colors = ButtonDefaults.outlinedButtonColors(

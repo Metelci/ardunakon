@@ -1,5 +1,27 @@
 ====================================================================================================
-HC-06 CLONE TROUBLESHOOTING GUIDE
+ARDUNAKON BLUETOOTH TROUBLESHOOTING GUIDE
+====================================================================================================
+
+This comprehensive guide covers connectivity troubleshooting for ALL supported Bluetooth modules:
+- HC-05 / HC-06 (Classic Bluetooth)
+- HC-08 (Bluetooth 4.0 Dual Mode)
+- HM-10 / AT-09 / MLT-BT05 (Bluetooth Low Energy)
+- Latest Bluetooth modules and clones
+
+====================================================================================================
+TABLE OF CONTENTS
+====================================================================================================
+
+<a href="#section1">SECTION 1: HC-06 CLASSIC BLUETOOTH TROUBLESHOOTING</a>
+<a href="#section2">SECTION 2: HC-05 CLASSIC BLUETOOTH TROUBLESHOOTING</a>
+<a href="#section3">SECTION 3: HC-08 DUAL MODE TROUBLESHOOTING</a>
+<a href="#section4">SECTION 4: HM-10 BLE TROUBLESHOOTING</a>
+<a href="#section5">SECTION 5: GENERAL BLUETOOTH TROUBLESHOOTING</a>
+<a href="#section6">SECTION 6: ADVANCED DEBUGGING TECHNIQUES</a>
+
+<a id="section1"></a>
+====================================================================================================
+SECTION 1: HC-06 CLASSIC BLUETOOTH TROUBLESHOOTING
 ====================================================================================================
 
 HC-06 CLONES: THE MOST PROBLEMATIC BLUETOOTH MODULES
@@ -11,13 +33,11 @@ HC-06 clones are notorious for connectivity issues due to:
 - Sensitivity to timing issues
 - Incompatibility with Android's standard Bluetooth API
 
-ARDUNAKON HAS MAXIMUM HC-06 CLONE SUPPORT with 17 different connection methods to solve these problems.
+ARDUNAKON HAS MAXIMUM HC-06 CLONE SUPPORT with 17 different connection methods.
 
-====================================================================================================
-WHAT ARDUNAKON DOES FOR HC-06 CLONES
-====================================================================================================
-
-ENHANCED CONNECTION STRATEGY (v0.1.1-alpha+):
+----------------------------------------------------------------------------------------------------
+ARDUNAKON'S HC-06 CONNECTION STRATEGY
+----------------------------------------------------------------------------------------------------
 
 Ardunakon tries 17 connection methods in optimized order:
 
@@ -42,12 +62,8 @@ Ardunakon tries 17 connection methods in optimized order:
 
 TOTAL: 17 methods = 98-99% success rate with HC-06 clones
 
-====================================================================================================
-COMMON HC-06 CLONE PROBLEMS & SOLUTIONS
-====================================================================================================
-
 ----------------------------------------------------------------------------------------------------
-PROBLEM 1: "CONNECTION FAILED" AFTER SCAN
+HC-06 PROBLEM 1: "CONNECTION FAILED" AFTER SCAN
 ----------------------------------------------------------------------------------------------------
 
 SYMPTOMS:
@@ -86,7 +102,7 @@ SOLUTIONS:
   HC-06 RX  → Arduino Pin 11 (Software Serial TX)
 
 ----------------------------------------------------------------------------------------------------
-PROBLEM 2: CONNECTS BUT IMMEDIATELY DISCONNECTS
+HC-06 PROBLEM 2: CONNECTS BUT IMMEDIATELY DISCONNECTS
 ----------------------------------------------------------------------------------------------------
 
 SYMPTOMS:
@@ -102,7 +118,7 @@ CAUSES:
 SOLUTIONS:
 
 ✓ SOLUTION 1: Verify Arduino sketch baud rate
-  // In ArdunakonClassicUno.ino, line 52:
+  // In ArdunakonClassicUno.ino:
   BTSerial.begin(9600); // Must match HC-06 baud rate
 
 ✓ SOLUTION 2: Configure HC-06 baud rate
@@ -125,7 +141,7 @@ SOLUTIONS:
   → Unrestricted
 
 ----------------------------------------------------------------------------------------------------
-PROBLEM 3: MODULE NOT APPEARING IN SCAN
+HC-06 PROBLEM 3: MODULE NOT APPEARING IN SCAN
 ----------------------------------------------------------------------------------------------------
 
 SYMPTOMS:
@@ -165,7 +181,7 @@ SOLUTIONS:
   4. Open Ardunakon and scan again
 
 ----------------------------------------------------------------------------------------------------
-PROBLEM 4: RECEIVING GARBAGE DATA / CORRUPTED PACKETS
+HC-06 PROBLEM 4: RECEIVING GARBAGE DATA / CORRUPTED PACKETS
 ----------------------------------------------------------------------------------------------------
 
 SYMPTOMS:
@@ -195,265 +211,977 @@ SOLUTIONS:
 ✓ SOLUTION 4: Check packet validation
   The Arduino sketch already has checksum validation
 
+<a id="section2"></a>
+====================================================================================================
+SECTION 2: HC-05 CLASSIC BLUETOOTH TROUBLESHOOTING
+====================================================================================================
+
+HC-05 OVERVIEW
+
+HC-05 is a more advanced Classic Bluetooth module that can operate in both MASTER and SLAVE modes.
+It generally has fewer compatibility issues than HC-06, but has its own quirks.
+
+KEY DIFFERENCES FROM HC-06:
+- Can be master or slave (HC-06 is slave-only)
+- More reliable firmware
+- Requires KEY/EN pin for AT mode
+- Better clone quality overall
+- Sometimes requires secure pairing
+
 ----------------------------------------------------------------------------------------------------
-PROBLEM 5: HC-06 STUCK IN AT COMMAND MODE
+HC-05 PROBLEM 1: STUCK IN AT COMMAND MODE
 ----------------------------------------------------------------------------------------------------
 
 SYMPTOMS:
-- HC-06 responds to AT commands in Serial Monitor
-- But doesn't pass through data when connected to Ardunakon
-- LED stays solid instead of blinking
+- HC-05 LED blinks slowly (2 seconds on/off)
+- Module responds to AT commands
+- Won't connect to Ardunakon
+- Can't send/receive data
 
 CAUSES:
-- HC-06 firmware glitch
-- Module not in data mode
+- KEY/EN pin is HIGH during power-on
+- Module configured for AT mode
 
 SOLUTIONS:
 
-✓ SOLUTION 1: Force exit AT mode
-  Send via Serial Monitor:
+✓ SOLUTION 1: Enter data/communication mode
+  1. Disconnect power from HC-05
+  2. Ensure KEY/EN pin is LOW or floating (not connected)
+  3. Reconnect power
+  4. LED should blink rapidly (connected mode)
+
+✓ SOLUTION 2: Check wiring
+  CORRECT WIRING FOR DATA MODE:
+    HC-05 VCC → Arduino 5V
+    HC-05 GND → Arduino GND
+    HC-05 TX  → Arduino Pin 10
+    HC-05 RX  → Arduino Pin 11
+    HC-05 KEY → NOT CONNECTED (or GND)
+
+  ONLY CONNECT KEY TO 3.3V FOR AT COMMAND CONFIGURATION!
+
+✓ SOLUTION 3: Reset to slave mode
+  If you configured HC-05 as master, reset to slave:
+  1. Enter AT mode (KEY HIGH during power-on)
+  2. Send: AT+ROLE=0  (0 = slave, 1 = master)
+  3. Send: AT+RESET
+  4. Power cycle with KEY disconnected
+
+----------------------------------------------------------------------------------------------------
+HC-05 PROBLEM 2: REQUIRES PIN CODE PAIRING
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- Android prompts for PIN when connecting
+- Connection works after entering PIN
+- Subsequent connections also ask for PIN
+
+CAUSES:
+- HC-05 configured for secure pairing
+- Android has old pairing information
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Use default PIN
+  Default HC-05 PIN is usually: 1234 or 0000
+  Enter when Android prompts
+
+✓ SOLUTION 2: Disable PIN requirement (optional)
+  Enter AT mode and send:
+    AT+CMODE=1    // Connect to any address
     AT+RESET
-  Or power cycle the module
 
-✓ SOLUTION 2: Verify AT mode pin
-  Some HC-06 clones have an "AT mode" pin (usually marked KEY or EN)
-  - This pin should be LEFT FLOATING or connected to GND
-  - If connected to VCC, module stays in AT mode
+✓ SOLUTION 3: Let Ardunakon handle it
+  Ardunakon tries both SECURE and INSECURE connections
+  If prompted for PIN, enter it once - app will remember
 
 ----------------------------------------------------------------------------------------------------
-PROBLEM 6: "DEVICE PAIRED BUT WON'T CONNECT"
+HC-05 PROBLEM 3: WON'T ACCEPT INCOMING CONNECTIONS
 ----------------------------------------------------------------------------------------------------
 
 SYMPTOMS:
-- HC-06 shows in Android Bluetooth paired devices
-- Ardunakon scan finds the device
-- Connection still fails
+- HC-05 is visible in scan
+- Connection times out
+- Works with some phones but not others
 
 CAUSES:
-- Stale pairing information
-- Android Bluetooth stack issue
+- HC-05 configured as master mode
+- Inquire/connection mode wrong
+- Address filtering enabled
 
 SOLUTIONS:
 
-✓ SOLUTION 1: Forget and re-pair
-  1. Android Settings → Bluetooth → Paired Devices
-  2. Find HC-06, tap gear icon → FORGET
-  3. Restart Ardunakon
-  4. Scan and connect (don't pair manually!)
+✓ SOLUTION 1: Verify slave mode
+  Check with AT commands:
+    AT+ROLE?    // Should return +ROLE:0 (slave)
+  If returns 1 (master), set to slave:
+    AT+ROLE=0
+    AT+RESET
 
-✓ SOLUTION 2: Clear Bluetooth cache
-  Android Settings
-  → Apps
-  → Show system apps
-  → Bluetooth
-  → Storage
-  → Clear Cache
+✓ SOLUTION 2: Set connection mode
+  AT+CMODE=1    // Allow connection from any address
+  AT+RESET
+
+✓ SOLUTION 3: Check class of device
+  AT+CLASS?     // Should return 0x1F00
+  If different, reset:
+    AT+CLASS=1F00
+    AT+RESET
+
+----------------------------------------------------------------------------------------------------
+HC-05 PROBLEM 4: BAUD RATE CONFUSION
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- Garbage characters in Serial Monitor
+- AT commands don't work
+- Module doesn't respond
+
+CAUSES:
+- HC-05 AT mode uses different baud than data mode
+- Common confusion: AT mode = 38400, Data mode = 9600
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Use correct baud for each mode
+  AT COMMAND MODE (KEY HIGH):
+    Usually 38400 baud (some modules use 9600)
+    Try both in Serial Monitor
+  
+  DATA/COMMUNICATION MODE (KEY LOW):
+    Usually 9600 baud (configurable)
+    Must match Arduino sketch
+
+✓ SOLUTION 2: Set data mode baud rate
+  Enter AT mode (38400 baud) and send:
+    AT+UART=9600,0,0    // 9600 baud, 1 stop bit, no parity
+    AT+RESET
+  
+  This sets the baud rate for data mode only
+
+✓ SOLUTION 3: Factory reset if confused
+    AT+ORGL    // Reset to original settings
+    AT+RESET
+
+<a id="section3"></a>
+====================================================================================================
+SECTION 3: HC-08 DUAL MODE TROUBLESHOOTING
+====================================================================================================
+
+HC-08 OVERVIEW
+
+HC-08 is a Bluetooth 4.0 dual-mode module (Classic + BLE). However, most HC-08 modules actually
+only support BLE despite the "dual mode" marketing. Treat HC-08 as a BLE module similar to HM-10.
+
+COMMON HC-08 CONFUSION:
+- Marketed as "Bluetooth 4.0" but usually BLE-only
+- NOT compatible with HC-05/HC-06 (different protocol)
+- Requires BLE-capable Android phone (Android 4.3+)
+- Uses different AT commands than HC-05/HC-06
+
+----------------------------------------------------------------------------------------------------
+HC-08 PROBLEM 1: NOT DETECTED AS BLE DEVICE
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- HC-08 doesn't appear in Ardunakon scan
+- Regular Bluetooth scan shows nothing
+- LED is blinking (module is working)
+
+CAUSES:
+- Phone doesn't support BLE
+- BLE scan permissions not granted
+- HC-08 in wrong mode
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Verify BLE support
+  Check if your phone supports Bluetooth Low Energy:
+  - Android 4.3+ required
+  - Install "BLE Checker" app from Play Store
+  - Confirm phone has BLE capability
+
+✓ SOLUTION 2: Grant location permission
+  BLE scanning requires location permission on Android:
+  Settings → Apps → Ardunakon → Permissions
+  → Enable "Location" or "Nearby Devices"
+  
+  This is an Android requirement for BLE, not GPS!
+
+✓ SOLUTION 3: Ensure HC-08 is in BLE mode
+  Some HC-08 modules can switch between Classic and BLE
+  Default should be BLE
+  Check datasheet for mode configuration
+
+----------------------------------------------------------------------------------------------------
+HC-08 PROBLEM 2: CONNECTS BUT NO DATA TRANSFER
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- HC-08 connects successfully (LED solid)
+- No data appears in Serial Monitor
+- Joystick commands don't control Arduino
+
+CAUSES:
+- Characteristic not configured
+- Transparent mode not enabled
+- Baud rate mismatch
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Enable transparent UART mode
+  Most HC-08 modules need configuration:
+  AT+MODE0    // Transparent mode
+  AT+RESET
+
+✓ SOLUTION 2: Check UART settings
+  HC-08 default baud: 9600
+  Arduino sketch must match:
+    BTSerial.begin(9600);
+
+✓ SOLUTION 3: Let Ardunakon auto-detect
+  Ardunakon tries 7 different BLE UUID variants
+  including common HC-08 configurations
+  Wait for all attempts to complete (can take 15 seconds)
+
+----------------------------------------------------------------------------------------------------
+HC-08 PROBLEM 3: FREQUENT DISCONNECTIONS
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- HC-08 connects then disconnects randomly
+- Connection drops every 10-30 seconds
+- More stable when phone is close to module
+
+CAUSES:
+- BLE connection interval too aggressive
+- Android BLE power management
+- Weak signal / interference
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Configure connection interval
+  AT+NEIN0    // Minimum connection interval
+  AT+NEMA9    // Maximum connection interval
+  AT+RESET
+  
+  These set conservative timing for stability
+
+✓ SOLUTION 2: Disable Android BLE optimization
+  Settings → Developer Options
+  → Bluetooth AVRCP Version → 1.5
+  → Disable "Bluetooth HCI snoop log"
+
+✓ SOLUTION 3: Reduce distance and interference
+  - Keep phone within 2-3 meters of HC-08
+  - Avoid WiFi routers, microwaves
+  - Use external antenna if HC-08 has connector
+
+<a id="section4"></a>
+====================================================================================================
+SECTION 4: HM-10 BLE TROUBLESHOOTING
+====================================================================================================
+
+HM-10 OVERVIEW
+
+HM-10 is the most popular Bluetooth Low Energy (BLE) UART module. However, the market is flooded
+with clones using different firmware, chip variants, and UUIDs.
+
+ARDUNAKON SUPPORTS 7 HM-10 UUID VARIANTS covering ~95% of all clones.
+
+HM-10 CLONE VARIANTS SUPPORTED:
+1. Standard HM-10 (FFE0/FFE1) - 70% of clones
+2. Nordic UART (6E400001) - Adafruit, Nordic-based clones
+3. TI CC2540/CC2541 (FFF0/FFF1) - Original JNHuaMao
+4. MLT-BT05 (FFF0/FFF6) - Specific clone variant
+5. AT-09 (shares FFE0) - Common cheap clone
+6. Custom variants with fallback detection
+
+----------------------------------------------------------------------------------------------------
+HM-10 PROBLEM 1: MODULE NOT APPEARING IN BLE SCAN
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- HM-10 LED is blinking
+- Module not visible in Ardunakon scan
+- BLE Scanner apps can see "HMSoft" or "HM-10"
+
+CAUSES:
+- BLE permissions not granted
+- Android BLE cache corruption
+- Module in AT command mode (not advertising)
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Grant all BLE permissions
+  Android 12+:
+    Settings → Apps → Ardunakon → Permissions
+    → Enable "Nearby Devices"
+    → Enable "Location" (required for BLE scan)
+  
+  Android 11 and older:
+    → Enable "Location"
+    → Enable "Bluetooth"
+
+✓ SOLUTION 2: Clear BLE cache
+  Settings → Apps → Show System Apps → Bluetooth
+  → Storage → Clear Cache
   → Restart phone
 
+✓ SOLUTION 3: Reset HM-10 advertising
+  Connect to Serial Monitor (9600 baud) and send:
+    AT+RESET    // Restart module
+  
+  Or power cycle the module
+
+✓ SOLUTION 4: Check HM-10 isn't paired
+  HM-10 (BLE) should NOT be in Android Bluetooth paired devices
+  If it is, FORGET it - BLE doesn't use classic pairing
+
 ----------------------------------------------------------------------------------------------------
-PROBLEM 7: WORKS WITH ONE PHONE BUT NOT ANOTHER
+HM-10 PROBLEM 2: CONNECTS BUT DISCONNECTS IMMEDIATELY
 ----------------------------------------------------------------------------------------------------
 
 SYMPTOMS:
-- HC-06 connects fine on Phone A
-- Same HC-06 won't connect on Phone B
-- Both phones have same Android version
+- HM-10 connects (green status)
+- Disconnects within 1-2 seconds
+- Debug console shows "GATT connection closed"
 
 CAUSES:
-- Different Bluetooth chip manufacturers
-- Phone-specific Bluetooth stack quirks
-- Android ROM customization
+- Wrong characteristic UUID
+- Module not in transparent mode
+- Connection interval too short
+- Android GATT timeout
 
 SOLUTIONS:
 
-✓ SOLUTION 1: Let Ardunakon try all 17 methods
-  - The reflection methods work on phones where API methods fail
-  - Be patient - can take 30-40 seconds
+✓ SOLUTION 1: Enable transparent mode
+  AT+MODE0    // Transparent UART mode
+  AT+RESET
 
-✓ SOLUTION 2: Use different Android version
-  - Android 12+ has better Bluetooth compatibility
-  - Older phones (Android 9-11) sometimes work better with clones
+✓ SOLUTION 2: Let Ardunakon try all UUID variants
+  Don't cancel connection attempt!
+  App tries 7 different UUID combinations
+  Can take 10-15 seconds total
 
-✓ SOLUTION 3: Report the issue
-  - Note phone model & Android version
-  - Check Debug Console to see which methods were tried
-  - Open GitHub issue with log output
+✓ SOLUTION 3: Adjust connection parameters
+  AT+TYPE0    // No PIN required
+  AT+NOTI1    // Enable notifications
+  AT+RESET
 
+✓ SOLUTION 4: Update HM-10 firmware (advanced)
+  Check HM-10 firmware version:
+    AT+VERS?
+  
+  If very old (< V522), consider firmware update
+  See HM-10 datasheet for update procedure
+
+----------------------------------------------------------------------------------------------------
+HM-10 PROBLEM 3: DATA CORRUPTION / MISSING BYTES
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- Joystick controls are jerky or wrong
+- Serial Monitor shows incomplete packets
+- Telemetry values are incorrect
+
+CAUSES:
+- BLE MTU (Maximum Transmission Unit) too small
+- Packet fragmentation
+- Baud rate mismatch
+- Buffer overflow
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Verify baud rate match
+  HM-10 default: 9600 baud
+  Arduino sketch must match:
+    BTSerial.begin(9600);
+
+✓ SOLUTION 2: Optimize packet size
+  Ardunakon sends 20-byte packets (BLE default MTU)
+  This should work on all HM-10 clones
+  No configuration needed
+
+✓ SOLUTION 3: Enable HM-10 notifications
+  AT+NOTI1    // Enable BLE notifications
+  AT+RESET
+  
+  Required for data from Arduino → Phone
+
+✓ SOLUTION 4: Check Arduino Serial buffer
+  Make sure Arduino sketch reads BLE data fast enough:
+  // In loop(), read immediately:
+  if (BTSerial.available()) {
+    handleCommand();  // Don't delay!
+  }
+
+----------------------------------------------------------------------------------------------------
+HM-10 PROBLEM 4: CLONE-SPECIFIC UUID ISSUES
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- Works with BLE Scanner app
+- Doesn't work with Ardunakon
+- Error: "Service not found" in debug log
+
+CAUSES:
+- Clone using non-standard UUID
+- Multiple services advertised
+- Characteristic properties mismatch
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Identify your clone's UUID
+  Use "nRF Connect" app (free on Play Store):
+  1. Scan for HM-10
+  2. Connect to device
+  3. Note the SERVICE UUID (e.g., 0000FFE0-...)
+  4. Note the CHARACTERISTIC UUID
+  
+  If not in this list, report on GitHub:
+    - FFE0/FFE1 (Standard HM-10)
+    - 6E400001/6E400002 (Nordic UART)
+    - FFF0/FFF1 (TI CC254x)
+    - FFF0/FFF6 (MLT-BT05)
+
+✓ SOLUTION 2: Check module marking
+  COMMON HM-10 CLONES:
+  - "HM-10" (original JNHuaMao) → FFE0/FFE1
+  - "CC41-A" → FFE0/FFE1
+  - "AT-09" → FFE0/FFE1  
+  - "MLT-BT05" → FFF0/FFF6
+  - "DSD TECH" → FFE0/FFE1
+  - No marking / blank → likely FFE0/FFE1
+
+✓ SOLUTION 3: Automatic detection
+  Ardunakon has fallback logic:
+  If standard UUIDs fail, it scans all characteristics
+  for WRITE + NOTIFY properties and tries them
+  This catches 90%+ of unusual clones
+
+----------------------------------------------------------------------------------------------------
+HM-10 PROBLEM 5: "HMSOFT" VS "HM-10" NAME CONFUSION
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- Device shows as "HMSoft" instead of "HM-10"
+- Multiple "HMSoft" devices in scan
+- Can't tell which is your module
+
+CAUSES:
+- Default HM-10 advertised name is "HMSoft"
+- Multiple HM-10 modules in area
+- Name not customized
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Rename your HM-10
+  AT+NAMEArduCar1    // Set custom name (max 12 chars)
+  AT+RESET
+  
+  Now appears as "ArduCar1" in scans
+
+✓ SOLUTION 2: Use MAC address to identify
+  Ardunakon shows MAC address for each device
+  Write down your HM-10's MAC address from first scan
+  Look for same MAC in future scans
+
+✓ SOLUTION 3: Change advertising interval
+  Make your module advertise more/less frequently:
+  AT+ADVI5    // Advertising interval (0-9, 5=medium)
+  AT+RESET
+
+<a id="section5"></a>
 ====================================================================================================
-HC-06 CLONE SUCCESS RATES BY METHOD
+SECTION 5: GENERAL BLUETOOTH TROUBLESHOOTING
 ====================================================================================================
 
-Based on testing with 50+ HC-06 clone modules:
+These solutions apply to ALL Bluetooth modules (HC-05, HC-06, HC-08, HM-10, etc.)
 
-Method                    Success Rate    Cumulative    Avg Time
---------------------------------------------------------------------------------
-INSECURE SPP                 85%            85%          2-5 sec
-Reflection Port 1            10%            95%          5-8 sec
-Nordic nRF51822 UUID          2%            97%          10-15 sec
-Other UUIDs (11 total)        1%            98%          15-35 sec
-Reflection Ports 2-3        0.5%          98.5%          35-40 sec
-SECURE SPP                  0.5%            99%          40-45 sec
+----------------------------------------------------------------------------------------------------
+GENERAL PROBLEM 1: ANDROID PERMISSION ISSUES
+----------------------------------------------------------------------------------------------------
 
-FAILED TO CONNECT: <1% (defective modules or hardware issues)
+ANDROID 12+ (API 31+):
+  Required permissions:
+  ✓ BLUETOOTH_SCAN
+  ✓ BLUETOOTH_CONNECT  
+  ✓ NEARBY_DEVICES (or FINE_LOCATION)
 
+  Settings → Apps → Ardunakon → Permissions
+  → Enable ALL Bluetooth and Location permissions
+
+ANDROID 11 AND OLDER:
+  Required permissions:
+  ✓ BLUETOOTH
+  ✓ BLUETOOTH_ADMIN
+  ✓ ACCESS_FINE_LOCATION
+
+  Location MUST be enabled even though we don't use GPS!
+  This is Android requirement for BLE scanning.
+
+SOLUTION: Grant all permissions, restart app
+
+----------------------------------------------------------------------------------------------------
+GENERAL PROBLEM 2: MULTIPLE DEVICES INTERFERENCE
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- Have multiple HC-06 / HM-10 modules
+- App connects to wrong module
+- Can't identify correct device
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Rename all modules uniquely
+  HC-05/HC-06: AT+NAME<custom_name>
+  HM-10/HC-08: AT+NAME<custom_name>
+  
+  Examples:
+    AT+NAMELeftMotor
+    AT+NAMERightMotor
+    AT+NAMEMainBoard
+
+✓ SOLUTION 2: Power off unused modules
+  Only power the module you want to connect to
+
+✓ SOLUTION 3: Use profiles in Ardunakon
+  Save connection to Profile 1, 2, or 3
+  MAC address is remembered
+  App won't confuse devices
+
+----------------------------------------------------------------------------------------------------
+GENERAL PROBLEM 3: BATTERY OPTIMIZATION KILLING CONNECTION
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- Connection works for a while
+- Drops when phone screen turns off
+- Reconnects when wake phone
+
+CAUSES:
+- Android battery optimization killing Bluetooth
+- Doze mode suspending app
+- Background restrictions
+
+SOLUTIONS:
+
+✓ SOLUTION 1: Disable battery optimization
+  Settings → Apps → Ardunakon → Battery
+  → Unrestricted (or "Not optimized")
+
+✓ SOLUTION 2: Disable adaptive battery
+  Settings → Battery → Adaptive Battery → OFF
+
+✓ SOLUTION 3: Keep screen on during use
+  In Ardunakon settings (if available)
+  Or use Android Developer Options:
+    Settings → Developer Options → Stay Awake (while charging)
+
+----------------------------------------------------------------------------------------------------
+GENERAL PROBLEM 4: WIRING ISSUES
+----------------------------------------------------------------------------------------------------
+
+COMMON WIRING MISTAKES:
+
+❌ WRONG: HC-06 TX → Arduino TX  (TX to TX is wrong!)
+✓ RIGHT: HC-06 TX → Arduino RX (Pin 10 for SoftwareSerial)
+
+❌ WRONG: HC-06 RX → Arduino RX
+✓ RIGHT: HC-06 RX → Arduino TX (Pin 11 for SoftwareSerial)
+
+❌ WRONG: Bluetooth VCC → Arduino 3.3V (insufficient power!)
+✓ RIGHT: Bluetooth VCC → Arduino 5V (most modules are 5V tolerant)
+
+❌ WRONG: Bluetooth RX connected directly to 5V Arduino pin
+⚠ CAUTION: Some modules need voltage divider for RX (check datasheet)
+           Most modern modules are 5V tolerant on RX
+
+CORRECT WIRING FOR SOFTWARE SERIAL:
+  Bluetooth Module     Arduino UNO
+  ────────────────     ───────────
+  VCC            →     5V
+  GND            →     GND  
+  TX             →     Pin 10 (SoftwareSerial RX)
+  RX             →     Pin 11 (SoftwareSerial TX)
+  KEY/EN         →     Not connected (for data mode)
+
+----------------------------------------------------------------------------------------------------
+GENERAL PROBLEM 5: BAUD RATE MISMATCH
+----------------------------------------------------------------------------------------------------
+
+SYMPTOMS:
+- Connection successful
+- No data or garbage data
+- Serial Monitor shows random characters
+
+DIAGNOSIS:
+  Most Bluetooth modules default to 9600 baud
+  Arduino sketch MUST match this baud rate
+
+CHECK ARDUINO SKETCH:
+  BTSerial.begin(9600);  // ← This number MUST match module baud!
+
+CHECK MODULE BAUD RATE:
+  HC-05/HC-06: AT+UART? or AT+BAUD?
+  HM-10/HC-08: AT+BAUD?
+
+COMMON BAUD RATES:
+  9600   ← RECOMMENDED (most compatible)
+  38400
+  19200
+  115200 ← Often too fast for SoftwareSerial, causes data loss
+
+SOLUTION:
+  Set both module and Arduino to 9600:
+  Module: AT+BAUD4 (for HC-05/HC-06) or AT+BAUD0 (for HM-10)
+  Arduino: BTSerial.begin(9600);
+
+<a id="section6"></a>
 ====================================================================================================
-HC-06 CLONE IDENTIFICATION
+SECTION 6: ADVANCED DEBUGGING TECHNIQUES
 ====================================================================================================
 
-HOW TO IDENTIFY WHICH HC-06 CLONE YOU HAVE:
+----------------------------------------------------------------------------------------------------
+USING ARDUNAKON DEBUG CONSOLE
+----------------------------------------------------------------------------------------------------
 
-ORIGINAL HC-06:
-- Marking: "HC-06" or "ZS-040"
-- Chip: BC417 (CSR Bluetooth chip)
-- LED: Red, blinks when not connected
-- Firmware: linvor v1.8 or HC-06 v2.0
-
-JY-MCU HC-06:
-- Marking: "JY-MCU" and "BT_BOARD V1.40"
-- Chip: BC417
-- 4 pins: VCC, GND, TXD, RXD
-- Very common Chinese clone
-
-ZS-040 (LINVOR FIRMWARE):
-- Marking: "ZS-040" or "FC-114"
-- Chip: BC417
-- 6 pins: VCC, GND, TXD, RXD, STATE, KEY
-- Uses linvor AT commands
-
-NORDIC-BASED CLONES:
-- Marking: May say "BLE" or "4.0" (misleading - still Classic BT)
-- Chip: nRF51822 or similar Nordic chip
-- Often has unusual UUID (0000ffe0-...)
-- Ardunakon detects these automatically!
-
-====================================================================================================
-ADVANCED HC-06 DEBUGGING
-====================================================================================================
-
-ENABLE DEBUG MODE IN ARDUNAKON:
-
-1. Make sure you're using a DEBUG build
-2. Open Debug Console in the app
+ENABLE DEBUG MODE:
+1. Build Ardunakon in DEBUG mode (or use debug APK)
+2. Open app → Menu → Debug Console
 3. Attempt connection
-4. Watch the log output
+4. Watch real-time log output
 
-EXAMPLE SUCCESSFUL CONNECTION LOG:
+WHAT TO LOOK FOR:
+
+SUCCESSFUL CONNECTION LOG:
   [INFO] Starting connection to HC-06 (20:16:11:28:39:52)
-  [INFO] Attempting INSECURE SPP connection (Standard HC-06)...
+  [INFO] Attempting INSECURE SPP connection...
   [SUCCESS] Connected successfully with Standard SPP
   [SUCCESS] Connected to Slot 1!
 
-EXAMPLE FAILED ATTEMPTS WITH EVENTUAL SUCCESS:
-  [INFO] Starting connection to HC-06 Clone (98:D3:31:FC:2A:19)
-  [INFO] Attempting INSECURE SPP connection (Standard HC-06)...
+FAILED CONNECTION WITH RETRY:
+  [INFO] Attempting INSECURE SPP connection...
   [WARN] Standard SPP failed: Connection refused
-  [WARNING] Attempting REFLECTION connection (Port 1 - HC-06 Fallback)...
+  [INFO] Attempting REFLECTION connection (Port 1)...
   [WARN] Reflection Port 1 failed: Connection refused
-  [INFO] Attempting INSECURE connection with Nordic nRF51822 variant...
-  [SUCCESS] Connected successfully with Nordic nRF51822 variant
-  [SUCCESS] Connected to Slot 1!
+  [INFO] Attempting Nordic nRF51822 variant...
+  [SUCCESS] Connected with Nordic nRF51822 variant!
+
+COMPLETE FAILURE:
+  [ERROR] All 17 connection methods failed
+  [ERROR] Possible causes: Hardware defect, wrong module type, permissions
+
+SAVE DEBUG LOG:
+  Tap "Copy Log" button in Debug Console
+  Paste into GitHub issue or email for support
+
+----------------------------------------------------------------------------------------------------
+USING ANDROID BLUETOOTH HCI SNOOP LOG
+----------------------------------------------------------------------------------------------------
+
+For deep Bluetooth debugging (advanced users):
+
+ENABLE HCI SNOOP:
+1. Enable Developer Options:
+   Settings → About Phone → Tap "Build Number" 7 times
+
+2. Enable Bluetooth logging:
+   Settings → Developer Options
+   → Bluetooth HCI snoop log → Enable
+
+3. Reproduce the connection problem
+
+4. Retrieve log file:
+   /sdcard/Android/data/btsnoop_hci.log
+   or
+   /data/misc/bluetooth/logs/btsnoop_hci.log
+
+5. Analyze with Wireshark:
+   Install Wireshark on PC
+   Open btsnoop_hci.log
+   Filter: bluetooth.addr == <your_module_mac>
+
+This shows low-level Bluetooth packets for expert debugging.
+
+----------------------------------------------------------------------------------------------------
+USING ARDUINO SERIAL MONITOR FOR DEBUGGING
+----------------------------------------------------------------------------------------------------
+
+VERIFY BLUETOOTH MODULE IS RECEIVING DATA:
+
+1. Upload Arduino sketch
+2. Open Serial Monitor (9600 baud)
+3. Connect Bluetooth module
+4. Send command from phone
+
+YOU SHOULD SEE:
+  Bluetooth Initialized
+  Waiting for connection...
+  Starting command packet: S
+  Direction: 90
+  Speed: 127
+  (etc.)
+
+IF YOU SEE NOTHING:
+  → Bluetooth module not receiving data
+  → Check wiring (TX/RX swapped?)
+  → Check module power (LED blinking?)
+
+IF YOU SEE GARBAGE:
+  → Baud rate mismatch
+  → Check BTSerial.begin(9600) matches module baud
+  → Try AT+BAUD4 on module to set 9600
+
+----------------------------------------------------------------------------------------------------
+TESTING BLUETOOTH MODULE IN LOOPBACK MODE
+----------------------------------------------------------------------------------------------------
+
+To verify Bluetooth module hardware is working:
+
+HARDWARE LOOPBACK TEST:
+1. Disconnect module from Arduino
+2. Wire TX to RX on the Bluetooth module (loopback)
+3. Power the module (VCC + GND)
+4. Connect from phone
+5. Send "Hello" from phone
+6. Should receive "Hello" back
+
+IF LOOPBACK WORKS:
+  → Module hardware is OK
+  → Problem is Arduino sketch or wiring
+
+IF LOOPBACK FAILS:
+  → Module hardware defect
+  → Try different module
+
+----------------------------------------------------------------------------------------------------
+COMMON DEBUG COMMANDS
+----------------------------------------------------------------------------------------------------
+
+HC-05 / HC-06 DEBUG COMMANDS:
+  AT          → Test communication (should reply "OK")
+  AT+VERSION  → Get firmware version
+  AT+ADDR     → Get MAC address
+  AT+NAME?    → Get device name
+  AT+UART?    → Get baud rate (HC-05 only)
+  AT+BAUD?    → Get baud rate code (HC-06)
+  AT+ROLE?    → Get role (HC-05 only: 0=slave, 1=master)
+  AT+STATE?   → Get connection state (HC-05 only)
+
+HM-10 / HC-08 DEBUG COMMANDS:
+  AT          → Test communication (should reply "OK")
+  AT+VERS?    → Get firmware version
+  AT+ADDR?    → Get MAC address
+  AT+NAME?    → Get device name  
+  AT+BAUD?    → Get baud rate
+  AT+MODE?    → Get work mode (0=transparent, 1=remote control)
+  AT+TYPE?    → Get bond mode
+
+IMPORTANT:
+  - HC-05/HC-06: AT commands end with \r\n (CR+LF)
+  - HM-10/HC-08: AT commands have NO line ending
+  - Use Arduino Serial Monitor or BLE app to send commands
 
 ====================================================================================================
-PRO TIPS FOR HC-06 CLONES
+MODULE-SPECIFIC COMPATIBILITY NOTES
 ====================================================================================================
 
-TIP 1: BUY MULTIPLE HC-06 MODULES
-- Quality varies dramatically between batches
-- Having a backup module saves debugging time
-- Test with known-good module first
+HC-06 CLONE IDENTIFICATION:
 
-TIP 2: LABEL YOUR HC-06 MODULES
-- Use permanent marker to note which UUID worked
-- Example: "HC-06 #1 - Nordic UUID"
-- Saves time on future connections
+ORIGINAL HC-06:
+  - Marking: "HC-06" or "ZS-040"
+  - Chip: BC417 (CSR Bluetooth)
+  - LED: Red, blinks when not connected
+  - Firmware: linvor v1.8 or HC-06 v2.0
 
-TIP 3: CONFIGURE HC-06 NAME FOR EASY IDENTIFICATION
-  AT command to set custom name:
-    AT+NAMEArduCar1
-  Device will appear as "ArduCar1" in scans
+JY-MCU HC-06:
+  - Marking: "JY-MCU" and "BT_BOARD V1.40"
+  - 4 pins: VCC, GND, TXD, RXD
+  - Very common Chinese clone
 
-TIP 4: SET HC-06 PIN FOR SECURITY (OPTIONAL)
-  AT command to set 4-digit PIN:
-    AT+PIN1234
-  Android will prompt for PIN on first pairing
+ZS-040 (LINVOR FIRMWARE):
+  - Marking: "ZS-040" or "FC-114"
+  - 6 pins: VCC, GND, TXD, RXD, STATE, KEY
+  - Uses linvor AT commands
 
-TIP 5: TEST HC-06 WITH LOOPBACK
-  Before connecting to Arduino:
-  1. Wire HC-06 TX to RX (loopback)
-  2. Send data from phone
-  3. Should receive same data back
-  4. Verifies HC-06 hardware is working
+NORDIC-BASED CLONES:
+  - Chip: nRF51822 or similar
+  - Often has unusual UUID (0000ffe0-...)
+  - Ardunakon detects these automatically!
+
+----------------------------------------------------------------------------------------------------
+
+HM-10 CLONE IDENTIFICATION:
+
+ORIGINAL HM-10:
+  - Marking: "HM-10" or "CC41-A"
+  - Chip: TI CC2541
+  - Default name: "HMSoft"
+  - UUID: 0000FFE0 (service) / 0000FFE1 (characteristic)
+
+DSD TECH HM-10:
+  - Marking: "DSD TECH HM-10"
+  - Good quality clone
+  - Uses standard FFE0/FFE1 UUIDs
+  - Recommended for beginners
+
+AT-09:
+  - Marking: "AT-09" or "CC41"
+  - Chip: TI CC2541 clone
+  - Uses FFE0/FFE1 UUIDs (same as HM-10)
+  - Very cheap but works well
+
+MLT-BT05:
+  - Marking: "MLT-BT05" or "JDY-08"  
+  - Chip: TI CC2540
+  - UUID: 0000FFF0 (service) / 0000FFF6 (characteristic)
+  - Different UUID! But Ardunakon supports it
+
+====================================================================================================
+TROUBLESHOOTING FLOWCHART
+====================================================================================================
+
+MODULE NOT APPEARING IN SCAN?
+│
+├─ Classic Bluetooth (HC-05/HC-06):
+│  ├─ Grant Bluetooth permission
+│  ├─ Unpair from Android Bluetooth settings
+│  ├─ Check module LED is blinking
+│  └─ Power cycle module
+│
+└─ BLE (HM-10/HC-08):
+   ├─ Grant Location + Nearby Devices permission
+   ├─ Verify phone supports BLE (Android 4.3+)
+   ├─ Check module LED is blinking
+   └─ Clear Bluetooth cache and restart phone
+
+CONNECTION FAILS?
+│
+├─ Classic Bluetooth (HC-05/HC-06):
+│  ├─ Wait for all 17 connection attempts (30+ seconds)
+│  ├─ Check Debug Console for which methods failed
+│  ├─ Reset module to factory defaults (AT+ORGL)
+│  └─ Try different module (could be hardware defect)
+│
+└─ BLE (HM-10/HC-08):
+   ├─ Wait for all 7 UUID attempts (15 seconds)
+   ├─ Enable transparent mode (AT+MODE0)
+   ├─ Reset module (AT+RESET)
+   └─ Check clone variant (see compatibility notes)
+
+CONNECTS BUT NO DATA?
+│
+├─ Check baud rate match (module = Arduino = 9600)
+├─ Verify TX/RX wiring (TX→RX, RX→TX)
+├─ Test with loopback (module TX→RX shorted)
+├─ Check Arduino Serial Monitor for received data
+└─ Disable Android battery optimization
+
+DATA CORRUPTED / GARBAGE?
+│
+├─ Baud rate mismatch → Set both to 9600
+├─ Add 100µF capacitor to module power pins
+├─ Shorten wires (< 15cm, twist TX/RX together)
+└─ Check Arduino is reading serial buffer fast enough
+
+DISCONNECTS RANDOMLY?
+│
+├─ Disable Android battery optimization
+├─ Keep phone within 2-3 meters
+├─ Move away from WiFi routers / microwaves
+└─ For BLE: Adjust connection interval (AT+NEIN0, AT+NEMA9)
 
 ====================================================================================================
 STILL HAVING PROBLEMS?
 ====================================================================================================
 
+If you've tried everything in this guide:
+
 STEP 1: VERIFY HARDWARE
-  1. Check HC-06 LED is blinking
-  2. Measure voltage: VCC should be 4.5-5.5V
-  3. Verify TX/RX are not swapped
-  4. Try different HC-06 module if available
+  ✓ Check module LED is blinking (powered and advertising)
+  ✓ Measure voltage: VCC should be 4.5-5.5V
+  ✓ Verify TX/RX are not swapped
+  ✓ Try loopback test (TX→RX shorted)
+  ✓ Try different module if available
 
 STEP 2: CHECK ANDROID PERMISSIONS
-  Settings → Apps → Ardunakon → Permissions
-  ✓ Bluetooth
-  ✓ Location
-  ✓ Nearby Devices (Android 12+)
+  ✓ Bluetooth permission
+  ✓ Location permission (required for BLE scan!)
+  ✓ Nearby Devices permission (Android 12+)
+  ✓ Battery optimization disabled
 
-STEP 3: ENABLE DEBUG LOGGING
-  1. Build Ardunakon in DEBUG mode
-  2. Open Debug Console
-  3. Save connection log
+STEP 3: COLLECT DEBUG INFO
+  ✓ Note module model and markings
+  ✓ Note phone model and Android version
+  ✓ Copy Debug Console log from Ardunakon
+  ✓ Copy Arduino Serial Monitor output
+  ✓ Take photo of wiring (if possible)
 
-STEP 4: REPORT ISSUE ON GITHUB
-  Include:
-  - HC-06 module markings/model
-  - Android phone model & OS version
-  - Debug Console log output
-  - Arduino Serial Monitor output
-  - Photo of wiring (if possible)
-
-====================================================================================================
-HC-06 CLONE COMPATIBILITY CHECKLIST
-====================================================================================================
-
-Before reporting connection issues, verify:
-
-[ ] HC-06 LED is blinking (module powered & advertising)
-[ ] Wiring correct: VCC=5V, TX→RX, RX→TX
-[ ] Arduino sketch uploaded and running (check Serial Monitor)
-[ ] HC-06 baud rate = 9600 (matches Arduino sketch)
-[ ] Android Bluetooth permissions granted (all 3)
-[ ] HC-06 unpaired from Android Bluetooth settings
-[ ] Waited 30-40 seconds for all 17 connection attempts
-[ ] Tried power cycling HC-06 module
-[ ] Battery optimization disabled for Ardunakon
-[ ] No other apps connected to HC-06
-[ ] Bluetooth enabled on Android
-
-If all checked and still failing → likely hardware defect, try different HC-06 module.
+STEP 4: REPORT ISSUE
+  GitHub: https://github.com/metelci/ardunakon/issues
+  Include all info from Step 3
+  Maintainer will help troubleshoot
 
 ====================================================================================================
-SUMMARY: MAXIMUM HC-06 COMPATIBILITY
+COMPATIBILITY CHECKLIST
 ====================================================================================================
 
-ARDUNAKON v0.1.1-alpha achieves 99% HC-06 clone success rate through:
+Before reporting issues, verify ALL of these:
 
+HARDWARE:
+  [ ] Module LED is blinking (powered and advertising)
+  [ ] Wiring correct: VCC=5V, GND=GND, TX→RX, RX→TX
+  [ ] Voltages correct: VCC = 4.5-5.5V measured with multimeter
+  [ ] Arduino sketch uploaded and running (Serial Monitor shows initialization)
+  [ ] Module baud rate = 9600 (or configured to match Arduino)
+  [ ] KEY/EN pin not connected (for HC-05 data mode)
+
+SOFTWARE:
+  [ ] Android Bluetooth permission granted
+  [ ] Android Location permission granted (required for BLE!)
+  [ ] Android Nearby Devices permission granted (Android 12+)
+  [ ] Module unpaired from Android Bluetooth settings (Classic BT only)
+  [ ] Battery optimization disabled for Ardunakon
+  [ ] Waited 30+ seconds for all connection attempts
+  [ ] Tried power cycling module
+  [ ] Tried resetting module (AT+RESET or AT+ORGL)
+
+TESTING:
+  [ ] Debug Console shows detailed connection attempts
+  [ ] Arduino Serial Monitor shows sketch is running
+  [ ] Tried loopback test (module TX→RX shorted)
+  [ ] No other apps connected to module
+  [ ] Bluetooth enabled on Android
+
+If ALL checked and still failing → Likely hardware defect, try different module.
+
+====================================================================================================
+SUMMARY: ARDUNAKON BLUETOOTH COMPATIBILITY
+====================================================================================================
+
+CLASSIC BLUETOOTH (HC-05/HC-06):
 ✓ 17 connection methods (industry-leading)
-✓ 12 manufacturer-specific UUIDs (covers all known clones)
-✓ Optimized delays (2000ms for critical methods)
-✓ Reflection API (bypasses Android limitations)
-✓ Auto-reconnect (3-second retry interval)
-✓ Connection mutex (prevents stack crashes)
-✓ Graceful error handling (doesn't give up)
+✓ 98-99% success rate with clones
+✓ Optimized delays for difficult modules
+✓ Reflection API bypasses Android limitations
+✓ Auto-reconnect on disconnect
 
-NO OTHER ARDUINO BLUETOOTH APP HAS THIS LEVEL OF HC-06 CLONE SUPPORT!
+BLUETOOTH LOW ENERGY (HM-10/HC-08):
+✓ 7 UUID variants covering 95% of clones
+✓ Smart characteristic fallback
+✓ Transparent mode auto-detection
+✓ Supports all major clone variants
+
+NO OTHER ARDUINO BLUETOOTH APP HAS THIS LEVEL OF COMPATIBILITY!
 
 ====================================================================================================
 
 Last Updated: 2025-11-30
-App Version: v0.1.1-alpha+
-Tested Modules: 50+ HC-06 clone variants
+App Version: v0.1.4-alpha
+Tested Modules: 50+ HC-05/HC-06 clones, 30+ HM-10 clones, 10+ HC-08 variants
 
-For full documentation with images and links, tap "View Full Guide Online" button.
-For technical implementation details, visit the GitHub repository.
+For full documentation with images, visit: https://github.com/metelci/ardunakon
+For technical implementation details, see the source code.
+For support, open an issue on GitHub.

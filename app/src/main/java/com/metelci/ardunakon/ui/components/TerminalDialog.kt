@@ -25,6 +25,7 @@ import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.Dialog
 import android.view.HapticFeedbackConstants
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,46 +49,49 @@ fun TerminalDialog(
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier
-            .fillMaxWidth(0.95f)
-            .heightIn(min = 400.dp, max = 600.dp),
-        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Terminal", style = MaterialTheme.typography.titleLarge)
-                    if (telemetry != null) {
-                        Text(
-                            "Bat: ${telemetry.batteryVoltage}V | ${telemetry.status}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (telemetry.batteryVoltage < 11.0f) Color(0xFFFF7675) else Color(0xFF00C853)
-                        )
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.85f),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3436))
+        ) {
+            Column(modifier = Modifier.padding(16.dp).fillMaxSize()) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Terminal", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                        if (telemetry != null) {
+                            Text(
+                                "Bat: ${telemetry.batteryVoltage}V | ${telemetry.status}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (telemetry.batteryVoltage < 11.0f) Color(0xFFFF7675) else Color(0xFF00C853)
+                            )
+                        }
+                    }
+                    Row {
+                        IconButton(onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onClearLogs()
+                        }) {
+                            Icon(Icons.Default.Delete, "Clear Logs", tint = Color(0xFFB0BEC5))
+                        }
+                        IconButton(onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onDismiss()
+                        }) {
+                            Icon(Icons.Default.Close, "Close", tint = Color(0xFFB0BEC5))
+                        }
                     }
                 }
-                Row {
-                    IconButton(onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onClearLogs()
-                    }) {
-                        Icon(Icons.Default.Delete, "Clear Logs", tint = Color(0xFFB0BEC5))
-                    }
-                    IconButton(onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onDismiss()
-                    }) {
-                        Icon(Icons.Default.Close, "Close")
-                    }
-                }
-            }
-        },
-        text = {
-            Column(modifier = Modifier.fillMaxSize()) {
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // Log Output Area
                 Box(
                     modifier = Modifier
@@ -146,7 +150,9 @@ fun TerminalDialog(
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF74B9FF),
-                            unfocusedBorderColor = Color(0xFFB0BEC5)
+                            unfocusedBorderColor = Color(0xFFB0BEC5),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
                         )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -167,7 +173,6 @@ fun TerminalDialog(
                     }
                 }
             }
-        },
-        confirmButton = {} // Handled by custom layout
-    )
+        }
+    }
 }
