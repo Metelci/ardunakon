@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.metelci.ardunakon.data.Profile
 import com.metelci.ardunakon.model.ButtonConfig
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import java.util.UUID
 
 @Composable
@@ -25,6 +27,7 @@ fun ProfileEditorDialog(
     onDismiss: () -> Unit,
     onSave: (Profile) -> Unit
 ) {
+    val view = LocalView.current
     var name by remember { mutableStateOf(profile?.name ?: "New Profile") }
     var sensitivity by remember { mutableStateOf(profile?.sensitivity ?: 1.0f) }
     var isUnidirectional by remember { mutableStateOf(profile?.isThrottleUnidirectional ?: false) }
@@ -136,7 +139,10 @@ fun ProfileEditorDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(
-                        onClick = onDismiss,
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onDismiss()
+                        },
                         colors = ButtonDefaults.textButtonColors(containerColor = Color.Transparent),
                         modifier = Modifier
                             .shadow(2.dp, RoundedCornerShape(12.dp))
@@ -148,6 +154,7 @@ fun ProfileEditorDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             val newProfile = Profile(
                                 id = profile?.id ?: UUID.randomUUID().toString(),
                                 name = name,
