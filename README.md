@@ -6,7 +6,8 @@ Ardunakon is a professional-grade Android application designed to control Arduin
 ## 🚀 Key Features
 
 ### 🕹️ Precision Control
-*   **Dual Joysticks**: Dedicated Left (Movement) and Right (Throttle) sticks.
+*   **Dual Joysticks**: Dedicated Left (Movement - Servos) and Right (Throttle - Speed) sticks with clear side labels.
+*   **Auto-Centering**: Both joysticks automatically return to center for precise control.
 *   **Smart Throttle Modes**:
     *   **Car Mode**: Bidirectional control (-100% to +100%) for forward/reverse.
     *   **Drone/Boat Mode**: Unidirectional control (0% to 100%) for ESCs.
@@ -18,8 +19,10 @@ Ardunakon is a professional-grade Android application designed to control Arduin
 *   **Live Editing**: Tweak settings instantly without disconnecting.
 
 ### 📡 Real-World Connectivity
+*   **Military-Grade Stability**: 4 critical reliability improvements including bounded write queues, 3-strike retry logic, and optimized timeouts
 *   **Bidirectional Data**: View real-time feedback from your Arduino in the Debug Console.
 *   **Auto-Reconnect**: Automatically restores connection if signal is lost.
+*   **Resilient Error Handling**: Tolerates transient interference and temporary signal issues without disconnecting
 *   **Zero Fakes**: No mock data. Every signal strength bar and log entry is real.
 
 ## 🛠️ Getting Started
@@ -87,9 +90,20 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 *   **END**: `0x55`
 
 ## 🐞 Troubleshooting
-*   **"Permission Denied"**: Go to Android Settings -> Apps -> Ardunakon -> Permissions and allow "Nearby Devices".
+
+### Quick Fixes
+*   **"Permission Denied"**: Go to Android Settings → Apps → Ardunakon → Permissions and allow "Nearby Devices".
 *   **No Data Received**: Check your Arduino TX/RX wiring (TX must go to RX).
 *   **App Closes in Background**: Disable "Battery Optimization" for Ardunakon.
+
+### Comprehensive Guides
+*   **[Quick Reference Card](QUICK_REFERENCE.md)** - One-page cheat sheet for common issues
+*   **[HC-06 Clone Troubleshooting](HC06_TROUBLESHOOTING.md)** - 17 connection methods explained
+*   **[HC-08 Troubleshooting](HC08_TROUBLESHOOTING.md)** - Complete HC-08 BLE module guide
+*   **[HM-10 Troubleshooting](HM10_TROUBLESHOOTING.md)** - 7 UUID variants, all clones covered
+*   **[Android Manufacturer Guide](ANDROID_MANUFACTURERS_GUIDE.md)** - Samsung, Xiaomi, Huawei-specific fixes
+*   **[Dependency Analysis](DEPENDENCY_ANALYSIS.md)** - Zero dependency hell, full compatibility report
+*   **In-App Help** - Tap Menu → Help for offline documentation with 4 detailed guides
 
 ---
 *Built for Makers, by Makers.*

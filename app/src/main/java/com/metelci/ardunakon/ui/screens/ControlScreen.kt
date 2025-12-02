@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,6 +36,9 @@ import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -73,29 +78,34 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.data.AuxAssignment
 import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.ui.components.JoystickControl
+import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
+import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.security.AuthRequiredException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-data class AssignedAux(val config: ButtonConfig, val slot: Int, val servoId: Int, val role: String = "")
+import com.metelci.ardunakon.model.AssignedAux
+import com.metelci.ardunakon.ui.components.AuxButton
+import com.metelci.ardunakon.ui.components.StatusCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ControlScreen(
     bluetoothManager: AppBluetoothManager,
-    isDarkTheme: Boolean = true,
-    onThemeToggle: () -> Unit = {}
+    isDarkTheme: Boolean = true
 ) {
     // State
     var showDeviceList by remember { mutableStateOf<Int?>(null) }
@@ -104,6 +114,9 @@ fun ControlScreen(
     var showHelpDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
+    var showAuxAssignDialog by remember { mutableStateOf(false) }
+    var isDebugPanelVisible by remember { mutableStateOf(true) } // Toggle for embedded debug panel
+    var showMaximizedDebug by remember { mutableStateOf(false) } // Full-screen debug dialog
 
     val scannedDevices by bluetoothManager.scannedDevices.collectAsState()
     val connectionStates by bluetoothManager.connectionStates.collectAsState()
@@ -112,7 +125,6 @@ fun ControlScreen(
     val debugLogs by bluetoothManager.debugLogs.collectAsState()
     val telemetry by bluetoothManager.telemetry.collectAsState()
     val activeAuxButtons = remember { mutableStateListOf<AssignedAux>() }
-    var showAuxAssignDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     // Removed pastelBrush for better visibility
@@ -180,7 +192,7 @@ fun ControlScreen(
     var rightJoystick by remember { mutableStateOf(Pair(0f, 0f)) }
 
     // Sync active aux buttons with current profile
-    LaunchedEffect(currentProfile.id) {
+    LaunchedEffect(currentProfile) {
         activeAuxButtons.clear()
         activeAuxButtons.addAll(
             currentProfile.auxAssignments.map { assign ->
@@ -210,32 +222,40 @@ fun ControlScreen(
     // UI Layout with theme toggle
     val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = if (isDarkTheme) {
+                        listOf(
+                            Color(0xFF1A1A2E), // dark blue-gray
+                            Color(0xFF16213E), // darker blue
+                            Color(0xFF0F1419)  // almost black
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFFFCE4EC), // soft pink
+                            Color(0xFFE3F2FD), // soft blue
+                            Color(0xFFE8F5E9)  // soft green
+                        )
+                    }
+                )
+            )
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = if (isDarkTheme) {
-                            listOf(
-                                Color(0xFF1A1A2E), // dark blue-gray
-                                Color(0xFF16213E), // darker blue
-                                Color(0xFF0F1419)  // almost black
-                            )
-                        } else {
-                            listOf(
-                                Color(0xFFFCE4EC), // soft pink
-                                Color(0xFFE3F2FD), // soft blue
-                                Color(0xFFE8F5E9)  // soft green
-                            )
-                        }
-                    )
-                )
                 .padding(safeDrawingPadding)
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+                .padding(8.dp)
         ) {
+            Column(
+                modifier = Modifier
+                    .weight(if (isDebugPanelVisible) 0.65f else 1f)
+                    .fillMaxHeight(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
         // Global Bluetooth status & E-STOP - Centered Layout
         val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
 
@@ -246,32 +266,71 @@ fun ControlScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left side: Signal Strength Indicators
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                (0..1).forEach { slotIndex ->
-                    val state = connectionStates[slotIndex]
-                    val stateColor = when (state) {
-                        ConnectionState.CONNECTED -> Color(0xFF00C853)
-                        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
-                        ConnectionState.ERROR -> Color(0xFFFF5252)
-                        else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
-                    }
+            // Left side: First Signal Strength Indicator
+            val state0 = connectionStates[0]
+            val stateColor0 = when (state0) {
+                ConnectionState.CONNECTED -> Color(0xFF00C853)
+                ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
+                ConnectionState.ERROR -> Color(0xFFFF5252)
+                else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
+            }
 
-                    SignalStrengthIcon(
-                        rssi = rssiValues[slotIndex],
-                        color = stateColor,
-                        modifier = Modifier
-                    )
-                }
+            SignalStrengthIcon(
+                rssi = rssiValues[0],
+                color = stateColor0,
+                modifier = Modifier
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Bluetooth Reconnect button (LEFT of E-STOP)
+            IconButton(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    val reconnected = bluetoothManager.reconnectSavedDevices()
+                    if (!reconnected) {
+                        // If nothing to reconnect, open device picker for Slot 1
+                        showDeviceList = 0
+                    }
+                },
+                modifier = Modifier
+                    .shadow(2.dp, CircleShape)
+                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                    .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Bluetooth,
+                    contentDescription = "Connect / Reconnect",
+                    tint = Color(0xFF00FF00) // Electric green
+                )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Center: E-STOP BUTTON
-            Button(
+            // Aux Button (now in position 3)
+            IconButton(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    showAuxAssignDialog = true
+                },
+                modifier = Modifier
+                    .size(36.dp)
+                    .shadow(2.dp, CircleShape)
+                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                    .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Aux Buttons",
+                    tint = Color(0xFF00FF00), // Electric green
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // E-STOP BUTTON (now in position 4)
+            IconButton(
                 onClick = {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     if (isEStopActive) {
@@ -285,85 +344,71 @@ fun ControlScreen(
                         bluetoothManager.sendDataToAll(stopPacket, force = true)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                shape = CircleShape,
                 modifier = Modifier
                     .size(72.dp)
-                    .shadow(6.dp, CircleShape)
+                    .shadow(2.dp, CircleShape)
                     .background(
-                        brush = if (isEStopActive) {
-                            Brush.radialGradient(
-                                colors = listOf(Color(0xFFFF5252), Color(0xFFD32F2F))
-                            )
+                        if (isEStopActive) {
+                            Color(0xFFFF5252) // Active red
                         } else {
-                            Brush.radialGradient(
-                                colors = listOf(Color(0xFF66BB6A), Color(0xFF43A047))
-                            )
+                            if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0)
                         },
-                        shape = CircleShape
+                        CircleShape
                     )
-                    .border(1.dp, if (isEStopActive) Color(0xFFB71C1C) else Color(0xFF1B5E20), CircleShape),
-                contentPadding = PaddingValues(0.dp),
-                elevation = ButtonDefaults.buttonElevation(8.dp)
+                    .border(
+                        1.dp,
+                        if (isEStopActive) {
+                            Color(0xFFD32F2F) // Darker red border
+                        } else {
+                            if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64)
+                        },
+                        CircleShape
+                    )
             ) {
                 Text(
                     if (isEStopActive) "RESET" else "STOP",
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge,
+                    color = if (isEStopActive) Color.White else {
+                        if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
+                    },
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Right side: Control buttons
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Debug Panel Toggle Button
+            IconButton(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    isDebugPanelVisible = !isDebugPanelVisible
+                },
+                modifier = Modifier
+                    .size(36.dp)
+                    .shadow(2.dp, CircleShape)
+                    .background(
+                        if (isDebugPanelVisible) Color(0xFF43A047) else Color(0xFF455A64),
+                        CircleShape
+                    )
+                    .border(
+                        1.dp,
+                        Color(0xFF00FF00), // Electric green border
+                        CircleShape
+                    )
             ) {
-                // Bluetooth Reconnect button
-                IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        val reconnected = bluetoothManager.reconnectSavedDevices()
-                        if (!reconnected) {
-                            // If nothing to reconnect, open device picker for Slot 1
-                            showDeviceList = 0
-                        }
-                    },
-                    modifier = Modifier
-                        .shadow(2.dp, CircleShape)
-                        .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                        .border(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Bluetooth,
-                        contentDescription = "Connect / Reconnect",
-                        tint = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Toggle Debug",
+                    tint = if (isDebugPanelVisible) Color.White else Color(0xFF00FF00), // Electric green
+                    modifier = Modifier.size(18.dp)
+                )
+            }
 
-                // Theme Toggle Button
-                IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onThemeToggle()
-                    },
-                    modifier = Modifier
-                        .shadow(2.dp, CircleShape)
-                        .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                        .border(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
-                        contentDescription = "Toggle Theme",
-                        tint = if (isDarkTheme) Color(0xFFFFD700) else Color(0xFF2D3436),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+            // Clear and consistent spacing between debug and menu icons
+            Spacer(modifier = Modifier.width(16.dp))
 
-                // Menu Button
-                Box {
+            // Menu Button with Box wrapper for proper DropdownMenu positioning
+            Box {
                 IconButton(
                     onClick = {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -373,12 +418,12 @@ fun ControlScreen(
                         .size(36.dp)
                         .shadow(2.dp, CircleShape)
                         .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                        .border(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64), CircleShape)
+                        .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
                 ) {
                     Icon(
-                        imageVector = Icons.Default.MoreVert,
+                        imageVector = Icons.Default.Help,
                         contentDescription = "Menu",
-                        tint = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436),
+                        tint = Color(0xFF00FF00), // Electric green
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -405,7 +450,7 @@ fun ControlScreen(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Legacy Reflection Connect: ${if (allowReflection) "On" else "Off"}") },
+                        text = { Text("Legacy Reflection Connect: " + if (allowReflection) "On" else "Off") },
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             allowReflection = !allowReflection
@@ -413,8 +458,24 @@ fun ControlScreen(
                         }
                     )
                 }
-                }
             }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Right side: Second Signal Strength Indicator
+            val state1 = connectionStates[1]
+            val stateColor1 = when (state1) {
+                ConnectionState.CONNECTED -> Color(0xFF00C853)
+                ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
+                ConnectionState.ERROR -> Color(0xFFFF5252)
+                else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
+            }
+
+            SignalStrengthIcon(
+                rssi = rssiValues[1],
+                color = stateColor1,
+                modifier = Modifier
+            )
         }
 
         // Bluetooth slot information row
@@ -495,66 +556,6 @@ fun ControlScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Profile & Debug - Standard Buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            androidx.compose.material3.OutlinedButton(
-                onClick = { 
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    showProfileSelector = true 
-                },
-                modifier = Modifier.height(36.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436))
-            ) {
-                Text("Profile", style = MaterialTheme.typography.labelMedium)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            androidx.compose.material3.OutlinedButton(
-                onClick = { 
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    showAuxAssignDialog = true 
-                },
-                modifier = Modifier.height(36.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436))
-            ) {
-                Text("Aux", style = MaterialTheme.typography.labelMedium)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            androidx.compose.material3.OutlinedButton(
-                onClick = { 
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    showDebugConsole = true 
-                },
-                modifier = Modifier.height(36.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Open Debug Console",
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Debug", style = MaterialTheme.typography.labelMedium)
-            }
-
-        }
-
         Spacer(modifier = Modifier.height(8.dp))
 
         // Joysticks with Aux Buttons on sides - Responsive Layout
@@ -565,12 +566,18 @@ fun ControlScreen(
         // Estimate available space (Screen height - top content approx 250dp)
         // This is an approximation but safer than BoxWithConstraints which caused issues
         val availableHeight = (screenHeight - 250.dp).coerceAtLeast(150.dp)
-        val availableWidth = screenWidth
+        // Adjust available width based on debug panel visibility to prevent joystick overlap
+        // Adjust available width based on debug panel visibility
+        val panelWidth = if (isDebugPanelVisible) screenWidth * 0.65f else screenWidth
+        // Subtract Aux column (120dp) and padding (16dp) to get actual space for joysticks
+        val availableForJoysticks = (panelWidth - 136.dp).coerceAtLeast(10.dp)
         
-        val maxJoystickWidth = availableWidth * 0.35f
+        // We have 2 joysticks, so max width per joystick is roughly half the available space
+        val maxJoystickWidth = availableForJoysticks / 2.1f
         val maxJoystickHeight = availableHeight
         val joystickSize = minOf(maxJoystickWidth, maxJoystickHeight, 220.dp)
 
+        // Joysticks - each centered in its half of the screen
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -578,82 +585,105 @@ fun ControlScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Aux Buttons Column (Device 1 / Slot 0)
-            Column(
-                modifier = Modifier
-                    .weight(0.15f)
-                    .padding(end = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                activeAuxButtons.filter { it.slot == 0 }.forEach { assigned ->
-                    AuxButton(assigned, bluetoothManager)
-                }
-            }
-
-            // Center: Joysticks
+            // Left Stick (Movement) - with label on left side
             Row(
-                modifier = Modifier.weight(0.7f),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
             ) {
-                // Left Stick (Movement)
+                // Label on left side
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.padding(end = 12.dp)
                 ) {
-                    JoystickControl(
-                        onMoved = { state ->
-                            leftJoystick = Pair(
-                                state.x * currentProfile.sensitivity,
-                                state.y * currentProfile.sensitivity
-                            )
-                        },
-                        size = joystickSize
+                    Text(
+                        "Movement",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
                     )
                     Text(
-                        "Move",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                        modifier = Modifier.padding(top = 4.dp)
+                        "(Servos)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF546E7A)
                     )
                 }
-
-                // Right Stick (Throttle)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    JoystickControl(
-                        onMoved = { state ->
-                            rightJoystick = Pair(
-                                state.x * currentProfile.sensitivity,
-                                state.y * currentProfile.sensitivity
-                            )
-                        },
-                        size = joystickSize
-                    )
-                    Text(
-                        if (currentProfile.isThrottleUnidirectional) "Throttle (0-100%)" else "Throttle (+/-)",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+                // Joystick
+                JoystickControl(
+                    onMoved = { state ->
+                        leftJoystick = Pair(
+                            state.x * currentProfile.sensitivity,
+                            state.y * currentProfile.sensitivity
+                        )
+                    },
+                    size = joystickSize
+                )
             }
 
-            // Right Aux Buttons Column (Device 2 / Slot 1)
-            Column(
-                modifier = Modifier
-                    .weight(0.15f)
-                    .padding(start = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Right Stick (Throttle) - with label on right side
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
             ) {
-                activeAuxButtons.filter { it.slot == 1 }.forEach { assigned ->
-                    AuxButton(assigned, bluetoothManager)
+                // Joystick
+                JoystickControl(
+                    onMoved = { state ->
+                        rightJoystick = Pair(
+                            state.x * currentProfile.sensitivity,
+                            state.y * currentProfile.sensitivity
+                        )
+                    },
+                    size = joystickSize,
+                    isThrottle = false, // Changed to false so joystick auto-centers when released
+                    isUnidirectional = currentProfile.isThrottleUnidirectional
+                )
+                // Label on right side
+                Column(
+                    horizontalAlignment = Alignment.Start,
+                    modifier = Modifier.padding(start = 12.dp)
+                ) {
+                    Text(
+                        "Throttle",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
+                    )
+                    Text(
+                        if (currentProfile.isThrottleUnidirectional) "(Speed: 0-100%)" else "(Speed: +/-)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF546E7A)
+                    )
                 }
             }
         }
         }
+
+        // Right side: Embedded Debug Panel (Full Height)
+        if (isDebugPanelVisible) {
+            Spacer(modifier = Modifier.width(8.dp))
+            EmbeddedTerminal(
+                logs = debugLogs,
+                telemetry = telemetry,
+                onSendCommand = { cmd: String ->
+                    val bytes = "$cmd\n".toByteArray()
+                    bluetoothManager.sendDataToAll(bytes, force = true)
+                    bluetoothManager.log("TX: $cmd", LogType.INFO)
+                },
+                onClearLogs = {
+                    bluetoothManager.log("Logs cleared", LogType.INFO)
+                },
+                onMaximize = {
+                    showMaximizedDebug = true
+                },
+                onMinimize = {
+                    isDebugPanelVisible = false
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.weight(0.35f).fillMaxHeight()
+            )
+        }
+    }
     }
 
     // Dialogs
@@ -671,6 +701,23 @@ fun ControlScreen(
             onClearLogs = {
                 // We need to add a clearLogs method to BluetoothManager or just ignore for now
                 // For now, let's just log a message
+                bluetoothManager.log("Logs cleared", LogType.INFO)
+            }
+        )
+    }
+
+    // Maximized Debug Dialog (from embedded terminal)
+    if (showMaximizedDebug) {
+        com.metelci.ardunakon.ui.components.TerminalDialog(
+            logs = debugLogs,
+            telemetry = telemetry,
+            onDismiss = { showMaximizedDebug = false },
+            onSendCommand = { cmd ->
+                val bytes = "$cmd\n".toByteArray()
+                bluetoothManager.sendDataToAll(bytes, force = true)
+                bluetoothManager.log("TX: $cmd", LogType.INFO)
+            },
+            onClearLogs = {
                 bluetoothManager.log("Logs cleared", LogType.INFO)
             }
         )
@@ -1284,75 +1331,8 @@ fun ControlScreen(
 }
 
 
-@Composable
-fun StatusCard(label: String, state: ConnectionState, @Suppress("UNUSED_PARAMETER") rssi: Int, onClick: () -> Unit, @Suppress("UNUSED_PARAMETER") isDarkTheme: Boolean) {
-    val view = LocalView.current
-    // Electric yellow for all states
-    val color = Color(0xFFFFFF00)
-    val stateText = when(state) {
-        ConnectionState.CONNECTED -> "Connected"
-        ConnectionState.CONNECTING -> "Connecting..."
-        ConnectionState.RECONNECTING -> "Reconnecting..."
-        ConnectionState.ERROR -> "Error"
-        ConnectionState.DISCONNECTED -> "Disconnected"
-    }
 
-    androidx.compose.material3.OutlinedButton(
-        onClick = {
-            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            onClick()
-        },
-        modifier = Modifier
-            .height(36.dp),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = color
-        ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, color)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "$label: $stateText",
-                style = MaterialTheme.typography.labelMedium
-            )
-        }
-    }
-}
 
-@Composable
-fun AuxButton(assigned: AssignedAux, manager: AppBluetoothManager) {
-    val view = androidx.compose.ui.platform.LocalView.current
-    Box(
-        modifier = Modifier
-            .size(width = 110.dp, height = 64.dp)
-            .shadow(6.dp, RoundedCornerShape(16.dp))
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF2980B9), // Deep Blue
-                        Color(0xFF6DD5FA)  // Cyan
-                    )
-                )
-            )
-            .clickable {
-                view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
-                val data = ProtocolManager.formatButtonData(assigned.servoId, true)
-                manager.sendDataToSlot(data, assigned.slot)
-            }
-            .border(1.dp, Color(0x80FFFFFF), RoundedCornerShape(16.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        val roleSuffix = if (assigned.role.isNotBlank()) " - ${assigned.role}" else ""
-        Text(
-            "${assigned.config.label} (S${assigned.slot + 1}/Servo ${assigned.servoId})$roleSuffix",
-            color = Color.White,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-    }
-}
+
+
+

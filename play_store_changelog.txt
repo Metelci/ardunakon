@@ -1,4 +1,29 @@
-What's New in v0.1.4-alpha:
+What's New in v0.1.5-alpha:
+
+🔒 **Bluetooth Connectivity Improvements**:
+   • **Bounded Write Queue**: Added 100-packet capacity limit for BLE connections to prevent memory growth during connectivity issues
+   • **3-Strike Retry Logic**: Classic Bluetooth now tolerates up to 3 consecutive read errors before disconnecting, improving resilience against transient interference
+   • **Enhanced Write Error Handling**: Write failures now properly trigger reconnection instead of silent failure
+   • **Optimized BLE Timeout**: Extended connection timeout to 15 seconds for better compatibility with slower BLE modules (HC-08, HM-10 clones)
+
+🕹️ **Joystick Control Enhancements**:
+   • **Auto-Centering**: Both joysticks now automatically return to center when released for more precise control
+   • **Clear Labeling**: Added descriptive labels - "Movement (Servos)" for left stick and "Throttle (Speed)" for right stick
+   • **Side Labels**: Labels now appear beside joysticks for better visibility and cleaner layout
+   • **Perfect Alignment**: Joysticks now properly centered in their respective screen halves
+
+🎨 **UI Polish**:
+   • **Help Icon**: Replaced three-dot menu with friendly question mark (?) icon for easier recognition
+   • **Improved Layout**: Better spacing and arrangement throughout control screen
+
+🛠️ **Technical Stability**:
+   • Enhanced connection mutex system to prevent connection storms
+   • Improved resource cleanup in all failure scenarios
+   • Better error logging for diagnostic purposes
+
+---
+
+Previous Release - v0.1.4-alpha:
 
 🎨 **UI/UX Enhancements**:
    • **Fullscreen Optimization**: Fixed layout to properly respect system notification bar and navigation buttons - no more overlapping UI elements!
@@ -16,19 +41,3 @@ What's New in v0.1.4-alpha:
    • Enabled edge-to-edge display with proper WindowInsets handling
    • Applied safe drawing padding to prevent system UI overlap
    • Cleaned up code warnings and improved build efficiency
-
----
-
-Previous Release - v0.1.3-alpha:
-
-🎨 **UI & Visibility Overhaul**:
-   • **High Contrast Buttons**: Replaced pastel buttons with standard Material Design outlined buttons for better visibility in all lighting conditions.
-   • **Responsive Joysticks**: Fixed layout issues where joysticks were cut off on some screens. They now adapt perfectly to your device.
-   • **Refined Layout**: Wider "Help" dialog and optimized button placement for easier access.
-
-📚 **Offline Documentation**:
-   • **No Internet? No Problem!**: The full Setup Guide, Troubleshooting, and Compatibility docs are now built-in. Read them anytime, anywhere, without needing a connection.
-
-🐛 **Bug Fixes**:
-   • Fixed a crash related to Bluetooth reconnection monitoring.
-   • Fixed broken links in the Help section.

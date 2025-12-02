@@ -43,14 +43,17 @@ fun JoystickControl(
         with(density) { (size.toPx() / 2) - (dotSize.toPx() / 2) } 
     }
 
-    var knobPosition by remember { mutableStateOf(center) }
-
-    // Initialize position for unidirectional throttle if needed
-    LaunchedEffect(isUnidirectional, radius) {
-        if (isUnidirectional && knobPosition == center) {
-            knobPosition = Offset(center.x, center.y + radius)
+    // Initialize position based on mode
+    val initialPosition = remember(isUnidirectional, center, radius) {
+        if (isUnidirectional) {
+            // Start at bottom (0% throttle)
+            Offset(center.x, center.y + radius)
+        } else {
+            center
         }
     }
+
+    var knobPosition by remember(initialPosition) { mutableStateOf(initialPosition) }
 
     Box(modifier = modifier.size(size)) {
         Canvas(modifier = Modifier
