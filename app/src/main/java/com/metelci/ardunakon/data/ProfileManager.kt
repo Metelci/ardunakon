@@ -152,12 +152,6 @@ class ProfileManager(private val context: Context) {
                 buttonConfigs = defaultButtonConfigs, 
                 isThrottleUnidirectional = false,
                 sensitivity = 1.0f
-            ),
-            Profile(
-                name = "Drone/Boat (ESC Mode)", 
-                buttonConfigs = defaultButtonConfigs.map { it.copy(label = "Aux ${it.id}") }, 
-                isThrottleUnidirectional = true,
-                sensitivity = 1.0f
             )
         )
     }

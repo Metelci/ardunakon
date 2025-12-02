@@ -25,9 +25,9 @@ import com.metelci.ardunakon.util.AssetReader
 
 /**
  * Help dialog component with tabbed interface for documentation access.
- * Displays three tabs: Setup, Troubleshooting, and Compatibility.
- * Each tab has a "View Full Guide Online" button to open GitHub documentation
- * inside an in-app WebView dialog.
+ * Displays four tabs: Setup, Troubleshooting, Compatibility, and Features.
+ * Each tab has a "View Full Guide" button to open the content
+ * inside an in-app WebView dialog with enhanced readability.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,11 +39,12 @@ fun HelpDialog(
     var selectedTab by remember { mutableStateOf(0) }
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val tabs = listOf("Setup", "Troubleshooting", "Compatibility")
+    val tabs = listOf("Setup", "Troubleshooting", "Compatibility", "Features")
     val contentFiles = listOf(
         "docs/setup_guide.txt",
         "docs/troubleshooting.txt",
-        "docs/compatibility.txt"
+        "docs/compatibility.txt",
+        "docs/app_features.txt"
     )
 
 

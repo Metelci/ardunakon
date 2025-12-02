@@ -21,7 +21,8 @@
       "Bash(gradlew.bat clean assembleDebug)",
       "Bash(if exist nul del /F nul)",
       "Bash(git commit:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(TROUBLESHOOTING \")"
     ],
     "deny": [],
     "ask": []

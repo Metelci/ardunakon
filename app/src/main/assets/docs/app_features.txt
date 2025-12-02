@@ -1,0 +1,579 @@
+====================================================================================================
+ARDUNAKON - APP FEATURES GUIDE
+====================================================================================================
+
+Complete guide to all features and settings in the Ardunakon Android app.
+
+====================================================================================================
+TABLE OF CONTENTS
+====================================================================================================
+
+SECTION 1: MAIN CONTROL SCREEN
+SECTION 2: DUAL DEVICE SLOTS (DEV 1 & DEV 2)
+SECTION 3: PROFILE MANAGEMENT
+SECTION 4: AUX BUTTON CONFIGURATION
+SECTION 5: JOYSTICK SETTINGS
+SECTION 6: DEBUG CONSOLE
+SECTION 7: EMBEDDED TERMINAL
+SECTION 8: STATUS INDICATORS
+SECTION 9: SETTINGS & PREFERENCES
+
+====================================================================================================
+SECTION 1: MAIN CONTROL SCREEN
+====================================================================================================
+
+OVERVIEW:
+The Control Screen is the heart of Ardunakon, featuring:
+- Dual joysticks for precise control
+- Status cards showing connection info
+- 4 customizable Aux buttons
+- Real-time signal strength and battery indicators
+
+----------------------------------------------------------------------------------------------------
+JOYSTICK LAYOUT
+----------------------------------------------------------------------------------------------------
+
+LEFT JOYSTICK (Movement):
+  - X-axis: Left/Right movement or steering
+  - Y-axis: Forward/Backward (one motor in tank mode)
+  - Range: 0-200 (100 is center/neutral)
+  - Returns to center when released
+
+RIGHT JOYSTICK (Throttle):
+  - X-axis: Rotation or fine control
+  - Y-axis: Throttle or second motor control
+  - Range: 0-200 (100 is center/neutral)
+  - Returns to center when released
+
+JOYSTICK MODES:
+  Car Mode:
+    - Range: -100% to +100% (bidirectional)
+    - Zero throttle at center
+    - Perfect for RC cars with forward/reverse
+
+  Drone/Boat Mode:
+    - Range: 0% to 100% (unidirectional)
+    - Zero throttle at bottom
+    - Ideal for ESCs that don't support reverse
+
+----------------------------------------------------------------------------------------------------
+STATUS CARDS
+----------------------------------------------------------------------------------------------------
+
+Each device slot (Dev 1, Dev 2) has a status card showing:
+
+CONNECTION STATUS (Color Coded):
+  RED    - Disconnected
+  YELLOW - Connecting...
+  GREEN  - Connected and active
+
+DEVICE INFO:
+  Device Name: Bluetooth module name (e.g., "HC-06", "ArdunakonQ")
+  MAC Address: Hardware address for identification
+  Type: Classic Bluetooth or BLE
+
+REAL-TIME TELEMETRY:
+  Signal Strength: RSSI in dBm (-40 = Excellent, -90 = Poor)
+  Battery Voltage: Read from Arduino (requires voltage divider on A0)
+  Connection Time: How long connected
+  Packet Stats: Sent/Received/Dropped
+
+====================================================================================================
+SECTION 2: DUAL DEVICE SLOTS (DEV 1 & DEV 2)
+====================================================================================================
+
+FEATURE: Control two Arduino devices simultaneously!
+
+USE CASES:
+  1. RC Car with separate steering + drive motors
+  2. Robot with independent left/right arm control
+  3. Drone + gimbal camera control
+  4. Multi-vehicle coordination
+
+----------------------------------------------------------------------------------------------------
+HOW TO USE DUAL SLOTS
+----------------------------------------------------------------------------------------------------
+
+CONNECTING:
+  1. Tap "Dev 1" button → Select first device
+  2. Wait for GREEN status
+  3. Tap "Dev 2" button → Select second device
+  4. Both devices now controlled simultaneously
+
+JOYSTICK MAPPING:
+  - Left joystick affects BOTH devices (synchronized movement)
+  - Right joystick affects BOTH devices (synchronized throttle)
+  - Aux buttons can be configured per-device
+
+DISCONNECTING:
+  - Tap connected device card to disconnect individual slot
+  - Or use "Disconnect All" in menu
+
+====================================================================================================
+SECTION 3: PROFILE MANAGEMENT
+====================================================================================================
+
+PROFILES: Save your favorite configurations for different projects.
+
+FEATURES:
+  ✓ Unlimited profile storage
+  ✓ Encrypted with AES-256 (your data is secure!)
+  ✓ Auto-reconnect to saved devices
+  ✓ Per-profile joystick sensitivity
+  ✓ Per-profile Aux button configs
+
+----------------------------------------------------------------------------------------------------
+CREATING A PROFILE
+----------------------------------------------------------------------------------------------------
+
+STEPS:
+  1. Tap "Profile" button (top bar)
+  2. Select "New Profile"
+  3. Enter profile name (e.g., "RC Car", "Drone Alpha")
+  4. Configure settings:
+     - Joystick mode (Car vs Drone)
+     - Sensitivity (10% - 200%)
+     - Aux button labels and colors
+  5. Tap "Save"
+
+PROFILE STORED SETTINGS:
+  - Device MAC addresses (auto-reconnect)
+  - Joystick sensitivity per axis
+  - Throttle mode (Car/Drone)
+  - Aux button configurations
+  - Custom color theme
+
+----------------------------------------------------------------------------------------------------
+EDITING A PROFILE
+----------------------------------------------------------------------------------------------------
+
+STEPS:
+  1. Tap "Profile" → Select profile
+  2. Tap "Edit" icon (pencil)
+  3. Modify any settings
+  4. Tap "Save" or "Discard"
+
+QUICK SWITCH:
+  - Tap "Profile" dropdown
+  - Select different profile
+  - Settings apply instantly (no reconnect needed!)
+
+----------------------------------------------------------------------------------------------------
+DELETING A PROFILE
+----------------------------------------------------------------------------------------------------
+
+STEPS:
+  1. Tap "Profile" → Select profile
+  2. Tap "Delete" icon (trash can)
+  3. Confirm deletion
+
+NOTE: Default profile cannot be deleted.
+
+====================================================================================================
+SECTION 4: AUX BUTTON CONFIGURATION
+====================================================================================================
+
+AUX BUTTONS: 4 customizable buttons for special functions.
+
+DEFAULT LAYOUT:
+  AUX 1 (Top-Left)     - Button ID 1
+  AUX 2 (Top-Right)    - Button ID 2
+  AUX 3 (Bottom-Left)  - Button ID 3
+  AUX 4 (Bottom-Right) - Button ID 4
+
+----------------------------------------------------------------------------------------------------
+CONFIGURING AUX BUTTONS
+----------------------------------------------------------------------------------------------------
+
+STEPS:
+  1. Long-press any Aux button for 2 seconds
+  2. Configuration dialog opens
+  3. Set:
+     - Button Label (e.g., "Lights", "Horn", "Camera")
+     - Button Color (visual identification)
+     - Command to send (Button ID 1-255)
+     - Toggle vs Momentary mode
+  4. Tap "Save"
+
+BUTTON MODES:
+  Momentary:
+    - Sends PRESSED when tapped
+    - Sends RELEASED when released
+    - Good for: Horn, boost, temporary lights
+
+  Toggle:
+    - Sends PRESSED on first tap
+    - Sends RELEASED on second tap
+    - Good for: Headlights, modes, locks
+
+----------------------------------------------------------------------------------------------------
+AUX BUTTON PROTOCOL
+----------------------------------------------------------------------------------------------------
+
+When Aux button pressed, app sends:
+  Packet: [0xAA, 0x01, 0x02, ButtonID, State, 0x00, 0x00, 0x00, CS, 0x55]
+
+  ButtonID = 1-255 (configured in app)
+  State = 1 (pressed) or 0 (released)
+
+Arduino sketch receives button event:
+  void handleButton(uint8_t buttonId, uint8_t pressed) {
+    if (buttonId == 1 && pressed == 1) {
+      digitalWrite(LED_PIN, HIGH); // Turn on LED
+    }
+  }
+
+====================================================================================================
+SECTION 5: JOYSTICK SETTINGS
+====================================================================================================
+
+SENSITIVITY ADJUSTMENT:
+  Range: 10% - 200%
+  Default: 100% (1:1 mapping)
+
+USE CASES:
+  10-50%  - Fine control (precision tasks, slow robots)
+  100%    - Normal control (default)
+  150-200%- High sensitivity (racing, fast response)
+
+----------------------------------------------------------------------------------------------------
+HOW TO ADJUST SENSITIVITY
+----------------------------------------------------------------------------------------------------
+
+GLOBAL SENSITIVITY:
+  1. Tap "Settings" → "Joystick Sensitivity"
+  2. Adjust slider
+  3. Test in real-time (joystick preview updates)
+  4. Tap "Apply"
+
+PER-AXIS SENSITIVITY:
+  1. Tap "Advanced" in Settings
+  2. Adjust Left X, Left Y, Right X, Right Y independently
+  3. Example:
+     - Left X: 50% (slow steering)
+     - Right Y: 150% (fast throttle response)
+
+DEADZONE:
+  Small zone around center where joystick sends neutral value
+  Default: 5%
+  Adjustable: 0-20%
+
+  Use Cases:
+    - 0%: Maximum precision (racing drones)
+    - 5%: Default (prevents drift)
+    - 10-20%: Old/worn joystick calibration
+
+====================================================================================================
+SECTION 6: DEBUG CONSOLE
+====================================================================================================
+
+DEBUG CONSOLE: View real-time Bluetooth communication logs.
+
+FEATURES:
+  ✓ Live packet monitoring
+  ✓ Connection status logs
+  ✓ Error diagnostics
+  ✓ Signal strength graph
+  ✓ Copy logs for troubleshooting
+
+----------------------------------------------------------------------------------------------------
+OPENING DEBUG CONSOLE
+----------------------------------------------------------------------------------------------------
+
+STEPS:
+  1. Tap "Menu" (3 dots) → "Debug Console"
+  2. Console window opens
+  3. Shows live log feed
+
+LOG TYPES:
+  [INFO]    - General information
+  [SUCCESS] - Connection success
+  [WARN]    - Warnings (non-critical)
+  [ERROR]   - Errors (connection failures)
+  [DATA]    - Raw packet data (advanced)
+
+----------------------------------------------------------------------------------------------------
+EXAMPLE LOG OUTPUT
+----------------------------------------------------------------------------------------------------
+
+SUCCESSFUL CONNECTION:
+  [INFO] Starting connection to HC-06 (20:16:11:28:39:52)
+  [INFO] Attempting INSECURE SPP connection...
+  [SUCCESS] Connected successfully with Standard SPP
+  [DATA] Sending joystick packet: AA 01 01 64 64 64 64 00 01 55
+  [SUCCESS] Connected to Slot 1!
+
+FAILED CONNECTION (WITH RETRY):
+  [INFO] Attempting INSECURE SPP connection...
+  [WARN] Standard SPP failed: Connection refused
+  [INFO] Attempting REFLECTION connection (Port 1)...
+  [SUCCESS] Connected with Reflection Port 1!
+
+----------------------------------------------------------------------------------------------------
+USING DEBUG CONSOLE FOR TROUBLESHOOTING
+----------------------------------------------------------------------------------------------------
+
+PACKET VERIFICATION:
+  - Watch for "Sending joystick packet" messages
+  - Verify checksum is correct (last byte before 0x55)
+  - Check values match joystick position
+
+CONNECTION DIAGNOSTICS:
+  - If all 17 methods fail → Hardware issue
+  - If specific UUID fails → Note which one succeeds
+  - If timeout → Signal strength too weak
+
+COPYING LOGS:
+  1. Tap "Copy Log" button
+  2. Paste into GitHub issue or email for support
+  3. Include phone model and Android version
+
+====================================================================================================
+SECTION 7: EMBEDDED TERMINAL
+====================================================================================================
+
+TERMINAL: Send custom AT commands and raw data to Bluetooth modules.
+
+USE CASES:
+  - Configure HC-05/HC-06 settings (baud rate, name, PIN)
+  - Test HM-10 firmware (AT+VERS?, AT+ADDR?)
+  - Debug custom Arduino sketches
+  - Send manual commands
+
+----------------------------------------------------------------------------------------------------
+OPENING TERMINAL
+----------------------------------------------------------------------------------------------------
+
+STEPS:
+  1. Connect to device first
+  2. Tap "Menu" → "Terminal"
+  3. Terminal window opens with command prompt
+
+TERMINAL FEATURES:
+  - Command history (up/down arrows)
+  - Auto-scroll
+  - Clear screen button
+  - Line ending options (CR, LF, CRLF)
+
+----------------------------------------------------------------------------------------------------
+COMMON AT COMMANDS
+----------------------------------------------------------------------------------------------------
+
+HC-05 / HC-06:
+  AT             → Test connection (responds "OK")
+  AT+VERSION     → Get firmware version
+  AT+NAME?       → Get device name
+  AT+NAMEMyBot   → Set device name to "MyBot"
+  AT+BAUD4       → Set baud rate to 9600
+  AT+PIN1234     → Set pairing PIN to 1234
+  AT+RESET       → Restart module
+
+HM-10 / HC-08:
+  AT             → Test connection
+  AT+VERS?       → Get firmware version
+  AT+ADDR?       → Get MAC address
+  AT+NAMEDrone1  → Set name to "Drone1"
+  AT+BAUD0       → Set baud to 9600
+  AT+RESET       → Restart
+
+IMPORTANT:
+  - HC-05/HC-06 require CR+LF line ending (\r\n)
+  - HM-10/HC-08 require NO line ending
+  - Set correct line ending in Terminal settings!
+
+====================================================================================================
+SECTION 8: STATUS INDICATORS
+====================================================================================================
+
+LED INDICATORS (on Bluetooth modules):
+
+HC-05 / HC-06:
+  Blinking (2x per sec)  - Not connected, advertising
+  Solid ON               - Connected to phone
+  Blinking (1x per 2sec) - In AT command mode (HC-05 only)
+
+HM-10 / HC-08:
+  Blinking fast          - Not connected, advertising
+  Blinking slow          - Connected
+  Solid ON               - Data transfer active
+
+Arduino Built-in LED (in sketches):
+  Blinking (1Hz)         - Waiting for connection
+  Solid ON               - Connected and receiving data
+  Rapid blinking         - Error / timeout
+
+----------------------------------------------------------------------------------------------------
+APP STATUS COLORS
+----------------------------------------------------------------------------------------------------
+
+CONNECTION STATUS:
+  RED    - Disconnected or error
+  YELLOW - Connecting (trying all methods)
+  GREEN  - Connected and active
+
+SIGNAL STRENGTH:
+  Green bars  - Strong (-40 to -60 dBm)
+  Yellow bars - Medium (-60 to -75 dBm)
+  Red bars    - Weak (-75 to -90 dBm)
+  Gray        - No signal / disconnected
+
+BATTERY INDICATOR:
+  Green  - > 11.5V (healthy)
+  Yellow - 10.5 - 11.5V (low)
+  Red    - < 10.5V (critical, recharge!)
+
+====================================================================================================
+SECTION 9: SETTINGS & PREFERENCES
+====================================================================================================
+
+APP SETTINGS:
+
+GENERAL:
+  Dark Mode:
+    - Toggle between dark and light theme
+    - Auto (follows system setting)
+
+  Keep Screen On:
+    - Prevents screen from dimming during use
+    - Recommended for active control
+
+  Haptic Feedback:
+    - Vibration on button press
+    - Adjustable intensity
+
+BLUETOOTH:
+  Auto-Reconnect:
+    - Automatically reconnects on disconnect
+    - Retry interval: 3 seconds
+    - Max retries: Unlimited
+
+  Connection Timeout:
+    - 15 seconds (default)
+    - Adjustable: 10-60 seconds
+
+  Scan Filter:
+    - Show only Arduino devices
+    - Show all Bluetooth devices
+
+JOYSTICK:
+  Sensitivity: 10-200%
+  Deadzone: 0-20%
+  Invert Axes: Flip X/Y individually
+  Return to Center Speed: Slow/Medium/Fast
+
+ADVANCED:
+  Packet Rate: 10Hz / 20Hz / 30Hz
+    - Higher rate = smoother control
+    - Lower rate = better reliability on weak signal
+
+  Debug Mode: Enable verbose logging
+  Developer Options: Experimental features
+
+====================================================================================================
+KEYBOARD SHORTCUTS (BLUETOOTH KEYBOARDS)
+====================================================================================================
+
+If you connect a Bluetooth keyboard to your phone:
+
+WASD - Left joystick (W=forward, S=back, A=left, D=right)
+Arrow Keys - Right joystick
+Space - Emergency stop
+1-4 - Aux buttons 1-4
+Esc - Disconnect
+Tab - Switch between Dev 1 and Dev 2
+F1 - Help
+F5 - Reconnect
+
+====================================================================================================
+ACCESSIBILITY FEATURES
+====================================================================================================
+
+TALKBACK SUPPORT:
+  - All buttons have descriptive labels
+  - Status announcements for connection changes
+  - Joystick position readout
+
+LARGE TEXT MODE:
+  - Respects Android system font size
+  - High contrast mode available
+
+COLOR BLIND MODE:
+  - Uses patterns in addition to colors
+  - Status icons in addition to color coding
+
+====================================================================================================
+DATA PRIVACY & SECURITY
+====================================================================================================
+
+ENCRYPTED PROFILES:
+  All profile data encrypted with AES-256
+  Encryption key stored in Android Keystore
+  Even with root access, profiles are secure
+
+NO TELEMETRY:
+  Ardunakon collects ZERO user data
+  No analytics, no tracking, no ads
+  100% offline operation
+
+PERMISSIONS USED:
+  BLUETOOTH - Connect to devices
+  LOCATION - Required by Android for BLE scan (we don't use GPS!)
+  NEARBY_DEVICES - Android 12+ Bluetooth permission
+
+====================================================================================================
+TIPS & TRICKS
+====================================================================================================
+
+TIP 1: SAVE BATTERY
+  - Lower packet rate to 10Hz
+  - Disable "Keep Screen On"
+  - Use Drone mode (less joystick updates)
+
+TIP 2: IMPROVE RANGE
+  - Keep phone and module in line-of-sight
+  - Avoid 2.4GHz WiFi interference
+  - Use external antenna on HC-05 if available
+
+TIP 3: FASTER CONNECTION
+  - Save devices to profiles
+  - Disable "Try all UUID variants" in Settings
+  - Unpair old devices from Android Bluetooth
+
+TIP 4: EMERGENCY STOP
+  - Shake phone to trigger E-STOP (if enabled in settings)
+  - Or tap both joysticks simultaneously
+
+TIP 5: MULTIPLE PROJECTS
+  - Create separate profile for each RC project
+  - Name profiles clearly ("Red Car", "Drone #2")
+  - Use different Aux button colors per profile
+
+====================================================================================================
+TROUBLESHOOTING QUICK REFERENCE
+====================================================================================================
+
+APP WON'T SCAN:
+  → Check Bluetooth permission granted
+  → Check Location permission (required for BLE!)
+  → Enable Location services in Android
+
+CAN'T CONNECT:
+  → Wait 30 seconds for all 17 methods to try
+  → Check Debug Console for error
+  → Restart Bluetooth on phone
+
+JOYSTICK DOESN'T WORK:
+  → Check Arduino is receiving data (Serial Monitor)
+  → Verify baud rate matches (9600)
+  → Test with Terminal (send manual commands)
+
+LAGGY CONTROLS:
+  → Lower packet rate to 10Hz
+  → Move closer to Arduino
+  → Disable battery optimization for Ardunakon
+
+====================================================================================================
+
+For more help, see the Troubleshooting and Setup tabs, or visit GitHub.
+
+Happy Making! 🚀

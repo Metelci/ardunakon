@@ -7,6 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -23,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
-import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.Dialog
 import android.view.HapticFeedbackConstants
@@ -40,7 +43,6 @@ fun TerminalDialog(
     val view = LocalView.current
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
 
     // Auto-scroll to bottom when logs update
     LaunchedEffect(logs.size) {
@@ -49,15 +51,20 @@ fun TerminalDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false
+        )
+    ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
+                .fillMaxWidth(0.90f)
                 .fillMaxHeight(0.85f),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3436))
-        ) {
-            Column(modifier = Modifier.padding(16.dp).fillMaxSize()) {
+            ) {
+                Column(modifier = Modifier.padding(16.dp).fillMaxSize()) {
                 // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),

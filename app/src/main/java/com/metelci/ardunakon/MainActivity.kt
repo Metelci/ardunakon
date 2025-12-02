@@ -29,7 +29,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,15 +88,7 @@ class MainActivity : ComponentActivity() {
 
         // Start and Bind Service
         setContent {
-            var isDarkTheme by remember { mutableStateOf(true) }
-
-            val colorScheme = if (isDarkTheme) {
-                darkColorScheme()
-            } else {
-                lightColorScheme()
-            }
-
-            MaterialTheme(colorScheme = colorScheme) {
+            MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -105,8 +96,7 @@ class MainActivity : ComponentActivity() {
                     if (isBound && bluetoothService != null) {
                         ControlScreen(
                             bluetoothManager = bluetoothService!!.bluetoothManager,
-                            isDarkTheme = isDarkTheme,
-                            onThemeToggle = { isDarkTheme = !isDarkTheme }
+                            isDarkTheme = true
                         )
                     } else {
                         Box(contentAlignment = Alignment.Center) {
