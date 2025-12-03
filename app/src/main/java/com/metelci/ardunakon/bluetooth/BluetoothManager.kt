@@ -166,6 +166,13 @@ class AppBluetoothManager(private val context: Context) {
 
     private var keepAliveJob: Job? = null
 
+    // Some OEMs (e.g., Xiaomi/Redmi/Poco) block standard SPP on HC-06; force-enable reflection port 1 for them.
+    private val forceReflectionDevices = setOf("xiaomi", "redmi", "poco")
+    private fun shouldForceReflectionFallback(): Boolean {
+        val oem = android.os.Build.MANUFACTURER?.lowercase()?.trim() ?: return false
+        return forceReflectionDevices.contains(oem)
+    }
+
     fun log(message: String, type: LogType = LogType.INFO) {
         val currentLogs = _debugLogs.value.toMutableList()
         if (currentLogs.size > 50) currentLogs.removeAt(0)
@@ -921,9 +928,13 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // Attempt 2: Reflection Method (Port 1) - Most reliable fallback for HC-06
-                if (!connected && !cancelled && allowReflectionFallback) {
+                if (!connected && !cancelled && (allowReflectionFallback || shouldForceReflectionFallback())) {
                     try {
-                        log("Attempting REFLECTION connection (Port 1 - HC-06 Fallback)...", LogType.WARNING)
+                        if (shouldForceReflectionFallback() && !allowReflectionFallback) {
+                            log("Forcing Reflection Port 1 (OEM fallback: ${android.os.Build.MANUFACTURER})", LogType.WARNING)
+                        } else {
+                            log("Attempting REFLECTION connection (Port 1 - HC-06 Fallback)...", LogType.WARNING)
+                        }
                         val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
                         socket = m.invoke(device, 1) as BluetoothSocket
                         socket?.connect()
