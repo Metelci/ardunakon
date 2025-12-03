@@ -408,6 +408,8 @@ fun ControlScreen(
                     } else {
                         // Activate E-Stop FIRST to block other threads
                         bluetoothManager.setEmergencyStop(true)
+                        // Immediately drop all links and clear slot visuals
+                        bluetoothManager.disconnectAllForEStop()
                         // Then Force Send STOP packet
                         val stopPacket = ProtocolManager.formatEStopData()
                         bluetoothManager.sendDataToAll(stopPacket, force = true)

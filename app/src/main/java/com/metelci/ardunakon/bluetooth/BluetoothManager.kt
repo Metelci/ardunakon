@@ -519,13 +519,11 @@ class AppBluetoothManager(private val context: Context) {
                 return@launch
             }
 
-            // Save for reconnect
+            // Save for potential reconnect
             savedDevices[slot] = deviceModel
             connectionTypes[slot] = deviceModel.type
-            _shouldReconnect[slot] = true
-            val list = _autoReconnectEnabled.value.toMutableList()
-            list[slot] = true
-            _autoReconnectEnabled.value = list
+            // Only enable auto-reconnect if user toggle is ON
+            _shouldReconnect[slot] = _autoReconnectEnabled.value[slot]
             // Seed RSSI with last known scan value for immediate UI feedback
             updateRssi(slot, deviceModel.rssi)
 
@@ -586,43 +584,48 @@ class AppBluetoothManager(private val context: Context) {
         }
     }
 
+    fun disconnectAllForEStop() {
+        for (slot in 0..1) {
+            _shouldReconnect[slot] = false
+            val list = _autoReconnectEnabled.value.toMutableList()
+            list[slot] = false
+            _autoReconnectEnabled.value = list
+
+            connections[slot]?.cancel()
+            connections[slot] = null
+            updateConnectionState(slot, ConnectionState.DISCONNECTED)
+            updateRssi(slot, 0)
+        }
+        log("All slots disconnected due to E-STOP", LogType.WARNING)
+    }
+
     fun setAutoReconnectEnabled(slot: Int, enabled: Boolean) {
         if (slot !in 0..1) return
 
-        _shouldReconnect[slot] = enabled
         val list = _autoReconnectEnabled.value.toMutableList()
         list[slot] = enabled
         _autoReconnectEnabled.value = list
 
         if (enabled) {
-            // Reset circuit breaker when enabling
+            // Arm future auto-reconnect but do NOT trigger immediate reconnect.
+            _shouldReconnect[slot] = false
             reconnectAttempts[slot] = 0
             nextReconnectAt[slot] = 0L
-
-            log("Auto-reconnect ENABLED for Slot ${slot + 1}", LogType.SUCCESS)
-            // If currently disconnected/error and device is saved, immediately attempt reconnect
-            val currentState = _connectionStates.value[slot]
-            if ((currentState == ConnectionState.DISCONNECTED || currentState == ConnectionState.ERROR)
-                && savedDevices[slot] != null) {
-                log("Re-enabling triggered immediate reconnect for Slot ${slot + 1}", LogType.INFO)
-                connectToDevice(savedDevices[slot]!!, slot, isAutoReconnect = true)
-            }
+            log("Auto-reconnect ARMED for Slot ${slot + 1} (will start after next manual connect)", LogType.INFO)
         } else {
+            // Disable and disconnect; clear saved device so user must pick from scan.
+            _shouldReconnect[slot] = false
+            reconnectAttempts[slot] = 0
+            nextReconnectAt[slot] = 0L
+            connections[slot]?.cancel()
+            connections[slot] = null
+            savedDevices[slot] = null
+            updateConnectionState(slot, ConnectionState.DISCONNECTED)
+            updateRssi(slot, 0)
             log("Auto-reconnect DISABLED for Slot ${slot + 1}", LogType.WARNING)
-            // If currently reconnecting, cancel the attempt
-            val currentState = _connectionStates.value[slot]
-            if (currentState == ConnectionState.RECONNECTING || currentState == ConnectionState.CONNECTING) {
-                log("Cancelling active reconnection attempt for Slot ${slot + 1}", LogType.INFO)
-                connections[slot]?.cancel()
-                connections[slot] = null
-                updateConnectionState(slot, ConnectionState.DISCONNECTED)
-            }
         }
 
-        // Persist to preferences
-        scope.launch {
-            saveAutoReconnectPreference(slot, enabled)
-        }
+        scope.launch { saveAutoReconnectPreference(slot, enabled) }
     }
 
     private suspend fun saveAutoReconnectPreference(slot: Int, enabled: Boolean) {
@@ -906,10 +909,49 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // HC-06 Connection Strategy:
-                // Most HC-06 modules work with INSECURE connection using Standard SPP UUID
-                // or Reflection Method (Port 1). We focus on these two methods first.
+                // For Xiaomi/MIUI, start with Reflection Port 1 first (their stack often blocks SPP) but only if user enabled legacy reflection.
+                // Otherwise, try Standard SPP first, then Reflection.
 
-                // Attempt 1: Standard SPP UUID with INSECURE connection (most reliable for HC-06)
+                // Only force reflection-first if OEM is problematic AND user enabled legacy reflection.
+                val forceReflectionFirst = shouldForceReflectionFallback() && allowReflectionFallback
+
+                // Attempt A (OEM-first): Reflection Port 1 (when forced)
+                if (!connected && !cancelled && forceReflectionFirst) {
+                    try {
+                        log("Forcing Reflection Port 1 FIRST (OEM fallback: ${android.os.Build.MANUFACTURER})", LogType.WARNING)
+                        val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                        socket = m.invoke(device, 1) as BluetoothSocket
+                        socket?.connect()
+                        connected = true
+                        log("Reflection Port 1 connection established.", LogType.SUCCESS)
+                    } catch (e: Exception) {
+                        log("Reflection Port 1 (forced) failed: ${e.message}", LogType.ERROR)
+                        Log.w("BT", "Reflection Port 1 (forced) failed: ${e.message}", e)
+                        closeSocketSafely(socket)
+                        socket = null
+                        if (!cancelled) safeSleep(1000)
+                    }
+                }
+
+                // Attempt A2: Raw RFCOMM (reflection) Port 1 BEFORE UUID list (for stubborn HC-06/MIUI)
+                if (!connected && !cancelled && allowReflectionFallback) {
+                    try {
+                        log("Attempting RAW RFCOMM via reflection (Port 1, no UUID)...", LogType.WARNING)
+                        val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                        socket = m.invoke(device, 1) as BluetoothSocket
+                        socket?.connect()
+                        connected = true
+                        log("Raw RFCOMM Port 1 connection established.", LogType.SUCCESS)
+                    } catch (e: Exception) {
+                        log("Raw RFCOMM Port 1 failed: ${e.message}", LogType.ERROR)
+                        Log.w("BT", "Raw RFCOMM Port 1 failed: ${e.message}", e)
+                        closeSocketSafely(socket)
+                        socket = null
+                        if (!cancelled) safeSleep(1000)
+                    }
+                }
+
+                // Attempt 1: Standard SPP UUID with INSECURE connection (most reliable for HC-06 on non-MIUI)
                 if (!connected && !cancelled) {
                     try {
                         log("Attempting INSECURE SPP connection (Standard HC-06)...", LogType.INFO)
@@ -928,13 +970,9 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // Attempt 2: Reflection Method (Port 1) - Most reliable fallback for HC-06
-                if (!connected && !cancelled && (allowReflectionFallback || shouldForceReflectionFallback())) {
+                if (!connected && !cancelled && allowReflectionFallback) {
                     try {
-                        if (shouldForceReflectionFallback() && !allowReflectionFallback) {
-                            log("Forcing Reflection Port 1 (OEM fallback: ${android.os.Build.MANUFACTURER})", LogType.WARNING)
-                        } else {
-                            log("Attempting REFLECTION connection (Port 1 - HC-06 Fallback)...", LogType.WARNING)
-                        }
+                        log("Attempting REFLECTION connection (Port 1 - HC-06 Fallback)...", LogType.WARNING)
                         val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
                         socket = m.invoke(device, 1) as BluetoothSocket
                         socket?.connect()
