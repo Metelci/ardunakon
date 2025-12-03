@@ -207,7 +207,10 @@ class AppBluetoothManager(private val context: Context) {
     private val lastHeartbeatSentAt = longArrayOf(0L, 0L)
     private val lastPacketAt = longArrayOf(0L, 0L)
     private val lastRttMs = longArrayOf(0L, 0L)
-    private val heartbeatTimeoutMs = 20000L  // Increased from 12s to 20s for better tolerance
+    private val heartbeatTimeoutClassicMs = 20000L  // Increased from 12s to 20s for better tolerance
+    private val heartbeatTimeoutBleMs = 90000L      // More tolerant for BLE clones that pause packets
+    private val missedAckThresholdClassic = 5
+    private val missedAckThresholdBle = 15
     private val missedHeartbeatAcks = intArrayOf(0, 0)
 
     private val leScanner by lazy { adapter?.bluetoothLeScanner }
@@ -384,7 +387,11 @@ class AppBluetoothManager(private val context: Context) {
 
                         // Require multiple missed acks before forcing reconnect
                         val sinceLastPacket = System.currentTimeMillis() - lastPacketAt[index]
-                        if (missedHeartbeatAcks[index] >= 5 && lastPacketAt[index] > 0 && sinceLastPacket > heartbeatTimeoutMs) {
+                        val isBle = connectionTypes.getOrNull(index) == DeviceType.LE
+                        val timeoutMs = if (isBle) heartbeatTimeoutBleMs else heartbeatTimeoutClassicMs
+                        val ackThreshold = if (isBle) missedAckThresholdBle else missedAckThresholdClassic
+
+                        if (missedHeartbeatAcks[index] >= ackThreshold && lastPacketAt[index] > 0 && sinceLastPacket > timeoutMs) {
                             log("Heartbeat timeout on Slot ${index + 1} after ${sinceLastPacket}ms (missed ${missedHeartbeatAcks[index]} acks)", LogType.ERROR)
                             missedHeartbeatAcks[index] = 0
                             forceReconnect(index, "Heartbeat timeout")

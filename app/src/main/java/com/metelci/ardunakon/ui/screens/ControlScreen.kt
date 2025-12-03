@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -869,7 +870,7 @@ fun ControlScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.8f),
+                        .fillMaxHeight(0.9f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     // Compact target slot info
@@ -964,9 +965,12 @@ fun ControlScreen(
                             }
                         } else {
                             items(scannedDevices) { device ->
+                                // Strip MAC address in parentheses from display name (e.g., "HC-06 (AA:BB:CC:DD:EE:FF)")
+                                val displayName = device.name.replace(Regex("\\s*\\([0-9A-Fa-f:]{11,}\\)$"), "")
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .heightIn(min = 10.dp)
                                         .clickable {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                             bluetoothManager.connectToDevice(device, showDeviceList!!)
@@ -998,7 +1002,7 @@ fun ControlScreen(
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Column {
                                                 Text(
-                                                    text = device.name,
+                                                    text = displayName.ifBlank { device.name },
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     color = Color(0xFF2D3436)
                                                 )
@@ -1028,9 +1032,10 @@ fun ControlScreen(
                 TextButton(
                     onClick = { showDeviceList = null },
                     modifier = Modifier
-                        .height(28.dp)
+                        .defaultMinSize(minHeight = 12.dp, minWidth = 0.dp)
+                        .height(12.dp)
                         .padding(vertical = 0.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                 ) {
                     Text(
                         "Close",
