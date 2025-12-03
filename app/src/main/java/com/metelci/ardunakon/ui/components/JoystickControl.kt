@@ -55,6 +55,20 @@ fun JoystickControl(
 
     var knobPosition by remember(initialPosition) { mutableStateOf(initialPosition) }
 
+    // Notify initial position on composition/mode change
+    LaunchedEffect(isUnidirectional, isThrottle) {
+        val normalizedX = (knobPosition.x - center.x) / radius
+        val rawY = -(knobPosition.y - center.y) / radius
+
+        val finalY = if (isUnidirectional) {
+            ((rawY + 1) / 2).coerceIn(0f, 1f)
+        } else {
+            rawY.coerceIn(-1f, 1f)
+        }
+
+        onMoved(JoystickState(normalizedX.coerceIn(-1f, 1f), finalY))
+    }
+
     Box(modifier = modifier.size(size)) {
         Canvas(modifier = Modifier
             .size(size)

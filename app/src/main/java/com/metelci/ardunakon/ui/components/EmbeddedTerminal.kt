@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,7 +37,8 @@ fun EmbeddedTerminal(
     onMaximize: () -> Unit,
     onMinimize: () -> Unit,
     isDarkTheme: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onExportLogs: () -> Unit = {}
 ) {
     val view = LocalView.current
     var inputText by remember { mutableStateOf("") }
@@ -67,6 +69,16 @@ fun EmbeddedTerminal(
                     color = Color.White
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // Export button
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onExportLogs()
+                        },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(Icons.Default.Share, "Export", tint = Color(0xFF00C853), modifier = Modifier.size(16.dp))
+                    }
                     // Clear button
                     IconButton(
                         onClick = {

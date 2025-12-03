@@ -1,4 +1,45 @@
-What's New in v0.1.5-alpha:
+What's New in v0.1.6-alpha:
+
+🎮 **RC Car Control Layout**:
+   • **Left Joystick → Throttle**: Now controls RC motor with vertical-only movement, no horizontal drift
+   • **Right Joystick → WASD Buttons**: Replaced with discrete servo control buttons (Up/Down/Left/Right)
+   • **Throttle Behavior**: Non-centering Y-axis stays at last position for smooth RC car speed control
+   • **Instant Servo Control**: WASD buttons provide full deflection on tap for precise steering/pan-tilt
+
+🔄 **Auto-Reconnect Toggle Buttons**:
+   • **Manual Control**: Added toggle buttons next to Dev 1 and Dev 2 for disabling auto-reconnect per device
+   • **Symmetrical Layout**: Toggles placed on opposite sides of status cards for clean, balanced appearance
+   • **36dp Size**: Matched to status card height for visual consistency
+   • **Persistent State**: Auto-reconnect preferences saved across app restarts
+
+🔧 **BLE GATT Connection Improvements**:
+   • **Error 147 Handling**: Added intelligent retry logic for BLE link layer failures
+   • **Transient Error Detection**: Classifies GATT errors (8, 129, 147) as retry-able vs permanent (133)
+   • **Exponential Backoff**: 2s → 4s → 6s delays before marking connection as failed
+   • **Better Diagnostics**: Human-readable error messages (e.g., "Link Layer Failure: Device reset or interference")
+   • **Device Name Resolution**: Fixed "Connecting to null" logs, always shows device name or MAC address
+   • **Pre-flight Checks**: Verifies Bluetooth adapter state with 500ms settling delay
+
+📡 **Device Name Improvements**:
+   • **Cache Refresh**: Device names refreshed in debug window on every connection attempt
+   • **Android 12+ Compatibility**: Multi-layer name resolution ensures names display correctly on all devices
+   • **Scan Window**: Device names always show correctly in Bluetooth device scan list
+
+🎨 **UI Polish**:
+   • **Compact Labels**: Reduced font sizes for control labels (Throttle/Servos) to accommodate debug panel
+   • **Lowercase WASD**: Changed "(WASD)" to "(wasd)" to prevent line wrapping
+   • **Better Spacing**: Optimized padding (12dp → 8dp) for cleaner layout with debug window open
+   • **Menu Clarification**: "Legacy Reflection Connect" renamed to "Legacy Reflection (HC-06)" for clarity
+
+🛠️ **Technical Stability**:
+   • Circuit breaker pattern prevents connection hammering (10 attempt limit)
+   • Enhanced GATT cleanup: disconnect() → 200ms delay → close()
+   • Improved mutex handling prevents connection storms
+   • Reset backoff counters on successful GATT connection
+
+---
+
+Previous Release - v0.1.5-alpha:
 
 🔒 **Bluetooth Connectivity Improvements**:
    • **Bounded Write Queue**: Added 100-packet capacity limit for BLE connections to prevent memory growth during connectivity issues

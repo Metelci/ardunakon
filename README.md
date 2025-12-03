@@ -6,12 +6,13 @@ Ardunakon is a professional-grade Android application designed to control Arduin
 ## 🚀 Key Features
 
 ### 🕹️ Precision Control
-*   **Dual Joysticks**: Dedicated Left (Movement - Servos) and Right (Throttle - Speed) sticks with clear side labels.
-*   **Auto-Centering**: Both joysticks automatically return to center for precise control.
+*   **RC Car Layout**: Left joystick for throttle (RC motor) with incremental speed control, WASD buttons for servo control (steering/pan-tilt).
+*   **Throttle Joystick**: Vertical-only control with non-centering for smooth speed adjustments. Perfect for RC car motor control.
+*   **WASD Servo Buttons**: Discrete directional control (Up/Down/Left/Right) for instant full servo deflection.
 *   **Smart Throttle Modes**:
     *   **Car Mode**: Bidirectional control (-100% to +100%) for forward/reverse.
     *   **Drone/Boat Mode**: Unidirectional control (0% to 100%) for ESCs.
-*   **Custom Sensitivity**: Adjust joystick response from 10% to 200% to match your driving style.
+*   **Custom Sensitivity**: Adjust control response from 10% to 200% to match your driving style.
 
 ### ⚙️ Powerful Customization
 *   **Profile Manager**: Create unlimited profiles for different projects.
@@ -122,7 +123,7 @@ Whether you're driving an RC car, piloting a drone, or controlling a complex rob
 
 **🚀 Key Features:**
 
-*   **🕹️ Precision Dual Joysticks**: Dedicated sticks for Movement and Throttle. Choose between **Car Mode** (Forward/Reverse) or **Drone/ESC Mode** (0-100% Throttle) for perfect control.
+*   **🕹️ RC Car Control Layout**: Throttle joystick for smooth speed control + WASD buttons for precise servo positioning. Choose between **Car Mode** (Forward/Reverse) or **Drone/ESC Mode** (0-100% Throttle) for perfect control.
 *   **🔒 Secure & Private**: Your data is yours. All profiles and settings are **encrypted** using industry-standard AES-256 encryption.
 *   **⚙️ Total Customization**: Create unlimited profiles for all your projects. Adjust joystick sensitivity (10% - 200%) and map custom buttons to your exact needs.
 *   **📡 Real-Time Telemetry**: View live data from your Arduino in the built-in Debug Console. No more guessing—see exactly what your device is sending.

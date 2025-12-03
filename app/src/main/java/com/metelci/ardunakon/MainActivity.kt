@@ -96,7 +96,10 @@ class MainActivity : ComponentActivity() {
                     if (isBound && bluetoothService != null) {
                         ControlScreen(
                             bluetoothManager = bluetoothService!!.bluetoothManager,
-                            isDarkTheme = true
+                            isDarkTheme = true,
+                            onQuitApp = {
+                                quitApp()
+                            }
                         )
                     } else {
                         Box(contentAlignment = Alignment.Center) {
@@ -212,6 +215,22 @@ class MainActivity : ComponentActivity() {
         } catch (e: Exception) {
             showBluetoothOffDialog = true
         }
+    }
+
+    private fun quitApp() {
+        // Unbind from service
+        if (isBound) {
+            unbindService(connection)
+            isBound = false
+        }
+
+        // Stop the foreground service
+        Intent(this, BluetoothService::class.java).also { intent ->
+            stopService(intent)
+        }
+
+        // Finish the activity to close the app completely
+        finishAffinity()
     }
 }
 

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +39,8 @@ fun TerminalDialog(
     telemetry: AppBluetoothManager.Telemetry?,
     onDismiss: () -> Unit,
     onSendCommand: (String) -> Unit,
-    onClearLogs: () -> Unit
+    onClearLogs: () -> Unit,
+    onExportLogs: () -> Unit = {}
 ) {
     val view = LocalView.current
     var inputText by remember { mutableStateOf("") }
@@ -82,6 +84,12 @@ fun TerminalDialog(
                         }
                     }
                     Row {
+                        IconButton(onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onExportLogs()
+                        }) {
+                            Icon(Icons.Default.Share, "Export Logs", tint = Color(0xFF00C853))
+                        }
                         IconButton(onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             onClearLogs()

@@ -39,6 +39,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.SyncDisabled
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -80,6 +82,12 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import android.view.HapticFeedbackConstants
+import android.content.Intent
+import androidx.core.content.FileProvider
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
@@ -88,6 +96,7 @@ import com.metelci.ardunakon.data.AuxAssignment
 import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.ui.components.JoystickControl
+import com.metelci.ardunakon.ui.components.ServoButtonControl
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
 import com.metelci.ardunakon.model.LogEntry
@@ -99,13 +108,15 @@ import kotlinx.coroutines.launch
 
 import com.metelci.ardunakon.model.AssignedAux
 import com.metelci.ardunakon.ui.components.AuxButton
+import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 import com.metelci.ardunakon.ui.components.StatusCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ControlScreen(
     bluetoothManager: AppBluetoothManager,
-    isDarkTheme: Boolean = true
+    isDarkTheme: Boolean = true,
+    onQuitApp: () -> Unit = {}
 ) {
     // State
     var showDeviceList by remember { mutableStateOf<Int?>(null) }
@@ -124,6 +135,7 @@ fun ControlScreen(
     val health by bluetoothManager.health.collectAsState()
     val debugLogs by bluetoothManager.debugLogs.collectAsState()
     val telemetry by bluetoothManager.telemetry.collectAsState()
+    val autoReconnectEnabled by bluetoothManager.autoReconnectEnabled.collectAsState()
     val activeAuxButtons = remember { mutableStateListOf<AssignedAux>() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -132,6 +144,63 @@ fun ControlScreen(
 
     val context = LocalContext.current
     var allowReflection by remember { mutableStateOf(false) }
+
+    // Export logs function
+    val exportLogs: () -> Unit = {
+        try {
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+            val fileName = "ardunakon_logs_$timestamp.txt"
+            val file = File(context.cacheDir, fileName)
+
+            // Format logs with timestamps
+            val logContent = buildString {
+                appendLine("Ardunakon Debug Logs")
+                appendLine("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
+                appendLine("=".repeat(50))
+                appendLine()
+
+                if (debugLogs.isEmpty()) {
+                    appendLine("No logs available")
+                } else {
+                    debugLogs.forEach { log ->
+                        val timeStr = SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date(log.timestamp))
+                        val typeStr = log.type.name.padEnd(8)
+                        appendLine("[$timeStr] $typeStr: ${log.message}")
+                    }
+                }
+
+                appendLine()
+                appendLine("=".repeat(50))
+                val currentTelemetry = telemetry
+                if (currentTelemetry != null) {
+                    appendLine("Telemetry:")
+                    appendLine("  Battery Voltage: ${currentTelemetry.batteryVoltage}V")
+                    appendLine("  Status: ${currentTelemetry.status}")
+                }
+            }
+
+            file.writeText(logContent)
+
+            // Create share intent
+            val fileUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_STREAM, fileUri)
+                putExtra(Intent.EXTRA_SUBJECT, "Ardunakon Debug Logs")
+                putExtra(Intent.EXTRA_TEXT, "Debug logs from Ardunakon app")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            context.startActivity(Intent.createChooser(shareIntent, "Export Logs"))
+        } catch (e: Exception) {
+            bluetoothManager.log("Export failed: ${e.message}", LogType.ERROR)
+        }
+    }
 
     // Keep Screen On
     val currentActivity = context as? android.app.Activity
@@ -450,11 +519,21 @@ fun ControlScreen(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Legacy Reflection Connect: " + if (allowReflection) "On" else "Off") },
+                        text = { Text("Legacy Reflection (HC-06): " + if (allowReflection) "On" else "Off") },
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             allowReflection = !allowReflection
                             showOverflowMenu = false
+                        }
+                    )
+                    Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
+                    DropdownMenuItem(
+                        text = { Text("Quit App", color = Color(0xFFFF5252)) },
+                        leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            showOverflowMenu = false
+                            onQuitApp()
                         }
                     )
                 }
@@ -533,6 +612,15 @@ fun ControlScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Toggle for Slot 1
+            AutoReconnectToggle(
+                slot = 0,
+                enabled = autoReconnectEnabled[0],
+                onToggle = { bluetoothManager.setAutoReconnectEnabled(0, it) }
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             // Slot 1
             StatusCard(
                 label = "Dev 1",
@@ -551,6 +639,15 @@ fun ControlScreen(
                 rssi = rssiValues[1],
                 onClick = { showDeviceList = 1 },
                 isDarkTheme = isDarkTheme
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Toggle for Slot 2
+            AutoReconnectToggle(
+                slot = 1,
+                enabled = autoReconnectEnabled[1],
+                onToggle = { bluetoothManager.setAutoReconnectEnabled(1, it) }
             )
         }
 
@@ -585,7 +682,7 @@ fun ControlScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Stick (Movement) - with label on left side
+            // Left Stick (Throttle) - with label on left side
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
@@ -594,64 +691,64 @@ fun ControlScreen(
                 // Label on left side
                 Column(
                     horizontalAlignment = Alignment.End,
-                    modifier = Modifier.padding(end = 12.dp)
+                    modifier = Modifier.padding(end = 8.dp)
                 ) {
                     Text(
-                        "Movement",
-                        style = MaterialTheme.typography.labelMedium,
+                        "Throttle",
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                         color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
                     )
                     Text(
-                        "(Servos)",
-                        style = MaterialTheme.typography.labelSmall,
+                        "(RC Motor)",
+                        style = MaterialTheme.typography.bodySmall,
                         color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF546E7A)
                     )
                 }
-                // Joystick
+                // Joystick - Throttle only (vertical), no X axis
                 JoystickControl(
                     onMoved = { state ->
                         leftJoystick = Pair(
-                            state.x * currentProfile.sensitivity,
+                            0f, // No horizontal movement
                             state.y * currentProfile.sensitivity
                         )
                     },
-                    size = joystickSize
+                    size = joystickSize,
+                    isThrottle = true, // Y axis doesn't auto-center
+                    isUnidirectional = currentProfile.isThrottleUnidirectional
                 )
             }
 
-            // Right Stick (Throttle) - with label on right side
+            // Right Side: WASD Servo Control - with label on right side
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Joystick
-                JoystickControl(
-                    onMoved = { state ->
+                // WASD Button Control
+                ServoButtonControl(
+                    onMove = { x, y ->
                         rightJoystick = Pair(
-                            state.x * currentProfile.sensitivity,
-                            state.y * currentProfile.sensitivity
+                            x * currentProfile.sensitivity,
+                            y * currentProfile.sensitivity
                         )
                     },
-                    size = joystickSize,
-                    isThrottle = false, // Changed to false so joystick auto-centers when released
-                    isUnidirectional = currentProfile.isThrottleUnidirectional
+                    buttonSize = 60.dp
                 )
                 // Label on right side
                 Column(
                     horizontalAlignment = Alignment.Start,
-                    modifier = Modifier.padding(start = 12.dp)
+                    modifier = Modifier.padding(start = 8.dp)
                 ) {
                     Text(
-                        "Throttle",
-                        style = MaterialTheme.typography.labelMedium,
+                        "Servos",
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                         color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
                     )
                     Text(
-                        if (currentProfile.isThrottleUnidirectional) "(Speed: 0-100%)" else "(Speed: +/-)",
-                        style = MaterialTheme.typography.labelSmall,
+                        "(wasd)",
+                        style = MaterialTheme.typography.bodySmall,
                         color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF546E7A)
                     )
                 }
@@ -680,7 +777,8 @@ fun ControlScreen(
                     isDebugPanelVisible = false
                 },
                 isDarkTheme = isDarkTheme,
-                modifier = Modifier.weight(0.35f).fillMaxHeight()
+                modifier = Modifier.weight(0.35f).fillMaxHeight(),
+                onExportLogs = exportLogs
             )
         }
     }
@@ -702,7 +800,8 @@ fun ControlScreen(
                 // We need to add a clearLogs method to BluetoothManager or just ignore for now
                 // For now, let's just log a message
                 bluetoothManager.log("Logs cleared", LogType.INFO)
-            }
+            },
+            onExportLogs = exportLogs
         )
     }
 
@@ -719,7 +818,8 @@ fun ControlScreen(
             },
             onClearLogs = {
                 bluetoothManager.log("Logs cleared", LogType.INFO)
-            }
+            },
+            onExportLogs = exportLogs
         )
     }
 
@@ -789,14 +889,15 @@ fun ControlScreen(
                         modifier = Modifier
                             .fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFF2D3436)
+                            contentColor = Color(0xFF00FF00)
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2D3436)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00FF00)),
                         enabled = !isScanning
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Bluetooth,
                             contentDescription = "Scan",
+                            tint = Color(0xFF00FF00),
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
