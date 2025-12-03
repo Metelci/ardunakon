@@ -10,7 +10,8 @@
       "Bash(.gradlew assembleDebug:*)",
       "Bash(dir:*)",
       "Bash(./gradlew clean assembleDebug:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
