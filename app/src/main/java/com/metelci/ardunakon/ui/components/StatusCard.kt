@@ -21,14 +21,34 @@ import com.metelci.ardunakon.bluetooth.ConnectionState
 @Composable
 fun StatusCard(label: String, state: ConnectionState, @Suppress("UNUSED_PARAMETER") rssi: Int, onClick: () -> Unit, @Suppress("UNUSED_PARAMETER") isDarkTheme: Boolean) {
     val view = LocalView.current
-    // Electric yellow for all states
-    val color = Color(0xFFFFFF00)
+
     val stateText = when(state) {
         ConnectionState.CONNECTED -> "Connected"
         ConnectionState.CONNECTING -> "Connecting..."
         ConnectionState.RECONNECTING -> "Reconnecting..."
         ConnectionState.ERROR -> "Error"
         ConnectionState.DISCONNECTED -> "Disconnected"
+    }
+
+    // Soft filled background for connected, pale for disconnected/error
+    val containerColor = when(state) {
+        ConnectionState.CONNECTED -> Color(0xFF43A047).copy(alpha = 0.3f) // Soft green shadow
+        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFEB3B).copy(alpha = 0.2f) // Soft yellow
+        else -> Color.Transparent // Pale (no fill)
+    }
+
+    val contentColor = when(state) {
+        ConnectionState.CONNECTED -> Color(0xFF66BB6A) // Bright green text
+        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFFF00) // Electric yellow
+        ConnectionState.ERROR -> Color(0xFFFF5252).copy(alpha = 0.6f) // Pale red
+        ConnectionState.DISCONNECTED -> Color(0xFF9E9E9E) // Pale gray
+    }
+
+    val borderColor = when(state) {
+        ConnectionState.CONNECTED -> Color(0xFF66BB6A) // Green border
+        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFFF00) // Yellow border
+        ConnectionState.ERROR -> Color(0xFFFF5252).copy(alpha = 0.6f) // Pale red border
+        ConnectionState.DISCONNECTED -> Color(0xFF9E9E9E).copy(alpha = 0.5f) // Very pale gray border
     }
 
     OutlinedButton(
@@ -40,9 +60,10 @@ fun StatusCard(label: String, state: ConnectionState, @Suppress("UNUSED_PARAMETE
             .height(36.dp),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = color
+            containerColor = containerColor,
+            contentColor = contentColor
         ),
-        border = BorderStroke(1.dp, color)
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

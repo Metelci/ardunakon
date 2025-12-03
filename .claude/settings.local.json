@@ -6,7 +6,8 @@
       "Bash(find:*)",
       "Bash(./gradlew compileDebugKotlin:*)",
       "Bash(ls:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(.gradlew assembleDebug:*)"
     ],
     "deny": [],
     "ask": []

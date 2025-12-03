@@ -733,7 +733,10 @@ fun ControlScreen(
                             y * currentProfile.sensitivity
                         )
                     },
-                    buttonSize = 60.dp
+                    buttonSize = 60.dp,
+                    onLog = { message ->
+                        bluetoothManager.log(message, LogType.INFO)
+                    }
                 )
                 // Label on right side
                 Column(

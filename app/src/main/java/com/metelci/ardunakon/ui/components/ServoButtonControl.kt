@@ -22,7 +22,8 @@ import android.view.HapticFeedbackConstants
 fun ServoButtonControl(
     modifier: Modifier = Modifier,
     buttonSize: Dp = 70.dp,
-    onMove: (x: Float, y: Float) -> Unit
+    onMove: (x: Float, y: Float) -> Unit,
+    onLog: ((String) -> Unit)? = null
 ) {
     val view = LocalView.current
 
@@ -35,6 +36,7 @@ fun ServoButtonControl(
         Button(
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                onLog?.invoke("Servo: UP (W)")
                 onMove(0f, 1f) // Y = 1 (up)
             },
             modifier = Modifier.size(buttonSize),
@@ -59,6 +61,7 @@ fun ServoButtonControl(
             Button(
                 onClick = {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onLog?.invoke("Servo: LEFT (A)")
                     onMove(-1f, 0f) // X = -1 (left)
                 },
                 modifier = Modifier.size(buttonSize),
@@ -78,6 +81,7 @@ fun ServoButtonControl(
             Button(
                 onClick = {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onLog?.invoke("Servo: DOWN (S)")
                     onMove(0f, -1f) // Y = -1 (down)
                 },
                 modifier = Modifier.size(buttonSize),
@@ -97,6 +101,7 @@ fun ServoButtonControl(
             Button(
                 onClick = {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onLog?.invoke("Servo: RIGHT (D)")
                     onMove(1f, 0f) // X = 1 (right)
                 },
                 modifier = Modifier.size(buttonSize),
