@@ -1,28 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)",
+      "Bash(./gradlew compileDebugKotlin)",
+      "Bash(./gradlew assembleDebug:*)",
       "Bash(find:*)",
-      "Bash(git rev-parse:*)",
-      "Bash(cat:*)",
-      "Bash(timeout /t 2)",
-      "Bash(nul)",
-      "Bash(findstr:*)",
-      "Bash(git rm:*)",
-      "Bash(.gradlew.bat assembleDebug)",
-      "Bash(gradlew.bat assembleDebug:*)",
-      "Bash(./gradlew.bat assembleDebug)",
-      "Bash(./gradlew.bat clean assembleDebug)",
-      "Bash(gradlew.bat compileDebugKotlin:*)",
-      "Bash(./gradlew.bat:*)",
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfix: HC-06 Bluetooth connection stability hotfix (v0.1.1-alpha)\n\nMajor improvements to HC-06 connection reliability:\n\n- Add connection mutex to prevent concurrent connection attempts\n- Optimize connection strategy with proper timing (1500ms delays)\n- Implement proper socket cleanup to prevent resource leaks\n- Cancel discovery before connection to prevent interference\n- Prioritize most reliable HC-06 methods (Standard SPP and Reflection Port 1)\n- Add mutex unlock in finally blocks for both Classic and BLE connections\n- Reduce excessive connection attempts (removed ports 4-5)\n- Improve error handling and logging with exception messages\n\nThis hotfix resolves critical issues causing HC-06 connection failures\nand timeouts, significantly improving connection success rate.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push:*)",
-      "Bash(gradlew.bat clean assembleDebug)",
-      "Bash(if exist nul del /F nul)",
-      "Bash(git commit:*)",
-      "Bash(git checkout:*)",
-      "Bash(TROUBLESHOOTING \")"
+      "Bash(./gradlew compileDebugKotlin:*)",
+      "Bash(ls:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
