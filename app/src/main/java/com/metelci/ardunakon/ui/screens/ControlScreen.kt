@@ -848,6 +848,7 @@ fun ControlScreen(
 
         AlertDialog(
             onDismissRequest = { showDeviceList = null },
+            modifier = Modifier.fillMaxWidth(0.95f),
             title = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -868,7 +869,7 @@ fun ControlScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 600.dp),
+                        .fillMaxHeight(0.8f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     // Compact target slot info
@@ -931,9 +932,8 @@ fun ControlScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f, fill = true)
-                            .heightIn(min = 300.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                            .weight(1f, fill = true),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         if (scannedDevices.isEmpty()) {
                             item {
@@ -972,16 +972,16 @@ fun ControlScreen(
                                             bluetoothManager.connectToDevice(device, showDeviceList!!)
                                             showDeviceList = null
                                         },
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = Color(0xFFF5F5F5)
                                     ),
-                                    elevation = CardDefaults.cardElevation(2.dp)
+                                    elevation = CardDefaults.cardElevation(1.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(8.dp),
+                                            .padding(horizontal = 8.dp, vertical = 6.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -993,9 +993,9 @@ fun ControlScreen(
                                                 imageVector = Icons.Filled.Bluetooth,
                                                 contentDescription = null,
                                                 tint = Color(0xFF2196F3),
-                                                modifier = Modifier.size(20.dp)
+                                                modifier = Modifier.size(18.dp)
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
                                             Column {
                                                 Text(
                                                     text = device.name,
@@ -1027,13 +1027,15 @@ fun ControlScreen(
             confirmButton = {
                 TextButton(
                     onClick = { showDeviceList = null },
-                    modifier = Modifier.height(32.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    modifier = Modifier
+                        .height(28.dp)
+                        .padding(vertical = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
                 ) {
                     Text(
                         "Close",
                         color = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2),
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }

@@ -926,10 +926,12 @@ class AppBluetoothManager(private val context: Context) {
 
                 // HC-06 Connection Strategy:
                 // Reflection is only used when user explicitly enables Legacy Reflection.
-                // For Xiaomi/MIUI, we reorder to try reflection first only if the toggle is ON.
+                // For Xiaomi/MIUI, we reorder to try reflection first only if the toggle is ON
+                // and use an "aggressive" mode with shorter delays to beat MIUI timeouts.
 
                 val reflectionAllowed = allowReflectionFallback
                 val forceReflectionFirst = reflectionAllowed && shouldForceReflectionFallback()
+                val aggressiveXiaomi = forceReflectionFirst // legacy reflection ON + Xiaomi OEM
 
                 // Attempt A (OEM-first): Reflection Port 1 (when forced)
                 if (!connected && !cancelled && forceReflectionFirst) {
@@ -945,7 +947,7 @@ class AppBluetoothManager(private val context: Context) {
                         Log.w("BT", "Reflection Port 1 (forced) failed: ${e.message}", e)
                         closeSocketSafely(socket)
                         socket = null
-                        if (!cancelled) safeSleep(1000)
+                        if (!cancelled) safeSleep(if (aggressiveXiaomi) 600 else 1000)
                     }
                 }
 
@@ -963,7 +965,7 @@ class AppBluetoothManager(private val context: Context) {
                         Log.w("BT", "Raw RFCOMM Port 1 failed: ${e.message}", e)
                         closeSocketSafely(socket)
                         socket = null
-                        if (!cancelled) safeSleep(1000)
+                        if (!cancelled) safeSleep(if (aggressiveXiaomi) 600 else 1000)
                     }
                 }
 
@@ -980,8 +982,8 @@ class AppBluetoothManager(private val context: Context) {
                         Log.w("BT", "Standard SPP failed: ${e.message}", e)
                         closeSocketSafely(socket)
                         socket = null
-                        // HC-06 clones need longer delay to recover from failed attempts
-                        if (!cancelled) safeSleep(2000)
+                        // HC-06 clones need recovery time; shorten on aggressive Xiaomi to avoid MIUI timeouts
+                        if (!cancelled) safeSleep(if (aggressiveXiaomi) 1000 else 2000)
                     }
                 }
 
@@ -1000,7 +1002,7 @@ class AppBluetoothManager(private val context: Context) {
                         closeSocketSafely(socket)
                         socket = null
                         // HC-06 clones often need recovery time after reflection attempts
-                        if (!cancelled) safeSleep(2000)
+                        if (!cancelled) safeSleep(if (aggressiveXiaomi) 800 else 2000)
                     }
                 }
 
@@ -1037,7 +1039,7 @@ class AppBluetoothManager(private val context: Context) {
                             closeSocketSafely(socket)
                             socket = null
                             // HC-06 clones need consistent delays between UUID attempts
-                            if (!cancelled) safeSleep(1500)
+                            if (!cancelled) safeSleep(if (aggressiveXiaomi) 800 else 1500)
                         }
                     }
                 }
@@ -1060,14 +1062,14 @@ class AppBluetoothManager(private val context: Context) {
                             Log.w("BT", "Reflection Port $port failed: ${e.message}", e)
                             closeSocketSafely(socket)
                             socket = null
-                            if (!cancelled) safeSleep(1000)
+                            if (!cancelled) safeSleep(if (aggressiveXiaomi) 700 else 1000)
                         }
                     }
                 }
 
                 // Attempt 5: Last resort - Try SECURE connection with Standard SPP
                 // Some modules (rare HC-05 variants) require secure pairing
-                if (!connected && !cancelled) {
+                if (!connected && !cancelled && !aggressiveXiaomi) {
                     try {
                         log("Attempting SECURE SPP connection (last resort)...", LogType.WARNING)
                         socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
