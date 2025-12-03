@@ -56,7 +56,7 @@ The R4 WiFi has **built-in BLE** via the ESP32-S3 module.
 3. Upload to your Arduino R4 WiFi
 4. Device will appear as **"ArdunakonR4"** in the app
 
-**No external Bluetooth module required!** ✅
+**No external Bluetooth module required!** ✅ Works with official boards and BLE-capable clones; sketch advertises both ArduinoBLE default service (19B10000/19B10001) and HM-10-style UUIDs for maximum compatibility.
 
 ---
 
@@ -131,6 +131,7 @@ Whether you're driving an RC car, piloting a drone, or controlling a complex rob
 
 **Compatible With:**
 *   **Latest Arduino Boards**: UNO Q (2025), UNO R4 WiFi (built-in BLE) - **Native Support Added!**
+    * Official R4 WiFi and BLE-capable clones work out of the box (ArduinoBLE default profile + HM-10-compatible fallback).
 *   **Bluetooth Classic**: HC-05, HC-06 (and all clones) - **Now with Military-Grade Stability**
 *   **Bluetooth LE**: HM-10, AT-09, MLT-BT05, TI CC2541 (Generic Discovery Engine supports 99% of clones)
 *   **Classic Arduino**: UNO, Nano, Mega with external modules

@@ -11,15 +11,18 @@
  * [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
  *
  * Compatible with Ardunakon v0.1.1-alpha and newer
- * https://github.com/yourusername/ardunakon
+ * https://github.com/Metelci/ardunakon
  */
 
 #include <ArduinoBLE.h>
 
-// BLE Service and Characteristic UUIDs (HM-10 compatible)
-// Using standard HM-10/HC-08 UUIDs for maximum compatibility
-#define SERVICE_UUID        "0000ffe0-0000-1000-8000-00805f9b34fb"
-#define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
+// BLE Service and Characteristic UUIDs
+// 1) HM-10 compatible (common BLE UART clones)
+#define SERVICE_UUID_HM10        "0000ffe0-0000-1000-8000-00805f9b34fb"
+#define CHARACTERISTIC_UUID_HM10 "0000ffe1-0000-1000-8000-00805f9b34fb"
+// 2) ArduinoBLE default example (official UNO R4 WiFi / Nano 33 IoT profile)
+#define SERVICE_UUID_ARDUINO     "19b10000-e8f2-537e-4f6c-d104768a1214"
+#define CHARACTERISTIC_UUID_ARDUINO "19b10001-e8f2-537e-4f6c-d104768a1214"
 
 // Protocol Constants
 #define START_BYTE 0xAA
@@ -42,10 +45,14 @@
 #define LED_STATUS        LED_BUILTIN
 #define BUZZER_PIN        3
 
-// BLE Objects
-BLEService bleService(SERVICE_UUID);
-BLECharacteristic txCharacteristic(CHARACTERISTIC_UUID, BLERead | BLENotify, 20);
-BLECharacteristic rxCharacteristic(CHARACTERISTIC_UUID, BLEWrite | BLEWriteWithoutResponse, 20);
+// BLE Objects (advertise both profiles for maximum compatibility)
+BLEService bleServiceHm10(SERVICE_UUID_HM10);
+BLECharacteristic txCharacteristicHm10(CHARACTERISTIC_UUID_HM10, BLERead | BLENotify, 20);
+BLECharacteristic rxCharacteristicHm10(CHARACTERISTIC_UUID_HM10, BLEWrite | BLEWriteWithoutResponse, 20);
+
+BLEService bleServiceArduino(SERVICE_UUID_ARDUINO);
+BLECharacteristic txCharacteristicArduino(CHARACTERISTIC_UUID_ARDUINO, BLERead | BLENotify, 20);
+BLECharacteristic rxCharacteristicArduino(CHARACTERISTIC_UUID_ARDUINO, BLEWrite | BLEWriteWithoutResponse, 20);
 
 // Packet buffer
 uint8_t packetBuffer[PACKET_SIZE];
@@ -61,6 +68,18 @@ bool emergencyStop = false;
 // Telemetry
 float batteryVoltage = 0.0;
 uint8_t systemStatus = 0; // 0 = Active, 1 = Safe Mode
+
+// Function prototypes
+void handleIncoming(BLECharacteristic& characteristic);
+void processIncomingByte(uint8_t byte);
+bool validateChecksum();
+void handlePacket();
+void updateMotors();
+void setMotor(int pwmPin, int dir1Pin, int dir2Pin, int8_t speed);
+void handleButton(uint8_t buttonId, uint8_t pressed);
+void safetyStop();
+void sendTelemetry();
+void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow);
 
 void setup() {
   Serial.begin(115200);
@@ -86,11 +105,15 @@ void setup() {
   BLE.setDeviceName("ArdunakonR4");
 
   // Add characteristics to service
-  bleService.addCharacteristic(txCharacteristic);
-  bleService.addCharacteristic(rxCharacteristic);
+  bleServiceHm10.addCharacteristic(txCharacteristicHm10);
+  bleServiceHm10.addCharacteristic(rxCharacteristicHm10);
+
+  bleServiceArduino.addCharacteristic(txCharacteristicArduino);
+  bleServiceArduino.addCharacteristic(rxCharacteristicArduino);
 
   // Add service
-  BLE.addService(bleService);
+  BLE.addService(bleServiceHm10);
+  BLE.addService(bleServiceArduino);
 
   // Start advertising
   BLE.advertise();
@@ -110,15 +133,12 @@ void loop() {
     digitalWrite(LED_STATUS, HIGH);
 
     while (central.connected()) {
-      // Check if data available
-      if (rxCharacteristic.written()) {
-        int len = rxCharacteristic.valueLength();
-        const uint8_t* data = rxCharacteristic.value();
-
-        // Process received bytes
-        for (int i = 0; i < len; i++) {
-          processIncomingByte(data[i]);
-        }
+      // Check if data available on either advertised profile
+      if (rxCharacteristicHm10.written()) {
+        handleIncoming(rxCharacteristicHm10);
+      }
+      if (rxCharacteristicArduino.written()) {
+        handleIncoming(rxCharacteristicArduino);
       }
 
       // Send telemetry every 4 seconds
@@ -136,6 +156,15 @@ void loop() {
     Serial.println("Disconnected");
     digitalWrite(LED_STATUS, LOW);
     safetyStop();
+  }
+}
+
+void handleIncoming(BLECharacteristic& characteristic) {
+  int len = characteristic.valueLength();
+  const uint8_t* data = characteristic.value();
+
+  for (int i = 0; i < len; i++) {
+    processIncomingByte(data[i]);
   }
 }
 
@@ -275,7 +304,8 @@ void sendTelemetry() {
   telemetry[9] = END_BYTE;
 
   // Send via BLE
-  txCharacteristic.writeValue(telemetry, PACKET_SIZE);
+  txCharacteristicHm10.writeValue(telemetry, PACKET_SIZE);
+  txCharacteristicArduino.writeValue(telemetry, PACKET_SIZE);
 }
 
 void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow) {
@@ -297,5 +327,6 @@ void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow) {
   ack[8] = xor_check;
   ack[9] = END_BYTE;
 
-  txCharacteristic.writeValue(ack, PACKET_SIZE);
+  txCharacteristicHm10.writeValue(ack, PACKET_SIZE);
+  txCharacteristicArduino.writeValue(ack, PACKET_SIZE);
 }

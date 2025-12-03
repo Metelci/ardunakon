@@ -39,6 +39,7 @@ Complete setup instructions for all supported Arduino boards.
 
 ### Wiring
 **Built-in Bluetooth** - No external module needed!
+Works with official UNO R4 WiFi and BLE-capable clones (advertises both ArduinoBLE default service and HM-10-style fallback).
 
 **Motor Driver (Example: L298N)**
 ```

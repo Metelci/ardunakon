@@ -11,7 +11,7 @@
  * [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
  *
  * Compatible with Ardunakon v0.1.1-alpha and newer
- * https://github.com/yourusername/ardunakon
+ * https://github.com/Metelci/ardunakon
  */
 
 #include <ArduinoBLE.h>
@@ -299,3 +299,4 @@ void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow) {
 
   txCharacteristic.writeValue(ack, PACKET_SIZE);
 }
+

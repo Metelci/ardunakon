@@ -5,7 +5,7 @@
 | Board | Built-in BLE | External Module | Status | Sketch Folder |
 |-------|--------------|-----------------|--------|---------------|
 | **Arduino UNO Q** (2025) | ✅ Bluetooth 5.1 | Not needed | **Fully Tested** | `ArdunakonUnoQ/` |
-| **Arduino UNO R4 WiFi** | ✅ BLE via ESP32-S3 | Not needed | **Fully Tested** | `ArdunakonR4WiFi/` |
+| **Arduino UNO R4 WiFi** | ✅ BLE via ESP32-S3 | Not needed | **Fully Tested** (official + clones) | `ArdunakonR4WiFi/` |
 | **Arduino UNO** (Classic) | ❌ | HC-05/HC-06/HM-10 | **Fully Tested** | `ArdunakonClassicUno/` |
 | **Arduino Nano** | ❌ | HC-05/HC-06/HM-10 | Compatible* | Use Classic UNO sketch |
 | **Arduino Mega** | ❌ | HC-05/HC-06/HM-10 | Compatible* | Use Classic UNO sketch |
@@ -199,3 +199,4 @@ We'll add support in the next release!
 **App Version**: v0.1.1-alpha and newer
 
 For the latest compatibility info, check the GitHub repository.
+

@@ -1,3 +1,12 @@
+What's New in v0.1.7-alpha:
+
+?? **UNO R4 WiFi + Clones**:
+    **Dual BLE Profile**: R4 WiFi sketch now advertises both ArduinoBLE default (19B10000/19B10001) and HM-10 UUIDs so official boards and BLE-capable clones connect natively.
+    **Docs Updated**: Setup guide and compatibility matrix explicitly cover R4 WiFi clone support and dual-UUID advertising.
+    **Attribution Fixed**: All Arduino sketches now point to github.com/Metelci/ardunakon.
+
+---
+
 What's New in v0.1.6-alpha:
 
 🎮 **RC Car Control Layout**:

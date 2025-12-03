@@ -43,6 +43,7 @@ SOFTWARE SETUP:
 
 WIRING:
 Built-in Bluetooth - No external module needed!
+Works with official UNO R4 WiFi and BLE-capable clones (advertises ArduinoBLE default service + HM-10 fallback).
 
 Motor Driver (Example: L298N):
   Arduino UNO Q    →    L298N Motor Driver
