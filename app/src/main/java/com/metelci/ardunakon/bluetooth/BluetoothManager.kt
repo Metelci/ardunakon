@@ -879,6 +879,7 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 log("Starting connection to ${device.name} (${device.address}) on Slot ${slot + 1}", LogType.INFO)
+                log("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (Android ${android.os.Build.VERSION.RELEASE})", LogType.INFO)
 
                 // MILITARY GRADE STABILITY: Ensure discovery is cancelled and radio is settled
                 if (adapter?.isDiscovering == true) {
@@ -924,18 +925,11 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // HC-06 Connection Strategy:
-                // For Xiaomi/MIUI, start with Reflection Port 1 first (their stack often blocks SPP).
-                // Auto-enable reflection for known problematic OEMs, or use manual toggle.
+                // Reflection is only used when user explicitly enables Legacy Reflection.
+                // For Xiaomi/MIUI, we reorder to try reflection first only if the toggle is ON.
 
-                // Auto-enable reflection for Xiaomi/Redmi/Poco devices
-                val reflectionAllowed = allowReflectionFallback || shouldForceReflectionFallback()
-
-                // Log auto-enablement for user awareness
-                if (shouldForceReflectionFallback() && !allowReflectionFallback) {
-                    log("Auto-enabling Reflection fallback for ${android.os.Build.MANUFACTURER} device (HC-06 compatibility)", LogType.INFO)
-                }
-
-                val forceReflectionFirst = shouldForceReflectionFallback() && reflectionAllowed
+                val reflectionAllowed = allowReflectionFallback
+                val forceReflectionFirst = reflectionAllowed && shouldForceReflectionFallback()
 
                 // Attempt A (OEM-first): Reflection Port 1 (when forced)
                 if (!connected && !cancelled && forceReflectionFirst) {

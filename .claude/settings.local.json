@@ -7,7 +7,10 @@
       "Bash(./gradlew compileDebugKotlin:*)",
       "Bash(ls:*)",
       "Bash(git push:*)",
-      "Bash(.gradlew assembleDebug:*)"
+      "Bash(.gradlew assembleDebug:*)",
+      "Bash(dir:*)",
+      "Bash(./gradlew clean assembleDebug:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

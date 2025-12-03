@@ -340,6 +340,16 @@ void handleButton(uint8_t buttonId, uint8_t pressed) {
   - Verify HC-05/06 LED is blinking (not solid)
   - Check baud rate matches (9600 in both sketch and module)
 
+**Problem**: HC-06 won't connect on Xiaomi/Redmi/Poco phones (MIUI/Android 12+)
+- **Solution**: ✅ **AUTOMATICALLY FIXED in v0.1.75-alpha!**
+  - The app now auto-detects Xiaomi devices and applies special connection methods
+  - No manual configuration needed - it just works!
+  - What the app does automatically:
+    - Enables reflection port fallback
+    - Adds 500ms stream initialization delay
+    - Tries Xiaomi-optimized connection sequence first
+  - If you're still having issues, check the debug log for "Device: Xiaomi" message
+
 **Problem**: Receiving garbage data
 - **Solution**:
   - Baud rate mismatch - reconfigure HC-05/06 to 9600

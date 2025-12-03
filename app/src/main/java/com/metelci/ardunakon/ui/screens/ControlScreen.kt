@@ -854,10 +854,10 @@ fun ControlScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Bluetooth Devices", style = MaterialTheme.typography.titleLarge)
+                    Text("Bluetooth Devices", style = MaterialTheme.typography.titleMedium)
                     if (isScanning) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
                             color = Color(0xFF74B9FF)
                         )
@@ -868,67 +868,71 @@ fun ControlScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 400.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .heightIn(max = 600.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Target slot info
-                    Text(
-                        "Select device for Slot ${showDeviceList!! + 1}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF546E7A)
-                    )
+                    // Compact target slot info
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Slot ${showDeviceList!! + 1}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF546E7A)
+                        )
+                        // Compact scan button
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                isScanning = true
+                                bluetoothManager.startScan()
+                                // Auto-stop scanning indication after 5 seconds
+                                coroutineScope.launch {
+                                    delay(5000)
+                                    isScanning = false
+                                }
+                            },
+                            modifier = Modifier.height(32.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFF00FF00)
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00FF00)),
+                            enabled = !isScanning,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Bluetooth,
+                                contentDescription = "Scan",
+                                tint = Color(0xFF00FF00),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                if (isScanning) "Scanning..." else "Scan",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
 
                     Divider(color = Color(0xFFB0BEC5), thickness = 1.dp)
 
-                    // Scan button
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            isScanning = true
-                            bluetoothManager.startScan()
-                            // Auto-stop scanning indication after 5 seconds
-                            coroutineScope.launch {
-                                delay(5000)
-                                isScanning = false
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFF00FF00)
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00FF00)),
-                        enabled = !isScanning
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Bluetooth,
-                            contentDescription = "Scan",
-                            tint = Color(0xFF00FF00),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (isScanning) "Scanning..." else "Scan for Devices",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Device list header
+                    // Compact device list header
                     if (scannedDevices.isNotEmpty()) {
                         Text(
-                            "Available Devices (${scannedDevices.size})",
-                            style = MaterialTheme.typography.labelMedium,
+                            "Found ${scannedDevices.size} device${if (scannedDevices.size != 1) "s" else ""}",
+                            style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF2D3436)
                         )
                     }
 
-                    // Scrollable device list
+                    // Scrollable device list - EXPANDED
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f, fill = false),
+                            .weight(1f, fill = true)
+                            .heightIn(min = 300.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         if (scannedDevices.isEmpty()) {
@@ -977,7 +981,7 @@ fun ControlScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(12.dp),
+                                            .padding(8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -989,18 +993,18 @@ fun ControlScreen(
                                                 imageVector = Icons.Filled.Bluetooth,
                                                 contentDescription = null,
                                                 tint = Color(0xFF2196F3),
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(20.dp)
                                             )
-                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
                                             Column {
                                                 Text(
                                                     text = device.name,
-                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    style = MaterialTheme.typography.bodyMedium,
                                                     color = Color(0xFF2D3436)
                                                 )
                                                 Text(
                                                     text = device.address,
-                                                    style = MaterialTheme.typography.bodySmall,
+                                                    style = MaterialTheme.typography.labelSmall,
                                                     color = Color(0xFF757575)
                                                 )
                                             }
@@ -1010,7 +1014,7 @@ fun ControlScreen(
                                             contentDescription = "Connect",
                                             tint = Color(0xFF74B9FF),
                                             modifier = Modifier
-                                                .size(20.dp)
+                                                .size(18.dp)
                                                 .rotate(180f)
                                         )
                                     }
@@ -1022,9 +1026,15 @@ fun ControlScreen(
             },
             confirmButton = {
                 TextButton(
-                    onClick = { showDeviceList = null }
+                    onClick = { showDeviceList = null },
+                    modifier = Modifier.height(32.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                 ) {
-                    Text("Close", color = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2))
+                    Text(
+                        "Close",
+                        color = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2),
+                        style = MaterialTheme.typography.labelMedium
+                    )
                 }
             }
         )

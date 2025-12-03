@@ -96,6 +96,7 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 *   **"Permission Denied"**: Go to Android Settings → Apps → Ardunakon → Permissions and allow "Nearby Devices".
 *   **No Data Received**: Check your Arduino TX/RX wiring (TX must go to RX).
 *   **App Closes in Background**: Disable "Battery Optimization" for Ardunakon.
+*   **HC-06 on Xiaomi/MIUI**: Automatically handled! The app now auto-enables reflection fallback and stream initialization delays for Xiaomi/Redmi/Poco devices.
 
 ### Comprehensive Guides
 *   **[Quick Reference Card](QUICK_REFERENCE.md)** - One-page cheat sheet for common issues

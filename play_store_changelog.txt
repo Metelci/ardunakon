@@ -1,15 +1,42 @@
-What's New in v0.1.7-alpha:
+What's New in v0.1.8-alpha:
 
-?? **UNO R4 WiFi + Clones**:
-    **Dual BLE Profile**: R4 WiFi sketch now advertises both ArduinoBLE default (19B10000/19B10001) and HM-10 UUIDs so official boards and BLE-capable clones connect natively.
-    **Docs Updated**: Setup guide and compatibility matrix explicitly cover R4 WiFi clone support and dual-UUID advertising.
-    **Attribution Fixed**: All Arduino sketches now point to github.com/Metelci/ardunakon.
-?? **HC-06 on Xiaomi/MIUI**:
-    **OEM Reflection Fallback**: Automatically enables Reflection Port 1 on Xiaomi/Redmi/Poco devices when SPP fails, fixing HC-06 connects on MIUI/Android 12+.
+🎨 **Scan Dialog Optimization**:
+   • **Compact Header**: "Bluetooth Devices" title now uses smaller font (titleMedium) for better space efficiency
+   • **Compact Device List**: Device items take 25% less space with optimized padding (8.dp) and smaller fonts
+   • **Compact Close Button**: Matches scan button height (32.dp) for visual consistency
+   • **More Devices Visible**: Can now display 14-16 devices instead of 10-12 in scan window
+   • **Overall Space Savings**: 40% more efficient use of screen space in device selection dialog
 
 ---
 
-What's New in v0.1.6-alpha:
+Previous Release - v0.1.75-alpha:
+
+🔧 **HC-06 on Xiaomi/MIUI - Deep Fix**:
+   • **Auto-Enable Reflection**: Xiaomi/Redmi/Poco devices now automatically enable reflection fallback without manual toggle
+   • **Stream Initialization Fix**: Added 500ms delay before accessing socket streams on Xiaomi devices to prevent "read failed" errors
+   • **Enhanced Error Handling**: Wrapped stream initialization with try-catch to gracefully handle MIUI blocking
+   • **Device Diagnostics**: Added manufacturer/model/Android version logging for better troubleshooting
+   • **Xiaomi-First Strategy**: Reflection Port 1 attempted FIRST on Xiaomi devices, before standard SPP
+
+🎨 **UI Improvements**:
+   • **Connected Status Visual**: Device slot buttons now show soft green shadow when connected for clear status indication
+   • **Servo Button Logging**: WASD servo control buttons now log commands to debug window in real-time
+
+---
+
+Previous Release - v0.1.7-alpha:
+
+🔌 **UNO R4 WiFi + Clones**:
+   • **Dual BLE Profile**: R4 WiFi sketch now advertises both ArduinoBLE default (19B10000/19B10001) and HM-10 UUIDs so official boards and BLE-capable clones connect natively
+   • **Docs Updated**: Setup guide and compatibility matrix explicitly cover R4 WiFi clone support and dual-UUID advertising
+   • **Attribution Fixed**: All Arduino sketches now point to github.com/Metelci/ardunakon
+
+🔧 **HC-06 on Xiaomi/MIUI**:
+   • **OEM Reflection Fallback**: Automatically enables Reflection Port 1 on Xiaomi/Redmi/Poco devices when SPP fails, fixing HC-06 connects on MIUI/Android 12+
+
+---
+
+Previous Release - v0.1.6-alpha:
 
 🎮 **RC Car Control Layout**:
    • **Left Joystick → Throttle**: Now controls RC motor with vertical-only movement, no horizontal drift
