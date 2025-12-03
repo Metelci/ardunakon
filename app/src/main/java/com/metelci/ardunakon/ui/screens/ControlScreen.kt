@@ -400,16 +400,17 @@ fun ControlScreen(
 
             // E-STOP BUTTON (now in position 4)
             IconButton(
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    if (isEStopActive) {
-                        // Reset E-Stop
-                        bluetoothManager.setEmergencyStop(false)
-                    } else {
-                        // Activate E-Stop FIRST to block other threads
-                        bluetoothManager.setEmergencyStop(true)
-                        // Immediately drop all links and clear slot visuals
-                        bluetoothManager.disconnectAllForEStop()
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        if (isEStopActive) {
+                            // Reset E-Stop
+                            bluetoothManager.setEmergencyStop(false)
+                            bluetoothManager.holdOfflineAfterEStopReset()
+                        } else {
+                            // Activate E-Stop FIRST to block other threads
+                            bluetoothManager.setEmergencyStop(true)
+                            // Immediately drop all links and clear slot visuals
+                            bluetoothManager.disconnectAllForEStop()
                         // Then Force Send STOP packet
                         val stopPacket = ProtocolManager.formatEStopData()
                         bluetoothManager.sendDataToAll(stopPacket, force = true)

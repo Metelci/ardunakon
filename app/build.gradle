@@ -11,8 +11,8 @@ android {
         applicationId "com.metelci.ardunakon"
         minSdk 26
         targetSdk 35
-        versionCode 10
-        versionName "0.1.7-alpha"
+        versionCode 11
+        versionName "0.1.71-alpha"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

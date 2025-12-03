@@ -599,6 +599,21 @@ class AppBluetoothManager(private val context: Context) {
         log("All slots disconnected due to E-STOP", LogType.WARNING)
     }
 
+    fun holdOfflineAfterEStopReset() {
+        for (slot in 0..1) {
+            _shouldReconnect[slot] = false
+            val list = _autoReconnectEnabled.value.toMutableList()
+            list[slot] = false
+            _autoReconnectEnabled.value = list
+            savedDevices[slot] = null
+        }
+        scope.launch {
+            saveAutoReconnectPreference(0, false)
+            saveAutoReconnectPreference(1, false)
+        }
+        log("E-STOP reset: keeping all slots offline until manual connect", LogType.INFO)
+    }
+
     fun setAutoReconnectEnabled(slot: Int, enabled: Boolean) {
         if (slot !in 0..1) return
 
@@ -909,11 +924,18 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // HC-06 Connection Strategy:
-                // For Xiaomi/MIUI, start with Reflection Port 1 first (their stack often blocks SPP) but only if user enabled legacy reflection.
-                // Otherwise, try Standard SPP first, then Reflection.
+                // For Xiaomi/MIUI, start with Reflection Port 1 first (their stack often blocks SPP).
+                // Auto-enable reflection for known problematic OEMs, or use manual toggle.
 
-                // Only force reflection-first if OEM is problematic AND user enabled legacy reflection.
-                val forceReflectionFirst = shouldForceReflectionFallback() && allowReflectionFallback
+                // Auto-enable reflection for Xiaomi/Redmi/Poco devices
+                val reflectionAllowed = allowReflectionFallback || shouldForceReflectionFallback()
+
+                // Log auto-enablement for user awareness
+                if (shouldForceReflectionFallback() && !allowReflectionFallback) {
+                    log("Auto-enabling Reflection fallback for ${android.os.Build.MANUFACTURER} device (HC-06 compatibility)", LogType.INFO)
+                }
+
+                val forceReflectionFirst = shouldForceReflectionFallback() && reflectionAllowed
 
                 // Attempt A (OEM-first): Reflection Port 1 (when forced)
                 if (!connected && !cancelled && forceReflectionFirst) {
@@ -934,7 +956,7 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // Attempt A2: Raw RFCOMM (reflection) Port 1 BEFORE UUID list (for stubborn HC-06/MIUI)
-                if (!connected && !cancelled && allowReflectionFallback) {
+                if (!connected && !cancelled && reflectionAllowed) {
                     try {
                         log("Attempting RAW RFCOMM via reflection (Port 1, no UUID)...", LogType.WARNING)
                         val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
@@ -970,7 +992,7 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // Attempt 2: Reflection Method (Port 1) - Most reliable fallback for HC-06
-                if (!connected && !cancelled && allowReflectionFallback) {
+                if (!connected && !cancelled && reflectionAllowed) {
                     try {
                         log("Attempting REFLECTION connection (Port 1 - HC-06 Fallback)...", LogType.WARNING)
                         val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
@@ -1076,11 +1098,27 @@ class AppBluetoothManager(private val context: Context) {
 
                 if (connected && socket != null) {
                     // Connection successful
-                    val connectedThread = ConnectedThread(socket!!, slot)
-                    connections[slot] = connectedThread
-                    connectedThread.start()
+                    // MIUI/Xiaomi-specific fix: Allow socket streams to fully initialize
+                    // On Xiaomi devices, socket.outputStream/inputStream fail if accessed too early
+                    if (shouldForceReflectionFallback()) {
+                        log("Applying Xiaomi stream initialization delay (500ms)...", LogType.INFO)
+                        safeSleep(500)
+                    }
 
-                    updateConnectionState(slot, ConnectionState.CONNECTED)
+                    try {
+                        val connectedThread = ConnectedThread(socket!!, slot)
+                        connections[slot] = connectedThread
+                        connectedThread.start()
+
+                        updateConnectionState(slot, ConnectionState.CONNECTED)
+                    } catch (e: IOException) {
+                        // Stream initialization failed (Xiaomi/MIUI blocking)
+                        log("Failed to create socket streams: ${e.message}", LogType.ERROR)
+                        log("Marking connection as failed and will retry with different method", LogType.WARNING)
+                        closeSocketSafely(socket)
+                        connected = false // Force retry with next connection method
+                        updateConnectionState(slot, ConnectionState.ERROR)
+                    }
                 } else {
                     closeSocketSafely(socket)
                     log("============================================", LogType.ERROR)
@@ -1168,9 +1206,21 @@ class AppBluetoothManager(private val context: Context) {
     }
 
     private inner class ConnectedThread(private val socket: BluetoothSocket, private val slot: Int) : Thread(), BluetoothConnection {
-        private val outputStream: OutputStream = socket.outputStream
-        private val inputStream: InputStream = socket.inputStream
+        private val outputStream: OutputStream
+        private val inputStream: InputStream
         private val buffer = ByteArray(1024)
+
+        init {
+            // Wrap stream initialization with error handling for Xiaomi/MIUI compatibility
+            try {
+                outputStream = socket.outputStream
+                inputStream = socket.inputStream
+            } catch (e: IOException) {
+                log("CRITICAL: Failed to initialize socket streams on Slot ${slot + 1}: ${e.message}", LogType.ERROR)
+                log("This typically indicates MIUI/Xiaomi blocking reflection port access", LogType.ERROR)
+                throw e // Re-throw to prevent thread from starting with invalid streams
+            }
+        }
 
         override fun run() {
             log("Socket opened for Slot ${slot + 1}", LogType.SUCCESS)
