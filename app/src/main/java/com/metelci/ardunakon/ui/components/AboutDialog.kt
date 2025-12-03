@@ -115,6 +115,35 @@ fun AboutDialog(
                         textAlign = TextAlign.Center
                     )
 
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // What's New
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = if (isDarkTheme) Color(0xFF243039) else Color(0xFFE3F2FD),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (isDarkTheme) Color(0xFF37474F) else Color(0xFF90CAF9),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            "What's new in ${BuildConfig.VERSION_NAME}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = if (isDarkTheme) Color.White else Color(0xFF0D47A1)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        FeatureItem("UNO R4 WiFi + clones: dual BLE profile (ArduinoBLE + HM-10) for native connects", isDarkTheme)
+                        FeatureItem("Docs refreshed for R4 clone setup and compatibility", isDarkTheme)
+                        FeatureItem("Changelog reflects latest fixes and attribution updates", isDarkTheme)
+                    }
+
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // Features
