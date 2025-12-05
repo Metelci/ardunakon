@@ -139,6 +139,10 @@ class AppBluetoothManager(private val context: Context) {
     private val deviceNameCache = com.metelci.ardunakon.data.DeviceNameCache(context)
     private val autoReconnectPrefs = com.metelci.ardunakon.data.AutoReconnectPreferences(context)
 
+    // Telemetry History Manager for graph visualization
+    private val _telemetryHistoryManager = com.metelci.ardunakon.telemetry.TelemetryHistoryManager()
+    val telemetryHistoryManager: com.metelci.ardunakon.telemetry.TelemetryHistoryManager = _telemetryHistoryManager
+
     private val _scannedDevices = MutableStateFlow<List<BluetoothDeviceModel>>(emptyList())
     val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = _scannedDevices.asStateFlow()
 
@@ -774,6 +778,15 @@ class AppBluetoothManager(private val context: Context) {
         val current = _health.value.toMutableList()
         current[slot] = ConnectionHealth(packetAt, failures, seq, lastHeartbeatSentAt[slot], lastRttMs[slot])
         _health.value = current
+
+        // Record RSSI and RTT to history for graph visualization
+        val rssi = _rssiValues.value[slot]
+        if (rssi != 0) {
+            _telemetryHistoryManager.recordRssi(slot, rssi)
+        }
+        if (lastRttMs[slot] > 0) {
+            _telemetryHistoryManager.recordRtt(slot, lastRttMs[slot])
+        }
     }
 
     private fun forceReconnect(slot: Int, reason: String) {
@@ -867,6 +880,13 @@ class AppBluetoothManager(private val context: Context) {
         val status = if (statusByte == 1) "Safe Mode" else "Active"
 
         _telemetry.value = Telemetry(battery, status)
+
+        // Record battery voltage to history for graph visualization
+        // Determine slot from device ID (DEV_ID in packet[1])
+        val deviceId = packet[1].toInt() and 0xFF
+        val slot = if (deviceId == 1) 0 else 1
+        _telemetryHistoryManager.recordBattery(slot, battery)
+
         if (isDebugMode) {
             log("Telemetry: Bat=${battery}V, Stat=$status", LogType.SUCCESS)
         }

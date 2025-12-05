@@ -32,7 +32,6 @@ fun JoystickControl(
     backgroundColor: Color = Color.DarkGray,
     stickColor: Color = Color.Cyan,
     isThrottle: Boolean = false, // If true, Y axis doesn't auto-center
-    isUnidirectional: Boolean = false, // If true, Y axis maps 0.0 (bottom) to 1.0 (top)
     onMoved: (JoystickState) -> Unit
 ) {
     val density = LocalDensity.current
@@ -43,30 +42,19 @@ fun JoystickControl(
         with(density) { (size.toPx() / 2) - (dotSize.toPx() / 2) } 
     }
 
-    // Initialize position based on mode
-    val initialPosition = remember(isUnidirectional, center, radius) {
-        if (isUnidirectional) {
-            // Start at bottom (0% throttle)
-            Offset(center.x, center.y + radius)
-        } else {
-            center
-        }
-    }
+    // Initialize position at center
+    val initialPosition = remember(center) { center }
 
     var knobPosition by remember(initialPosition) { mutableStateOf(initialPosition) }
 
     // Notify initial position on composition/mode change
-    LaunchedEffect(isUnidirectional, isThrottle) {
+    LaunchedEffect(isThrottle) {
         val normalizedX = (knobPosition.x - center.x) / radius
-        val rawY = -(knobPosition.y - center.y) / radius
-
-        val finalY = if (isUnidirectional) {
-            ((rawY + 1) / 2).coerceIn(0f, 1f)
-        } else {
-            rawY.coerceIn(-1f, 1f)
-        }
-
-        onMoved(JoystickState(normalizedX.coerceIn(-1f, 1f), finalY))
+        val normalizedY = -(knobPosition.y - center.y) / radius
+        onMoved(JoystickState(
+            normalizedX.coerceIn(-1f, 1f),
+            normalizedY.coerceIn(-1f, 1f)
+        ))
     }
 
     Box(modifier = modifier.size(size)) {
@@ -97,15 +85,9 @@ fun JoystickControl(
 
                         // Normalize output
                         val normalizedX = (knobPosition.x - center.x) / radius
-                        val rawY = -(knobPosition.y - center.y) / radius // -1 (bottom) to 1 (top)
-                        
-                        val finalY = if (isUnidirectional) {
-                            ((rawY + 1) / 2).coerceIn(0f, 1f)
-                        } else {
-                            rawY.coerceIn(-1f, 1f)
-                        }
+                        val normalizedY = -(knobPosition.y - center.y) / radius // -1 (bottom) to 1 (top)
 
-                        onMoved(JoystickState(normalizedX.coerceIn(-1f, 1f), finalY))
+                        onMoved(JoystickState(normalizedX.coerceIn(-1f, 1f), normalizedY.coerceIn(-1f, 1f)))
                     }
 
                     // Handle initial touch
@@ -131,15 +113,10 @@ fun JoystickControl(
                     } else {
                         // Only auto-center X axis, keep Y
                         knobPosition = knobPosition.copy(x = center.x)
-                        
+
                         // Recalculate output on release
-                        val rawY = -(knobPosition.y - center.y) / radius
-                        val finalY = if (isUnidirectional) {
-                            ((rawY + 1) / 2).coerceIn(0f, 1f)
-                        } else {
-                            rawY.coerceIn(-1f, 1f)
-                        }
-                        onMoved(JoystickState(0f, finalY))
+                        val normalizedY = (-(knobPosition.y - center.y) / radius).coerceIn(-1f, 1f)
+                        onMoved(JoystickState(0f, normalizedY))
                     }
                 }
             }

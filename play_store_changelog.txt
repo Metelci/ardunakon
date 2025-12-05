@@ -1,13 +1,18 @@
-What's New in v0.1.8-alpha:
+What's New in v0.1.83-alpha:
 
-🎨 **Scan Dialog Optimization**:
-   • **Compact Header**: "Bluetooth Devices" title now uses smaller font (titleMedium) for better space efficiency
-   • **Compact Device List**: Device items take 25% less space with optimized padding (8.dp) and smaller fonts
-   • **Compact Close Button**: Matches scan button height (32.dp) for visual consistency
-   • **More Devices Visible**: Can now display 14-16 devices instead of 10-12 in scan window
-   • **Overall Space Savings**: 40% more efficient use of screen space in device selection dialog
+?? **Telemetry Graphs**:
+    **Battery/RSSI/Latency Charts**: New full-screen dialog with per-slot toggles and time ranges (1m/5m/10m/all)
+    **History Manager**: Retains recent data with auto-eviction and one-tap clear
+    **Slot Awareness**: View Slot 1 and Slot 2 telemetry independently or together
+
+?? **Control Screen Polish**:
+    **Decluttered Joystick**: Removed the side throttle labels for a cleaner dual-stick layout
+
+?? **Stability & UX**:
+    Protocol/telemetry refactors and general polish across profiles, terminal, and servo controls
 
 ---
+
 
 Previous Release - v0.1.75-alpha:
 

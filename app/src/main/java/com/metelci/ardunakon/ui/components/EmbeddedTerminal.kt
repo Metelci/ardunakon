@@ -165,10 +165,10 @@ fun EmbeddedTerminal(
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
-                    modifier = Modifier.weight(1f).height(36.dp),
-                    placeholder = { Text("Cmd...", fontSize = 10.sp) },
+                    modifier = Modifier.weight(1f).heightIn(min = 40.dp),
+                    placeholder = { Text("Cmd...", fontSize = 12.sp) },
                     singleLine = true,
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 10.sp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         imeAction = androidx.compose.ui.text.input.ImeAction.Send
                     ),
@@ -198,10 +198,10 @@ fun EmbeddedTerminal(
                     },
                     enabled = inputText.isNotBlank(),
                     contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(40.dp),
                     shape = RoundedCornerShape(6.dp)
                 ) {
-                    Icon(Icons.Default.Send, "Send", modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Send, "Send", modifier = Modifier.size(18.dp))
                 }
             }
         }

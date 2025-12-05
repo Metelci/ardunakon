@@ -17,7 +17,7 @@ class ProtocolManagerTest {
 
     @Test
     fun `joystick mapping clamps values`() {
-        val packet = ProtocolManager.formatJoystickData(-1f, 0f, 1f, 2f, isThrottleUnidirectional = false)
+        val packet = ProtocolManager.formatJoystickData(-1f, 0f, 1f, 2f)
         assertEquals(0.toByte(), packet[3])
         assertEquals(100.toByte(), packet[4])
         assertEquals(200.toByte(), packet[5])

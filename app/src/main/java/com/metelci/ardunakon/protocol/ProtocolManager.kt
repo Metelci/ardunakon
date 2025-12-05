@@ -23,18 +23,10 @@ object ProtocolManager {
         val mapped = ((clamped + 1f) * 100).toInt()
         return mapped.toByte()
     }
-    
-    // Helper for Unidirectional 0.0..1.0 -> 0..200
-    private fun mapThrottleValue(value: Float): Byte {
-        val clamped = value.coerceIn(0f, 1f)
-        val mapped = (clamped * 200).toInt()
-        return mapped.toByte()
-    }
 
     fun formatJoystickData(
         leftX: Float, leftY: Float,
         rightX: Float, rightY: Float,
-        isThrottleUnidirectional: Boolean,
         auxBits: Byte = 0
     ): ByteArray {
         val packet = ByteArray(PACKET_SIZE)
@@ -44,13 +36,7 @@ object ProtocolManager {
         packet[3] = mapJoystickValue(leftX)
         packet[4] = mapJoystickValue(leftY)
         packet[5] = mapJoystickValue(rightX)
-        
-        // Select mapping based on mode
-        packet[6] = if (isThrottleUnidirectional) {
-            mapThrottleValue(rightY)
-        } else {
-            mapJoystickValue(rightY)
-        }
+        packet[6] = mapJoystickValue(rightY)
         
         packet[7] = auxBits
         packet[8] = calculateChecksum(packet)

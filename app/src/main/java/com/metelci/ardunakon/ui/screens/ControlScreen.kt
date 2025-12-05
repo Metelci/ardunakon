@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.SyncDisabled
 import androidx.compose.material.icons.outlined.Info
@@ -93,7 +94,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
-import com.metelci.ardunakon.data.AuxAssignment
 import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.ui.components.JoystickControl
@@ -107,8 +107,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-import com.metelci.ardunakon.model.AssignedAux
-import com.metelci.ardunakon.ui.components.AuxButton
 import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 import com.metelci.ardunakon.ui.components.StatusCard
 
@@ -126,7 +124,7 @@ fun ControlScreen(
     var showHelpDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
-    var showAuxAssignDialog by remember { mutableStateOf(false) }
+    var showTelemetryGraph by remember { mutableStateOf(false) }
     var isDebugPanelVisible by remember { mutableStateOf(true) } // Toggle for embedded debug panel
     var showMaximizedDebug by remember { mutableStateOf(false) } // Full-screen debug dialog
 
@@ -137,7 +135,6 @@ fun ControlScreen(
     val debugLogs by bluetoothManager.debugLogs.collectAsState()
     val telemetry by bluetoothManager.telemetry.collectAsState()
     val autoReconnectEnabled by bluetoothManager.autoReconnectEnabled.collectAsState()
-    val activeAuxButtons = remember { mutableStateListOf<AssignedAux>() }
     val coroutineScope = rememberCoroutineScope()
 
     // Removed pastelBrush for better visibility
@@ -260,28 +257,15 @@ fun ControlScreen(
     // Joystick State (fixed size/placement)
     var leftJoystick by remember { mutableStateOf(Pair(0f, 0f)) }
     var rightJoystick by remember { mutableStateOf(Pair(0f, 0f)) }
-
-    // Sync active aux buttons with current profile
-    LaunchedEffect(currentProfile) {
-        activeAuxButtons.clear()
-        activeAuxButtons.addAll(
-            currentProfile.auxAssignments.map { assign ->
-                val cfg = currentProfile.buttonConfigs.find { it.id == assign.id }
-                    ?: ButtonConfig(assign.id, "Aux ${assign.id}", assign.id.toString())
-                AssignedAux(cfg, assign.slot, assign.servoId, assign.role)
-            }
-        )
-    }
     
     // Transmission Loop
-    LaunchedEffect(currentProfile, leftJoystick, rightJoystick) {
+    LaunchedEffect(currentProfile, leftJoystick) {
         while (isActive) {
             val packet = ProtocolManager.formatJoystickData(
                 leftX = leftJoystick.first,
                 leftY = leftJoystick.second,
                 rightX = rightJoystick.first,
                 rightY = rightJoystick.second,
-                isThrottleUnidirectional = currentProfile.isThrottleUnidirectional,
                 auxBits = 0 // Aux buttons are sent as separate commands
             )
             bluetoothManager.sendDataToAll(packet)
@@ -364,6 +348,7 @@ fun ControlScreen(
                     }
                 },
                 modifier = Modifier
+                    .size(36.dp)
                     .shadow(2.dp, CircleShape)
                     .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
                     .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
@@ -371,17 +356,18 @@ fun ControlScreen(
                 Icon(
                     imageVector = Icons.Filled.Bluetooth,
                     contentDescription = "Connect / Reconnect",
-                    tint = Color(0xFF00FF00) // Electric green
+                    tint = Color(0xFF00FF00), // Electric green
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Aux Button (now in position 3)
+            // Telemetry Graph Button
             IconButton(
                 onClick = {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    showAuxAssignDialog = true
+                    showTelemetryGraph = true
                 },
                 modifier = Modifier
                     .size(36.dp)
@@ -390,8 +376,8 @@ fun ControlScreen(
                     .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
             ) {
                 Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Aux Buttons",
+                    imageVector = Icons.Default.ShowChart,
+                    contentDescription = "Telemetry Graphs",
                     tint = Color(0xFF00FF00), // Electric green
                     modifier = Modifier.size(18.dp)
                 )
@@ -497,7 +483,7 @@ fun ControlScreen(
                         imageVector = Icons.Default.Help,
                         contentDescription = "Menu",
                         tint = Color(0xFF00FF00), // Electric green
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
                 DropdownMenu(
@@ -686,29 +672,12 @@ fun ControlScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Stick (Throttle) - with label on left side
+            // Left Stick (Throttle)
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Label on left side
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    modifier = Modifier.padding(end = 8.dp)
-                ) {
-                    Text(
-                        "Throttle",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                    )
-                    Text(
-                        "(RC Motor)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF546E7A)
-                    )
-                }
                 // Joystick - Throttle only (vertical), no X axis
                 JoystickControl(
                     onMoved = { state ->
@@ -718,8 +687,7 @@ fun ControlScreen(
                         )
                     },
                     size = joystickSize,
-                    isThrottle = true, // Y axis doesn't auto-center
-                    isUnidirectional = currentProfile.isThrottleUnidirectional
+                    isThrottle = true // Y axis doesn't auto-center
                 )
             }
 
@@ -742,23 +710,6 @@ fun ControlScreen(
                         bluetoothManager.log(message, LogType.INFO)
                     }
                 )
-                // Label on right side
-                Column(
-                    horizontalAlignment = Alignment.Start,
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    Text(
-                        "Servos",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                    )
-                    Text(
-                        "(wasd)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF546E7A)
-                    )
-                }
             }
         }
         }
@@ -827,6 +778,14 @@ fun ControlScreen(
                 bluetoothManager.log("Logs cleared", LogType.INFO)
             },
             onExportLogs = exportLogs
+        )
+    }
+
+    if (showTelemetryGraph) {
+        com.metelci.ardunakon.ui.components.TelemetryGraphDialog(
+            telemetryHistoryManager = bluetoothManager.telemetryHistoryManager,
+            onDismiss = { showTelemetryGraph = false },
+            isDarkTheme = isDarkTheme
         )
     }
 
@@ -1052,239 +1011,6 @@ fun ControlScreen(
     var profileToEdit by remember { mutableStateOf<com.metelci.ardunakon.data.Profile?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var profileIndexToDelete by remember { mutableStateOf(-1) }
-
-    // Aux assignment dialog
-    if (showAuxAssignDialog) {
-        val tempAssignments = remember { mutableStateMapOf<Int, AssignedAux>().apply {
-            if (isEmpty()) {
-                activeAuxButtons.forEach { put(it.config.id, it) }
-            }
-        } }
-        AlertDialog(
-            onDismissRequest = { showAuxAssignDialog = false },
-            title = { Text("Assign Aux Buttons", color = if (isDarkTheme) Color.White else Color(0xFF2D3436)) },
-            text = {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 500.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(currentProfile.buttonConfigs.size) { index ->
-                        val config = currentProfile.buttonConfigs[index]
-                        val existing = tempAssignments[config.id]
-                        var slot by remember(config.id) { mutableStateOf(existing?.slot ?: 0) }
-                        var servoText by remember(config.id) { mutableStateOf((existing?.servoId ?: config.id).toString()) }
-                        var roleText by remember(config.id) { mutableStateOf(existing?.role ?: "") }
-                        var labelText by remember(config.id) { mutableStateOf(existing?.config?.label ?: config.label) }
-                        var commandText by remember(config.id) { mutableStateOf(existing?.config?.id?.toString() ?: config.id.toString()) }
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isDarkTheme) Color(0xFF2D3436) else Color(0xFFF5F5F5)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(labelText, color = if (isDarkTheme) Color.White else Color(0xFF2D3436), style = MaterialTheme.typography.bodyMedium)
-                                        Text("Slot ${slot + 1} - Servo $servoText${if (roleText.isNotBlank()) " - $roleText" else ""}",
-                                            color = Color(0xFF546E7A),
-                                            style = MaterialTheme.typography.labelSmall)
-                                    }
-                                    val isChecked = tempAssignments.containsKey(config.id)
-                                    Checkbox(
-                                        checked = isChecked,
-                                        onCheckedChange = { checked ->
-                                            if (checked) {
-                                                val servoId = servoText.toIntOrNull() ?: config.id
-                                                val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                                tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
-                                            } else {
-                                                tempAssignments.remove(config.id)
-                                            }
-                                        }
-                                    )
-                                }
-                                if (tempAssignments.containsKey(config.id)) {
-                                    Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
-                                    // First row: Label and Command
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = labelText,
-                                        onValueChange = { new ->
-                                            if (new.length <= 20 && new.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".-_" }) {
-                                                labelText = new
-                                                val servoId = servoText.toIntOrNull() ?: config.id
-                                                val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                                tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
-                                            }
-                                        },
-                                        label = { Text("Label", color = if (isDarkTheme) Color.White else Color(0xFF2D3436)) },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color(0xFF74B9FF),
-                                            unfocusedBorderColor = if (isDarkTheme) Color(0xFF546E7A) else Color(0xFFB0BEC5),
-                                            focusedTextColor = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                                            unfocusedTextColor = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                                        )
-                                    )
-                                    OutlinedTextField(
-                                        value = commandText,
-                                        onValueChange = { new ->
-                                            val filtered = new.filter { it.isDigit() }
-                                            val value = filtered.toIntOrNull()
-                                            if (filtered.isEmpty() || (value != null && value in 0..255)) {
-                                                commandText = filtered
-                                                val servoId = servoText.toIntOrNull() ?: config.id
-                                                val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                                tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
-                                            }
-                                        },
-                                        label = { Text("Command", color = if (isDarkTheme) Color.White else Color(0xFF2D3436)) },
-                                        singleLine = true,
-                                        modifier = Modifier.width(100.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color(0xFF74B9FF),
-                                            unfocusedBorderColor = if (isDarkTheme) Color(0xFF546E7A) else Color(0xFFB0BEC5),
-                                            focusedTextColor = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                                            unfocusedTextColor = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                                        )
-                                    )
-                                }
-                                // Second row: Slot buttons, Servo, and Role
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        (0..1).forEach { s ->
-                                            androidx.compose.material3.OutlinedButton(
-                                                onClick = {
-                                                    slot = s
-                                                    val servoId = servoText.toIntOrNull() ?: config.id
-                                                    val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                                    tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
-                                                },
-                                                colors = ButtonDefaults.outlinedButtonColors(
-                                                    containerColor = if (slot == s) {
-                                                        if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0)
-                                                    } else Color.Transparent,
-                                                    contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                                                ),
-                                                border = androidx.compose.foundation.BorderStroke(
-                                                    1.dp, 
-                                                    if (slot == s) {
-                                                        if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                                                    } else {
-                                                        if (isDarkTheme) Color(0xFF546E7A) else Color(0xFFB0BEC5)
-                                                    }
-                                                ),
-                                                modifier = Modifier.height(36.dp),
-                                                contentPadding = PaddingValues(horizontal = 8.dp)
-                                            ) { Text("Slot ${s + 1}", style = MaterialTheme.typography.labelSmall) }
-                                        }
-                                    }
-                                    OutlinedTextField(
-                                        value = servoText,
-                                        onValueChange = { new ->
-                                            val filtered = new.filter { it.isDigit() }
-                                            val value = filtered.toIntOrNull()
-                                            if (filtered.isEmpty() || (value != null && value in 0..255)) {
-                                                servoText = filtered
-                                                val servoId = servoText.toIntOrNull() ?: config.id
-                                                val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                                tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
-                                            }
-                                        },
-                                        label = { Text("Servo", color = if (isDarkTheme) Color.White else Color(0xFF2D3436)) },
-                                        singleLine = true,
-                                        modifier = Modifier.width(90.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color(0xFF74B9FF),
-                                            unfocusedBorderColor = if (isDarkTheme) Color(0xFF546E7A) else Color(0xFFB0BEC5),
-                                            focusedTextColor = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                                            unfocusedTextColor = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                                        )
-                                    )
-                                    OutlinedTextField(
-                                        value = roleText,
-                                        onValueChange = { new ->
-                                            if (new.length <= 30 && new.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".-_/()" }) {
-                                                roleText = new
-                                                val servoId = servoText.toIntOrNull() ?: config.id
-                                                val updatedConfig = config.copy(label = labelText, id = commandText.toIntOrNull() ?: config.id)
-                                                tempAssignments[config.id] = AssignedAux(updatedConfig, slot, servoId, roleText)
-                                            }
-                                        },
-                                        label = { Text("Role", color = if (isDarkTheme) Color.White else Color(0xFF2D3436)) },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color(0xFF74B9FF),
-                                            unfocusedBorderColor = if (isDarkTheme) Color(0xFF546E7A) else Color(0xFFB0BEC5),
-                                            focusedTextColor = if (isDarkTheme) Color.White else Color(0xFF2D3436),
-                                            unfocusedTextColor = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                                        )
-                                    )
-                                }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        activeAuxButtons.clear()
-                        activeAuxButtons.addAll(tempAssignments.values)
-                        val updatedProfile = currentProfile.copy(
-                            auxAssignments = tempAssignments.values.map { AuxAssignment(it.config.id, it.slot, it.servoId, it.role) }
-                        )
-                        profiles[currentProfileIndex] = updatedProfile
-                        coroutineScope.launch { saveProfilesSafely() }
-                        showAuxAssignDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2),
-                        contentColor = if (isDarkTheme) Color(0xFF2D3436) else Color.White
-                    )
-                ) { Text("Done") }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        tempAssignments.clear()
-                        activeAuxButtons.clear()
-                        val updatedProfile = currentProfile.copy(auxAssignments = emptyList())
-                        profiles[currentProfileIndex] = updatedProfile
-                        coroutineScope.launch { saveProfilesSafely() }
-                        showAuxAssignDialog = false
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = Color(0xFFFF5252)
-                    )
-                ) { Text("Clear All") }
-            }
-        )
-    }
 
     if (showProfileSelector) {
         AlertDialog(

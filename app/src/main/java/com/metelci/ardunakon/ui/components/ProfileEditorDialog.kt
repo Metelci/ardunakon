@@ -30,7 +30,6 @@ fun ProfileEditorDialog(
     val view = LocalView.current
     var name by remember { mutableStateOf(profile?.name ?: "New Profile") }
     var sensitivity by remember { mutableStateOf(profile?.sensitivity ?: 1.0f) }
-    var isUnidirectional by remember { mutableStateOf(profile?.isThrottleUnidirectional ?: false) }
     var buttonConfigs by remember { 
         mutableStateOf(profile?.buttonConfigs ?: com.metelci.ardunakon.model.defaultButtonConfigs) 
     }
@@ -92,27 +91,6 @@ fun ProfileEditorDialog(
                         activeTrackColor = Color(0xFF74B9FF)
                     )
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Throttle Mode
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Unidirectional Throttle (0-100%)",
-                        color = Color(0xFFB2BEC3),
-                        modifier = Modifier.weight(1f)
-                    )
-                    Switch(
-                        checked = isUnidirectional,
-                        onCheckedChange = { isUnidirectional = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color(0xFF74B9FF),
-                            checkedTrackColor = Color(0xFF2D3436)
-                        )
-                    )
-                }
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Buttons
@@ -159,7 +137,6 @@ fun ProfileEditorDialog(
                                 id = profile?.id ?: UUID.randomUUID().toString(),
                                 name = name,
                                 buttonConfigs = buttonConfigs,
-                                isThrottleUnidirectional = isUnidirectional,
                                 sensitivity = sensitivity
                             )
                             onSave(newProfile)
