@@ -683,14 +683,15 @@ fun ControlScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f), // Take remaining vertical space
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Left Stick (Throttle)
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
             ) {
                 // Joystick - Throttle only (vertical), no X axis
                 JoystickControl(
@@ -706,10 +707,11 @@ fun ControlScreen(
             }
 
             // Right Side: WASD Servo Control with keyboard integration
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
             ) {
                 // WASD Button Control with keyboard state integration
                 ServoButtonControl(
