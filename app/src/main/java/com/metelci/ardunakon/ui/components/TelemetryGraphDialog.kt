@@ -130,6 +130,18 @@ fun TelemetryGraphDialog(
                     )
                 }
 
+                val unitsLabel = when (selectedTab) {
+                    GraphTab.BATTERY -> "Units: Volts (V)"
+                    GraphTab.RSSI -> "Units: Signal strength (dBm)"
+                    GraphTab.RTT -> "Units: Latency (ms)"
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    unitsLabel,
+                    color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF37474F),
+                    style = MaterialTheme.typography.labelSmall
+                )
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Time Range Selector

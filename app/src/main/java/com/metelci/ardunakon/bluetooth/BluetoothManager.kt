@@ -129,7 +129,7 @@ data class ConnectionHealth(
     val lastRttMs: Long = 0L
 )
 
-class AppBluetoothManager(private val context: Context) {
+    class AppBluetoothManager(private val context: Context) {
 
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val adapter: BluetoothAdapter? = bluetoothManager.adapter
@@ -212,9 +212,10 @@ class AppBluetoothManager(private val context: Context) {
     private val lastPacketAt = longArrayOf(0L, 0L)
     private val lastRttMs = longArrayOf(0L, 0L)
     private val heartbeatTimeoutClassicMs = 20000L  // Increased from 12s to 20s for better tolerance
-    private val heartbeatTimeoutBleMs = 90000L      // More tolerant for BLE clones that pause packets
+    // BLE clones like HM-10/HC-08 often stay silent; allow long idle periods before reconnecting.
+    private val heartbeatTimeoutBleMs = 300000L     // 5 minutes before considering BLE link stale
     private val missedAckThresholdClassic = 5
-    private val missedAckThresholdBle = 15
+    private val missedAckThresholdBle = 60          // 60 heartbeats @4s ≈ 4 minutes before timeout
     private val missedHeartbeatAcks = intArrayOf(0, 0)
 
     private val leScanner by lazy { adapter?.bluetoothLeScanner }
@@ -309,6 +310,25 @@ class AppBluetoothManager(private val context: Context) {
         } else {
             log("E-STOP RELEASED: Connections allowed", LogType.SUCCESS)
         }
+    }
+
+    private fun shouldForceBle(deviceModel: BluetoothDeviceModel): Boolean {
+        val nameUpper = deviceModel.name.uppercase()
+        val hm10Markers = listOf(
+            "HM-10",
+            "HM10",
+            "AT-09",
+            "AT09",
+            "MLT-BT05",
+            "BT05",
+            "BT-05",
+            "HC-08",
+            "HC08",
+            "CC41",
+            "CC41-A",
+            "BLE"
+        )
+        return hm10Markers.any { marker -> nameUpper.contains(marker) }
     }
 
     private fun startReconnectMonitor() {
@@ -530,17 +550,28 @@ class AppBluetoothManager(private val context: Context) {
                 return@launch
             }
 
+            // Detect HM-10 / AT-09 / MLT-BT05 style BLE-only clones and force BLE path
+            val forceBle = shouldForceBle(deviceModel)
+            val coercedModel = if (forceBle || deviceModel.type == DeviceType.LE) {
+                if (forceBle && deviceModel.type != DeviceType.LE) {
+                    log("Forcing BLE path for HM-10 clone (${deviceModel.name})", LogType.INFO)
+                }
+                deviceModel.copy(type = DeviceType.LE)
+            } else {
+                deviceModel
+            }
+
             // Save for potential reconnect
-            savedDevices[slot] = deviceModel
-            connectionTypes[slot] = deviceModel.type
+            savedDevices[slot] = coercedModel
+            connectionTypes[slot] = coercedModel.type
             // Only enable auto-reconnect if user toggle is ON
             _shouldReconnect[slot] = _autoReconnectEnabled.value[slot]
             // Seed RSSI with last known scan value for immediate UI feedback
-            updateRssi(slot, deviceModel.rssi)
+            updateRssi(slot, coercedModel.rssi)
 
             if (!isAutoReconnect) {
                 updateConnectionState(slot, ConnectionState.CONNECTING)
-                log("Connecting to ${deviceModel.name}...", LogType.INFO)
+                log("Connecting to ${coercedModel.name}...", LogType.INFO)
             }
 
             // Cancel discovery BEFORE starting connection - discovery interferes with connection
@@ -558,7 +589,7 @@ class AppBluetoothManager(private val context: Context) {
             // Give BT stack time to clean up (minimal delay for fast reconnection)
             delay(200)
 
-            val device = localAdapter.getRemoteDevice(deviceModel.address)
+            val device = localAdapter.getRemoteDevice(coercedModel.address)
             if (device == null) {
                 connectionMutex[slot].unlock()
                 return@launch
@@ -566,10 +597,10 @@ class AppBluetoothManager(private val context: Context) {
 
             // Refresh device name in cache during connection attempt
             // This ensures the debug window shows the latest name
-            val refreshedName = resolveDeviceName(device, deviceModel.type)
+            val refreshedName = resolveDeviceName(device, coercedModel.type)
             log("Device name resolved: $refreshedName", LogType.INFO)
 
-            if (deviceModel.type == DeviceType.LE) {
+            if (coercedModel.type == DeviceType.LE) {
                 val bleConnection = BleConnection(device, slot)
                 connections[slot] = bleConnection
                 bleConnection.connect()
