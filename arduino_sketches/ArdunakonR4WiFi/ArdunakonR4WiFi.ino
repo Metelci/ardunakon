@@ -10,11 +10,11 @@
  * Protocol: 10-byte binary packets @ 20Hz
  * [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
  *
- * Compatible with Ardunakon v0.1.1-alpha and newer
- * https://github.com/Metelci/ardunakon
+ * v2.0 - Arcade Drive + Servo Support
  */
 
 #include <ArduinoBLE.h>
+#include <Servo.h>
 
 // BLE Service and Characteristic UUIDs
 // 1) HM-10 compatible (common BLE UART clones)
@@ -35,17 +35,27 @@
 #define CMD_HEARTBEAT 0x03
 #define CMD_ESTOP     0x04
 
-// Pin Definitions (customize for your project)
+// Pin Definitions
+// Motors
 #define MOTOR_LEFT_PWM    9
 #define MOTOR_LEFT_DIR1   8
 #define MOTOR_LEFT_DIR2   7
 #define MOTOR_RIGHT_PWM   6
 #define MOTOR_RIGHT_DIR1  5
 #define MOTOR_RIGHT_DIR2  4
+
+// Servos
+#define SERVO_X_PIN       2  // Controlled by A/L keys
+#define SERVO_Y_PIN       12 // Controlled by W/R keys
+
 #define LED_STATUS        LED_BUILTIN
 #define BUZZER_PIN        3
 
-// BLE Objects (advertise both profiles for maximum compatibility)
+// Objects
+Servo servoX;
+Servo servoY;
+
+// BLE Objects
 BLEService bleServiceHm10(SERVICE_UUID_HM10);
 BLECharacteristic txCharacteristicHm10(CHARACTERISTIC_UUID_HM10, BLERead | BLENotify, 20);
 BLECharacteristic rxCharacteristicHm10(CHARACTERISTIC_UUID_HM10, BLEWrite | BLEWriteWithoutResponse, 20);
@@ -61,20 +71,21 @@ unsigned long lastPacketTime = 0;
 unsigned long lastHeartbeatTime = 0;
 
 // Control state
-int8_t leftX = 0, leftY = 0, rightX = 0, rightY = 0;
+int8_t leftX = 0, leftY = 0; // Drive (Steering, Throttle)
+int8_t rightX = 0, rightY = 0; // Servos
 uint8_t auxBits = 0;
 bool emergencyStop = false;
 
 // Telemetry
 float batteryVoltage = 0.0;
-uint8_t systemStatus = 0; // 0 = Active, 1 = Safe Mode
 
 // Function prototypes
 void handleIncoming(BLECharacteristic& characteristic);
 void processIncomingByte(uint8_t byte);
 bool validateChecksum();
 void handlePacket();
-void updateMotors();
+void updateDrive();
+void updateServos();
 void setMotor(int pwmPin, int dir1Pin, int dir2Pin, int8_t speed);
 void handleButton(uint8_t buttonId, uint8_t pressed);
 void safetyStop();
@@ -94,20 +105,25 @@ void setup() {
   pinMode(LED_STATUS, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 
+  // Initialize Servos
+  servoX.attach(SERVO_X_PIN);
+  servoY.attach(SERVO_Y_PIN);
+  servoX.write(90); // Center
+  servoY.write(90); // Center
+
   // Initialize BLE
   if (!BLE.begin()) {
     Serial.println("Starting BLE failed!");
     while (1);
   }
 
-  // Set BLE device name (will appear as "ArdunakonR4" in scan)
+  // Set BLE device name
   BLE.setLocalName("ArdunakonR4");
   BLE.setDeviceName("ArdunakonR4");
 
-  // Add characteristics to service
+  // Add characteristics
   bleServiceHm10.addCharacteristic(txCharacteristicHm10);
   bleServiceHm10.addCharacteristic(rxCharacteristicHm10);
-
   bleServiceArduino.addCharacteristic(txCharacteristicArduino);
   bleServiceArduino.addCharacteristic(rxCharacteristicArduino);
 
@@ -118,9 +134,15 @@ void setup() {
   // Start advertising
   BLE.advertise();
 
-  Serial.println("Arduino UNO R4 WiFi - Ardunakon Controller");
+  Serial.println("Arduino UNO R4 WiFi - Ardunakon Controller v2.0");
   Serial.println("Waiting for BLE connection...");
   digitalWrite(LED_STATUS, LOW);
+
+  // Ready blink
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(LED_STATUS, HIGH); delay(200);
+    digitalWrite(LED_STATUS, LOW); delay(200);
+  }
 }
 
 void loop() {
@@ -133,13 +155,8 @@ void loop() {
     digitalWrite(LED_STATUS, HIGH);
 
     while (central.connected()) {
-      // Check if data available on either advertised profile
-      if (rxCharacteristicHm10.written()) {
-        handleIncoming(rxCharacteristicHm10);
-      }
-      if (rxCharacteristicArduino.written()) {
-        handleIncoming(rxCharacteristicArduino);
-      }
+      if (rxCharacteristicHm10.written()) handleIncoming(rxCharacteristicHm10);
+      if (rxCharacteristicArduino.written()) handleIncoming(rxCharacteristicArduino);
 
       // Send telemetry every 4 seconds
       if (millis() - lastHeartbeatTime > 4000) {
@@ -147,7 +164,7 @@ void loop() {
         lastHeartbeatTime = millis();
       }
 
-      // Safety timeout - stop if no packet for 2 seconds
+      // Safety timeout
       if (millis() - lastPacketTime > 2000) {
         safetyStop();
       }
@@ -162,21 +179,13 @@ void loop() {
 void handleIncoming(BLECharacteristic& characteristic) {
   int len = characteristic.valueLength();
   const uint8_t* data = characteristic.value();
-
-  for (int i = 0; i < len; i++) {
-    processIncomingByte(data[i]);
-  }
+  for (int i = 0; i < len; i++) processIncomingByte(data[i]);
 }
 
 void processIncomingByte(uint8_t byte) {
-  // Look for START_BYTE
-  if (bufferIndex == 0 && byte != START_BYTE) {
-    return;
-  }
-
+  if (bufferIndex == 0 && byte != START_BYTE) return;
   packetBuffer[bufferIndex++] = byte;
 
-  // Check if packet complete
   if (bufferIndex >= PACKET_SIZE) {
     if (packetBuffer[9] == END_BYTE && validateChecksum()) {
       handlePacket();
@@ -187,9 +196,7 @@ void processIncomingByte(uint8_t byte) {
 
 bool validateChecksum() {
   uint8_t xor_check = 0;
-  for (int i = 1; i <= 7; i++) {
-    xor_check ^= packetBuffer[i];
-  }
+  for (int i = 1; i <= 7; i++) xor_check ^= packetBuffer[i];
   return (xor_check == packetBuffer[8]);
 }
 
@@ -199,131 +206,115 @@ void handlePacket() {
 
   switch (cmd) {
     case CMD_JOYSTICK:
-      // D1-D4: Left X/Y, Right X/Y (0-200, 100 is center)
-      // D5: Aux bits (bitfield for 8 aux buttons)
-      leftX = map(packetBuffer[3], 0, 200, -100, 100);
-      leftY = map(packetBuffer[4], 0, 200, -100, 100);
-      rightX = map(packetBuffer[5], 0, 200, -100, 100);
-      rightY = map(packetBuffer[6], 0, 200, -100, 100);
+      // Map inputs (-100 to 100)
+      leftX = map(packetBuffer[3], 0, 200, -100, 100); // Left Joystick X (Steering)
+      leftY = map(packetBuffer[4], 0, 200, -100, 100); // Left Joystick Y (Throttle)
+      rightX = map(packetBuffer[5], 0, 200, -100, 100); // Right Joystick X (Servo X)
+      rightY = map(packetBuffer[6], 0, 200, -100, 100); // Right Joystick Y (Servo Y)
       auxBits = packetBuffer[7];
 
       if (!emergencyStop) {
-        updateMotors();
+        updateDrive();
+        updateServos();
       }
       break;
 
     case CMD_BUTTON:
-      // D1: Button ID, D2: Pressed (1) or Released (0)
       handleButton(packetBuffer[3], packetBuffer[4]);
       break;
 
     case CMD_HEARTBEAT:
-      // Heartbeat acknowledged - connection alive
-      // D1-D2: Sequence number (for RTT measurement)
       sendHeartbeatAck(packetBuffer[3], packetBuffer[4]);
       break;
 
     case CMD_ESTOP:
       emergencyStop = true;
       safetyStop();
-      tone(BUZZER_PIN, 2000, 500); // Warning beep
+      tone(BUZZER_PIN, 2000, 500);
       break;
   }
 }
 
-void updateMotors() {
-  // Example: Tank-style steering
-  // leftY controls left motor, rightY controls right motor
+void updateDrive() {
+  // ARCADE DRIVE MIXING
+  // Left Motor = Y + X
+  // Right Motor = Y - X
+  
+  int leftSpeed = leftY + leftX;
+  int rightSpeed = leftY - leftX;
 
-  setMotor(MOTOR_LEFT_PWM, MOTOR_LEFT_DIR1, MOTOR_LEFT_DIR2, leftY);
-  setMotor(MOTOR_RIGHT_PWM, MOTOR_RIGHT_DIR1, MOTOR_RIGHT_DIR2, rightY);
+  // Clamp to -100..100
+  leftSpeed = constrain(leftSpeed, -100, 100);
+  rightSpeed = constrain(rightSpeed, -100, 100);
+
+  setMotor(MOTOR_LEFT_PWM, MOTOR_LEFT_DIR1, MOTOR_LEFT_DIR2, leftSpeed);
+  setMotor(MOTOR_RIGHT_PWM, MOTOR_RIGHT_DIR1, MOTOR_RIGHT_DIR2, rightSpeed);
+}
+
+void updateServos() {
+  // Map -100..100 to 0..180 degrees
+  int angleX = map(rightX, -100, 100, 0, 180);
+  int angleY = map(rightY, -100, 100, 0, 180);
+  
+  servoX.write(angleX);
+  servoY.write(angleY);
 }
 
 void setMotor(int pwmPin, int dir1Pin, int dir2Pin, int8_t speed) {
   if (speed > 0) {
-    digitalWrite(dir1Pin, HIGH);
-    digitalWrite(dir2Pin, LOW);
+    digitalWrite(dir1Pin, HIGH); digitalWrite(dir2Pin, LOW);
     analogWrite(pwmPin, map(speed, 0, 100, 0, 255));
   } else if (speed < 0) {
-    digitalWrite(dir1Pin, LOW);
-    digitalWrite(dir2Pin, HIGH);
+    digitalWrite(dir1Pin, LOW); digitalWrite(dir2Pin, HIGH);
     analogWrite(pwmPin, map(-speed, 0, 100, 0, 255));
   } else {
-    digitalWrite(dir1Pin, LOW);
-    digitalWrite(dir2Pin, LOW);
+    digitalWrite(dir1Pin, LOW); digitalWrite(dir2Pin, LOW);
     analogWrite(pwmPin, 0);
   }
 }
 
 void handleButton(uint8_t buttonId, uint8_t pressed) {
-  Serial.print("Button ");
-  Serial.print(buttonId);
-  Serial.println(pressed ? " pressed" : " released");
-
-  // Example: Button 1 clears emergency stop
   if (buttonId == 1 && pressed == 1) {
     emergencyStop = false;
-    Serial.println("Emergency stop cleared");
+    Serial.println("E-STOP CLEARED");
   }
-
-  // Add your custom button handlers here
 }
 
 void safetyStop() {
-  analogWrite(MOTOR_LEFT_PWM, 0);
-  analogWrite(MOTOR_RIGHT_PWM, 0);
-  digitalWrite(MOTOR_LEFT_DIR1, LOW);
-  digitalWrite(MOTOR_LEFT_DIR2, LOW);
-  digitalWrite(MOTOR_RIGHT_DIR1, LOW);
-  digitalWrite(MOTOR_RIGHT_DIR2, LOW);
+  analogWrite(MOTOR_LEFT_PWM, 0); analogWrite(MOTOR_RIGHT_PWM, 0);
+  digitalWrite(MOTOR_LEFT_DIR1, LOW); digitalWrite(MOTOR_LEFT_DIR2, LOW);
+  digitalWrite(MOTOR_RIGHT_DIR1, LOW); digitalWrite(MOTOR_RIGHT_DIR2, LOW);
 }
 
 void sendTelemetry() {
-  // Read battery voltage (example: voltage divider on A0)
-  // Adjust formula based on your voltage divider circuit
   int rawValue = analogRead(A0);
-  batteryVoltage = (rawValue / 1023.0) * 5.0 * 3.0; // Example: 3x voltage divider
+  batteryVoltage = (rawValue / 1023.0) * 5.0 * 3.0;
 
-  // Build telemetry packet
   uint8_t telemetry[PACKET_SIZE];
   telemetry[0] = START_BYTE;
-  telemetry[1] = 0x01; // Device ID
+  telemetry[1] = 0x01;
   telemetry[2] = CMD_HEARTBEAT;
-  telemetry[3] = (uint8_t)(batteryVoltage * 10); // Battery in tenths of volts
-  telemetry[4] = emergencyStop ? 1 : 0; // Status byte
-  telemetry[5] = 0;
-  telemetry[6] = 0;
-  telemetry[7] = 0;
+  telemetry[3] = (uint8_t)(batteryVoltage * 10);
+  telemetry[4] = emergencyStop ? 1 : 0;
+  for(int i=5; i<=7; i++) telemetry[i] = 0;
 
-  // Calculate checksum
   uint8_t xor_check = 0;
-  for (int i = 1; i <= 7; i++) {
-    xor_check ^= telemetry[i];
-  }
+  for (int i = 1; i <= 7; i++) xor_check ^= telemetry[i];
   telemetry[8] = xor_check;
   telemetry[9] = END_BYTE;
 
-  // Send via BLE
   txCharacteristicHm10.writeValue(telemetry, PACKET_SIZE);
   txCharacteristicArduino.writeValue(telemetry, PACKET_SIZE);
 }
 
 void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow) {
-  // Echo back heartbeat for RTT measurement
   uint8_t ack[PACKET_SIZE];
-  ack[0] = START_BYTE;
-  ack[1] = 0x01;
-  ack[2] = CMD_HEARTBEAT;
-  ack[3] = seqHigh;
-  ack[4] = seqLow;
-  ack[5] = 0;
-  ack[6] = 0;
-  ack[7] = 0;
+  ack[0] = START_BYTE; ack[1] = 0x01; ack[2] = CMD_HEARTBEAT;
+  ack[3] = seqHigh; ack[4] = seqLow;
+  for(int i=5; i<=7; i++) ack[i] = 0;
 
   uint8_t xor_check = 0;
-  for (int i = 1; i <= 7; i++) {
-    xor_check ^= ack[i];
-  }
+  for (int i = 1; i <= 7; i++) xor_check ^= ack[i];
   ack[8] = xor_check;
   ack[9] = END_BYTE;
 

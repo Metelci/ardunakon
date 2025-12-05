@@ -351,3 +351,24 @@ User guides and technical documentation:
 **App Version**: v0.1.1-alpha+
 **Status**: Production Ready
 **Confidence**: 100%
+
+---
+
+### 6. Servo Control & Arcade Drive - COMPLETE
+
+**Goal**: Enable 2-axis Joystick driving (Arcade Drive) and dedicated Servo control via W/A/L/R keys.
+
+**Delivered**:
+- **Arcade Drive**: Left Joystick now controls both Throttle (Y) and Steering (X).
+- **Servo Support**: 
+    - ightX (A/L keys) -> Servo on **Pin 2**.
+    - ightY (W/R keys) -> Servo on **Pin 12**.
+- **Updated Sketches**: All 3 sketches (ClassicUno, R4WiFi, UnoQ) updated to v2.0 logic.
+- **Android App**: ControlScreen.kt updated to unlock Left Joystick X-axis.
+
+**Files Modified**:
+- ControlScreen.kt
+- ArdunakonClassicUno.ino
+- ArdunakonR4WiFi.ino
+- ArdunakonUnoQ.ino
+
