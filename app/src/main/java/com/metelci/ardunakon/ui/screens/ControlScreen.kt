@@ -83,6 +83,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import android.view.HapticFeedbackConstants
 import android.content.Intent
 import androidx.core.content.FileProvider
@@ -254,18 +255,31 @@ fun ControlScreen(
         }
     }
 
-    // Joystick State (fixed size/placement)
+    // Joystick State (motor control)
     var leftJoystick by remember { mutableStateOf(Pair(0f, 0f)) }
-    var rightJoystick by remember { mutableStateOf(Pair(0f, 0f)) }
     
-    // Transmission Loop
-    LaunchedEffect(currentProfile, leftJoystick) {
+    // Keyboard State for Servo Control
+    var keyW by remember { mutableStateOf(false) } // Front servo forward
+    var keyA by remember { mutableStateOf(false) } // Left servo counterclockwise
+    var keyL by remember { mutableStateOf(false) } // Left servo clockwise
+    var keyR by remember { mutableStateOf(false) } // Right servo counterclockwise
+    
+    // Transmission Loop - Combine joystick and keyboard inputs
+    LaunchedEffect(currentProfile, leftJoystick, keyW, keyA, keyL, keyR) {
         while (isActive) {
+            // Combine joystick throttle with keyboard servo control
+            val leftX = leftJoystick.first // Joystick throttle X axis
+            val leftY = leftJoystick.second // Joystick throttle Y axis
+            
+            // Apply keyboard overrides for servo control
+            val rightX = if (keyA) -1f else if (keyL) 1f else 0f // Left servo: A=counterclockwise, L=clockwise
+            val rightY = if (keyW) -1f else if (keyR) 1f else 0f // Front/Right servos: W=front forward, R=right counterclockwise
+            
             val packet = ProtocolManager.formatJoystickData(
-                leftX = leftJoystick.first,
-                leftY = leftJoystick.second,
-                rightX = rightJoystick.first,
-                rightY = rightJoystick.second,
+                leftX = leftX,
+                leftY = leftY,
+                rightX = rightX,
+                rightY = rightY,
                 auxBits = 0 // Aux buttons are sent as separate commands
             )
             bluetoothManager.sendDataToAll(packet)
@@ -691,19 +705,29 @@ fun ControlScreen(
                 )
             }
 
-            // Right Side: WASD Servo Control - with label on right side
+            // Right Side: WASD Servo Control with keyboard integration
             Row(
-                horizontalArrangement = Arrangement.Center,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // WASD Button Control
+                // WASD Button Control with keyboard state integration
                 ServoButtonControl(
                     onMove = { x, y ->
-                        rightJoystick = Pair(
-                            x * currentProfile.sensitivity,
-                            y * currentProfile.sensitivity
-                        )
+                        // Map servo button movements to keyboard states
+                        when {
+                            x < -0.5f && y == 0f -> keyA = true // Left
+                            x > 0.5f && y == 0f -> keyL = true  // Right
+                            x == 0f && y > 0.5f -> keyW = true  // Up
+                            x == 0f && y < -0.5f -> keyR = true // Down
+                            else -> {
+                                // Release all keys if no specific direction
+                                keyA = false
+                                keyL = false
+                                keyW = false
+                                keyR = false
+                            }
+                        }
                     },
                     buttonSize = 60.dp,
                     onLog = { message ->
@@ -1179,6 +1203,11 @@ fun ControlScreen(
         )
     }
 }
+
+
+
+
+
 
 
 

@@ -74,7 +74,8 @@ private object GattStatus {
         return when (status) {
             GATT_CONNECTION_TIMEOUT,      // 8 - Timeout, retry may work
             GATT_INTERNAL_ERROR,          // 129 - Android stack issue, retry may work
-            GATT_LINK_LOSS               // 147 - Link layer failure, retry may work
+            GATT_LINK_LOSS,               // 147 - Link layer failure, retry may work
+            62                            // 62 - Often returned as "Unknown GATT error (62)" on unstable HM-10 clones
             -> true
             else -> false
         }
@@ -97,6 +98,7 @@ private object GattStatus {
             GATT_INTERNAL_ERROR -> "Internal Error (129): Android BLE stack issue"
             GATT_DEVICE_NOT_FOUND -> "Device Not Found (133): Out of range or powered off"
             GATT_LINK_LOSS -> "Link Layer Failure (147): Device reset or interference"
+            62 -> "Unknown GATT error (62): Treating as transient HM-10/MLT-BT05 timeout"
             else -> "Unknown GATT error ($status)"
         }
     }
@@ -312,8 +314,8 @@ data class ConnectionHealth(
         }
     }
 
-    private fun shouldForceBle(deviceModel: BluetoothDeviceModel): Boolean {
-        val nameUpper = deviceModel.name.uppercase()
+    private fun isBleOnlyName(name: String?): Boolean {
+        val nameUpper = (name ?: "").uppercase()
         val hm10Markers = listOf(
             "HM-10",
             "HM10",
@@ -329,6 +331,10 @@ data class ConnectionHealth(
             "BLE"
         )
         return hm10Markers.any { marker -> nameUpper.contains(marker) }
+    }
+
+    private fun shouldForceBle(deviceModel: BluetoothDeviceModel): Boolean {
+        return isBleOnlyName(deviceModel.name)
     }
 
     private fun startReconnectMonitor() {
@@ -475,19 +481,30 @@ data class ConnectionHealth(
 
     fun addDevice(device: BluetoothDevice, type: DeviceType, rssi: Int): Boolean {
         val list = _scannedDevices.value.toMutableList()
-        if (list.none { it.address == device.address }) {
-            // Resolve name using multi-layer strategy
-            scope.launch {
-                val resolvedName = resolveDeviceName(device, type)
-                val updatedList = _scannedDevices.value.toMutableList()
-                if (updatedList.none { it.address == device.address }) {
-                    updatedList.add(BluetoothDeviceModel(resolvedName, device.address, type, rssi))
-                    _scannedDevices.value = updatedList
-                }
+        val isBleOnly = isBleOnlyName(device.name)
+        val resolvedType = if (isBleOnly) DeviceType.LE else type
+
+        val existingIndex = list.indexOfFirst { it.address == device.address }
+        if (existingIndex >= 0) {
+            // Upgrade existing entry to BLE if needed
+            val existing = list[existingIndex]
+            if (resolvedType == DeviceType.LE && existing.type != DeviceType.LE) {
+                list[existingIndex] = existing.copy(type = DeviceType.LE)
+                _scannedDevices.value = list
             }
-            return true
+            return false
         }
-        return false
+
+        // Resolve name using multi-layer strategy
+        scope.launch {
+            val resolvedName = resolveDeviceName(device, resolvedType)
+            val updatedList = _scannedDevices.value.toMutableList()
+            if (updatedList.none { it.address == device.address }) {
+                updatedList.add(BluetoothDeviceModel(resolvedName, device.address, resolvedType, rssi))
+                _scannedDevices.value = updatedList
+            }
+        }
+        return true
     }
 
     private suspend fun resolveDeviceName(device: BluetoothDevice, type: DeviceType): String {
@@ -1585,6 +1602,14 @@ data class ConnectionHealth(
                         updateConnectionState(slot, ConnectionState.ERROR)
                         connections[slot] = null
                         connectionMutex[slot].unlock()
+
+                        // Schedule a short backoff reconnect for transient HM-10/MLT-BT05 errors (e.g., status 62)
+                        scope.launch {
+                            delay(retryDelayMs)
+                            log("Retrying BLE connect after transient error (status $status)...", LogType.WARNING)
+                            connectToDevice(savedDevices[slot]
+                                ?: BluetoothDeviceModel(device.name ?: "Unknown", device.address, DeviceType.LE), slot, isAutoReconnect = true)
+                        }
                     } else {
                         // Max retries exhausted or unknown error - fail and let auto-reconnect handle it
                         if (gattRetryAttempt >= maxGattRetries) {
@@ -1872,25 +1897,34 @@ data class ConnectionHealth(
 
                     // Enable Notifications on TX characteristic (except Nordic and Generic Split which were handled above)
                     if (detectedVariant != 2 && detectedVariant != 8) {
-                        // Check if we need to enable Indication or Notification
-                        val enableIndication = (txCharacteristic!!.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
-                        
-                        gatt.setCharacteristicNotification(txCharacteristic, true)
-                        val descriptor = txCharacteristic!!.getDescriptor(CCCD_UUID)
-                        if (descriptor != null) {
-                            val descriptorValue = if (enableIndication) 
-                                android.bluetooth.BluetoothGattDescriptor.ENABLE_INDICATION_VALUE 
-                            else 
-                                android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                        // Prefer a characteristic that actually supports Notify/Indicate; fall back to txCharacteristic
+                        val service = txCharacteristic?.service
+                        val notifyCandidate = service?.characteristics?.firstOrNull { char ->
+                            val props = char.properties
+                            (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 ||
+                                    (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                        } ?: txCharacteristic
 
-                            // Use API 33+ method or legacy method based on SDK version
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                gatt.writeDescriptor(descriptor, descriptorValue)
-                            } else {
-                                @Suppress("DEPRECATION")
-                                descriptor.value = descriptorValue
-                                @Suppress("DEPRECATION")
-                                gatt.writeDescriptor(descriptor)
+                        notifyCandidate?.let { notifyChar ->
+                            val enableIndication = (notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+
+                            gatt.setCharacteristicNotification(notifyChar, true)
+                            val descriptor = notifyChar.getDescriptor(CCCD_UUID)
+                            if (descriptor != null) {
+                                val descriptorValue = if (enableIndication)
+                                    android.bluetooth.BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+                                else
+                                    android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+
+                                // Use API 33+ method or legacy method based on SDK version
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    gatt.writeDescriptor(descriptor, descriptorValue)
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    descriptor.value = descriptorValue
+                                    @Suppress("DEPRECATION")
+                                    gatt.writeDescriptor(descriptor)
+                                }
                             }
                         }
                     }
@@ -1899,6 +1933,23 @@ data class ConnectionHealth(
                     // Log all available services for debugging
                     gatt.services?.forEach { svc ->
                         log("Available service: ${svc.uuid}", LogType.INFO)
+                    }
+                    // Fail the connection so auto-reconnect/backoff can retry and avoid silent writes
+                    updateConnectionState(slot, ConnectionState.ERROR)
+                    connections[slot] = null
+                    bluetoothGatt?.disconnect()
+                    bluetoothGatt?.close()
+                    bluetoothGatt = null
+                    connectionMutex[slot].unlock()
+                    scope.launch {
+                        delay(1000)
+                        log("Retrying BLE connect after missing service/characteristic...", LogType.WARNING)
+                        connectToDevice(
+                            savedDevices[slot]
+                                ?: BluetoothDeviceModel(device.name ?: "Unknown", device.address, DeviceType.LE),
+                            slot,
+                            isAutoReconnect = true
+                        )
                     }
                 }
             }
@@ -1990,7 +2041,9 @@ data class ConnectionHealth(
 
                         // Small delay to prevent overwhelming BLE stack
                         // BLE can typically handle ~100 packets/sec, we're sending at 20Hz (50ms)
-                        delay(10) // Extra 10ms buffer for safety
+                        // For MLT-BT05, use shorter delay for better responsiveness
+                        val delayMs = if (detectedVariant == 6) 2L else 10L // MLT-BT05 gets faster writes
+                        delay(delayMs)
                     } catch (e: InterruptedException) {
                         // Queue interrupted, exit gracefully
                         break
@@ -2007,23 +2060,25 @@ data class ConnectionHealth(
             val gatt = bluetoothGatt ?: return
             val char = txCharacteristic ?: return
 
-            // Check if characteristic supports WRITE_NO_RESPONSE
-            val writeType = if ((char.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
-                android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-            } else {
-                android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-            }
+            // Force NO_RESPONSE writes for HM-10/MLT-BT05 style modules to avoid stalls
+            val writeType = android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
 
             // Use API 33+ method or legacy method based on SDK version
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                gatt.writeCharacteristic(char, bytes, writeType)
+                val status = gatt.writeCharacteristic(char, bytes, writeType)
+                if (status != android.bluetooth.BluetoothStatusCodes.SUCCESS) {
+                    log("BLE writeCharacteristic failed (status=$status) Slot ${slot + 1}", LogType.WARNING)
+                }
             } else {
                 @Suppress("DEPRECATION")
                 char.value = bytes
                 @Suppress("DEPRECATION")
                 char.writeType = writeType
                 @Suppress("DEPRECATION")
-                gatt.writeCharacteristic(char)
+                val ok = gatt.writeCharacteristic(char)
+                if (!ok) {
+                    log("BLE writeCharacteristic (legacy) returned false (Slot ${slot + 1})", LogType.WARNING)
+                }
             }
         }
 

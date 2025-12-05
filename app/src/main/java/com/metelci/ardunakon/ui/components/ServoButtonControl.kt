@@ -45,13 +45,13 @@ fun ServoButtonControl(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Top Row: Z (Up)
+        // Top Row: A (Up)
         Button(
             onClick = {
                 val currentTime = System.currentTimeMillis()
                 if (currentTime - lastMoveTime >= debounceDelay) {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    onLog?.invoke("Servo: UP (Z)")
+                    onLog?.invoke("Servo: UP (A)")
                     onMove(0f, 1f) // Y = 1 (up)
                     lastMoveTime = currentTime
 
@@ -77,15 +77,10 @@ fun ServoButtonControl(
                     contentDescription = "Up",
                     modifier = Modifier.size(24.dp)
                 )
-                Text(
-                    text = "Z",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
 
-        // Middle Row: A (Left), S (Down), D (Right)
+        // Middle Row: L (Left), W (Down), R (Right)
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -122,21 +117,16 @@ fun ServoButtonControl(
                         contentDescription = "Left",
                         modifier = Modifier.size(24.dp)
                     )
-                    Text(
-                        text = "L",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
             }
 
-            // C (Down)
+            // W (Down)
             Button(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastMoveTime >= debounceDelay) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onLog?.invoke("Servo: DOWN (C)")
+                        onLog?.invoke("Servo: DOWN (W)")
                         onMove(0f, -1f) // Y = -1 (down)
                         lastMoveTime = currentTime
 
@@ -161,11 +151,6 @@ fun ServoButtonControl(
                         imageVector = Icons.Filled.KeyboardArrowDown,
                         contentDescription = "Down",
                         modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "C",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -201,11 +186,6 @@ fun ServoButtonControl(
                         imageVector = Icons.Filled.KeyboardArrowRight,
                         contentDescription = "Right",
                         modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "R",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
                     )
                 }
             }
