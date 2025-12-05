@@ -1,17 +1,17 @@
-What's New in v0.1.83-alpha:
+What's New in v0.1.84-alpha:
 
-?? **Telemetry Graphs**:
-    **Battery/RSSI/Latency Charts**: New full-screen dialog with per-slot toggles and time ranges (1m/5m/10m/all)
-    **History Manager**: Retains recent data with auto-eviction and one-tap clear
-    **Slot Awareness**: View Slot 1 and Slot 2 telemetry independently or together
+?? **BLE Servo Reliability (HM-10/MLT-BT05)**:
+    Forced WRITE_NO_RESPONSE writes with better error logging to reduce stalls on HM-10/MLT-BT05 clones
+    Improved reconnection handling on transient GATT failures for BLE-only modules
 
-?? **Control Screen Polish**:
-    **Decluttered Joystick**: Removed the side throttle labels for a cleaner dual-stick layout
+?? **Telemetry Charts**:
+    Axis labels now display numeric values (dBm, volts, ms) directly on the graphs
 
-?? **Stability & UX**:
-    Protocol/telemetry refactors and general polish across profiles, terminal, and servo controls
+?? **UI Cleanup**:
+    Restored embedded debug panel on the right and removed redundant keyboard state labels
 
 ---
+
 
 
 Previous Release - v0.1.75-alpha:
