@@ -258,22 +258,20 @@ fun ControlScreen(
     // Joystick State (motor control)
     var leftJoystick by remember { mutableStateOf(Pair(0f, 0f)) }
     
-    // Keyboard State for Servo Control
-    var keyW by remember { mutableStateOf(false) } // Front servo forward
-    var keyA by remember { mutableStateOf(false) } // Left servo counterclockwise
-    var keyL by remember { mutableStateOf(false) } // Left servo clockwise
-    var keyR by remember { mutableStateOf(false) } // Right servo counterclockwise
+    // Servo Control State (W, A, L, R buttons) - Persistent positions
+    var servoX by remember { mutableStateOf(0f) } // Horizontal: A=-1, L=+1, CENTER=0
+    var servoY by remember { mutableStateOf(0f) } // Vertical: W=+1, R=-1, CENTER=0
     
-    // Transmission Loop - Combine joystick and keyboard inputs
-    LaunchedEffect(currentProfile, leftJoystick, keyW, keyA, keyL, keyR) {
+    // Transmission Loop - Combine joystick and servo inputs
+    LaunchedEffect(currentProfile, leftJoystick, servoX, servoY) {
         while (isActive) {
-            // Combine joystick throttle with keyboard servo control
+            // Joystick controls motors (left stick)
             val leftX = leftJoystick.first // Joystick throttle X axis
             val leftY = leftJoystick.second // Joystick throttle Y axis
             
-            // Apply keyboard overrides for servo control
-            val rightX = if (keyA) -1f else if (keyL) 1f else 0f // Left servo: A=counterclockwise, L=clockwise
-            val rightY = if (keyW) -1f else if (keyR) 1f else 0f // Front/Right servos: W=front forward, R=right counterclockwise
+            // Servo positions are persistent, set by W/A/L/R buttons
+            val rightX = servoX  // Set directly from button state
+            val rightY = servoY  // Set directly from button state
             
             val packet = ProtocolManager.formatJoystickData(
                 leftX = leftX,
@@ -697,12 +695,12 @@ fun ControlScreen(
                 JoystickControl(
                     onMoved = { state ->
                         leftJoystick = Pair(
-                            0f, // No horizontal movement
-                            state.y * currentProfile.sensitivity
+                            state.x * currentProfile.sensitivity, // X axis (Steering)
+                            state.y * currentProfile.sensitivity  // Y axis (Throttle)
                         )
                     },
                     size = joystickSize,
-                    isThrottle = true // Y axis doesn't auto-center
+                    isThrottle = false // Enable 2-axis control
                 )
             }
 
@@ -713,23 +711,12 @@ fun ControlScreen(
                     .fillMaxHeight(),
                 contentAlignment = Alignment.Center
             ) {
-                // WASD Button Control with keyboard state integration
+                // WASD Button Control with persistent servo state
                 ServoButtonControl(
                     onMove = { x, y ->
-                        // Map servo button movements to keyboard states
-                        when {
-                            x < -0.5f && y == 0f -> keyA = true // Left
-                            x > 0.5f && y == 0f -> keyL = true  // Right
-                            x == 0f && y > 0.5f -> keyW = true  // Up
-                            x == 0f && y < -0.5f -> keyR = true // Down
-                            else -> {
-                                // Release all keys if no specific direction
-                                keyA = false
-                                keyL = false
-                                keyW = false
-                                keyR = false
-                            }
-                        }
+                        // Directly update persistent servo positions
+                        servoX = x
+                        servoY = y
                     },
                     buttonSize = 60.dp,
                     onLog = { message ->
