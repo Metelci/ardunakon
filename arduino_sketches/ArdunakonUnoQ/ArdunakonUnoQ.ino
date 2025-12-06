@@ -17,9 +17,10 @@
 #include <Servo.h>
 
 // BLE Service and Characteristic UUIDs (HM-10 compatible)
-// Using standard HM-10/HC-08 UUIDs for maximum compatibility
+// Using standard HM-10/HC-08 UUIDs for maximum compatibility - FIXED: Separate TX/RX
 #define SERVICE_UUID        "0000ffe0-0000-1000-8000-00805f9b34fb"
-#define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
+#define CHARACTERISTIC_UUID_TX "0000ffe1-0000-1000-8000-00805f9b34fb"  // TX: Arduino sends (notify)
+#define CHARACTERISTIC_UUID_RX "0000ffe2-0000-1000-8000-00805f9b34fb"  // RX: Arduino receives (write)
 
 // Protocol Constants
 #define START_BYTE 0xAA
@@ -54,8 +55,8 @@ Servo servoY;
 
 // BLE Objects
 BLEService bleService(SERVICE_UUID);
-BLECharacteristic txCharacteristic(CHARACTERISTIC_UUID, BLERead | BLENotify, 20);
-BLECharacteristic rxCharacteristic(CHARACTERISTIC_UUID, BLEWrite | BLEWriteWithoutResponse, 20);
+BLECharacteristic txCharacteristic(CHARACTERISTIC_UUID_TX, BLERead | BLENotify, 20);
+BLECharacteristic rxCharacteristic(CHARACTERISTIC_UUID_RX, BLEWrite | BLEWriteWithoutResponse, 20);
 
 // Packet buffer
 uint8_t packetBuffer[PACKET_SIZE];

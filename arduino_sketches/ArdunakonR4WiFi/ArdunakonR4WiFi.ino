@@ -1,28 +1,27 @@
-/*
- * Ardunakon - Arduino UNO R4 WiFi Sketch
- *
- * Full support for Arduino UNO R4 WiFi with built-in BLE
- * Designed for use with the Ardunakon Android Controller App
- *
- * Board: Arduino UNO R4 WiFi (Renesas RA4M1 + ESP32-S3)
- * Connectivity: Bluetooth Low Energy (BLE) via ESP32-S3 module
- *
- * Protocol: 10-byte binary packets @ 20Hz
- * [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
- *
- * v2.0 - Arcade Drive + Servo Support
- */
+// Ardunakon - Arduino UNO R4 WiFi Sketch
+// Full support for Arduino UNO R4 WiFi with built-in BLE
+// Designed for use with the Ardunakon Android Controller App
+//
+// Board: Arduino UNO R4 WiFi (Renesas RA4M1 + ESP32-S3)
+// Connectivity: Bluetooth Low Energy (BLE) via ESP32-S3 module
+//
+// Protocol: 10-byte binary packets at 20Hz
+// [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
+//
+// v2.0 - Arcade Drive + Servo Support
 
 #include <ArduinoBLE.h>
 #include <Servo.h>
 
 // BLE Service and Characteristic UUIDs
-// 1) HM-10 compatible (common BLE UART clones)
-#define SERVICE_UUID_HM10        "0000ffe0-0000-1000-8000-00805f9b34fb"
-#define CHARACTERISTIC_UUID_HM10 "0000ffe1-0000-1000-8000-00805f9b34fb"
-// 2) ArduinoBLE default example (official UNO R4 WiFi / Nano 33 IoT profile)
-#define SERVICE_UUID_ARDUINO     "19b10000-e8f2-537e-4f6c-d104768a1214"
-#define CHARACTERISTIC_UUID_ARDUINO "19b10001-e8f2-537e-4f6c-d104768a1214"
+// 1) HM-10 compatible (common BLE UART clones) - FIXED: Separate TX/RX
+#define SERVICE_UUID_HM10           "0000ffe0-0000-1000-8000-00805f9b34fb"
+#define CHARACTERISTIC_UUID_HM10_TX "0000ffe1-0000-1000-8000-00805f9b34fb"  // TX: Arduino sends (notify)
+#define CHARACTERISTIC_UUID_HM10_RX "0000ffe2-0000-1000-8000-00805f9b34fb"  // RX: Arduino receives (write)
+// 2) ArduinoBLE official profile - FIXED: Separate TX/RX
+#define SERVICE_UUID_ARDUINO           "19b10000-e8f2-537e-4f6c-d104768a1214"
+#define CHARACTERISTIC_UUID_ARDUINO_TX "19b10001-e8f2-537e-4f6c-d104768a1214"  // TX: Arduino sends (notify)
+#define CHARACTERISTIC_UUID_ARDUINO_RX "19b10002-e8f2-537e-4f6c-d104768a1214"  // RX: Arduino receives (write)
 
 // Protocol Constants
 #define START_BYTE 0xAA
@@ -57,12 +56,12 @@ Servo servoY;
 
 // BLE Objects
 BLEService bleServiceHm10(SERVICE_UUID_HM10);
-BLECharacteristic txCharacteristicHm10(CHARACTERISTIC_UUID_HM10, BLERead | BLENotify, 20);
-BLECharacteristic rxCharacteristicHm10(CHARACTERISTIC_UUID_HM10, BLEWrite | BLEWriteWithoutResponse, 20);
+BLECharacteristic txCharacteristicHm10(CHARACTERISTIC_UUID_HM10_TX, BLERead | BLENotify, 20);
+BLECharacteristic rxCharacteristicHm10(CHARACTERISTIC_UUID_HM10_RX, BLEWrite | BLEWriteWithoutResponse, 20);
 
 BLEService bleServiceArduino(SERVICE_UUID_ARDUINO);
-BLECharacteristic txCharacteristicArduino(CHARACTERISTIC_UUID_ARDUINO, BLERead | BLENotify, 20);
-BLECharacteristic rxCharacteristicArduino(CHARACTERISTIC_UUID_ARDUINO, BLEWrite | BLEWriteWithoutResponse, 20);
+BLECharacteristic txCharacteristicArduino(CHARACTERISTIC_UUID_ARDUINO_TX, BLERead | BLENotify, 20);
+BLECharacteristic rxCharacteristicArduino(CHARACTERISTIC_UUID_ARDUINO_RX, BLEWrite | BLEWriteWithoutResponse, 20);
 
 // Packet buffer
 uint8_t packetBuffer[PACKET_SIZE];

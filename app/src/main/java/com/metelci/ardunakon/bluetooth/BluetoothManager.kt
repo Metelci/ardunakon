@@ -789,6 +789,11 @@ data class ConnectionHealth(
                 // Reset backoff counter on successful connection
                 reconnectAttempts[slot] = 0
                 nextReconnectAt[slot] = 0L
+                // Reset packet loss stats
+                packetsSent[slot] = 0
+                packetsDropped[slot] = 0
+                packetsFailed[slot] = 0
+                lastPacketLossWarningTime[slot] = 0
             }
             ConnectionState.DISCONNECTED -> {
                 // Only vibrate if it was previously connected or connecting (avoid noise on startup)
@@ -893,9 +898,21 @@ data class ConnectionHealth(
     private val isDebugMode = com.metelci.ardunakon.BuildConfig.DEBUG
 
     // Telemetry State
-    data class Telemetry(val batteryVoltage: Float, val status: String)
+    data class Telemetry(
+        val batteryVoltage: Float,
+        val status: String,
+        val packetsSent: Long = 0,
+        val packetsDropped: Long = 0,
+        val packetsFailed: Long = 0
+    )
     private val _telemetry = MutableStateFlow<Telemetry?>(null)
     val telemetry: StateFlow<Telemetry?> = _telemetry.asStateFlow()
+
+    // Packet loss tracking (per slot)
+    private val packetsSent = mutableListOf(0L, 0L)
+    private val packetsDropped = mutableListOf(0L, 0L)
+    private val packetsFailed = mutableListOf(0L, 0L)
+    private val lastPacketLossWarningTime = mutableListOf(0L, 0L)
 
     private fun parseTelemetry(packet: ByteArray) {
         // Expected schema aligned to ProtocolManager packets:
@@ -927,7 +944,12 @@ data class ConnectionHealth(
 
         val status = if (statusByte == 1) "Safe Mode" else "Active"
 
-        _telemetry.value = Telemetry(battery, status)
+        // Calculate total packet stats across all slots
+        val totalSent = packetsSent.sum()
+        val totalDropped = packetsDropped.sum()
+        val totalFailed = packetsFailed.sum()
+
+        _telemetry.value = Telemetry(battery, status, totalSent, totalDropped, totalFailed)
 
         // Record battery voltage to history for graph visualization
         // Determine slot from device ID (DEV_ID in packet[1])
@@ -1435,6 +1457,16 @@ data class ConnectionHealth(
         private val SERVICE_UUID_V9 = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")
         private val CHAR_UUID_V9 = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214")
 
+        // Updated UUIDs with separate TX/RX (v2.0 sketches)
+        private val CHAR_UUID_TX_V1 = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")  // TX (notify)
+        private val CHAR_UUID_RX_V1 = UUID.fromString("0000FFE2-0000-1000-8000-00805F9B34FB")  // RX (write)
+        private val CHAR_UUID_TX_V9 = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214")  // TX (notify)
+        private val CHAR_UUID_RX_V9 = UUID.fromString("19B10002-E8F2-537E-4F6C-D104768A1214")  // RX (write)
+
+        // Legacy single UUID (backward compatibility)
+        private val CHAR_UUID_V1_LEGACY = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
+        private val CHAR_UUID_V9_LEGACY = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214")
+
         // Client Characteristic Configuration Descriptor (CCCD) for notifications - standard
         private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
 
@@ -1448,6 +1480,10 @@ data class ConnectionHealth(
         // Capacity of 100 packets prevents unbounded growth during connectivity issues
         private val writeQueue = java.util.concurrent.LinkedBlockingQueue<ByteArray>(100)
         private var writeJob: Job? = null
+
+        // Descriptor write queue management - ensures sequential GATT operations
+        private val pendingDescriptorWrites = mutableListOf<Triple<android.bluetooth.BluetoothGatt, android.bluetooth.BluetoothGattDescriptor, ByteArray>>()
+        private var descriptorWriteIndex = 0
 
         // GATT retry tracking for transient errors
         private var gattRetryAttempt = 0
@@ -1708,25 +1744,46 @@ data class ConnectionHealth(
                 // Try all UUID variants to find the correct one for this module
                 var serviceFound = false
 
-                // Variant 1: Standard HC-08/HM-10 (FFE0/FFE1) - Most common
-                // Also check for AT-09 variant (FFE0/FFE4) which shares the same service UUID
+                // Variant 1: Standard HC-08/HM-10 (FFE0/FFE1/FFE2) - Most common
                 var service = gatt.getService(SERVICE_UUID_V1)
                 if (service != null) {
-                    // Try standard HM-10 characteristic first (FFE1)
-                    var char = service.getCharacteristic(CHAR_UUID_V1)
-                    if (char != null) {
-                        txCharacteristic = char
+                    // Try new split TX/RX first (v2.0 sketches)
+                    log("→ Checking for HM-10 v2.0 split TX/RX characteristics...", LogType.INFO)
+                    val txChar = service.getCharacteristic(CHAR_UUID_TX_V1)  // FFE1 (notify)
+                    val rxChar = service.getCharacteristic(CHAR_UUID_RX_V1)  // FFE2 (write)
+
+                    if (txChar != null && rxChar != null) {
+                        txCharacteristic = rxChar  // Use RX for writing TO Arduino
                         detectedVariant = 1
                         serviceFound = true
-                        log("BLE Module detected: Standard HC-08/HM-10 (FFE0/FFE1)", LogType.SUCCESS)
+                        log("✓ BLE Module detected: HM-10 v2.0 (FFE0/FFE1/FFE2)", LogType.SUCCESS)
+                        log("  TX Char (notify): ${txChar.uuid}", LogType.INFO)
+                        log("  RX Char (write):  ${rxChar.uuid}", LogType.INFO)
+
+                        // Queue notification enable for TX characteristic
+                        gatt.setCharacteristicNotification(txChar, true)
+                        val descriptor = txChar.getDescriptor(CCCD_UUID)
+                        if (descriptor != null) {
+                            log("→ Queuing CCCD descriptor write for TX characteristic", LogType.INFO)
+                            pendingDescriptorWrites.add(Triple(gatt, descriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE))
+                        }
                     } else {
-                        // Try AT-09 characteristic (FFE4) as fallback for same service
-                        char = service.getCharacteristic(CHAR_UUID_V5)
+                        // Fallback: Try legacy single UUID (backward compatibility)
+                        var char = service.getCharacteristic(CHAR_UUID_V1_LEGACY)
                         if (char != null) {
                             txCharacteristic = char
-                            detectedVariant = 5
+                            detectedVariant = 1
                             serviceFound = true
-                            log("BLE Module detected: AT-09 (FFE0/FFE4)", LogType.SUCCESS)
+                            log("BLE Module detected: HM-10 Legacy (FFE0/FFE1)", LogType.SUCCESS)
+                        } else {
+                            // Try AT-09 characteristic (FFE4) as fallback for same service
+                            char = service.getCharacteristic(CHAR_UUID_V5)
+                            if (char != null) {
+                                txCharacteristic = char
+                                detectedVariant = 5
+                                serviceFound = true
+                                log("BLE Module detected: AT-09 (FFE0/FFE4)", LogType.SUCCESS)
+                            }
                         }
                     }
                 }
@@ -1802,16 +1859,39 @@ data class ConnectionHealth(
                     }
                 }
 
-                // Variant 9: ArduinoBLE Library Standard Example (Uno R4 Wifi / Nano 33 IoT)
+                // Variant 9: ArduinoBLE (Uno R4 WiFi / Uno Q)
                 if (!serviceFound) {
                     service = gatt.getService(SERVICE_UUID_V9)
                     if (service != null) {
-                        val char = service.getCharacteristic(CHAR_UUID_V9)
-                        if (char != null) {
-                            txCharacteristic = char
+                        // Try new split TX/RX first (v2.0 sketches)
+                        log("→ Checking for Arduino v2.0 split TX/RX characteristics...", LogType.INFO)
+                        val txChar = service.getCharacteristic(CHAR_UUID_TX_V9)  // 19B10001 (notify)
+                        val rxChar = service.getCharacteristic(CHAR_UUID_RX_V9)  // 19B10002 (write)
+
+                        if (txChar != null && rxChar != null) {
+                            txCharacteristic = rxChar  // Use RX for writing TO Arduino
                             detectedVariant = 9
                             serviceFound = true
-                            log("BLE Module detected: Arduino R4 Wifi / Nano 33 IoT", LogType.SUCCESS)
+                            log("✓ BLE Module detected: Arduino v2.0 (19B10000/01/02)", LogType.SUCCESS)
+                            log("  TX Char (notify): ${txChar.uuid}", LogType.INFO)
+                            log("  RX Char (write):  ${rxChar.uuid}", LogType.INFO)
+
+                            // Queue notification enable for TX characteristic
+                            gatt.setCharacteristicNotification(txChar, true)
+                            val descriptor = txChar.getDescriptor(CCCD_UUID)
+                            if (descriptor != null) {
+                                log("→ Queuing CCCD descriptor write for TX characteristic", LogType.INFO)
+                                pendingDescriptorWrites.add(Triple(gatt, descriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE))
+                            }
+                        } else {
+                            // Fallback: Try legacy single UUID (backward compatibility)
+                            val char = service.getCharacteristic(CHAR_UUID_V9_LEGACY)
+                            if (char != null) {
+                                txCharacteristic = char
+                                detectedVariant = 9
+                                serviceFound = true
+                                log("BLE Module detected: Arduino Legacy (19B10000/01)", LogType.SUCCESS)
+                            }
                         }
                     }
                 }
@@ -1852,39 +1932,40 @@ data class ConnectionHealth(
 
                             for (char in svc.characteristics) {
                                 val props = char.properties
-                                val hasWrite = (props and (android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE or android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0
+                                val hasWrite = (props and (android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE or
+                                                           android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0
                                 val hasNotify = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
                                 val hasIndicate = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
 
-                                if (hasWrite && writeChar == null) writeChar = char
-                                if ((hasNotify || hasIndicate) && notifyChar == null) notifyChar = char
+                                // Prioritize write-only characteristics (avoids selecting notify char for writing)
+                                if (hasWrite && !hasNotify && !hasIndicate && writeChar == null) {
+                                    writeChar = char
+                                }
+                                if ((hasNotify || hasIndicate) && notifyChar == null) {
+                                    notifyChar = char
+                                }
+
+                                // Fallback: accept any writable/notifiable characteristic
+                                if (writeChar == null && hasWrite) writeChar = char
                             }
 
                             if (writeChar != null && notifyChar != null) {
                                 txCharacteristic = writeChar
                                 detectedVariant = 8 // Generic Split
                                 serviceFound = true
-                                val type = if ((notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) "Notify" else "Indicate"
-                                log("BLE Module detected: Generic Split (TX: ${writeChar.uuid}, RX: ${notifyChar.uuid}) [$type]", LogType.SUCCESS)
+                                val type = if ((notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0)
+                                    "Notify" else "Indicate"
+                                log("BLE Module detected: Generic Split (Write: ${writeChar.uuid}, Notify: ${notifyChar.uuid}) [$type]", LogType.SUCCESS)
 
-                                // Enable notifications/indications on the separate RX characteristic
-                                val enableIndication = (notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                                // Queue notification enable
                                 gatt.setCharacteristicNotification(notifyChar, true)
-                                val rxDescriptor = notifyChar.getDescriptor(CCCD_UUID)
-                                if (rxDescriptor != null) {
-                                    val descriptorValue = if (enableIndication) 
-                                        android.bluetooth.BluetoothGattDescriptor.ENABLE_INDICATION_VALUE 
-                                    else 
+                                val descriptor = notifyChar.getDescriptor(CCCD_UUID)
+                                if (descriptor != null) {
+                                    val value = if ((notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0)
+                                        android.bluetooth.BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+                                    else
                                         android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                                        
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        gatt.writeDescriptor(rxDescriptor, descriptorValue)
-                                    } else {
-                                        @Suppress("DEPRECATION")
-                                        rxDescriptor.value = descriptorValue
-                                        @Suppress("DEPRECATION")
-                                        gatt.writeDescriptor(rxDescriptor)
-                                    }
+                                    pendingDescriptorWrites.add(Triple(gatt, descriptor, value))
                                 }
                             }
                         }
@@ -1892,11 +1973,9 @@ data class ConnectionHealth(
                 }
 
                 if (serviceFound && txCharacteristic != null) {
-                    // Start write queue processor
-                    startWriteQueue()
-
                     // Enable Notifications on TX characteristic (except Nordic and Generic Split which were handled above)
-                    if (detectedVariant != 2 && detectedVariant != 8) {
+                    // For variants 1 and 9, notifications are queued above in the discovery blocks
+                    if (detectedVariant != 1 && detectedVariant != 2 && detectedVariant != 8 && detectedVariant != 9) {
                         // Prefer a characteristic that actually supports Notify/Indicate; fall back to txCharacteristic
                         val service = txCharacteristic?.service
                         val notifyCandidate = service?.characteristics?.firstOrNull { char ->
@@ -1916,17 +1995,24 @@ data class ConnectionHealth(
                                 else
                                     android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
 
-                                // Use API 33+ method or legacy method based on SDK version
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    gatt.writeDescriptor(descriptor, descriptorValue)
-                                } else {
-                                    @Suppress("DEPRECATION")
-                                    descriptor.value = descriptorValue
-                                    @Suppress("DEPRECATION")
-                                    gatt.writeDescriptor(descriptor)
-                                }
+                                // Queue descriptor write instead of writing inline
+                                pendingDescriptorWrites.add(Triple(gatt, descriptor, descriptorValue))
                             }
                         }
+                    }
+
+                    // Process descriptor write queue first, then start write queue
+                    if (pendingDescriptorWrites.isNotEmpty()) {
+                        log("→ Processing ${pendingDescriptorWrites.size} queued CCCD descriptor(s)...", LogType.INFO)
+                        descriptorWriteIndex = 0
+                        val (g, desc, value) = pendingDescriptorWrites[0]
+                        log("→ Writing CCCD descriptor 1/${pendingDescriptorWrites.size}...", LogType.INFO)
+                        writeDescriptorCompat(g, desc, value)
+                        // Write queue will start after all descriptors complete (in onDescriptorWrite)
+                    } else {
+                        // No descriptors needed, start queue immediately
+                        log("→ No CCCD descriptors to write, starting write queue immediately", LogType.INFO)
+                        startWriteQueue()
                     }
                 } else {
                     log("BLE Service/Characteristic not found! Module may use unsupported UUIDs.", LogType.ERROR)
@@ -2023,6 +2109,50 @@ data class ConnectionHealth(
                     }
                 }
             }
+
+            override fun onDescriptorWrite(
+                gatt: android.bluetooth.BluetoothGatt,
+                descriptor: android.bluetooth.BluetoothGattDescriptor,
+                status: Int
+            ) {
+                if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+                    log("✓ CCCD descriptor ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size} configured for ${descriptor.characteristic.uuid}", LogType.INFO)
+
+                    // Write next descriptor if any pending
+                    descriptorWriteIndex++
+                    if (descriptorWriteIndex < pendingDescriptorWrites.size) {
+                        val (g, desc, value) = pendingDescriptorWrites[descriptorWriteIndex]
+                        log("→ Writing CCCD descriptor ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size}...", LogType.INFO)
+                        writeDescriptorCompat(g, desc, value)
+                    } else {
+                        // All descriptors configured - NOW safe to start write queue
+                        log("✓ All ${pendingDescriptorWrites.size} CCCD descriptor(s) configured successfully!", LogType.SUCCESS)
+                        log("→ Starting BLE write queue...", LogType.INFO)
+                        startWriteQueue()
+                    }
+                } else {
+                    val errorDesc = GattStatus.getErrorDescription(status)
+                    log("✗ CCCD descriptor ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size} write failed: $errorDesc", LogType.WARNING)
+                    // Continue anyway - may still work
+                    log("→ Starting write queue despite descriptor error (may still work)...", LogType.WARNING)
+                    startWriteQueue()
+                }
+            }
+        }
+
+        private fun writeDescriptorCompat(
+            gatt: android.bluetooth.BluetoothGatt,
+            descriptor: android.bluetooth.BluetoothGattDescriptor,
+            value: ByteArray
+        ) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                gatt.writeDescriptor(descriptor, value)
+            } else {
+                @Suppress("DEPRECATION")
+                descriptor.value = value
+                @Suppress("DEPRECATION")
+                gatt.writeDescriptor(descriptor)
+            }
         }
 
         private fun startWriteQueue() {
@@ -2067,7 +2197,9 @@ data class ConnectionHealth(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val status = gatt.writeCharacteristic(char, bytes, writeType)
                 if (status != android.bluetooth.BluetoothStatusCodes.SUCCESS) {
-                    log("BLE writeCharacteristic failed (status=$status) Slot ${slot + 1}", LogType.WARNING)
+                    packetsFailed[slot]++
+                    val errorDesc = GattStatus.getErrorDescription(status)
+                    log("✗ BLE write failed: $errorDesc (Slot ${slot + 1})", LogType.WARNING)
                 }
             } else {
                 @Suppress("DEPRECATION")
@@ -2077,7 +2209,8 @@ data class ConnectionHealth(
                 @Suppress("DEPRECATION")
                 val ok = gatt.writeCharacteristic(char)
                 if (!ok) {
-                    log("BLE writeCharacteristic (legacy) returned false (Slot ${slot + 1})", LogType.WARNING)
+                    packetsFailed[slot]++
+                    log("✗ BLE write failed (legacy) (Slot ${slot + 1})", LogType.WARNING)
                 }
             }
         }
@@ -2089,7 +2222,18 @@ data class ConnectionHealth(
             if (!writeQueue.offer(bytes)) {
                 writeQueue.poll() // Remove oldest
                 writeQueue.offer(bytes) // Add new
+
+                // Track packet drop
+                packetsDropped[slot]++
+
+                // Warn user if packet loss is occurring (throttled to once per 5 seconds)
+                val now = System.currentTimeMillis()
+                if (now - lastPacketLossWarningTime[slot] > 5000) {
+                    log("⚠ Packet dropped on Slot ${slot + 1} (queue full)", LogType.WARNING)
+                    lastPacketLossWarningTime[slot] = now
+                }
             }
+            packetsSent[slot]++
         }
 
         override fun requestRssi() {

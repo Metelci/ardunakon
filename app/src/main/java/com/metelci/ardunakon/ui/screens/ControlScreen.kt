@@ -175,6 +175,14 @@ fun ControlScreen(
                     appendLine("Telemetry:")
                     appendLine("  Battery Voltage: ${currentTelemetry.batteryVoltage}V")
                     appendLine("  Status: ${currentTelemetry.status}")
+                    appendLine("  Packets Sent: ${currentTelemetry.packetsSent}")
+                    appendLine("  Packets Dropped: ${currentTelemetry.packetsDropped}")
+                    appendLine("  Packets Failed: ${currentTelemetry.packetsFailed}")
+                    val totalLoss = currentTelemetry.packetsDropped + currentTelemetry.packetsFailed
+                    val lossPercent = if (currentTelemetry.packetsSent > 0) {
+                        (totalLoss.toFloat() / currentTelemetry.packetsSent * 100)
+                    } else 0f
+                    appendLine("  Packet Loss: ${"%.2f".format(lossPercent)}%")
                 }
             }
 
@@ -264,15 +272,16 @@ fun ControlScreen(
     
     // Transmission Loop - Combine joystick and servo inputs
     LaunchedEffect(currentProfile, leftJoystick, servoX, servoY) {
+        var lastLogTime = 0L
         while (isActive) {
             // Joystick controls motors (left stick)
             val leftX = leftJoystick.first // Joystick throttle X axis
             val leftY = leftJoystick.second // Joystick throttle Y axis
-            
+
             // Servo positions are persistent, set by W/A/L/R buttons
             val rightX = servoX  // Set directly from button state
             val rightY = servoY  // Set directly from button state
-            
+
             val packet = ProtocolManager.formatJoystickData(
                 leftX = leftX,
                 leftY = leftY,
@@ -280,6 +289,21 @@ fun ControlScreen(
                 rightY = rightY,
                 auxBits = 0 // Aux buttons are sent as separate commands
             )
+
+            // Debug logging - show joystick values every 500ms (throttled to avoid log spam)
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastLogTime >= 500) {
+                val isMoving = leftX != 0f || leftY != 0f || rightX != 0f || rightY != 0f
+                if (isMoving) {
+                    bluetoothManager.log(
+                        "Joystick → L:[X:${String.format("% .2f", leftX)}, Y:${String.format("% .2f", leftY)}] " +
+                        "R:[X:${String.format("% .2f", rightX)}, Y:${String.format("% .2f", rightY)}]",
+                        LogType.INFO
+                    )
+                    lastLogTime = currentTime
+                }
+            }
+
             bluetoothManager.sendDataToAll(packet)
             delay(50) // 20Hz
         }
@@ -651,6 +675,70 @@ fun ControlScreen(
                 enabled = autoReconnectEnabled[1],
                 onToggle = { bluetoothManager.setAutoReconnectEnabled(1, it) }
             )
+        }
+
+        // Packet Loss Warning Banner
+        telemetry?.let { telem ->
+            val totalLoss = telem.packetsDropped + telem.packetsFailed
+            val lossPercent = if (telem.packetsSent > 0) {
+                (totalLoss.toFloat() / telem.packetsSent * 100)
+            } else 0f
+
+            if (lossPercent > 1.0f) { // Show warning if >1% packet loss
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (lossPercent > 10f) {
+                            Color(0xFFFF5252) // Red for >10% loss
+                        } else if (lossPercent > 5f) {
+                            Color(0xFFFF9800) // Orange for >5% loss
+                        } else {
+                            Color(0xFFFFC107) // Yellow for >1% loss
+                        }
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "⚠ Packet Loss Detected",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.Black,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            )
+                            Text(
+                                "${"%.2f".format(lossPercent)}% loss (${totalLoss}/${telem.packetsSent} packets)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.Black.copy(alpha = 0.8f)
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            if (telem.packetsDropped > 0) {
+                                Text(
+                                    "Dropped: ${telem.packetsDropped}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.Black.copy(alpha = 0.7f)
+                                )
+                            }
+                            if (telem.packetsFailed > 0) {
+                                Text(
+                                    "Failed: ${telem.packetsFailed}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.Black.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))

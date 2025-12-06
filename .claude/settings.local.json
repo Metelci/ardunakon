@@ -13,7 +13,12 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(cat:*)",
-      "Bash(./gradlew.bat:*)"
+      "Bash(./gradlew.bat:*)",
+      "Bash(grep:*)",
+      "Bash(gradlew.bat assembleDebug:*)",
+      "Bash(cd:*)",
+      "Bash(h:)",
+      "Bash(cmd /c \"h: && cd StudioProjects\\ardunakon && gradlew.bat assembleDebug\")"
     ],
     "deny": [],
     "ask": []
