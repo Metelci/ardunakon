@@ -8,7 +8,7 @@
 // Protocol: 10-byte binary packets at 20Hz
 // [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
 //
-// v2.1 - Arcade Drive + Servo Support + Fixed Matrix Animation
+// v2.2 - Servo + Brushless ESC Support + Fixed Matrix Animation
 
 #include <ArduinoBLE.h>
 #include <Servo.h>
@@ -78,17 +78,12 @@ void playRockAnimation() {
 #define CMD_ESTOP     0x04
 
 // Pin Definitions
-// Motors
-#define MOTOR_LEFT_PWM    9
-#define MOTOR_LEFT_DIR1   8
-#define MOTOR_LEFT_DIR2   7
-#define MOTOR_RIGHT_PWM   6
-#define MOTOR_RIGHT_DIR1  5
-#define MOTOR_RIGHT_DIR2  4
+// Servos (directly connected to these pins)
+#define SERVO_X_PIN       6   // Horizontal servo (L/R buttons)
+#define SERVO_Y_PIN       7   // Vertical servo (W/B buttons)
 
-// Servos
-#define SERVO_X_PIN       2  // Controlled by A/L keys
-#define SERVO_Y_PIN       12 // Controlled by W/R keys
+// Brushless ESC (airplane ESC, no reverse)
+#define ESC_PIN           9   // ESC signal wire
 
 #define LED_STATUS        LED_BUILTIN
 #define BUZZER_PIN        3
@@ -96,6 +91,7 @@ void playRockAnimation() {
 // Objects
 Servo servoX;
 Servo servoY;
+Servo esc;  // Brushless ESC controlled like a servo
 
 // BLE Objects
 BLEService bleServiceHm10(SERVICE_UUID_HM10);
@@ -124,9 +120,8 @@ void handleIncoming(BLECharacteristic& characteristic);
 void processIncomingByte(uint8_t byte);
 bool validateChecksum();
 void handlePacket();
-void updateDrive();
+void updateThrottle();
 void updateServos();
-void setMotor(int pwmPin, int dir1Pin, int dir2Pin, int8_t speed);
 void handleButton(uint8_t buttonId, uint8_t pressed);
 void safetyStop();
 void sendTelemetry();
@@ -136,12 +131,6 @@ void setup() {
   Serial.begin(115200);
 
   // Initialize pins
-  pinMode(MOTOR_LEFT_PWM, OUTPUT);
-  pinMode(MOTOR_LEFT_DIR1, OUTPUT);
-  pinMode(MOTOR_LEFT_DIR2, OUTPUT);
-  pinMode(MOTOR_RIGHT_PWM, OUTPUT);
-  pinMode(MOTOR_RIGHT_DIR1, OUTPUT);
-  pinMode(MOTOR_RIGHT_DIR2, OUTPUT);
   pinMode(LED_STATUS, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 
@@ -150,6 +139,10 @@ void setup() {
   servoY.attach(SERVO_Y_PIN);
   servoX.write(90); // Center
   servoY.write(90); // Center
+
+  // Initialize ESC (arm at minimum throttle)
+  esc.attach(ESC_PIN);
+  esc.write(0);  // ESC arms when it sees minimum throttle on startup
   
   // Initialize LED Matrix
   matrix.begin();
@@ -272,7 +265,7 @@ void handlePacket() {
       auxBits = packetBuffer[7];
       
       if (!emergencyStop) {
-        updateDrive();
+        updateThrottle();
         updateServos();
       }
       break;
@@ -293,20 +286,15 @@ void handlePacket() {
   }
 }
 
-void updateDrive() {
-  // ARCADE DRIVE MIXING
-  // Left Motor = Y + X
-  // Right Motor = Y - X
-  
-  int leftSpeed = leftY + leftX;
-  int rightSpeed = leftY - leftX;
-
-  // Clamp to -100..100
-  leftSpeed = constrain(leftSpeed, -100, 100);
-  rightSpeed = constrain(rightSpeed, -100, 100);
-
-  setMotor(MOTOR_LEFT_PWM, MOTOR_LEFT_DIR1, MOTOR_LEFT_DIR2, leftSpeed);
-  setMotor(MOTOR_RIGHT_PWM, MOTOR_RIGHT_DIR1, MOTOR_RIGHT_DIR2, rightSpeed);
+void updateThrottle() {
+  // Brushless ESC control (airplane ESC - no reverse)
+  // Map joystick Y (0 to +100) to ESC (0 to 180)
+  // Ignore negative values (no reverse on airplane ESC)
+  int throttle = 0;
+  if (leftY > 0) {
+    throttle = map(leftY, 0, 100, 0, 180);
+  }
+  esc.write(throttle);
 }
 
 void updateServos() {
@@ -318,21 +306,6 @@ void updateServos() {
   servoY.write(angleY);
 }
 
-void setMotor(int pwmPin, int dir1Pin, int dir2Pin, int8_t speed) {
-  if (speed > 0) {
-    digitalWrite(dir1Pin, HIGH);
-    digitalWrite(dir2Pin, LOW);
-    analogWrite(pwmPin, map(speed, 0, 100, 0, 255));
-  } else if (speed < 0) {
-    digitalWrite(dir1Pin, LOW);
-    digitalWrite(dir2Pin, HIGH);
-    analogWrite(pwmPin, map(-speed, 0, 100, 0, 255));
-  } else {
-    digitalWrite(dir1Pin, LOW); digitalWrite(dir2Pin, LOW);
-    analogWrite(pwmPin, 0);
-  }
-}
-
 void handleButton(uint8_t buttonId, uint8_t pressed) {
   if (buttonId == 1 && pressed == 1) {
     emergencyStop = false;
@@ -341,9 +314,7 @@ void handleButton(uint8_t buttonId, uint8_t pressed) {
 }
 
 void safetyStop() {
-  analogWrite(MOTOR_LEFT_PWM, 0); analogWrite(MOTOR_RIGHT_PWM, 0);
-  digitalWrite(MOTOR_LEFT_DIR1, LOW); digitalWrite(MOTOR_LEFT_DIR2, LOW);
-  digitalWrite(MOTOR_RIGHT_DIR1, LOW); digitalWrite(MOTOR_RIGHT_DIR2, LOW);
+  esc.write(0);  // Cut throttle
 }
 
 void sendTelemetry() {

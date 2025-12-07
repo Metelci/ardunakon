@@ -76,8 +76,8 @@ OPTION 2: ARDUINO UNO R4 WIFI
 WHAT YOU NEED:
 - Arduino UNO R4 WiFi board
 - USB-C cable
-- Motor driver (L298N or similar)
-- Power supply for motors
+- Servos (up to 2) and/or Brushless ESC
+- Power supply for servos/ESC
 
 SOFTWARE SETUP:
 1. Install Arduino IDE 2.x
@@ -85,23 +85,29 @@ SOFTWARE SETUP:
    Tools → Board → Boards Manager → Search "Arduino UNO R4" → Install
 3. Install ArduinoBLE library:
    Tools → Manage Libraries → Search "ArduinoBLE" → Install
-4. Open arduino_sketches/ArdunakonR4WiFi/ArdunakonR4WiFi.ino
-5. Select Board: Tools → Board → Arduino UNO R4 WiFi
-6. Click Upload
+4. IMPORTANT: Update Servo library to v1.2.2 or later:
+   Tools → Manage Libraries → Search "Servo" → Update to 1.2.2+
+   (Earlier versions have a bug on R4 WiFi causing servo ticking/no movement)
+5. Open arduino_sketches/ArdunakonR4WiFi/ArdunakonR4WiFi.ino
+6. Select Board: Tools → Board → Arduino UNO R4 WiFi
+7. Click Upload
 
 WIRING:
 Built-in Bluetooth - No external module needed!
 
-Motor Driver (Example: L298N):
-  Arduino R4 WiFi  →    L298N Motor Driver
+Servos and Brushless ESC:
+  Arduino R4 WiFi  →    Component
   ─────────────────────────────────────────
-  Pin 9 (PWM)      →    ENA (Left Motor Speed)
-  Pin 8            →    IN1 (Left Motor Dir 1)
-  Pin 7            →    IN2 (Left Motor Dir 2)
-  Pin 6 (PWM)      →    ENB (Right Motor Speed)
-  Pin 5            →    IN3 (Right Motor Dir 1)
-  Pin 4            →    IN4 (Right Motor Dir 2)
-  GND              →    GND
+  Pin 6            →    Servo X (horizontal) signal
+  Pin 7            →    Servo Y (vertical) signal
+  Pin 9            →    ESC signal wire (brushless motor)
+  GND              →    Servo/ESC ground
+  5V               →    Servo power (small servos only)
+                        ESC powers from battery (BEC)
+
+CONTROL MAPPING:
+- W/L/B/R buttons → Servos (X and Y axis)
+- Joystick Y-axis → ESC throttle (0-100%, no reverse)
 
 CONNECTING TO ARDUNAKON APP:
 1. Upload sketch to Arduino R4 WiFi

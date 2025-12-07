@@ -328,7 +328,12 @@ data class ConnectionHealth(
             "HC08",
             "CC41",
             "CC41-A",
-            "BLE"
+
+            "BLE",
+            "ARDUNAKON",
+            "ARDUINO",
+            "R4",
+            "UNO R4"
         )
         return hm10Markers.any { marker -> nameUpper.contains(marker) }
     }

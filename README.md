@@ -4,7 +4,7 @@
 Ardunakon is a professional-grade Android application designed to control Arduino projects (RC cars, drones, boats, robots) via Bluetooth Classic or BLE. Fully supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and **classic Arduino UNO** with HC-05/HC-06 or HM-10 modules. It replaces generic controller apps with a robust, crash-proof, and highly customizable interface.
 
 ## Release Info
-* Current Alpha: **0.1.84-alpha** (build 17)
+* Current Alpha: **0.2.1-alpha** (build 18)
 * Target SDK: 35, Min SDK: 26
 
 ## 🚀 Key Features
@@ -57,8 +57,14 @@ The R4 WiFi has **built-in BLE** via the ESP32-S3 module.
 
 1. Open `arduino_sketches/ArdunakonR4WiFi/ArdunakonR4WiFi.ino`
 2. Install **ArduinoBLE** library
-3. Upload to your Arduino R4 WiFi
-4. Device will appear as **"ArdunakonR4"** in the app
+3. **Important**: Update **Servo** library to v1.2.2+ (fixes R4 WiFi servo bug)
+4. Upload to your Arduino R4 WiFi
+5. Device will appear as **"ArdunakonR4"** in the app
+
+**Wiring (v2.2+)**:
+- Pin 6 → Servo X (horizontal)
+- Pin 7 → Servo Y (vertical)
+- Pin 9 → Brushless ESC signal
 
 **No external Bluetooth module required!** ✅ Works with official boards and BLE-capable clones; sketch advertises both ArduinoBLE default service (19B10000/19B10001) and HM-10-style UUIDs for maximum compatibility.
 

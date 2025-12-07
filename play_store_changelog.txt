@@ -1,8 +1,22 @@
+What's New in v0.2.1-alpha:
+
+🔧 **Arduino R4 WiFi Servo & ESC Update**:
+    • **Fixed Servo Pins**: Servos now on Pin 6 (X) and Pin 7 (Y) for better R4 WiFi compatibility
+    • **Brushless ESC Support**: Added ESC control on Pin 9 for airplane/drone brushless motors
+    • **Removed DC Motor Driver Code**: Simplified sketch for servo + ESC setups
+    • **Servo Library Fix**: Documentation updated to require Servo v1.2.2+ (fixes R4 WiFi PWM bug)
+
+📝 **Documentation Updates**:
+    • Updated setup guide with new R4 WiFi wiring diagram
+    • Added ESC throttle control notes (airplane ESC, no reverse)
+
+---
+
 What's New in v0.2.0-alpha:
 
 🕹️ **Major Control Update: Arcade Drive & Servos**:
      • **Arcade Drive**: Drive your robot with a single joystick! The Left Stick now controls both Throttle and Steering for intuitive one-handed driving.
-     • **Dedicated Servo Control**: The W, A, L, R buttons are now fully dedicated to controlling two servos (Pin 2 and Pin 12), perfect for pan-tilt cameras or robot arms.
+     • **Dedicated Servo Control**: The W, A, L, R buttons are now fully dedicated to controlling two servos (Pin 6 and Pin 7), perfect for pan-tilt cameras or robot arms.
      • **Universal Board Support**: These features are now available on ALL supported boards: Classic Arduino UNO, UNO R4 WiFi, and UNO Q.
 
 ---
