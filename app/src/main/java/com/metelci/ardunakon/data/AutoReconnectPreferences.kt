@@ -24,6 +24,7 @@ class AutoReconnectPreferences(private val context: Context) {
             val encrypted = securityManager.encrypt(jsonObj.toString())
             File(context.filesDir, fileName).writeText(encrypted)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("AutoReconnectPrefs", "Error saving state", e)
         }
     }
@@ -42,6 +43,7 @@ class AutoReconnectPreferences(private val context: Context) {
                 obj.optBoolean("slot1", false)
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("AutoReconnectPrefs", "Error loading state", e)
             booleanArrayOf(false, false)
         }
@@ -61,6 +63,7 @@ class AutoReconnectPreferences(private val context: Context) {
                 obj.optBoolean("slot1", false)
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             booleanArrayOf(false, false)
         }
     }

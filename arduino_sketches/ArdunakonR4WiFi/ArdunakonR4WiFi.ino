@@ -25,9 +25,9 @@ uint8_t rockHand[8][12] = {
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
   { 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 }, // Finger tips
   { 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 }, 
-  { 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 }, 
-  { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0 }, // Knuckles
-  { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 }, // Palm
+  { 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 }, 
+  { 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0 }, // Knuckles
+  { 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0 }, // Palm
   { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 }, // Wrist
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
@@ -45,8 +45,8 @@ uint8_t rockHandDown[8][12] = {
 };
 
 void playRockAnimation() {
-  // Play the animation loop 3 times
-  for (int cycle = 0; cycle < 3; cycle++) {
+  // Play the animation loop 10 times
+  for (int cycle = 0; cycle < 10; cycle++) {
       matrix.renderBitmap(rockHand, 8, 12);
       delay(300);
       matrix.renderBitmap(rockHandDown, 8, 12);

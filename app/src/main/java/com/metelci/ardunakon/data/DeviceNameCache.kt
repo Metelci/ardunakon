@@ -41,6 +41,7 @@ class DeviceNameCache(private val context: Context) {
 
             saveAllDevices(devices)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("DeviceNameCache", "Error saving name", e)
         }
     }
@@ -49,6 +50,7 @@ class DeviceNameCache(private val context: Context) {
         try {
             loadAllDevices().find { it.address == address }?.name
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("DeviceNameCache", "Error loading name", e)
             null
         }
@@ -62,6 +64,7 @@ class DeviceNameCache(private val context: Context) {
             val devices = loadAllDevices().filter { it.lastSeen > cutoff }
             saveAllDevices(devices)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("DeviceNameCache", "Error cleaning cache", e)
         }
     }
@@ -85,6 +88,7 @@ class DeviceNameCache(private val context: Context) {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("DeviceNameCache", "Error loading cache", e)
             return emptyList()
         }
@@ -108,6 +112,7 @@ class DeviceNameCache(private val context: Context) {
             val file = File(context.filesDir, fileName)
             file.writeText(encrypted)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("DeviceNameCache", "Error saving cache", e)
         }
     }

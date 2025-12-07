@@ -1015,6 +1015,7 @@ data class ConnectionHealth(
                             // Verification failure does NOT affect connectivity
                             // This is purely informational for security logging
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             log("Device verification error: ${e.message}", LogType.WARNING)
                             // Any verification errors are non-critical
                         }
