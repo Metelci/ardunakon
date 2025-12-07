@@ -2,6 +2,7 @@ package com.metelci.ardunakon.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,17 +40,18 @@ fun LineChart(
     showGrid: Boolean = true,
     isDarkTheme: Boolean = true
 ) {
-    Column(modifier = modifier) {
+    Column(modifier = modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .height(200.dp)
         ) {
             Canvas(
                 modifier = Modifier
                     .matchParentSize()
+                    .border(1.dp, if (isDarkTheme) Color(0xFF455A64) else Color.LightGray)
                     .background(if (isDarkTheme) Color(0xFF1E1E1E) else Color.White)
-                    .padding(16.dp)
+                    .padding(start = 50.dp, top = 30.dp, end = 16.dp, bottom = 32.dp)
             ) {
                 val width = size.width
                 val height = size.height
@@ -121,7 +123,7 @@ fun LineChart(
                     color = if (isDarkTheme) Color.White else Color.Black,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(12.dp)
+                        .padding(start = 52.dp, top = 4.dp)
                 )
             }
             if (xAxisLabel.isNotEmpty()) {
@@ -282,7 +284,7 @@ private fun DrawScope.drawTimeLabels(
         canvas.nativeCanvas.drawText(
             startLabel,
             4.dp.toPx(),
-            height - 6.dp.toPx(),
+            height + 24.dp.toPx(),
             paint
         )
     }
@@ -291,7 +293,7 @@ private fun DrawScope.drawTimeLabels(
         canvas.nativeCanvas.drawText(
             endLabel,
             width - endWidth - 4.dp.toPx(),
-            height - 6.dp.toPx(),
+            height + 24.dp.toPx(),
             paint
         )
     }

@@ -12,6 +12,51 @@
 
 #include <ArduinoBLE.h>
 #include <Servo.h>
+#include <Arduino_LED_Matrix.h>
+
+ArduinoLEDMatrix matrix;
+
+// Rock hand animation frames (8x12 LED matrix)
+const uint32_t rockFrames[][4] = {
+  // Frame 1 - Closed fist
+  {
+    0x0,
+    0x1f8007e0,
+    0x1ff81ff8,
+    0x66666
+  },
+  // Frame 2 - Slightly open
+  {
+    0x0,
+    0x1f0007c0,
+    0x1ff01ff0,
+    0x66066
+  },
+  // Frame 3 - More open
+  {
+    0x0,
+    0x1e0007c0,
+    0x1fe01fe0,
+    0x66066
+  },
+  // Frame 4 - Closed again
+  {
+    0x0,
+    0x1f8007e0,
+    0x1ff81ff8,
+    0x66666
+  }
+};
+
+void playRockAnimation() {
+  for (int cycle = 0; cycle < 2; cycle++) {
+    for (int frame = 0; frame < 4; frame++) {
+      matrix.loadFrame(rockFrames[frame]);
+      delay(300);
+    }
+  }
+  matrix.clear();
+}
 
 // BLE Service and Characteristic UUIDs
 // 1) HM-10 compatible (common BLE UART clones) - FIXED: Separate TX/RX
@@ -56,18 +101,18 @@ Servo servoY;
 
 // BLE Objects
 BLEService bleServiceHm10(SERVICE_UUID_HM10);
-BLECharacteristic txCharacteristicHm10(CHARACTERISTIC_UUID_HM10_TX, BLERead | BLENotify, 20);
+BLECharacteristic txCharacteristicHm10(CHARACTERISTIC_UUID_HM10_TX, BLERead | BLENotify | BLEWrite | BLEWriteWithoutResponse, 20);
 BLECharacteristic rxCharacteristicHm10(CHARACTERISTIC_UUID_HM10_RX, BLEWrite | BLEWriteWithoutResponse, 20);
 
 BLEService bleServiceArduino(SERVICE_UUID_ARDUINO);
-BLECharacteristic txCharacteristicArduino(CHARACTERISTIC_UUID_ARDUINO_TX, BLERead | BLENotify, 20);
+BLECharacteristic txCharacteristicArduino(CHARACTERISTIC_UUID_ARDUINO_TX, BLERead | BLENotify | BLEWrite | BLEWriteWithoutResponse, 20);
 BLECharacteristic rxCharacteristicArduino(CHARACTERISTIC_UUID_ARDUINO_RX, BLEWrite | BLEWriteWithoutResponse, 20);
 
 // Packet buffer
 uint8_t packetBuffer[PACKET_SIZE];
 uint8_t bufferIndex = 0;
 unsigned long lastPacketTime = 0;
-unsigned long lastHeartbeatTime = 0;
+unsigned long lastTelemetryTime = 0;
 
 // Control state
 int8_t leftX = 0, leftY = 0; // Drive (Steering, Throttle)
@@ -109,6 +154,15 @@ void setup() {
   servoY.attach(SERVO_Y_PIN);
   servoX.write(90); // Center
   servoY.write(90); // Center
+  
+  // Initialize LED Matrix
+  matrix.begin();
+  
+  // Play rock animation on startup
+  playRockAnimation();
+  
+  // Configure ADC for UNO R4 WiFi (14-bit)
+  analogReadResolution(14);
 
   // Initialize BLE
   if (!BLE.begin()) {
@@ -129,6 +183,10 @@ void setup() {
   // Add service
   BLE.addService(bleServiceHm10);
   BLE.addService(bleServiceArduino);
+
+  // Advertise both service UUIDs for easier discovery
+  BLE.setAdvertisedServiceUuid(SERVICE_UUID_HM10);
+  BLE.setAdvertisedServiceUuid(SERVICE_UUID_ARDUINO);
 
   // Start advertising
   BLE.advertise();
@@ -155,12 +213,16 @@ void loop() {
 
     while (central.connected()) {
       if (rxCharacteristicHm10.written()) handleIncoming(rxCharacteristicHm10);
+      if (txCharacteristicHm10.written()) handleIncoming(txCharacteristicHm10); // Support Legacy writes
       if (rxCharacteristicArduino.written()) handleIncoming(rxCharacteristicArduino);
+      if (txCharacteristicArduino.written()) handleIncoming(txCharacteristicArduino); // Support Legacy writes
+
+      BLE.poll();
 
       // Send telemetry every 4 seconds
-      if (millis() - lastHeartbeatTime > 4000) {
+      if (millis() - lastTelemetryTime > 4000) {
         sendTelemetry();
-        lastHeartbeatTime = millis();
+        lastTelemetryTime = millis();
       }
 
       // Safety timeout
@@ -287,7 +349,7 @@ void safetyStop() {
 
 void sendTelemetry() {
   int rawValue = analogRead(A0);
-  batteryVoltage = (rawValue / 1023.0) * 5.0 * 3.0;
+  batteryVoltage = (rawValue / 16383.0) * 5.0 * 3.0;
 
   uint8_t telemetry[PACKET_SIZE];
   telemetry[0] = START_BYTE;

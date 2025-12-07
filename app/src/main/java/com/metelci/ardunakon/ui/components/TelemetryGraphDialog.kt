@@ -18,12 +18,7 @@ import androidx.compose.ui.window.Dialog
 import android.view.HapticFeedbackConstants
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 
-enum class TimeRange(val label: String, val milliseconds: Long?) {
-    ONE_MIN("1 min", 60_000L),
-    FIVE_MIN("5 min", 300_000L),
-    TEN_MIN("10 min", 600_000L),
-    ALL("All", null)
-}
+
 
 enum class GraphTab {
     BATTERY, RSSI, RTT
@@ -38,7 +33,7 @@ fun TelemetryGraphDialog(
 ) {
     val view = LocalView.current
     var selectedTab by remember { mutableStateOf(GraphTab.BATTERY) }
-    var timeRange by remember { mutableStateOf(TimeRange.FIVE_MIN) }
+
     var showSlot1 by remember { mutableStateOf(true) }
     var showSlot2 by remember { mutableStateOf(true) }
 
@@ -54,7 +49,7 @@ fun TelemetryGraphDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.90f)
-                .fillMaxHeight(),
+                .fillMaxHeight(0.85f),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = if (isDarkTheme) Color(0xFF2D3436) else Color.White)
         ) {
@@ -74,6 +69,33 @@ fun TelemetryGraphDialog(
                         style = MaterialTheme.typography.titleMedium,
                         color = if (isDarkTheme) Color.White else Color.Black
                     )
+
+                    // Slot Toggles - Moved to header
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = showSlot1,
+                                onCheckedChange = { showSlot1 = it },
+                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF00E5FF)),
+                                modifier = Modifier.size(16.dp) // Compact size
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Slot 1", color = Color(0xFF00E5FF), fontSize = 12.sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = showSlot2,
+                                onCheckedChange = { showSlot2 = it },
+                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFFD500F9)),
+                                modifier = Modifier.size(16.dp) // Compact size
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Slot 2", color = Color(0xFFD500F9), fontSize = 12.sp)
+                        }
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         IconButton(
                             onClick = {
@@ -144,56 +166,11 @@ fun TelemetryGraphDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Time Range Selector
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    TimeRange.values().forEach { range ->
-                        FilterChip(
-                            selected = timeRange == range,
-                            onClick = { timeRange = range },
-                            label = { Text(range.label, fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = if (isDarkTheme) Color(0xFF00E5FF) else Color(0xFF2196F3),
-                                selectedLabelColor = Color.Black,
-                                containerColor = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
-                                labelColor = if (isDarkTheme) Color.White else Color.Black
-                            )
-                        )
-                    }
-                }
+
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Slot Toggles
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = showSlot1,
-                            onCheckedChange = { showSlot1 = it },
-                            colors = CheckboxDefaults.colors(checkedColor = Color(0xFF00E5FF)),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Slot 1", color = Color(0xFF00E5FF), fontSize = 13.sp)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = showSlot2,
-                            onCheckedChange = { showSlot2 = it },
-                            colors = CheckboxDefaults.colors(checkedColor = Color(0xFFD500F9)),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Slot 2", color = Color(0xFFD500F9), fontSize = 13.sp)
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(10.dp))
 
                 // Chart Area
                 Box(
@@ -210,7 +187,7 @@ fun TelemetryGraphDialog(
                                     add(
                                         LineChartSeries(
                                             label = "Slot 1",
-                                            data = telemetryHistoryManager.getBatteryHistory(0, timeRange.milliseconds),
+                                            data = telemetryHistoryManager.getBatteryHistory(0, 120_000L),
                                             color = Color(0xFF00E5FF)
                                         )
                                     )
@@ -219,7 +196,7 @@ fun TelemetryGraphDialog(
                                     add(
                                         LineChartSeries(
                                             label = "Slot 2",
-                                            data = telemetryHistoryManager.getBatteryHistory(1, timeRange.milliseconds),
+                                            data = telemetryHistoryManager.getBatteryHistory(1, 120_000L),
                                             color = Color(0xFFD500F9)
                                         )
                                     )
@@ -253,7 +230,7 @@ fun TelemetryGraphDialog(
                                     add(
                                         LineChartSeries(
                                             label = "Slot 1",
-                                            data = telemetryHistoryManager.getRssiHistory(0, timeRange.milliseconds),
+                                            data = telemetryHistoryManager.getRssiHistory(0, 120_000L),
                                             color = Color(0xFF00E5FF)
                                         )
                                     )
@@ -262,7 +239,7 @@ fun TelemetryGraphDialog(
                                     add(
                                         LineChartSeries(
                                             label = "Slot 2",
-                                            data = telemetryHistoryManager.getRssiHistory(1, timeRange.milliseconds),
+                                            data = telemetryHistoryManager.getRssiHistory(1, 120_000L),
                                             color = Color(0xFFD500F9)
                                         )
                                     )
@@ -296,7 +273,7 @@ fun TelemetryGraphDialog(
                                     add(
                                         LineChartSeries(
                                             label = "Slot 1",
-                                            data = telemetryHistoryManager.getRttHistory(0, timeRange.milliseconds),
+                                            data = telemetryHistoryManager.getRttHistory(0, 120_000L),
                                             color = Color(0xFF00E5FF)
                                         )
                                     )
@@ -305,7 +282,7 @@ fun TelemetryGraphDialog(
                                     add(
                                         LineChartSeries(
                                             label = "Slot 2",
-                                            data = telemetryHistoryManager.getRttHistory(1, timeRange.milliseconds),
+                                            data = telemetryHistoryManager.getRttHistory(1, 120_000L),
                                             color = Color(0xFFD500F9)
                                         )
                                     )

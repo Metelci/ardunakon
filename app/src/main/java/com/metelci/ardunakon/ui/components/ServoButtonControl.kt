@@ -1,26 +1,17 @@
 package com.metelci.ardunakon.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
@@ -31,7 +22,7 @@ import android.view.HapticFeedbackConstants
 @Composable
 fun ServoButtonControl(
     modifier: Modifier = Modifier,
-    buttonSize: Dp = 70.dp,
+    buttonSize: Dp = 72.dp,
     onMove: (x: Float, y: Float) -> Unit,
     onLog: ((String) -> Unit)? = null
 ) {
@@ -42,6 +33,8 @@ fun ServoButtonControl(
     // Track current servo position (toggle mode - position persists until changed)
     var servoX by remember { mutableStateOf(0f) }
     var servoY by remember { mutableStateOf(0f) }
+    
+    // All buttons use uniform sizing for consistent appearance
 
     Column(
         modifier = modifier,
@@ -78,33 +71,33 @@ fun ServoButtonControl(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.Filled.KeyboardArrowUp,
-                    contentDescription = "Forward (W)",
-                    modifier = Modifier.size(24.dp)
+                Text(
+                    "W",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
 
-        // Middle Row: A (Left), CENTER, L (Right)
+        // Middle Row: L (Left), B (Backward), R (Right)
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // A (Left)
+            // L (Left)
             Button(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastMoveTime >= debounceDelay) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         
-                        // Toggle: if already at A position, return to center
+                        // Toggle: if already at L position, return to center
                         if (servoX == -1f) {
                             servoX = 0f
-                            onLog?.invoke("Servo: CENTER (released A)")
+                            onLog?.invoke("Servo: CENTER (released L)")
                         } else {
                             servoX = -1f
-                            onLog?.invoke("Servo: LEFT (A)")
+                            onLog?.invoke("Servo: LEFT (L)")
                         }
                         onMove(servoX, servoY)
                         lastMoveTime = currentTime
@@ -121,55 +114,66 @@ fun ServoButtonControl(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowLeft,
-                        contentDescription = "Left (A)",
-                        modifier = Modifier.size(24.dp)
+                    Text(
+                        "L",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            // CENTER button (returns all servos to neutral)
-            Button(
-                onClick = {
-                    val currentTime = System.currentTimeMillis()
-                    if (currentTime - lastMoveTime >= debounceDelay) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        servoX = 0f
-                        servoY = 0f
-                        onLog?.invoke("Servo: CENTER")
-                        onMove(0f, 0f)
-                        lastMoveTime = currentTime
-                    }
-                },
-                modifier = Modifier.size(buttonSize),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoX == 0f && servoY == 0f) Color(0xFF00C853) else Color(0xFF2D3436),
-                    contentColor = Color(0xFF00FF00)
-                ),
-                contentPadding = PaddingValues(4.dp)
-            ) {
-                Text(
-                    "C",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // L (Right)
+            // B (Backward/Reverse)
             Button(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastMoveTime >= debounceDelay) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         
-                        // Toggle: if already at L position, return to center
+                        // Toggle: if already at B position, return to center
+                        if (servoY == -1f) {
+                            servoY = 0f
+                            onLog?.invoke("Servo: CENTER (released B)")
+                        } else {
+                            servoY = -1f
+                            onLog?.invoke("Servo: BACKWARD (B)")
+                        }
+                        onMove(servoX, servoY)
+                        lastMoveTime = currentTime
+                    }
+                },
+                modifier = Modifier.size(buttonSize),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (servoY == -1f) Color(0xFF00C853) else Color(0xFF2D3436),
+                    contentColor = Color(0xFF00FF00)
+                ),
+                contentPadding = PaddingValues(4.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        "B",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // R (Right)
+            Button(
+                onClick = {
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastMoveTime >= debounceDelay) {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        
+                        // Toggle: if already at R position, return to center
                         if (servoX == 1f) {
                             servoX = 0f
-                            onLog?.invoke("Servo: CENTER (released L)")
+                            onLog?.invoke("Servo: CENTER (released R)")
                         } else {
                             servoX = 1f
-                            onLog?.invoke("Servo: RIGHT (L)")
+                            onLog?.invoke("Servo: RIGHT (R)")
                         }
                         onMove(servoX, servoY)
                         lastMoveTime = currentTime
@@ -186,50 +190,12 @@ fun ServoButtonControl(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowRight,
-                        contentDescription = "Right (L)",
-                        modifier = Modifier.size(24.dp)
+                    Text(
+                        "R",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-            }
-        }
-
-        // Bottom Row: R (Down/Backward)
-        Button(
-            onClick = {
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastMoveTime >= debounceDelay) {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    
-                    // Toggle: if already at R position, return to center
-                    if (servoY == -1f) {
-                        servoY = 0f
-                        onLog?.invoke("Servo: CENTER (released R)")
-                    } else {
-                        servoY = -1f
-                        onLog?.invoke("Servo: BACKWARD (R)")
-                    }
-                    onMove(servoX, servoY)
-                    lastMoveTime = currentTime
-                }
-            },
-            modifier = Modifier.size(buttonSize),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (servoY == -1f) Color(0xFF00C853) else Color(0xFF2D3436),
-                contentColor = Color(0xFF00FF00)
-            ),
-            contentPadding = PaddingValues(4.dp)
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.KeyboardArrowDown,
-                    contentDescription = "Backward (R)",
-                    modifier = Modifier.size(24.dp)
-                )
             }
         }
     }

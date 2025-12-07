@@ -272,7 +272,7 @@ fun ControlScreen(
     
     // Transmission Loop - Combine joystick and servo inputs
     LaunchedEffect(currentProfile, leftJoystick, servoX, servoY) {
-        var lastLogTime = 0L
+
         while (isActive) {
             // Joystick controls motors (left stick)
             val leftX = leftJoystick.first // Joystick throttle X axis
@@ -290,19 +290,7 @@ fun ControlScreen(
                 auxBits = 0 // Aux buttons are sent as separate commands
             )
 
-            // Debug logging - show joystick values every 500ms (throttled to avoid log spam)
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastLogTime >= 500) {
-                val isMoving = leftX != 0f || leftY != 0f || rightX != 0f || rightY != 0f
-                if (isMoving) {
-                    bluetoothManager.log(
-                        "Joystick → L:[X:${String.format("% .2f", leftX)}, Y:${String.format("% .2f", leftY)}] " +
-                        "R:[X:${String.format("% .2f", rightX)}, Y:${String.format("% .2f", rightY)}]",
-                        LogType.INFO
-                    )
-                    lastLogTime = currentTime
-                }
-            }
+
 
             bluetoothManager.sendDataToAll(packet)
             delay(50) // 20Hz
