@@ -8,7 +8,7 @@
 // Protocol: 10-byte binary packets at 20Hz
 // [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
 //
-// v2.0 - Arcade Drive + Servo Support
+// v2.1 - Arcade Drive + Servo Support + Fixed Matrix Animation
 
 #include <ArduinoBLE.h>
 #include <Servo.h>
@@ -16,54 +16,52 @@
 
 ArduinoLEDMatrix matrix;
 
-// Rock hand animation frames (8x12 LED matrix)
-const uint32_t rockFrames[][4] = {
-  // Frame 1 - Closed fist
-  {
-    0x0,
-    0x1f8007e0,
-    0x1ff81ff8,
-    0x66666
-  },
-  // Frame 2 - Slightly open
-  {
-    0x0,
-    0x1f0007c0,
-    0x1ff01ff0,
-    0x66066
-  },
-  // Frame 3 - More open
-  {
-    0x0,
-    0x1e0007c0,
-    0x1fe01fe0,
-    0x66066
-  },
-  // Frame 4 - Closed again
-  {
-    0x0,
-    0x1f8007e0,
-    0x1ff81ff8,
-    0x66666
-  }
+// ---------------------------------------------------------
+// NEW ANIMATION FRAMES (Verified 8x12 Bitmaps)
+// ---------------------------------------------------------
+
+// Frame 1: Rock Hand UP
+uint8_t rockHand[8][12] = {
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
+  { 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 }, // Finger tips
+  { 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 }, 
+  { 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 }, 
+  { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0 }, // Knuckles
+  { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 }, // Palm
+  { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 }, // Wrist
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+// Frame 2: Rock Hand DOWN (Headbang effect)
+uint8_t rockHandDown[8][12] = {
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // Fingers moved down
+  { 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 }, 
+  { 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 }, 
+  { 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0 },
+  { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0 }, 
+  { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 }, 
+  { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 }  
 };
 
 void playRockAnimation() {
-  for (int cycle = 0; cycle < 2; cycle++) {
-    for (int frame = 0; frame < 4; frame++) {
-      matrix.loadFrame(rockFrames[frame]);
+  // Play the animation loop 3 times
+  for (int cycle = 0; cycle < 3; cycle++) {
+      matrix.renderBitmap(rockHand, 8, 12);
       delay(300);
-    }
+      matrix.renderBitmap(rockHandDown, 8, 12);
+      delay(300);
   }
-  matrix.clear();
+  // Keep the main static hand visible after animation finishes
+  matrix.renderBitmap(rockHand, 8, 12);
 }
 
 // BLE Service and Characteristic UUIDs
-// 1) HM-10 compatible (common BLE UART clones) - FIXED: Separate TX/RX
+// 1) HM-10 compatible (common BLE UART clones)
 #define SERVICE_UUID_HM10           "0000ffe0-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_UUID_HM10_TX "0000ffe1-0000-1000-8000-00805f9b34fb"  // TX: Arduino sends (notify)
 #define CHARACTERISTIC_UUID_HM10_RX "0000ffe2-0000-1000-8000-00805f9b34fb"  // RX: Arduino receives (write)
-// 2) ArduinoBLE official profile - FIXED: Separate TX/RX
+// 2) ArduinoBLE official profile
 #define SERVICE_UUID_ARDUINO           "19b10000-e8f2-537e-4f6c-d104768a1214"
 #define CHARACTERISTIC_UUID_ARDUINO_TX "19b10001-e8f2-537e-4f6c-d104768a1214"  // TX: Arduino sends (notify)
 #define CHARACTERISTIC_UUID_ARDUINO_RX "19b10002-e8f2-537e-4f6c-d104768a1214"  // RX: Arduino receives (write)
@@ -119,8 +117,6 @@ int8_t leftX = 0, leftY = 0; // Drive (Steering, Throttle)
 int8_t rightX = 0, rightY = 0; // Servos
 uint8_t auxBits = 0;
 bool emergencyStop = false;
-
-// Telemetry
 float batteryVoltage = 0.0;
 
 // Function prototypes
@@ -158,7 +154,7 @@ void setup() {
   // Initialize LED Matrix
   matrix.begin();
   
-  // Play rock animation on startup
+  // Play rock animation on startup (Now works with renderBitmap)
   playRockAnimation();
   
   // Configure ADC for UNO R4 WiFi (14-bit)
@@ -179,7 +175,7 @@ void setup() {
   bleServiceHm10.addCharacteristic(rxCharacteristicHm10);
   bleServiceArduino.addCharacteristic(txCharacteristicArduino);
   bleServiceArduino.addCharacteristic(rxCharacteristicArduino);
-
+  
   // Add service
   BLE.addService(bleServiceHm10);
   BLE.addService(bleServiceArduino);
@@ -187,14 +183,14 @@ void setup() {
   // Advertise both service UUIDs for easier discovery
   BLE.setAdvertisedServiceUuid(SERVICE_UUID_HM10);
   BLE.setAdvertisedServiceUuid(SERVICE_UUID_ARDUINO);
-
+  
   // Start advertising
   BLE.advertise();
 
   Serial.println("Arduino UNO R4 WiFi - Ardunakon Controller v2.0");
   Serial.println("Waiting for BLE connection...");
   digitalWrite(LED_STATUS, LOW);
-
+  
   // Ready blink
   for (int i = 0; i < 3; i++) {
     digitalWrite(LED_STATUS, HIGH); delay(200);
@@ -205,7 +201,6 @@ void setup() {
 void loop() {
   // Check for BLE connection
   BLEDevice central = BLE.central();
-
   if (central) {
     Serial.print("Connected to: ");
     Serial.println(central.address());
@@ -213,12 +208,14 @@ void loop() {
 
     while (central.connected()) {
       if (rxCharacteristicHm10.written()) handleIncoming(rxCharacteristicHm10);
-      if (txCharacteristicHm10.written()) handleIncoming(txCharacteristicHm10); // Support Legacy writes
+      if (txCharacteristicHm10.written()) handleIncoming(txCharacteristicHm10);
+      // Support Legacy writes
       if (rxCharacteristicArduino.written()) handleIncoming(rxCharacteristicArduino);
-      if (txCharacteristicArduino.written()) handleIncoming(txCharacteristicArduino); // Support Legacy writes
+      if (txCharacteristicArduino.written()) handleIncoming(txCharacteristicArduino);
+      // Support Legacy writes
 
       BLE.poll();
-
+      
       // Send telemetry every 4 seconds
       if (millis() - lastTelemetryTime > 4000) {
         sendTelemetry();
@@ -246,7 +243,7 @@ void handleIncoming(BLECharacteristic& characteristic) {
 void processIncomingByte(uint8_t byte) {
   if (bufferIndex == 0 && byte != START_BYTE) return;
   packetBuffer[bufferIndex++] = byte;
-
+  
   if (bufferIndex >= PACKET_SIZE) {
     if (packetBuffer[9] == END_BYTE && validateChecksum()) {
       handlePacket();
@@ -264,7 +261,7 @@ bool validateChecksum() {
 void handlePacket() {
   lastPacketTime = millis();
   uint8_t cmd = packetBuffer[2];
-
+  
   switch (cmd) {
     case CMD_JOYSTICK:
       // Map inputs (-100 to 100)
@@ -273,13 +270,13 @@ void handlePacket() {
       rightX = map(packetBuffer[5], 0, 200, -100, 100); // Right Joystick X (Servo X)
       rightY = map(packetBuffer[6], 0, 200, -100, 100); // Right Joystick Y (Servo Y)
       auxBits = packetBuffer[7];
-
+      
       if (!emergencyStop) {
         updateDrive();
         updateServos();
       }
       break;
-
+      
     case CMD_BUTTON:
       handleButton(packetBuffer[3], packetBuffer[4]);
       break;
@@ -287,7 +284,7 @@ void handlePacket() {
     case CMD_HEARTBEAT:
       sendHeartbeatAck(packetBuffer[3], packetBuffer[4]);
       break;
-
+      
     case CMD_ESTOP:
       emergencyStop = true;
       safetyStop();
@@ -323,10 +320,12 @@ void updateServos() {
 
 void setMotor(int pwmPin, int dir1Pin, int dir2Pin, int8_t speed) {
   if (speed > 0) {
-    digitalWrite(dir1Pin, HIGH); digitalWrite(dir2Pin, LOW);
+    digitalWrite(dir1Pin, HIGH);
+    digitalWrite(dir2Pin, LOW);
     analogWrite(pwmPin, map(speed, 0, 100, 0, 255));
   } else if (speed < 0) {
-    digitalWrite(dir1Pin, LOW); digitalWrite(dir2Pin, HIGH);
+    digitalWrite(dir1Pin, LOW);
+    digitalWrite(dir2Pin, HIGH);
     analogWrite(pwmPin, map(-speed, 0, 100, 0, 255));
   } else {
     digitalWrite(dir1Pin, LOW); digitalWrite(dir2Pin, LOW);
