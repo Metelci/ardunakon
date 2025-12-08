@@ -86,6 +86,13 @@ class MainActivity : ComponentActivity() {
         // Enable edge-to-edge display
         enableEdgeToEdge()
 
+        // Configure status bar for dark theme - use light (white) icons
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false  // false = light icons for dark background
+            isAppearanceLightNavigationBars = false
+        }
+
+
         // Start and Bind Service
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {

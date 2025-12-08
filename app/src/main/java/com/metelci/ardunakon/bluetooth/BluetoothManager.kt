@@ -1215,7 +1215,6 @@ data class ConnectionHealth(
                         log("Failed to create socket streams: ${e.message}", LogType.ERROR)
                         log("Marking connection as failed and will retry with different method", LogType.WARNING)
                         closeSocketSafely(socket)
-                        connected = false // Force retry with next connection method
                         updateConnectionState(slot, ConnectionState.ERROR)
                     }
                 } else {
@@ -1983,8 +1982,8 @@ data class ConnectionHealth(
                     // For variants 1 and 9, notifications are queued above in the discovery blocks
                     if (detectedVariant != 1 && detectedVariant != 2 && detectedVariant != 8 && detectedVariant != 9) {
                         // Prefer a characteristic that actually supports Notify/Indicate; fall back to txCharacteristic
-                        val service = txCharacteristic?.service
-                        val notifyCandidate = service?.characteristics?.firstOrNull { char ->
+                        val txService = txCharacteristic?.service
+                        val notifyCandidate = txService?.characteristics?.firstOrNull { char ->
                             val props = char.properties
                             (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 ||
                                     (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0

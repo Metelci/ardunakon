@@ -36,7 +36,7 @@ fun EmbeddedTerminal(
     onClearLogs: () -> Unit,
     onMaximize: () -> Unit,
     onMinimize: () -> Unit,
-    isDarkTheme: Boolean = true,
+    @Suppress("UNUSED_PARAMETER") isDarkTheme: Boolean = true,
     modifier: Modifier = Modifier,
     onExportLogs: () -> Unit = {}
 ) {

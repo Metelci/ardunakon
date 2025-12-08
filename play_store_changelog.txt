@@ -1,3 +1,24 @@
+What's New in v0.2.2-alpha:
+
+🔗 **Arduino R4 WiFi Connection Fix**:
+    • **BLE Path Enforcement**: App now correctly identifies R4 WiFi boards and forces BLE connection mode, fixing motor/servo control failures caused by incorrect Classic Bluetooth attempts
+    • **Improved Device Detection**: Added "ARDUNAKON", "ARDUINO", "R4", "UNO R4" to BLE-only device name detection
+
+📱 **Portrait Mode UI Improvements**:
+    • **Status Bar Visibility**: System notification bar icons (time, wifi, battery) now display with correct light/dark contrast
+    • **Button Spacing**: Improved header button spacing (12-16dp) for better touch targets and visual balance
+
+🎮 **Debug Terminal Servo Commands**:
+    • **Terminal Control**: Type W/A/L/R/B commands directly in the debug terminal to control servos
+    • **Toggle Behavior**: Commands toggle servo position (e.g., W toggles forward/center)
+    • **Works Everywhere**: Available in embedded terminal, maximized debug window, and debug console
+
+🛠️ **Code Quality**:
+    • Fixed compiler warnings (unused variables, name shadowing)
+    • Improved CancellationException handling in coroutines
+
+---
+
 What's New in v0.2.1-alpha:
 
 🔧 **Arduino R4 WiFi Servo & ESC Update**:

@@ -93,6 +93,7 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.res.Configuration
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.model.ButtonConfig
@@ -300,6 +301,10 @@ fun ControlScreen(
     // UI Layout with theme toggle
     val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
 
+    // Orientation detection
+    val orientationConfig = androidx.compose.ui.platform.LocalConfiguration.current
+    val isPortrait = orientationConfig.orientation == Configuration.ORIENTATION_PORTRAIT
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -321,6 +326,285 @@ fun ControlScreen(
                 )
             )
     ) {
+        if (isPortrait) {
+            // Portrait Layout: Stacked vertically (Debug -> Servo -> Joystick)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(safeDrawingPadding)
+                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
+
+                // Top status bar (compact for portrait) - all header buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Signal indicator 1
+                    val state0 = connectionStates[0]
+                    val stateColor0 = when (state0) {
+                        ConnectionState.CONNECTED -> Color(0xFF00C853)
+                        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
+                        ConnectionState.ERROR -> Color(0xFFFF5252)
+                        else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
+                    }
+                    SignalStrengthIcon(rssi = rssiValues[0], color = stateColor0, modifier = Modifier)
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Bluetooth Reconnect button
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            val reconnected = bluetoothManager.reconnectSavedDevices()
+                            if (!reconnected) {
+                                showDeviceList = 0
+                            }
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .shadow(2.dp, CircleShape)
+                            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                            .border(1.dp, Color(0xFF00FF00), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Bluetooth,
+                            contentDescription = "Connect / Reconnect",
+                            tint = Color(0xFF00FF00),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Telemetry Graph Button
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            showTelemetryGraph = true
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .shadow(2.dp, CircleShape)
+                            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                            .border(1.dp, Color(0xFF00FF00), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ShowChart,
+                            contentDescription = "Telemetry Graphs",
+                            tint = Color(0xFF00FF00),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // E-STOP Button
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            if (isEStopActive) {
+                                bluetoothManager.setEmergencyStop(false)
+                                bluetoothManager.holdOfflineAfterEStopReset()
+                            } else {
+                                bluetoothManager.setEmergencyStop(true)
+                                bluetoothManager.disconnectAllForEStop()
+                                val stopPacket = ProtocolManager.formatEStopData()
+                                bluetoothManager.sendDataToAll(stopPacket, force = true)
+                            }
+                        },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .shadow(2.dp, CircleShape)
+                            .background(
+                                if (isEStopActive) Color(0xFFFF5252) else if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
+                                CircleShape
+                            )
+                    ) {
+                        Text(
+                            if (isEStopActive) "GO" else "STOP",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = if (isEStopActive) Color.White else Color(0xFFFF5252)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Debug Panel Toggle Button
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            isDebugPanelVisible = !isDebugPanelVisible
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .shadow(2.dp, CircleShape)
+                            .background(
+                                if (isDebugPanelVisible) Color(0xFF43A047) else Color(0xFF455A64),
+                                CircleShape
+                            )
+                            .border(1.dp, Color(0xFF00FF00), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Toggle Debug",
+                            tint = if (isDebugPanelVisible) Color.White else Color(0xFF00FF00),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Menu Button with dropdown
+                    Box {
+                        IconButton(
+                            onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                showOverflowMenu = !showOverflowMenu
+                            },
+                            modifier = Modifier
+                                .size(32.dp)
+                                .shadow(2.dp, CircleShape)
+                                .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                                .border(1.dp, Color(0xFF00FF00), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Help,
+                                contentDescription = "Menu",
+                                tint = Color(0xFF00FF00),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Help") },
+                                leadingIcon = { Icon(Icons.Default.Help, null) },
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    showHelpDialog = true
+                                    showOverflowMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("About") },
+                                leadingIcon = { Icon(Icons.Outlined.Info, null) },
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    showAboutDialog = true
+                                    showOverflowMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Legacy Reflection (HC-06): " + if (allowReflection) "On" else "Off") },
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    allowReflection = !allowReflection
+                                    showOverflowMenu = false
+                                }
+                            )
+                            Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
+                            DropdownMenuItem(
+                                text = { Text("Quit App", color = Color(0xFFFF5252)) },
+                                leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    showOverflowMenu = false
+                                    onQuitApp()
+                                }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Signal indicator 2
+                    val state1 = connectionStates[1]
+                    val stateColor1 = when (state1) {
+                        ConnectionState.CONNECTED -> Color(0xFF00C853)
+                        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
+                        ConnectionState.ERROR -> Color(0xFFFF5252)
+                        else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
+                    }
+                    SignalStrengthIcon(rssi = rssiValues[1], color = stateColor1, modifier = Modifier)
+                }
+
+                // Debug Panel (if visible) - at top in portrait
+                if (isDebugPanelVisible) {
+                    EmbeddedTerminal(
+                        logs = debugLogs,
+                        telemetry = telemetry,
+                        onSendCommand = { cmd: String ->
+                            // Parse servo commands (W/A/L/R/B)
+                            when (cmd.uppercase().trim()) {
+                                "W" -> {
+                                    servoY = if (servoY == 1f) 0f else 1f
+                                    bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.INFO)
+                                }
+                                "B" -> {
+                                    servoY = if (servoY == -1f) 0f else -1f
+                                    bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
+                                }
+                                "L", "A" -> {
+                                    servoX = if (servoX == -1f) 0f else -1f
+                                    bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
+                                }
+                                "R" -> {
+                                    servoX = if (servoX == 1f) 0f else 1f
+                                    bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
+                                }
+                                else -> {
+                                    // Send raw command to Bluetooth
+                                    val bytes = "$cmd\n".toByteArray()
+                                    bluetoothManager.sendDataToAll(bytes, force = true)
+                                    bluetoothManager.log("TX: $cmd", LogType.INFO)
+                                }
+                            }
+                        },
+                        onClearLogs = { bluetoothManager.log("Logs cleared", LogType.INFO) },
+                        onMaximize = { showMaximizedDebug = true },
+                        onMinimize = { isDebugPanelVisible = false },
+                        isDarkTheme = isDarkTheme,
+                        modifier = Modifier.weight(0.4f).fillMaxWidth(),
+                        onExportLogs = exportLogs
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // Servo Buttons - middle
+                Box(
+                    modifier = Modifier.weight(if (isDebugPanelVisible) 0.25f else 0.4f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ServoButtonControl(
+                        onMove = { x, y -> servoX = x; servoY = y },
+                        buttonSize = 56.dp,
+                        onLog = { message -> bluetoothManager.log(message, LogType.INFO) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Joystick - bottom
+                Box(
+                    modifier = Modifier.weight(if (isDebugPanelVisible) 0.35f else 0.6f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val portraitJoystickSize = minOf(orientationConfig.screenWidthDp.dp * 0.5f, 180.dp)
+                    JoystickControl(
+                        onMoved = { state ->
+                            leftJoystick = Pair(
+                                state.x * currentProfile.sensitivity,
+                                state.y * currentProfile.sensitivity
+                            )
+                        },
+                        size = portraitJoystickSize,
+                        isThrottle = false
+                    )
+                }
+            }
+        } else {
+        // Landscape Layout: Side by side (existing layout)
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -810,9 +1094,30 @@ fun ControlScreen(
                 logs = debugLogs,
                 telemetry = telemetry,
                 onSendCommand = { cmd: String ->
-                    val bytes = "$cmd\n".toByteArray()
-                    bluetoothManager.sendDataToAll(bytes, force = true)
-                    bluetoothManager.log("TX: $cmd", LogType.INFO)
+                    // Parse servo commands (W/A/L/R/B)
+                    when (cmd.uppercase().trim()) {
+                        "W" -> {
+                            servoY = if (servoY == 1f) 0f else 1f
+                            bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.INFO)
+                        }
+                        "B" -> {
+                            servoY = if (servoY == -1f) 0f else -1f
+                            bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
+                        }
+                        "L", "A" -> {
+                            servoX = if (servoX == -1f) 0f else -1f
+                            bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
+                        }
+                        "R" -> {
+                            servoX = if (servoX == 1f) 0f else 1f
+                            bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
+                        }
+                        else -> {
+                            val bytes = "$cmd\n".toByteArray()
+                            bluetoothManager.sendDataToAll(bytes, force = true)
+                            bluetoothManager.log("TX: $cmd", LogType.INFO)
+                        }
+                    }
                 },
                 onClearLogs = {
                     bluetoothManager.log("Logs cleared", LogType.INFO)
@@ -829,6 +1134,7 @@ fun ControlScreen(
             )
         }
     }
+    } // End of else (landscape)
     }
 
     // Dialogs
@@ -838,10 +1144,30 @@ fun ControlScreen(
             telemetry = telemetry,
             onDismiss = { showDebugConsole = false },
             onSendCommand = { cmd ->
-                // Send command with newline
-                val bytes = "$cmd\n".toByteArray()
-                bluetoothManager.sendDataToAll(bytes, force = true)
-                bluetoothManager.log("TX: $cmd", LogType.INFO)
+                // Parse servo commands (W/A/L/R/B)
+                when (cmd.uppercase().trim()) {
+                    "W" -> {
+                        servoY = if (servoY == 1f) 0f else 1f
+                        bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.INFO)
+                    }
+                    "B" -> {
+                        servoY = if (servoY == -1f) 0f else -1f
+                        bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
+                    }
+                    "L", "A" -> {
+                        servoX = if (servoX == -1f) 0f else -1f
+                        bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
+                    }
+                    "R" -> {
+                        servoX = if (servoX == 1f) 0f else 1f
+                        bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
+                    }
+                    else -> {
+                        val bytes = "$cmd\n".toByteArray()
+                        bluetoothManager.sendDataToAll(bytes, force = true)
+                        bluetoothManager.log("TX: $cmd", LogType.INFO)
+                    }
+                }
             },
             onClearLogs = {
                 // We need to add a clearLogs method to BluetoothManager or just ignore for now
@@ -859,9 +1185,30 @@ fun ControlScreen(
             telemetry = telemetry,
             onDismiss = { showMaximizedDebug = false },
             onSendCommand = { cmd ->
-                val bytes = "$cmd\n".toByteArray()
-                bluetoothManager.sendDataToAll(bytes, force = true)
-                bluetoothManager.log("TX: $cmd", LogType.INFO)
+                // Parse servo commands (W/A/L/R/B)
+                when (cmd.uppercase().trim()) {
+                    "W" -> {
+                        servoY = if (servoY == 1f) 0f else 1f
+                        bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.INFO)
+                    }
+                    "B" -> {
+                        servoY = if (servoY == -1f) 0f else -1f
+                        bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
+                    }
+                    "L", "A" -> {
+                        servoX = if (servoX == -1f) 0f else -1f
+                        bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
+                    }
+                    "R" -> {
+                        servoX = if (servoX == 1f) 0f else 1f
+                        bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
+                    }
+                    else -> {
+                        val bytes = "$cmd\n".toByteArray()
+                        bluetoothManager.sendDataToAll(bytes, force = true)
+                        bluetoothManager.log("TX: $cmd", LogType.INFO)
+                    }
+                }
             },
             onClearLogs = {
                 bluetoothManager.log("Logs cleared", LogType.INFO)

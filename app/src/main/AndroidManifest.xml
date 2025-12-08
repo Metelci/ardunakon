@@ -54,8 +54,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="landscape"
-            tools:ignore="LockedOrientationActivity"
+            android:screenOrientation="unspecified"
             android:theme="@style/Theme.Ardunakon">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
