@@ -70,7 +70,9 @@ class MainActivity : ComponentActivity() {
             startAndBindServiceIfPermitted()
         } else {
             // Check if any permission was permanently denied
+            @Suppress("UNUSED_VARIABLE")
             val deniedPermissions = permissions.filterValues { !it }.keys
+            @Suppress("UNUSED_VARIABLE")
             val permanentlyDenied = deniedPermissions.any { permission ->
                 !ActivityCompat.shouldShowRequestPermissionRationale(this, permission)
             }

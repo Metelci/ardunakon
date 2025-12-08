@@ -38,6 +38,7 @@ fun TelemetryGraphDialog(
     var showSlot2 by remember { mutableStateOf(true) }
 
     // Force recomposition when history updates
+    @Suppress("UNUSED_VARIABLE")
     val historyUpdated by telemetryHistoryManager.historyUpdated.collectAsState()
 
     Dialog(

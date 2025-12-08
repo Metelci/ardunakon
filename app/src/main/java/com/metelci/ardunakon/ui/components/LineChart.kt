@@ -65,7 +65,7 @@ fun LineChart(
 
                 val minValue = yAxisMin ?: allValues.minOrNull() ?: 0f
                 val maxValue = yAxisMax ?: allValues.maxOrNull() ?: 1f
-                val valueRange = (maxValue - minValue).coerceAtLeast(0.001f)
+                // valueRange computed inside drawLineSeries and drawYLabels
 
                 // Find time range
                 val allTimestamps = series.flatMap { it.data.map { point -> point.timestamp } }
@@ -236,7 +236,7 @@ private fun DrawScope.drawAxes(width: Float, height: Float, isDarkTheme: Boolean
 }
 
 private fun DrawScope.drawYLabels(
-    width: Float,
+    @Suppress("UNUSED_PARAMETER") width: Float,
     height: Float,
     minValue: Float,
     maxValue: Float,
