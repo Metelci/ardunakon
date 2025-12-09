@@ -14,8 +14,9 @@ import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.R
+import com.metelci.ardunakon.wifi.WifiManager
+import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
-
 import kotlinx.coroutines.*
 import com.metelci.ardunakon.bluetooth.ConnectionState
 
@@ -23,6 +24,7 @@ class BluetoothService : Service() {
 
     private val binder = LocalBinder()
     lateinit var bluetoothManager: AppBluetoothManager
+    lateinit var wifiManager: WifiManager
     private var wakeLock: PowerManager.WakeLock? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var wakeLockTimeoutJob: Job? = null
@@ -35,17 +37,22 @@ class BluetoothService : Service() {
         super.onCreate()
         bluetoothManager = AppBluetoothManager(this)
         
+        // Initialize WifiManager for persistence
+        wifiManager = WifiManager(this) { msg ->
+            bluetoothManager.log(msg, LogType.INFO)
+        }
+        
         // Setup WakeLock
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Ardunakon::BluetoothService")
 
-        // Observe connection states to manage WakeLock
+        // Observe connection state to manage WakeLock
         scope.launch {
-            bluetoothManager.connectionStates.collect { states ->
-                val hasActiveConnection = states.any { 
-                    it == ConnectionState.CONNECTED || it == ConnectionState.CONNECTING || it == ConnectionState.RECONNECTING 
-                }
-                
+            bluetoothManager.connectionState.collect { state ->
+                val hasActiveConnection = state == ConnectionState.CONNECTED ||
+                    state == ConnectionState.CONNECTING ||
+                    state == ConnectionState.RECONNECTING
+
                 if (hasActiveConnection) {
                     if (wakeLock?.isHeld == false) {
                         wakeLock?.acquire(60 * 60 * 1000L) // 1 hour max
@@ -54,9 +61,8 @@ class BluetoothService : Service() {
                             delay(60 * 60 * 1000L)
                             if (wakeLock?.isHeld == true) {
                                 wakeLock?.release()
-                                bluetoothManager.disconnect(0)
-                                bluetoothManager.disconnect(1)
-                                bluetoothManager.reconnectSavedDevices()
+                                bluetoothManager.disconnect()
+                                bluetoothManager.reconnectSavedDevice()
                             }
                         }
                     }
@@ -70,6 +76,12 @@ class BluetoothService : Service() {
         }
 
         startForegroundService()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Ensure foreground is active after system restarts the service
+        startForegroundService()
+        return START_STICKY
     }
 
     private fun startForegroundService() {
@@ -96,7 +108,12 @@ class BluetoothService : Service() {
             .setOngoing(true)
             .build()
 
-        startForeground(1, notification)
+        try {
+            startForeground(1, notification)
+        } catch (se: SecurityException) {
+            // Missing POST_NOTIFICATIONS will prevent foreground start on Android 13+
+            stopSelf()
+        }
     }
 
     override fun onBind(intent: Intent): IBinder {

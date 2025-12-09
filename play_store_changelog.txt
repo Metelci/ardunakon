@@ -1,3 +1,16 @@
+What's New in v0.2.3-alpha:
+
+📡 **WiFi Telemetry & Monitoring**:
+    • **Battery Data on WiFi**: Battery voltage and device status now correctly display when connected via WiFi (R4 WiFi / Uno Q)
+    • **Graph Integration**: WiFi telemetry data now plots on the real-time graph, same as Bluetooth
+
+🔧 **Debug & UI Fixes**:
+    • **Reduced Log Noise**: Throttled battery telemetry logs in the debug console (now once every 5s) to prevent spam
+    • **Landscape Telemetry**: Fixed layout overflow issues in the Telemetry Graph window when using landscape mode
+    • **Help Menu Accessibility**: "Open Arduino Cloud" and "View Full Guide" buttons are now always accessible on smaller screens
+
+---
+
 What's New in v0.2.2-alpha:
 
 🔗 **Arduino R4 WiFi Connection Fix**:
@@ -14,8 +27,8 @@ What's New in v0.2.2-alpha:
     • **Works Everywhere**: Available in embedded terminal, maximized debug window, and debug console
 
 🛠️ **Code Quality**:
-    • Fixed compiler warnings (unused variables, name shadowing)
-    • Improved CancellationException handling in coroutines
+    • **Cleaner Code**: Fixed compiler warnings (unused variables, name shadowing)
+    • **Stability**: Improved CancellationException handling in coroutines
 
 ---
 
@@ -45,14 +58,14 @@ What's New in v0.2.0-alpha:
 What's New in v0.1.84-alpha:
 
 ?? **BLE Servo Reliability (HM-10/MLT-BT05)**:
-    Forced WRITE_NO_RESPONSE writes with better error logging to reduce stalls on HM-10/MLT-BT05 clones
-    Improved reconnection handling on transient GATT failures for BLE-only modules
+     Forced WRITE_NO_RESPONSE writes with better error logging to reduce stalls on HM-10/MLT-BT05 clones
+     Improved reconnection handling on transient GATT failures for BLE-only modules
 
 ?? **Telemetry Charts**:
-    Axis labels now display numeric values (dBm, volts, ms) directly on the graphs
+     Axis labels now display numeric values (dBm, volts, ms) directly on the graphs
 
 ?? **UI Cleanup**:
-    Restored embedded debug panel on the right and removed redundant keyboard state labels
+     Restored embedded debug panel on the right and removed redundant keyboard state labels
 
 ---
 

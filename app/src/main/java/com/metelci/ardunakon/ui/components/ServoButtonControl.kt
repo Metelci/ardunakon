@@ -23,16 +23,14 @@ import android.view.HapticFeedbackConstants
 fun ServoButtonControl(
     modifier: Modifier = Modifier,
     buttonSize: Dp = 72.dp,
+    servoX: Float = 0f,
+    servoY: Float = 0f,
     onMove: (x: Float, y: Float) -> Unit,
     onLog: ((String) -> Unit)? = null
 ) {
     val view = LocalView.current
     var lastMoveTime by remember { mutableStateOf(0L) }
     val debounceDelay = 100L
-    
-    // Track current servo position (toggle mode - position persists until changed)
-    var servoX by remember { mutableStateOf(0f) }
-    var servoY by remember { mutableStateOf(0f) }
     
     // All buttons use uniform sizing for consistent appearance
 
@@ -47,16 +45,16 @@ fun ServoButtonControl(
                 val currentTime = System.currentTimeMillis()
                 if (currentTime - lastMoveTime >= debounceDelay) {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    
+
                     // Toggle: if already at W position, return to center
-                    if (servoY == 1f) {
-                        servoY = 0f
+                    val newY = if (servoY == 1f) {
                         onLog?.invoke("Servo: CENTER (released W)")
+                        0f
                     } else {
-                        servoY = 1f
                         onLog?.invoke("Servo: FORWARD (W)")
+                        1f
                     }
-                    onMove(servoX, servoY)
+                    onMove(servoX, newY)
                     lastMoveTime = currentTime
                 }
             },
@@ -90,16 +88,16 @@ fun ServoButtonControl(
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastMoveTime >= debounceDelay) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        
+
                         // Toggle: if already at L position, return to center
-                        if (servoX == -1f) {
-                            servoX = 0f
+                        val newX = if (servoX == -1f) {
                             onLog?.invoke("Servo: CENTER (released L)")
+                            0f
                         } else {
-                            servoX = -1f
                             onLog?.invoke("Servo: LEFT (L)")
+                            -1f
                         }
-                        onMove(servoX, servoY)
+                        onMove(newX, servoY)
                         lastMoveTime = currentTime
                     }
                 },
@@ -128,16 +126,16 @@ fun ServoButtonControl(
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastMoveTime >= debounceDelay) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        
+
                         // Toggle: if already at B position, return to center
-                        if (servoY == -1f) {
-                            servoY = 0f
+                        val newY = if (servoY == -1f) {
                             onLog?.invoke("Servo: CENTER (released B)")
+                            0f
                         } else {
-                            servoY = -1f
                             onLog?.invoke("Servo: BACKWARD (B)")
+                            -1f
                         }
-                        onMove(servoX, servoY)
+                        onMove(servoX, newY)
                         lastMoveTime = currentTime
                     }
                 },
@@ -166,16 +164,16 @@ fun ServoButtonControl(
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastMoveTime >= debounceDelay) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        
+
                         // Toggle: if already at R position, return to center
-                        if (servoX == 1f) {
-                            servoX = 0f
+                        val newX = if (servoX == 1f) {
                             onLog?.invoke("Servo: CENTER (released R)")
+                            0f
                         } else {
-                            servoX = 1f
                             onLog?.invoke("Servo: RIGHT (R)")
+                            1f
                         }
-                        onMove(servoX, servoY)
+                        onMove(newX, servoY)
                         lastMoveTime = currentTime
                     }
                 },

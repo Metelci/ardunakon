@@ -1,8 +1,8 @@
 package com.metelci.ardunakon.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.border
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,45 +22,37 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ShowChart
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.SyncDisabled
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import android.net.Uri
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -68,9 +60,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -80,9 +72,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import android.view.HapticFeedbackConstants
 import android.content.Intent
@@ -96,13 +86,11 @@ import androidx.compose.ui.unit.sp
 import android.content.res.Configuration
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
-import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.ui.components.JoystickControl
 import com.metelci.ardunakon.ui.components.ServoButtonControl
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
-import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.security.AuthRequiredException
 import kotlinx.coroutines.delay
@@ -111,39 +99,82 @@ import kotlinx.coroutines.launch
 
 import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 import com.metelci.ardunakon.ui.components.StatusCard
+import com.metelci.ardunakon.ui.components.LatencySparkline
+import com.metelci.ardunakon.ui.components.OtaDialog
+import com.metelci.ardunakon.ota.OtaManager
+import com.metelci.ardunakon.ota.WifiOtaTransport
+import com.metelci.ardunakon.ota.BleOtaTransport
+import com.metelci.ardunakon.wifi.WifiManager
+import com.metelci.ardunakon.wifi.WifiConnectionState
+import com.metelci.ardunakon.ui.components.WifiConfigDialog
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ControlScreen(
     bluetoothManager: AppBluetoothManager,
+    wifiManager: WifiManager,
     isDarkTheme: Boolean = true,
     onQuitApp: () -> Unit = {}
 ) {
     // State
-    var showDeviceList by remember { mutableStateOf<Int?>(null) }
-    var showProfileSelector by remember { mutableStateOf(false) }
-    var showDebugConsole by remember { mutableStateOf(false) }
-    var showHelpDialog by remember { mutableStateOf(false) }
-    var showAboutDialog by remember { mutableStateOf(false) }
-    var showOverflowMenu by remember { mutableStateOf(false) }
-    var showTelemetryGraph by remember { mutableStateOf(false) }
-    var isDebugPanelVisible by remember { mutableStateOf(true) } // Toggle for embedded debug panel
-    var showMaximizedDebug by remember { mutableStateOf(false) } // Full-screen debug dialog
+    var showDeviceList by rememberSaveable { mutableStateOf(false) }
+    var showProfileSelector by rememberSaveable { mutableStateOf(false) }
+    var showDebugConsole by rememberSaveable { mutableStateOf(false) }
+    var showHelpDialog by rememberSaveable { mutableStateOf(false) }
+    var showAboutDialog by rememberSaveable { mutableStateOf(false) }
+    var showOverflowMenu by rememberSaveable { mutableStateOf(false) }
+    var showTelemetryGraph by rememberSaveable { mutableStateOf(false) }
+    var isDebugPanelVisible by rememberSaveable { mutableStateOf(true) } // Toggle for embedded debug panel
+    var showMaximizedDebug by rememberSaveable { mutableStateOf(false) } // Full-screen debug dialog
+    var showOtaDialog by rememberSaveable { mutableStateOf(false) } // OTA Firmware Update dialog
+    var showWifiConfig by rememberSaveable { mutableStateOf(false) }
+    var showCrashLog by rememberSaveable { mutableStateOf(false) } // Crash log viewer
+    var connectionMode by rememberSaveable { mutableStateOf(ConnectionMode.BLUETOOTH) }
+    var showHeaderMenu by remember { mutableStateOf(false) }
 
     val scannedDevices by bluetoothManager.scannedDevices.collectAsState()
-    val connectionStates by bluetoothManager.connectionStates.collectAsState()
-    val rssiValues by bluetoothManager.rssiValues.collectAsState()
+    val connectionState by bluetoothManager.connectionState.collectAsState()
+    val rssiValue by bluetoothManager.rssiValue.collectAsState()
     val health by bluetoothManager.health.collectAsState()
     val debugLogs by bluetoothManager.debugLogs.collectAsState()
     val telemetry by bluetoothManager.telemetry.collectAsState()
     val autoReconnectEnabled by bluetoothManager.autoReconnectEnabled.collectAsState()
+    val rttHistory by bluetoothManager.rttHistory.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    
+
 
     // Removed pastelBrush for better visibility
 
 
     val context = LocalContext.current
     var allowReflection by remember { mutableStateOf(false) }
+    
+    // OTA Manager and Transports
+    val otaManager = remember { OtaManager(context) }
+    val wifiOtaTransport = remember { WifiOtaTransport(context) }
+    val bleOtaTransport = remember { BleOtaTransport(context, bluetoothManager) }
+    
+    val wifiState by wifiManager.connectionState.collectAsState()
+    val wifiRssi by wifiManager.rssi.collectAsState()
+    val wifiRtt by wifiManager.rtt.collectAsState()
+    val wifiIncomingData by wifiManager.incomingData.collectAsState()
+
+    // Bridge WiFi telemetry to HistoryManager and Telemetry Parser
+    LaunchedEffect(wifiState, wifiRssi, wifiRtt, wifiIncomingData) {
+        if (wifiState == WifiConnectionState.CONNECTED) {
+            if (wifiRssi != 0) bluetoothManager.telemetryHistoryManager.recordRssi(wifiRssi)
+            if (wifiRtt != 0L) bluetoothManager.telemetryHistoryManager.recordRtt(wifiRtt)
+            
+            // Parse binary telemetry from WiFi (Battery, Status)
+            wifiIncomingData?.let { data ->
+                bluetoothManager.parseTelemetry(data)
+            }
+        }
+    }
 
     // Export logs function
     val exportLogs: () -> Unit = {
@@ -235,12 +266,20 @@ fun ControlScreen(
         }
     }
 
-    // Load profiles asynchronously
+    // Load profiles asynchronously with comprehensive error handling
     LaunchedEffect(Unit) {
         try {
             profiles.addAll(profileManager.loadProfiles())
         } catch (e: AuthRequiredException) {
             securityErrorMessage = e.message ?: "Unlock your device to load encrypted profiles."
+            profiles.addAll(profileManager.createDefaultProfiles())
+        } catch (e: java.io.IOException) {
+            // Handle file I/O errors (corrupted file, permission issues, etc.)
+            bluetoothManager.log("Failed to load profiles: ${e.message}", com.metelci.ardunakon.model.LogType.ERROR)
+            profiles.addAll(profileManager.createDefaultProfiles())
+        } catch (e: Exception) {
+            // Catch any unexpected errors to prevent crashes
+            bluetoothManager.log("Unexpected error loading profiles: ${e.message}", LogType.ERROR)
             profiles.addAll(profileManager.createDefaultProfiles())
         }
     }
@@ -272,9 +311,16 @@ fun ControlScreen(
     var servoY by remember { mutableStateOf(0f) } // Vertical: W=+1, R=-1, CENTER=0
     
     // Transmission Loop - Combine joystick and servo inputs
-    LaunchedEffect(currentProfile, leftJoystick, servoX, servoY) {
+    LaunchedEffect(currentProfile, leftJoystick, servoX, servoY, connectionMode) {
 
         while (isActive) {
+            // Check E-STOP state - block all transmissions if active
+            val isEStopActive = bluetoothManager.isEmergencyStopActive.value
+            if (isEStopActive) {
+                delay(50) // Still maintain loop timing
+                continue  // Skip sending any packets
+            }
+
             // Joystick controls motors (left stick)
             val leftX = leftJoystick.first // Joystick throttle X axis
             val leftY = leftJoystick.second // Joystick throttle Y axis
@@ -291,10 +337,38 @@ fun ControlScreen(
                 auxBits = 0 // Aux buttons are sent as separate commands
             )
 
-
-
-            bluetoothManager.sendDataToAll(packet)
+            if (connectionMode == ConnectionMode.WIFI) {
+                wifiManager.sendData(packet)
+            } else {
+                bluetoothManager.sendDataToAll(packet)
+            }
             delay(50) // 20Hz
+        }
+    }
+
+    // WiFi Incoming Data Processing
+    val wifiRttHistory by wifiManager.rttHistory.collectAsState()
+    
+    LaunchedEffect(wifiIncomingData) {
+        wifiIncomingData?.let { data ->
+            // Parse telemetry packet from Arduino (10-byte protocol)
+            // [START(0xAA), DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END(0x55)]
+            if (data.size >= 10 && data[0] == 0xAA.toByte() && data[9] == 0x55.toByte()) {
+                val cmd = data[2].toInt() and 0xFF
+                when (cmd) {
+                    0x03 -> { // CMD_HEARTBEAT - Telemetry
+                        val batteryRaw = data[3].toInt() and 0xFF
+                        val batteryVoltage = batteryRaw / 10.0f
+                        val isEStop = (data[4].toInt() and 0xFF) == 1
+                        bluetoothManager.log("WiFi RX: Battery=${batteryVoltage}V, E-Stop=$isEStop", LogType.INFO)
+                    }
+                    0x05 -> { // CMD_ANNOUNCE_CAPABILITIES
+                        val caps = data[3].toInt() and 0xFF
+                        val boardType = data[5].toInt() and 0xFF
+                        bluetoothManager.log("WiFi RX: Capabilities=0x${caps.toString(16)}, Board=$boardType", LogType.INFO)
+                    }
+                }
+            }
         }
     }
 
@@ -343,40 +417,134 @@ fun ControlScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Signal indicator 1
-                    val state0 = connectionStates[0]
-                    val stateColor0 = when (state0) {
-                        ConnectionState.CONNECTED -> Color(0xFF00C853)
-                        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
-                        ConnectionState.ERROR -> Color(0xFFFF5252)
-                        else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
-                    }
-                    SignalStrengthIcon(rssi = rssiValues[0], color = stateColor0, modifier = Modifier)
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // Bluetooth Reconnect button
-                    IconButton(
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            val reconnected = bluetoothManager.reconnectSavedDevices()
-                            if (!reconnected) {
-                                showDeviceList = 0
+                    if (connectionMode == ConnectionMode.BLUETOOTH) {
+                        // Signal indicator with sparkline below
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val stateColor = when (connectionState) {
+                                ConnectionState.CONNECTED -> Color(0xFF00FF00)
+                                ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
+                                ConnectionState.ERROR -> Color(0xFFFF5252)
+                                else -> Color.Gray
                             }
-                        },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .shadow(2.dp, CircleShape)
-                            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                            .border(1.dp, Color(0xFF00FF00), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Bluetooth,
-                            contentDescription = "Connect / Reconnect",
-                            tint = Color(0xFF00FF00),
-                            modifier = Modifier.size(16.dp)
-                        )
+                            SignalStrengthIcon(rssi = rssiValue, color = stateColor, modifier = Modifier)
+
+                            // Latency Sparkline below RSSI (width matches RSSI)
+                            LatencySparkline(
+                                rttValues = rttHistory,
+                                modifier = Modifier.width(40.dp).height(10.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+    
+                        // Bluetooth Reconnect button
+                        // Bluetooth Reconnect button
+                        Box {
+                            IconButton(
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    showHeaderMenu = true
+                                },
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .shadow(2.dp, CircleShape)
+                                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                                    .border(1.dp, Color(0xFF00FF00), CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Bluetooth,
+                                    contentDescription = "Connect / Reconnect",
+                                    tint = Color(0xFF00FF00),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showHeaderMenu,
+                                onDismissRequest = { showHeaderMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Reconnect Device") },
+                                    onClick = {
+                                        showHeaderMenu = false
+                                        val reconnected = bluetoothManager.reconnectSavedDevice()
+                                        if (!reconnected) showDeviceList = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Switch to WiFi") },
+                                    onClick = {
+                                        showHeaderMenu = false
+                                        connectionMode = ConnectionMode.WIFI
+                                    }
+                                )
+                            }
+                        }
+                    } else {
+                        // WiFi Mode - Dual Slot Layout (like Bluetooth)
+                        // Slot 1: Active WiFi connection
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val state = wifiState
+                            val stateColor = when (state) {
+                                WifiConnectionState.CONNECTED -> Color(0xFF00FF00) // Green glow
+                                WifiConnectionState.CONNECTING -> Color(0xFFFFD54F) 
+                                WifiConnectionState.ERROR -> Color(0xFFFF5252)
+                                else -> Color.Gray
+                            }
+                            SignalStrengthIcon(
+                                rssi = wifiRssi, 
+                                color = stateColor, 
+                                modifier = Modifier,
+                                isWifi = true,
+                                showLabels = false
+                            )
+                            LatencySparkline(
+                                rttValues = wifiRttHistory,
+                                modifier = Modifier.width(40.dp).height(10.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // WiFi Config Button (Replaces BT Button)
+                        Box {
+                            IconButton(
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    showHeaderMenu = true
+                                },
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .shadow(2.dp, CircleShape)
+                                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                                    .border(1.dp, Color(0xFF00C853), CircleShape) 
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "WiFi Configuration",
+                                    tint = Color(0xFF00C853),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showHeaderMenu,
+                                onDismissRequest = { showHeaderMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Configure WiFi") },
+                                    onClick = {
+                                        showHeaderMenu = false
+                                        showWifiConfig = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Switch to Bluetooth") },
+                                    onClick = {
+                                        showHeaderMenu = false
+                                        connectionMode = ConnectionMode.BLUETOOTH
+                                    }
+                                )
+                            }
+                        }
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
                     // Telemetry Graph Button
                     IconButton(
@@ -452,7 +620,7 @@ fun ControlScreen(
                             modifier = Modifier.size(16.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
                     // Menu Button with dropdown
                     Box {
@@ -496,12 +664,39 @@ fun ControlScreen(
                                     showOverflowMenu = false
                                 }
                             )
+                            if (com.metelci.ardunakon.crash.CrashHandler.hasCrashLog(context)) {
+                                DropdownMenuItem(
+                                    text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
+                                    leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
+                                    onClick = {
+                                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                        showCrashLog = true
+                                        showOverflowMenu = false
+                                    }
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Legacy Reflection (HC-06): " + if (allowReflection) "On" else "Off") },
                                 onClick = {
                                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                     allowReflection = !allowReflection
                                     showOverflowMenu = false
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Switch to ${if (connectionMode == ConnectionMode.BLUETOOTH) "WiFi" else "Bluetooth"}") },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    connectionMode = if (connectionMode == ConnectionMode.BLUETOOTH) ConnectionMode.WIFI else ConnectionMode.BLUETOOTH
+                                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (connectionMode == ConnectionMode.BLUETOOTH) Icons.Default.Wifi else Icons.Default.Bluetooth,
+                                        contentDescription = "Switch Mode",
+                                        tint = Color.Gray
+                                    )
                                 }
                             )
                             Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
@@ -516,17 +711,6 @@ fun ControlScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // Signal indicator 2
-                    val state1 = connectionStates[1]
-                    val stateColor1 = when (state1) {
-                        ConnectionState.CONNECTED -> Color(0xFF00C853)
-                        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
-                        ConnectionState.ERROR -> Color(0xFFFF5252)
-                        else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
-                    }
-                    SignalStrengthIcon(rssi = rssiValues[1], color = stateColor1, modifier = Modifier)
                 }
 
                 // Debug Panel (if visible) - at top in portrait
@@ -554,10 +738,15 @@ fun ControlScreen(
                                     bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
                                 }
                                 else -> {
-                                    // Send raw command to Bluetooth
+                                    // Send raw command to Connection (WiFi or Bluetooth)
                                     val bytes = "$cmd\n".toByteArray()
-                                    bluetoothManager.sendDataToAll(bytes, force = true)
-                                    bluetoothManager.log("TX: $cmd", LogType.INFO)
+                                    if (connectionMode == ConnectionMode.WIFI) {
+                                         wifiManager.sendData(bytes)
+                                         bluetoothManager.log("TX (WiFi): $cmd", LogType.INFO)
+                                    } else {
+                                         bluetoothManager.sendDataToAll(bytes, force = true)
+                                         bluetoothManager.log("TX (BT): $cmd", LogType.INFO)
+                                    }
                                 }
                             }
                         },
@@ -577,6 +766,8 @@ fun ControlScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     ServoButtonControl(
+                        servoX = servoX,
+                        servoY = servoY,
                         onMove = { x, y -> servoX = x; servoY = y },
                         buttonSize = 56.dp,
                         onLog = { message -> bluetoothManager.log(message, LogType.INFO) }
@@ -628,45 +819,136 @@ fun ControlScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left side: First Signal Strength Indicator
-            val state0 = connectionStates[0]
-            val stateColor0 = when (state0) {
-                ConnectionState.CONNECTED -> Color(0xFF00C853)
-                ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
-                ConnectionState.ERROR -> Color(0xFFFF5252)
-                else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
-            }
-
-            SignalStrengthIcon(
-                rssi = rssiValues[0],
-                color = stateColor0,
-                modifier = Modifier
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Bluetooth Reconnect button (LEFT of E-STOP)
-            IconButton(
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    val reconnected = bluetoothManager.reconnectSavedDevices()
-                    if (!reconnected) {
-                        // If nothing to reconnect, open device picker for Slot 1
-                        showDeviceList = 0
+            if (connectionMode == ConnectionMode.BLUETOOTH) {
+                // Signal Strength Indicator with sparkline below
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val stateColor = when (connectionState) {
+                        ConnectionState.CONNECTED -> Color(0xFF00FF00)
+                        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
+                        ConnectionState.ERROR -> Color(0xFFFF5252)
+                        else -> Color.Gray
                     }
-                },
-                modifier = Modifier
-                    .size(36.dp)
-                    .shadow(2.dp, CircleShape)
-                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                    .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Bluetooth,
-                    contentDescription = "Connect / Reconnect",
-                    tint = Color(0xFF00FF00), // Electric green
-                    modifier = Modifier.size(18.dp)
-                )
+
+                    SignalStrengthIcon(
+                        rssi = rssiValue,
+                        color = stateColor,
+                        modifier = Modifier
+                    )
+
+                    // Latency Sparkline below RSSI (width matches RSSI)
+                    LatencySparkline(
+                        rttValues = rttHistory,
+                        modifier = Modifier.width(40.dp).height(10.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Bluetooth Reconnect button (LEFT of E-STOP)
+                Box {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            showHeaderMenu = true
+                        },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .shadow(2.dp, CircleShape)
+                            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                            .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Bluetooth,
+                            contentDescription = "Connect / Reconnect",
+                            tint = Color(0xFF00FF00), // Electric green
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showHeaderMenu,
+                        onDismissRequest = { showHeaderMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Reconnect Device") },
+                            onClick = {
+                                showHeaderMenu = false
+                                val reconnected = bluetoothManager.reconnectSavedDevice()
+                                if (!reconnected) showDeviceList = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Switch to WiFi") },
+                            onClick = {
+                                showHeaderMenu = false
+                                connectionMode = ConnectionMode.WIFI
+                            }
+                        )
+                    }
+                }
+            } else {
+                // WiFi Landscape Header - Dual Slot Layout
+                // Slot 1: Active WiFi connection
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val state = wifiState
+                    val stateColor = when (state) {
+                        WifiConnectionState.CONNECTED -> Color(0xFF00FF00) // Green glow
+                        WifiConnectionState.CONNECTING -> Color(0xFFFFD54F)
+                        WifiConnectionState.ERROR -> Color(0xFFFF5252)
+                        else -> Color.Gray
+                    }
+                    SignalStrengthIcon(
+                        rssi = wifiRssi,
+                        color = stateColor,
+                        modifier = Modifier,
+                        isWifi = true,
+                        showLabels = false
+                    )
+                    LatencySparkline(
+                        rttValues = wifiRttHistory,
+                        modifier = Modifier.width(40.dp).height(10.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // WiFi Connect/Config button (LEFT of E-STOP)
+                Box {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            showHeaderMenu = true
+                        },
+                        modifier = Modifier
+                            .size(36.dp) // Maintain exact size 36dp
+                            .shadow(2.dp, CircleShape)
+                            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                            .border(1.dp, Color(0xFF00C853), CircleShape) // Electric green border for consistency
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "WiFi Configuration",
+                            tint = Color(0xFF00C853), 
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showHeaderMenu,
+                        onDismissRequest = { showHeaderMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Configure WiFi") },
+                            onClick = {
+                                showHeaderMenu = false
+                                showWifiConfig = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Switch to Bluetooth") },
+                            onClick = {
+                                showHeaderMenu = false
+                                connectionMode = ConnectionMode.BLUETOOTH
+                            }
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -772,7 +1054,7 @@ fun ControlScreen(
             }
 
             // Clear and consistent spacing between debug and menu icons
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             // Menu Button with Box wrapper for proper DropdownMenu positioning
             Box {
@@ -816,12 +1098,50 @@ fun ControlScreen(
                             showOverflowMenu = false
                         }
                     )
+                    if (com.metelci.ardunakon.crash.CrashHandler.hasCrashLog(context)) {
+                        DropdownMenuItem(
+                            text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
+                            leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
+                            onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                showCrashLog = true
+                                showOverflowMenu = false
+                            }
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text("Legacy Reflection (HC-06): " + if (allowReflection) "On" else "Off") },
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             allowReflection = !allowReflection
                             showOverflowMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Open Arduino Cloud") },
+                        leadingIcon = { Icon(Icons.Default.OpenInNew, null, tint = Color(0xFF00FF00)) },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            showOverflowMenu = false
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://cloud.arduino.cc"))
+                            context.startActivity(intent)
+                        }
+                    )
+
+                    
+                    DropdownMenuItem(
+                        text = { Text("Switch to ${if (connectionMode == ConnectionMode.BLUETOOTH) "WiFi" else "Bluetooth"}") },
+                        onClick = {
+                            showOverflowMenu = false
+                            connectionMode = if (connectionMode == ConnectionMode.BLUETOOTH) ConnectionMode.WIFI else ConnectionMode.BLUETOOTH
+                             view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (connectionMode == ConnectionMode.BLUETOOTH) Icons.Default.Wifi else Icons.Default.Bluetooth,
+                                contentDescription = "Switch Mode",
+                                tint = Color.Gray
+                            )
                         }
                     )
                     Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
@@ -836,33 +1156,16 @@ fun ControlScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Right side: Second Signal Strength Indicator
-            val state1 = connectionStates[1]
-            val stateColor1 = when (state1) {
-                ConnectionState.CONNECTED -> Color(0xFF00C853)
-                ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
-                ConnectionState.ERROR -> Color(0xFFFF5252)
-                else -> if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFFB0BEC5)
-            }
-
-            SignalStrengthIcon(
-                rssi = rssiValues[1],
-                color = stateColor1,
-                modifier = Modifier
-            )
         }
 
-        // Bluetooth slot information row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.Top
-        ) {
-            (0..1).forEach { slotIndex ->
-                val slotHealth = health.getOrNull(slotIndex)
+        if (connectionMode == ConnectionMode.BLUETOOTH) {
+            // Bluetooth device information row - Single slot
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.Top
+            ) {
+                val slotHealth = health
                 val lastPacketAgo = slotHealth?.lastPacketAt?.takeIf { it > 0 }?.let {
                     val delta = System.currentTimeMillis() - it
                     "${(delta / 1000).coerceAtLeast(0)}s"
@@ -874,7 +1177,7 @@ fun ControlScreen(
                     modifier = Modifier.padding(horizontal = 4.dp)
                 ) {
                     Text(
-                        text = "Slot ${slotIndex + 1}",
+                        text = "Device",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
                     )
@@ -884,9 +1187,9 @@ fun ControlScreen(
                         color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
                     )
                     androidx.compose.material3.OutlinedButton(
-                        onClick = { 
+                        onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            bluetoothManager.requestRssi(slotIndex) 
+                            bluetoothManager.requestRssi()
                         },
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                         modifier = Modifier.height(26.dp),
@@ -904,48 +1207,52 @@ fun ControlScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Device Status Cards
+        // Device Status Card - Single slot centered
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Toggle for Slot 1
+            // Auto-Reconnect Toggle
             AutoReconnectToggle(
-                slot = 0,
-                enabled = autoReconnectEnabled[0],
-                onToggle = { bluetoothManager.setAutoReconnectEnabled(0, it) }
+                enabled = autoReconnectEnabled,
+                onToggle = { bluetoothManager.setAutoReconnectEnabled(it) }
             )
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Slot 1
+            // Device Status Card
+            val hasCrashLog = com.metelci.ardunakon.crash.CrashHandler.hasCrashLog(context)
+
+            val currentConnectionState = if (connectionMode == ConnectionMode.WIFI) {
+                when (wifiState) {
+                    WifiConnectionState.CONNECTED -> ConnectionState.CONNECTED
+                    WifiConnectionState.CONNECTING -> ConnectionState.CONNECTING
+                    WifiConnectionState.ERROR -> ConnectionState.ERROR
+                    else -> ConnectionState.DISCONNECTED
+                }
+            } else {
+                connectionState
+            }
+
+            val currentRssi = if (connectionMode == ConnectionMode.WIFI) wifiRssi else rssiValue
+
             StatusCard(
-                label = "Dev 1",
-                state = connectionStates[0],
-                rssi = rssiValues[0],
-                onClick = { showDeviceList = 0 },
+                label = "Device",
+                state = currentConnectionState,
+                rssi = currentRssi,
+                hasCrashLog = hasCrashLog,
+                onClick = {
+                    if (connectionMode == ConnectionMode.WIFI) {
+                        showWifiConfig = true
+                    } else {
+                        showDeviceList = true
+                    }
+                },
+                onCrashLogClick = {
+                    showCrashLog = true
+                },
                 isDarkTheme = isDarkTheme
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Slot 2
-            StatusCard(
-                label = "Dev 2",
-                state = connectionStates[1],
-                rssi = rssiValues[1],
-                onClick = { showDeviceList = 1 },
-                isDarkTheme = isDarkTheme
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Toggle for Slot 2
-            AutoReconnectToggle(
-                slot = 1,
-                enabled = autoReconnectEnabled[1],
-                onToggle = { bluetoothManager.setAutoReconnectEnabled(1, it) }
             )
         }
 
@@ -1073,6 +1380,8 @@ fun ControlScreen(
             ) {
                 // WASD Button Control with persistent servo state
                 ServoButtonControl(
+                    servoX = servoX,
+                    servoY = servoY,
                     onMove = { x, y ->
                         // Directly update persistent servo positions
                         servoX = x
@@ -1239,11 +1548,67 @@ fun ControlScreen(
         )
     }
 
-    if (showDeviceList != null) {
+    // Crash Log Dialog
+    if (showCrashLog) {
+        val crashLog = com.metelci.ardunakon.crash.CrashHandler.getCrashLog(context)
+        AlertDialog(
+            onDismissRequest = { showCrashLog = false },
+            modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.8f),
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Crash Log", color = Color(0xFFFF9800))
+                    Row {
+                        IconButton(onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            val shareIntent = com.metelci.ardunakon.crash.CrashHandler.getShareIntent(context)
+                            if (shareIntent != null) {
+                                context.startActivity(Intent.createChooser(shareIntent, "Share Crash Log"))
+                            }
+                        }) {
+                            Icon(Icons.Default.Share, "Share", tint = Color(0xFF00E5FF))
+                        }
+                        IconButton(onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            com.metelci.ardunakon.crash.CrashHandler.clearCrashLog(context)
+                            showCrashLog = false
+                        }) {
+                            Icon(Icons.Default.Delete, "Clear", tint = Color(0xFFFF5252))
+                        }
+                    }
+                }
+            },
+            text = {
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    item {
+                        Text(
+                            text = crashLog.ifEmpty { "No crash logs available" },
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            color = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Black,
+                            lineHeight = 14.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCrashLog = false }) {
+                    Text("Close", color = Color(0xFF00E5FF))
+                }
+            }
+        )
+    }
+
+    if (showDeviceList) {
         var isScanning by remember { mutableStateOf(false) }
 
         AlertDialog(
-            onDismissRequest = { showDeviceList = null },
+            onDismissRequest = { showDeviceList = false },
             modifier = Modifier.fillMaxWidth(0.95f),
             title = {
                 Row(
@@ -1275,7 +1640,7 @@ fun ControlScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "Slot ${showDeviceList!! + 1}",
+                            "Select Device",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF546E7A)
                         )
@@ -1359,7 +1724,7 @@ fun ControlScreen(
                                 }
                             }
                         } else {
-                            items(scannedDevices) { device ->
+                            items(scannedDevices, key = { it.address }) { device ->
                                 // Strip MAC address in parentheses from display name (e.g., "HC-06 (AA:BB:CC:DD:EE:FF)")
                                 val displayName = device.name.replace(Regex("\\s*\\([0-9A-Fa-f:]{11,}\\)$"), "")
                                 Card(
@@ -1368,8 +1733,8 @@ fun ControlScreen(
                                         .heightIn(min = 10.dp)
                                         .clickable {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                            bluetoothManager.connectToDevice(device, showDeviceList!!)
-                                            showDeviceList = null
+                                            bluetoothManager.connectToDevice(device)
+                                            showDeviceList = false
                                         },
                                     shape = RoundedCornerShape(8.dp),
                                     colors = CardDefaults.cardColors(
@@ -1425,7 +1790,7 @@ fun ControlScreen(
             },
             confirmButton = {
                 TextButton(
-                    onClick = { showDeviceList = null },
+                    onClick = { showDeviceList = false },
                     modifier = Modifier
                         .defaultMinSize(minHeight = 12.dp, minWidth = 0.dp)
                         .height(12.dp)
@@ -1614,6 +1979,44 @@ fun ControlScreen(
             }
         )
     }
+    
+    // OTA Firmware Update Dialog
+    if (showOtaDialog) {
+        OtaDialog(
+            otaManager = otaManager,
+            bleTransport = bleOtaTransport,
+            wifiTransport = wifiOtaTransport,
+            onDismiss = { showOtaDialog = false }
+        )
+    }
+    // Load saved WiFi config
+    val prefs = context.getSharedPreferences("ArdunakonPrefs", Context.MODE_PRIVATE)
+    val savedIp = remember { prefs.getString("last_wifi_ip", "192.168.4.1") ?: "192.168.4.1" }
+    val savedPort = remember { prefs.getInt("last_wifi_port", 8888) }
+    
+    // Scanned devices state
+    val wifiScannedDevices by wifiManager.scannedDevices.collectAsState()
+
+    if (showWifiConfig) {
+        WifiConfigDialog(
+            initialIp = savedIp,
+            initialPort = savedPort,
+            scannedDevices = wifiScannedDevices,
+            onScan = { wifiManager.startDiscovery() },
+            onDismiss = { showWifiConfig = false },
+            onSave = { ip, port -> 
+                showWifiConfig = false
+                // Save config
+                prefs.edit().putString("last_wifi_ip", ip).putInt("last_wifi_port", port).apply()
+                
+                wifiManager.connect(ip, port)
+            }
+        )
+    }
+}
+
+enum class ConnectionMode {
+    BLUETOOTH, WIFI
 }
 
 

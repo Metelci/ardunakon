@@ -34,9 +34,6 @@ fun TelemetryGraphDialog(
     val view = LocalView.current
     var selectedTab by remember { mutableStateOf(GraphTab.BATTERY) }
 
-    var showSlot1 by remember { mutableStateOf(true) }
-    var showSlot2 by remember { mutableStateOf(true) }
-
     // Force recomposition when history updates
     @Suppress("UNUSED_VARIABLE")
     val historyUpdated by telemetryHistoryManager.historyUpdated.collectAsState()
@@ -71,32 +68,8 @@ fun TelemetryGraphDialog(
                         color = if (isDarkTheme) Color.White else Color.Black
                     )
 
-                    // Slot Toggles - Moved to header
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = showSlot1,
-                                onCheckedChange = { showSlot1 = it },
-                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF00E5FF)),
-                                modifier = Modifier.size(16.dp) // Compact size
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Slot 1", color = Color(0xFF00E5FF), fontSize = 12.sp)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = showSlot2,
-                                onCheckedChange = { showSlot2 = it },
-                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFFD500F9)),
-                                modifier = Modifier.size(16.dp) // Compact size
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Slot 2", color = Color(0xFFD500F9), fontSize = 12.sp)
-                        }
-                    }
+                    Spacer(modifier = Modifier.weight(1f))
+
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         IconButton(
                             onClick = {
@@ -165,13 +138,12 @@ fun TelemetryGraphDialog(
                     style = MaterialTheme.typography.labelSmall
                 )
 
+
                 Spacer(modifier = Modifier.height(8.dp))
 
 
 
                 Spacer(modifier = Modifier.height(6.dp))
-
-
 
                 // Chart Area
                 Box(
@@ -183,27 +155,14 @@ fun TelemetryGraphDialog(
                 ) {
                     when (selectedTab) {
                         GraphTab.BATTERY -> {
-                            val series = buildList {
-                                if (showSlot1) {
-                                    add(
-                                        LineChartSeries(
-                                            label = "Slot 1",
-                                            data = telemetryHistoryManager.getBatteryHistory(0, 120_000L),
-                                            color = Color(0xFF00E5FF)
-                                        )
-                                    )
-                                }
-                                if (showSlot2) {
-                                    add(
-                                        LineChartSeries(
-                                            label = "Slot 2",
-                                            data = telemetryHistoryManager.getBatteryHistory(1, 120_000L),
-                                            color = Color(0xFFD500F9)
-                                        )
-                                    )
-                                }
-                            }
-                            if (series.isEmpty() || series.all { it.data.isEmpty() }) {
+                            val series = listOf(
+                                LineChartSeries(
+                                    label = "Device",
+                                    data = telemetryHistoryManager.getBatteryHistory(120_000L),
+                                    color = Color(0xFF00E5FF)
+                                )
+                            )
+                            if (series.all { it.data.isEmpty() }) {
                                 // Empty state
                                 Box(
                                     modifier = Modifier.fillMaxSize(),
@@ -226,27 +185,14 @@ fun TelemetryGraphDialog(
                             }
                         }
                         GraphTab.RSSI -> {
-                            val series = buildList {
-                                if (showSlot1) {
-                                    add(
-                                        LineChartSeries(
-                                            label = "Slot 1",
-                                            data = telemetryHistoryManager.getRssiHistory(0, 120_000L),
-                                            color = Color(0xFF00E5FF)
-                                        )
-                                    )
-                                }
-                                if (showSlot2) {
-                                    add(
-                                        LineChartSeries(
-                                            label = "Slot 2",
-                                            data = telemetryHistoryManager.getRssiHistory(1, 120_000L),
-                                            color = Color(0xFFD500F9)
-                                        )
-                                    )
-                                }
-                            }
-                            if (series.isEmpty() || series.all { it.data.isEmpty() }) {
+                            val series = listOf(
+                                LineChartSeries(
+                                    label = "Device",
+                                    data = telemetryHistoryManager.getRssiHistory(120_000L),
+                                    color = Color(0xFF00E5FF)
+                                )
+                            )
+                            if (series.all { it.data.isEmpty() }) {
                                 // Empty state
                                 Box(
                                     modifier = Modifier.fillMaxSize(),
@@ -269,27 +215,14 @@ fun TelemetryGraphDialog(
                             }
                         }
                         GraphTab.RTT -> {
-                            val series = buildList {
-                                if (showSlot1) {
-                                    add(
-                                        LineChartSeries(
-                                            label = "Slot 1",
-                                            data = telemetryHistoryManager.getRttHistory(0, 120_000L),
-                                            color = Color(0xFF00E5FF)
-                                        )
-                                    )
-                                }
-                                if (showSlot2) {
-                                    add(
-                                        LineChartSeries(
-                                            label = "Slot 2",
-                                            data = telemetryHistoryManager.getRttHistory(1, 120_000L),
-                                            color = Color(0xFFD500F9)
-                                        )
-                                    )
-                                }
-                            }
-                            if (series.isEmpty() || series.all { it.data.isEmpty() }) {
+                            val series = listOf(
+                                LineChartSeries(
+                                    label = "Device",
+                                    data = telemetryHistoryManager.getRttHistory(120_000L),
+                                    color = Color(0xFF00E5FF)
+                                )
+                            )
+                            if (series.all { it.data.isEmpty() }) {
                                 // Empty state
                                 Box(
                                     modifier = Modifier.fillMaxSize(),

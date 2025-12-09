@@ -1,6 +1,8 @@
 package com.metelci.ardunakon.ui.components
 
 import android.os.Build
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -34,6 +36,7 @@ fun WebViewDialog(
 ) {
     val view = LocalView.current
     var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -102,6 +105,23 @@ fun WebViewDialog(
                     }
                 }
 
+                // Error message display
+                errorMessage?.let { error ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFFF5252).copy(alpha = 0.2f))
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Failed to load: $error",
+                            color = Color(0xFFFF5252),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
                 // WebView
                 AndroidView(
                     factory = { context ->
@@ -114,6 +134,24 @@ fun WebViewDialog(
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     super.onPageFinished(view, url)
                                     isLoading = false
+                                }
+
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    request: WebResourceRequest?,
+                                    error: WebResourceError?
+                                ) {
+                                    super.onReceivedError(view, request, error)
+                                    // Only handle main frame errors (not subresource errors)
+                                    if (request?.isForMainFrame == true) {
+                                        isLoading = false
+                                        val errorDesc = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                            error?.description?.toString() ?: "Unknown error"
+                                        } else {
+                                            "Page load failed"
+                                        }
+                                        errorMessage = errorDesc
+                                    }
                                 }
                             }
                             settings.apply {

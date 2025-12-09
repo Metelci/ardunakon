@@ -148,14 +148,14 @@ data class ConnectionHealth(
     private val _scannedDevices = MutableStateFlow<List<BluetoothDeviceModel>>(emptyList())
     val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = _scannedDevices.asStateFlow()
 
-    private val _connectionStates = MutableStateFlow<List<ConnectionState>>(listOf(ConnectionState.DISCONNECTED, ConnectionState.DISCONNECTED))
-    val connectionStates: StateFlow<List<ConnectionState>> = _connectionStates.asStateFlow()
+    private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
+    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    private val _rssiValues = MutableStateFlow<List<Int>>(listOf(0, 0))
-    val rssiValues: StateFlow<List<Int>> = _rssiValues.asStateFlow()
+    private val _rssiValue = MutableStateFlow(0)
+    val rssiValue: StateFlow<Int> = _rssiValue.asStateFlow()
 
-    private val _health = MutableStateFlow<List<ConnectionHealth>>(listOf(ConnectionHealth(), ConnectionHealth()))
-    val health: StateFlow<List<ConnectionHealth>> = _health.asStateFlow()
+    private val _health = MutableStateFlow(ConnectionHealth())
+    val health: StateFlow<ConnectionHealth> = _health.asStateFlow()
     var allowReflectionFallback: Boolean = false
 
     // Debug Logs
@@ -169,6 +169,14 @@ data class ConnectionHealth(
     // E-Stop State
     private val _isEmergencyStopActive = MutableStateFlow(false)
     val isEmergencyStopActive: StateFlow<Boolean> = _isEmergencyStopActive.asStateFlow()
+
+    // RTT History for latency sparkline (last 20 values)
+    private val _rttHistory = MutableStateFlow<List<Long>>(emptyList())
+    val rttHistory: StateFlow<List<Long>> = _rttHistory.asStateFlow()
+
+    // Device Capabilities (announced by Arduino on connect)
+    private val _deviceCapability = MutableStateFlow(DeviceCapabilities.DEFAULT)
+    val deviceCapability: StateFlow<DeviceCapabilities> = _deviceCapability.asStateFlow()
 
     private var keepAliveJob: Job? = null
 
@@ -194,31 +202,31 @@ data class ConnectionHealth(
         fun requestRssi() {}
     }
 
-    // Active connections
-    private val connections = arrayOfNulls<BluetoothConnection>(2)
-    // Saved devices for auto-reconnect
-    private val savedDevices = arrayOfNulls<BluetoothDeviceModel>(2)
-    private val connectionTypes = arrayOfNulls<DeviceType>(2)
-    private val _shouldReconnect = booleanArrayOf(false, false)
-    private val _autoReconnectEnabled = MutableStateFlow<List<Boolean>>(listOf(false, false))
-    val autoReconnectEnabled: StateFlow<List<Boolean>> = _autoReconnectEnabled.asStateFlow()
+    // Active connection (single slot)
+    private var connection: BluetoothConnection? = null
+    // Saved device for auto-reconnect
+    private var savedDevice: BluetoothDeviceModel? = null
+    private var connectionType: DeviceType? = null
+    private var _shouldReconnect = false
+    private val _autoReconnectEnabled = MutableStateFlow(false)
+    val autoReconnectEnabled: StateFlow<Boolean> = _autoReconnectEnabled.asStateFlow()
     // Connection mutex to prevent concurrent connection attempts
-    private val connectionMutex = arrayOf(kotlinx.coroutines.sync.Mutex(), kotlinx.coroutines.sync.Mutex())
-    private val lastStateChangeAt = longArrayOf(0L, 0L)
-    private val rssiFailures = intArrayOf(0, 0)
+    private val connectionMutex = kotlinx.coroutines.sync.Mutex()
+    private var lastStateChangeAt = 0L
+    private var rssiFailures = 0
     // Exponential backoff state
-    private val reconnectAttempts = intArrayOf(0, 0)  // Count consecutive failures
-    private val nextReconnectAt = longArrayOf(0L, 0L)  // Timestamp when next attempt allowed
-    private val heartbeatSeq = intArrayOf(0, 0)
-    private val lastHeartbeatSentAt = longArrayOf(0L, 0L)
-    private val lastPacketAt = longArrayOf(0L, 0L)
-    private val lastRttMs = longArrayOf(0L, 0L)
+    private var reconnectAttempts = 0  // Count consecutive failures
+    private var nextReconnectAt = 0L   // Timestamp when next attempt allowed
+    private var heartbeatSeq = 0
+    private var lastHeartbeatSentAt = 0L
+    private var lastPacketAt = 0L
+    private var lastRttMs = 0L
     private val heartbeatTimeoutClassicMs = 20000L  // Increased from 12s to 20s for better tolerance
     // BLE clones like HM-10/HC-08 often stay silent; allow long idle periods before reconnecting.
     private val heartbeatTimeoutBleMs = 300000L     // 5 minutes before considering BLE link stale
     private val missedAckThresholdClassic = 5
     private val missedAckThresholdBle = 60          // 60 heartbeats @4s ≈ 4 minutes before timeout
-    private val missedHeartbeatAcks = intArrayOf(0, 0)
+    private var missedHeartbeatAcks = 0
 
     private val leScanner by lazy { adapter?.bluetoothLeScanner }
     private val leScanCallback = object : android.bluetooth.le.ScanCallback() {
@@ -287,17 +295,25 @@ data class ConnectionHealth(
         }
     }
 
-    init {
-        context.registerReceiver(receiver, android.content.IntentFilter(BluetoothDevice.ACTION_FOUND))
+    // Track receiver registration state to prevent leaks
+    @Volatile
+    private var isReceiverRegistered = false
 
-        // Load saved auto-reconnect preferences
+    init {
+        try {
+            context.registerReceiver(receiver, android.content.IntentFilter(BluetoothDevice.ACTION_FOUND))
+            isReceiverRegistered = true
+        } catch (e: Exception) {
+            log("Failed to register Bluetooth receiver: ${e.message}", LogType.WARNING)
+        }
+
+        // Load saved auto-reconnect preference
         scope.launch {
             val saved = autoReconnectPrefs.loadAutoReconnectState()
-            _shouldReconnect[0] = saved[0]
-            _shouldReconnect[1] = saved[1]
-            _autoReconnectEnabled.value = listOf(saved[0], saved[1])
-            if (saved[0] || saved[1]) {
-                log("Restored auto-reconnect: Slot 1=${saved[0]}, Slot 2=${saved[1]}", LogType.INFO)
+            _shouldReconnect = saved[0]
+            _autoReconnectEnabled.value = saved[0]
+            if (saved[0]) {
+                log("Restored auto-reconnect: enabled", LogType.INFO)
             }
         }
 
@@ -347,37 +363,35 @@ data class ConnectionHealth(
             while (isActive) {
                 val now = System.currentTimeMillis()
                 if (!_isEmergencyStopActive.value) {
-                    for (slot in 0..1) {
-                        val currentState = _connectionStates.value[slot]
+                    val currentState = _connectionState.value
 
-                        // Check if backoff period has elapsed
-                        if (now < nextReconnectAt[slot]) {
-                            continue  // Still in backoff period
-                        }
-
+                    // Check if backoff period has elapsed
+                    if (now >= nextReconnectAt) {
                         // Reconnect if disconnected OR in error state (failed connection attempt)
-                        if (_shouldReconnect[slot] &&
+                        if (_shouldReconnect &&
                             (currentState == ConnectionState.DISCONNECTED || currentState == ConnectionState.ERROR) &&
-                            savedDevices[slot] != null) {
+                            savedDevice != null) {
 
                             // Check circuit breaker
-                            if (reconnectAttempts[slot] >= 10) {
-                                log("Circuit breaker: Too many failed attempts for Slot ${slot + 1}", LogType.ERROR)
-                                _shouldReconnect[slot] = false  // Stop auto-reconnect
-                                val list = _autoReconnectEnabled.value.toMutableList()
-                                list[slot] = false
-                                _autoReconnectEnabled.value = list
-                                continue
+                            if (reconnectAttempts >= 10) {
+                                log("Circuit breaker: Too many failed attempts", LogType.ERROR)
+                                _shouldReconnect = false  // Stop auto-reconnect
+                                _autoReconnectEnabled.value = false
+                            } else {
+                                val backoffDelay = calculateBackoffDelay(reconnectAttempts)
+                                log("Auto-reconnecting to ${savedDevice?.name}... (attempt ${reconnectAttempts + 1}, backoff ${backoffDelay}ms)", LogType.WARNING)
+
+                                reconnectAttempts++
+                                nextReconnectAt = now + backoffDelay
+
+                                updateConnectionState(ConnectionState.RECONNECTING)
+                                savedDevice?.let { device ->
+                                    connectToDevice(device, isAutoReconnect = true)
+                                } ?: run {
+                                    log("Auto-reconnect failed: No saved device", LogType.ERROR)
+                                    updateConnectionState(ConnectionState.DISCONNECTED)
+                                }
                             }
-
-                            val backoffDelay = calculateBackoffDelay(reconnectAttempts[slot])
-                            log("Auto-reconnecting to ${savedDevices[slot]?.name}... (attempt ${reconnectAttempts[slot] + 1}, backoff ${backoffDelay}ms)", LogType.WARNING)
-
-                            reconnectAttempts[slot]++
-                            nextReconnectAt[slot] = now + backoffDelay
-
-                            updateConnectionState(slot, ConnectionState.RECONNECTING)
-                            connectToDevice(savedDevices[slot]!!, slot, isAutoReconnect = true)
                         }
                     }
                 }
@@ -386,51 +400,80 @@ data class ConnectionHealth(
         }
     }
 
-    private fun recordInbound(slot: Int) {
+    private fun recordInbound() {
         val now = System.currentTimeMillis()
-        val wasTimeout = missedHeartbeatAcks[slot] >= 3
+        val wasTimeout = missedHeartbeatAcks >= 3
 
-        lastPacketAt[slot] = now
-        rssiFailures[slot] = 0
-        missedHeartbeatAcks[slot] = 0  // Reset missed ACK counter
+        lastPacketAt = now
+        rssiFailures = 0
+        missedHeartbeatAcks = 0  // Reset missed ACK counter
 
         if (wasTimeout) {
-            log("Heartbeat recovered for Slot ${slot + 1}", LogType.SUCCESS)
+            log("Heartbeat recovered", LogType.SUCCESS)
         }
 
-        if (lastHeartbeatSentAt[slot] > 0 && now >= lastHeartbeatSentAt[slot]) {
-            lastRttMs[slot] = now - lastHeartbeatSentAt[slot]
+        if (lastHeartbeatSentAt > 0 && now >= lastHeartbeatSentAt) {
+            lastRttMs = now - lastHeartbeatSentAt
+
+            // Add to RTT history for sparkline visualization
+            addRttToHistory(lastRttMs)
         }
-        updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
+        updateHealth(heartbeatSeq, lastPacketAt, rssiFailures)
     }
 
+    private fun addRttToHistory(rtt: Long) {
+        val current = _rttHistory.value.toMutableList()
+        current.add(rtt)
+        // Keep only last 20 values
+        while (current.size > 20) {
+            current.removeAt(0)
+        }
+        _rttHistory.value = current
+    }
+
+    /**
+     * Update device capabilities from announcement packet
+     */
+    fun updateCapabilities(capabilities: DeviceCapabilities) {
+        _deviceCapability.value = capabilities
+        log("Device capabilities: ${capabilities.toDisplayString()} (${capabilities.boardType.displayName})", LogType.SUCCESS)
+    }
+
+    /**
+     * Parse incoming packet for capability announcement
+     * Call this when receiving CMD_ANNOUNCE_CAPABILITIES (0x05)
+     */
+    fun handleCapabilityPacket(data: ByteArray) {
+        if (data.size >= 5 && data[2].toInt() and 0xFF == 0x05) {
+            val capabilities = DeviceCapabilities.fromPacket(data, 3)
+            updateCapabilities(capabilities)
+        }
+    }
     private fun startKeepAlivePings() {
         keepAliveJob?.cancel()
         keepAliveJob = scope.launch {
             while (isActive) {
                 delay(4000)
-                val states = _connectionStates.value
-                states.forEachIndexed { index, state ->
-                    if (state == ConnectionState.CONNECTED && connections[index] != null) {
-                        heartbeatSeq[index] = (heartbeatSeq[index] + 1) and 0xFFFF
-                        val heartbeat = ProtocolManager.formatHeartbeatData(heartbeatSeq[index])
-                        // Force bypasses E-STOP so the link itself stays alive
-                        sendDataToSlot(heartbeat, index, force = true)
-                        lastHeartbeatSentAt[index] = System.currentTimeMillis()
-                        missedHeartbeatAcks[index]++
-                        updateHealth(index, heartbeatSeq[index], lastPacketAt[index], rssiFailures[index])
+                val state = _connectionState.value
+                if (state == ConnectionState.CONNECTED && connection != null) {
+                    heartbeatSeq = (heartbeatSeq + 1) and 0xFFFF
+                    val heartbeat = ProtocolManager.formatHeartbeatData(heartbeatSeq)
+                    // Force bypasses E-STOP so the link itself stays alive
+                    sendData(heartbeat, force = true)
+                    lastHeartbeatSentAt = System.currentTimeMillis()
+                    missedHeartbeatAcks++
+                    updateHealth(heartbeatSeq, lastPacketAt, rssiFailures)
 
-                        // Require multiple missed acks before forcing reconnect
-                        val sinceLastPacket = System.currentTimeMillis() - lastPacketAt[index]
-                        val isBle = connectionTypes.getOrNull(index) == DeviceType.LE
-                        val timeoutMs = if (isBle) heartbeatTimeoutBleMs else heartbeatTimeoutClassicMs
-                        val ackThreshold = if (isBle) missedAckThresholdBle else missedAckThresholdClassic
+                    // Require multiple missed acks before forcing reconnect
+                    val sinceLastPacket = System.currentTimeMillis() - lastPacketAt
+                    val isBle = connectionType == DeviceType.LE
+                    val timeoutMs = if (isBle) heartbeatTimeoutBleMs else heartbeatTimeoutClassicMs
+                    val ackThreshold = if (isBle) missedAckThresholdBle else missedAckThresholdClassic
 
-                        if (missedHeartbeatAcks[index] >= ackThreshold && lastPacketAt[index] > 0 && sinceLastPacket > timeoutMs) {
-                            log("Heartbeat timeout on Slot ${index + 1} after ${sinceLastPacket}ms (missed ${missedHeartbeatAcks[index]} acks)", LogType.ERROR)
-                            missedHeartbeatAcks[index] = 0
-                            forceReconnect(index, "Heartbeat timeout")
-                        }
+                    if (missedHeartbeatAcks >= ackThreshold && lastPacketAt > 0 && sinceLastPacket > timeoutMs) {
+                        log("Heartbeat timeout after ${sinceLastPacket}ms (missed $missedHeartbeatAcks acks)", LogType.ERROR)
+                        missedHeartbeatAcks = 0
+                        forceReconnect("Heartbeat timeout")
                     }
                 }
             }
@@ -549,8 +592,7 @@ data class ConnectionHealth(
         return "Unknown Device (${device.address})"
     }
 
-    fun connectToDevice(deviceModel: BluetoothDeviceModel, slot: Int, isAutoReconnect: Boolean = false) {
-        if (slot !in 0..1) return
+    fun connectToDevice(deviceModel: BluetoothDeviceModel, isAutoReconnect: Boolean = false) {
         if (_isEmergencyStopActive.value) {
             log("Connect failed: E-STOP ACTIVE", LogType.ERROR)
             return
@@ -567,8 +609,8 @@ data class ConnectionHealth(
 
         // Check if connection is already in progress
         scope.launch {
-            if (!connectionMutex[slot].tryLock()) {
-                log("Connection already in progress for Slot ${slot + 1}", LogType.WARNING)
+            if (!connectionMutex.tryLock()) {
+                log("Connection already in progress", LogType.WARNING)
                 return@launch
             }
 
@@ -584,15 +626,15 @@ data class ConnectionHealth(
             }
 
             // Save for potential reconnect
-            savedDevices[slot] = coercedModel
-            connectionTypes[slot] = coercedModel.type
+            savedDevice = coercedModel
+            connectionType = coercedModel.type
             // Only enable auto-reconnect if user toggle is ON
-            _shouldReconnect[slot] = _autoReconnectEnabled.value[slot]
+            _shouldReconnect = _autoReconnectEnabled.value
             // Seed RSSI with last known scan value for immediate UI feedback
-            updateRssi(slot, coercedModel.rssi)
+            updateRssi(coercedModel.rssi)
 
             if (!isAutoReconnect) {
-                updateConnectionState(slot, ConnectionState.CONNECTING)
+                updateConnectionState(ConnectionState.CONNECTING)
                 log("Connecting to ${coercedModel.name}...", LogType.INFO)
             }
 
@@ -605,15 +647,15 @@ data class ConnectionHealth(
             stopScan()
 
             // Ensure previous connection is closed
-            connections[slot]?.cancel()
-            connections[slot] = null
+            connection?.cancel()
+            connection = null
 
             // Give BT stack time to clean up (minimal delay for fast reconnection)
             delay(200)
 
             val device = localAdapter.getRemoteDevice(coercedModel.address)
             if (device == null) {
-                connectionMutex[slot].unlock()
+                connectionMutex.unlock()
                 return@launch
             }
 
@@ -623,92 +665,74 @@ data class ConnectionHealth(
             log("Device name resolved: $refreshedName", LogType.INFO)
 
             if (coercedModel.type == DeviceType.LE) {
-                val bleConnection = BleConnection(device, slot)
-                connections[slot] = bleConnection
+                val bleConnection = BleConnection(device)
+                connection = bleConnection
                 bleConnection.connect()
                 // Note: BLE connection unlocks mutex when connection completes
             } else {
                 // ConnectThread will unlock the mutex when it finishes (success or failure)
-                ConnectThread(device, slot).start()
+                ConnectThread(device).start()
             }
         }
     }
 
-    fun disconnect(slot: Int) {
-        if (slot in 0..1) {
-            _shouldReconnect[slot] = false
-            val list = _autoReconnectEnabled.value.toMutableList()
-            list[slot] = false
-            _autoReconnectEnabled.value = list
-            connections[slot]?.cancel()
-            connections[slot] = null
-            updateConnectionState(slot, ConnectionState.DISCONNECTED)
-            updateRssi(slot, 0)
-            log("Disconnected from Slot ${slot + 1}", LogType.INFO)
-        }
+    fun disconnect() {
+        _shouldReconnect = false
+        _autoReconnectEnabled.value = false
+        connection?.cancel()
+        connection = null
+        updateConnectionState(ConnectionState.DISCONNECTED)
+        updateRssi(0)
+        log("Disconnected", LogType.INFO)
     }
 
-    fun disconnectAllForEStop() {
-        for (slot in 0..1) {
-            _shouldReconnect[slot] = false
-            val list = _autoReconnectEnabled.value.toMutableList()
-            list[slot] = false
-            _autoReconnectEnabled.value = list
-
-            connections[slot]?.cancel()
-            connections[slot] = null
-            updateConnectionState(slot, ConnectionState.DISCONNECTED)
-            updateRssi(slot, 0)
-        }
-        log("All slots disconnected due to E-STOP", LogType.WARNING)
+    fun disconnectForEStop() {
+        _shouldReconnect = false
+        _autoReconnectEnabled.value = false
+        connection?.cancel()
+        connection = null
+        updateConnectionState(ConnectionState.DISCONNECTED)
+        updateRssi(0)
+        log("Disconnected due to E-STOP", LogType.WARNING)
     }
 
     fun holdOfflineAfterEStopReset() {
-        for (slot in 0..1) {
-            _shouldReconnect[slot] = false
-            val list = _autoReconnectEnabled.value.toMutableList()
-            list[slot] = false
-            _autoReconnectEnabled.value = list
-            savedDevices[slot] = null
-        }
+        _shouldReconnect = false
+        _autoReconnectEnabled.value = false
+        savedDevice = null
         scope.launch {
-            saveAutoReconnectPreference(0, false)
-            saveAutoReconnectPreference(1, false)
+            saveAutoReconnectPreference(false)
         }
-        log("E-STOP reset: keeping all slots offline until manual connect", LogType.INFO)
+        log("E-STOP reset: keeping offline until manual connect", LogType.INFO)
     }
 
-    fun setAutoReconnectEnabled(slot: Int, enabled: Boolean) {
-        if (slot !in 0..1) return
-
-        val list = _autoReconnectEnabled.value.toMutableList()
-        list[slot] = enabled
-        _autoReconnectEnabled.value = list
+    fun setAutoReconnectEnabled(enabled: Boolean) {
+        _autoReconnectEnabled.value = enabled
 
         if (enabled) {
             // Arm future auto-reconnect but do NOT trigger immediate reconnect.
-            _shouldReconnect[slot] = false
-            reconnectAttempts[slot] = 0
-            nextReconnectAt[slot] = 0L
-            log("Auto-reconnect ARMED for Slot ${slot + 1} (will start after next manual connect)", LogType.INFO)
+            _shouldReconnect = false
+            reconnectAttempts = 0
+            nextReconnectAt = 0L
+            log("Auto-reconnect ARMED (will start after next manual connect)", LogType.INFO)
         } else {
             // Disable and disconnect; clear saved device so user must pick from scan.
-            _shouldReconnect[slot] = false
-            reconnectAttempts[slot] = 0
-            nextReconnectAt[slot] = 0L
-            connections[slot]?.cancel()
-            connections[slot] = null
-            savedDevices[slot] = null
-            updateConnectionState(slot, ConnectionState.DISCONNECTED)
-            updateRssi(slot, 0)
-            log("Auto-reconnect DISABLED for Slot ${slot + 1}", LogType.WARNING)
+            _shouldReconnect = false
+            reconnectAttempts = 0
+            nextReconnectAt = 0L
+            connection?.cancel()
+            connection = null
+            savedDevice = null
+            updateConnectionState(ConnectionState.DISCONNECTED)
+            updateRssi(0)
+            log("Auto-reconnect DISABLED", LogType.WARNING)
         }
 
-        scope.launch { saveAutoReconnectPreference(slot, enabled) }
+        scope.launch { saveAutoReconnectPreference(enabled) }
     }
 
-    private suspend fun saveAutoReconnectPreference(slot: Int, enabled: Boolean) {
-        autoReconnectPrefs.saveAutoReconnectState(slot, enabled)
+    private suspend fun saveAutoReconnectPreference(enabled: Boolean) {
+        autoReconnectPrefs.saveAutoReconnectState(0, enabled)
     }
 
     private fun calculateBackoffDelay(attempts: Int): Long {
@@ -719,93 +743,82 @@ data class ConnectionHealth(
         return delay
     }
 
-    fun resetCircuitBreaker(slot: Int) {
-        if (slot in 0..1) {
-            reconnectAttempts[slot] = 0
-            nextReconnectAt[slot] = 0L
-            log("Circuit breaker reset for Slot ${slot + 1}", LogType.INFO)
-        }
+    fun resetCircuitBreaker() {
+        reconnectAttempts = 0
+        nextReconnectAt = 0L
+        log("Circuit breaker reset", LogType.INFO)
     }
 
-    fun sendDataToAll(data: ByteArray, force: Boolean = false) {
+    fun sendData(data: ByteArray, force: Boolean = false) {
         if (_isEmergencyStopActive.value && !force) return
-        connections.forEach { it?.write(data) }
+        connection?.write(data)
     }
 
-    fun sendDataToSlot(data: ByteArray, slot: Int, force: Boolean = false) {
-        if (_isEmergencyStopActive.value && !force) return
-        if (slot in 0..1) {
-            connections[slot]?.write(data)
-        }
-    }
+    // Legacy alias for single-slot migration compatibility
+    fun sendDataToAll(data: ByteArray, force: Boolean = false) = sendData(data, force)
 
-    fun requestRssi(slot: Int) {
-        if (slot !in 0..1) return
+    // Legacy alias: disconnect for E-STOP
+    fun disconnectAllForEStop() = disconnectForEStop()
+
+    fun requestRssi() {
         if (!checkBluetoothPermission()) {
             log("RSSI refresh failed: Missing permissions", LogType.ERROR)
             return
         }
-        if (connectionTypes[slot] != DeviceType.LE) {
+        if (connectionType != DeviceType.LE) {
             log("RSSI refresh not supported for classic devices", LogType.WARNING)
             return
         }
-        connections[slot]?.requestRssi()
+        connection?.requestRssi()
     }
 
-    fun reconnectSavedDevices(): Boolean {
-        var started = false
-        for (slot in 0..1) {
-            // Reset circuit breaker on manual reconnect
-            reconnectAttempts[slot] = 0
-            nextReconnectAt[slot] = 0L
+    fun reconnectSavedDevice(): Boolean {
+        // Reset circuit breaker on manual reconnect
+        reconnectAttempts = 0
+        nextReconnectAt = 0L
 
-            val device = savedDevices[slot]
-            val state = _connectionStates.value[slot]
-            if (device != null && state != ConnectionState.CONNECTED && state != ConnectionState.CONNECTING) {
-                log("Manually reconnecting to ${device.name} (Slot ${slot + 1})", LogType.INFO)
-                connectToDevice(device, slot, isAutoReconnect = true)
-                started = true
-            }
+        val device = savedDevice
+        val state = _connectionState.value
+        if (device != null && state != ConnectionState.CONNECTED && state != ConnectionState.CONNECTING) {
+            log("Manually reconnecting to ${device.name}", LogType.INFO)
+            connectToDevice(device, isAutoReconnect = true)
+            return true
         }
-        if (!started) {
-            log("No saved devices to reconnect", LogType.WARNING)
-        }
-        return started
+        log("No saved device to reconnect", LogType.WARNING)
+        return false
     }
 
-    private fun updateConnectionState(slot: Int, state: ConnectionState) {
+    private fun updateConnectionState(state: ConnectionState) {
         val now = System.currentTimeMillis()
         // Debounce noisy DISCONNECTED/ERROR flips to avoid UI spam
         val isNoisyState = state == ConnectionState.DISCONNECTED || state == ConnectionState.ERROR
-        if (isNoisyState && (now - lastStateChangeAt[slot]) < 800) {
+        if (isNoisyState && (now - lastStateChangeAt) < 800) {
             return
         }
-        lastStateChangeAt[slot] = now
-        val list = _connectionStates.value.toMutableList()
-        list[slot] = state
-        _connectionStates.value = list
-        
+        lastStateChangeAt = now
+        _connectionState.value = state
+
         when(state) {
             ConnectionState.CONNECTED -> {
-                log("Connected to Slot ${slot + 1}!", LogType.SUCCESS)
+                log("Connected!", LogType.SUCCESS)
                 vibrate(200) // Long vibration for connection
-                lastPacketAt[slot] = now
-                updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
+                lastPacketAt = now
+                updateHealth(heartbeatSeq, lastPacketAt, rssiFailures)
                 // Reset backoff counter on successful connection
-                reconnectAttempts[slot] = 0
-                nextReconnectAt[slot] = 0L
+                reconnectAttempts = 0
+                nextReconnectAt = 0L
                 // Reset packet loss stats
-                packetsSent[slot] = 0
-                packetsDropped[slot] = 0
-                packetsFailed[slot] = 0
-                lastPacketLossWarningTime[slot] = 0
+                packetsSent.set(0, 0)
+                packetsDropped.set(0, 0)
+                packetsFailed.set(0, 0)
+                lastPacketLossWarningTime.set(0, 0)
             }
             ConnectionState.DISCONNECTED -> {
                 // Only vibrate if it was previously connected or connecting (avoid noise on startup)
                 vibrate(100) // Short vibration for disconnection
             }
             ConnectionState.ERROR -> {
-                log("Connection error on Slot ${slot + 1}", LogType.ERROR)
+                log("Connection error", LogType.ERROR)
                 vibrate(500) // Very long vibration for error
             }
             else -> {}
@@ -825,51 +838,55 @@ data class ConnectionHealth(
         }
     }
 
-    private fun updateRssi(slot: Int, rssi: Int) {
-        val list = _rssiValues.value.toMutableList()
-        list[slot] = rssi
-        _rssiValues.value = list
-        updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
+    private fun updateRssi(rssi: Int) {
+        _rssiValue.value = rssi
+        updateHealth(heartbeatSeq, lastPacketAt, rssiFailures)
     }
 
-    private fun updateHealth(slot: Int, seq: Int, packetAt: Long, failures: Int) {
-        val current = _health.value.toMutableList()
-        current[slot] = ConnectionHealth(packetAt, failures, seq, lastHeartbeatSentAt[slot], lastRttMs[slot])
-        _health.value = current
+    private fun updateHealth(seq: Int, packetAt: Long, failures: Int) {
+        _health.value = ConnectionHealth(packetAt, failures, seq, lastHeartbeatSentAt, lastRttMs)
 
         // Record RSSI and RTT to history for graph visualization
-        val rssi = _rssiValues.value[slot]
+        val rssi = _rssiValue.value
         if (rssi != 0) {
-            _telemetryHistoryManager.recordRssi(slot, rssi)
+            _telemetryHistoryManager.recordRssi(rssi)
         }
-        if (lastRttMs[slot] > 0) {
-            _telemetryHistoryManager.recordRtt(slot, lastRttMs[slot])
+        if (lastRttMs > 0) {
+            _telemetryHistoryManager.recordRtt(lastRttMs)
         }
     }
 
-    private fun forceReconnect(slot: Int, reason: String) {
+    private fun forceReconnect(reason: String) {
         val now = System.currentTimeMillis()
-        val timeSinceLastPacket = now - lastPacketAt[slot]
-        val missedAcks = missedHeartbeatAcks[slot]
-        val currentRtt = lastRttMs[slot]
+        val timeSinceLastPacket = now - lastPacketAt
+        val missedAcks = missedHeartbeatAcks
+        val currentRtt = lastRttMs
 
-        log("Reconnecting Slot ${slot + 1}: $reason", LogType.WARNING)
+        log("Reconnecting: $reason", LogType.WARNING)
         log("  └─ Diagnostics: missedAcks=$missedAcks, timeSinceLastPacket=${timeSinceLastPacket}ms, lastRTT=${currentRtt}ms", LogType.INFO)
 
-        connections[slot]?.cancel()
-        connections[slot] = null
-        if (connectionMutex[slot].isLocked) {
-            connectionMutex[slot].unlock()
+        connection?.cancel()
+        connection = null
+        // Safely unlock mutex - use try-catch to handle race condition where
+        // mutex may be unlocked between check and unlock
+        try {
+            if (connectionMutex.isLocked) {
+                connectionMutex.unlock()
+            }
+        } catch (e: IllegalStateException) {
+            // Mutex was already unlocked by another thread - this is expected
         }
-        updateConnectionState(slot, ConnectionState.ERROR)
-        updateRssi(slot, 0)
+        updateConnectionState(ConnectionState.ERROR)
+        updateRssi(0)
 
         // Reset heartbeat tracking
-        missedHeartbeatAcks[slot] = 0
-        lastHeartbeatSentAt[slot] = 0L
+        missedHeartbeatAcks = 0
+        lastHeartbeatSentAt = 0L
 
-        if (savedDevices[slot] != null) {
-            connectToDevice(savedDevices[slot]!!, slot, isAutoReconnect = true)
+        savedDevice?.let { device ->
+            connectToDevice(device, isAutoReconnect = true)
+        } ?: run {
+            log("Force reconnect skipped: No saved device", LogType.WARNING)
         }
     }
 
@@ -886,17 +903,20 @@ data class ConnectionHealth(
         scanJob?.cancel()
         keepAliveJob?.cancel()
 
-        // Disconnect all active connections
-        for (i in 0..1) {
-            connections[i]?.cancel()
-            connections[i] = null
-        }
+        // Disconnect active connection
+        connection?.cancel()
+        connection = null
 
-        // Unregister broadcast receiver
-        try {
-            context.unregisterReceiver(receiver)
-        } catch (e: IllegalArgumentException) {
-            // Receiver not registered or already unregistered
+        // Unregister broadcast receiver safely
+        if (isReceiverRegistered) {
+            try {
+                context.unregisterReceiver(receiver)
+                isReceiverRegistered = false
+            } catch (e: IllegalArgumentException) {
+                // Receiver not registered or already unregistered
+            } catch (e: Exception) {
+                Log.w("BT", "Failed to unregister receiver: ${e.message}")
+            }
         }
     }
 
@@ -913,13 +933,15 @@ data class ConnectionHealth(
     private val _telemetry = MutableStateFlow<Telemetry?>(null)
     val telemetry: StateFlow<Telemetry?> = _telemetry.asStateFlow()
 
-    // Packet loss tracking (per slot)
-    private val packetsSent = mutableListOf(0L, 0L)
-    private val packetsDropped = mutableListOf(0L, 0L)
-    private val packetsFailed = mutableListOf(0L, 0L)
-    private val lastPacketLossWarningTime = mutableListOf(0L, 0L)
+    // Packet loss tracking - Thread-safe using AtomicLongArray (single slot)
+    private val packetsSent = java.util.concurrent.atomic.AtomicLongArray(1)
+    private val packetsDropped = java.util.concurrent.atomic.AtomicLongArray(1)
+    private val packetsFailed = java.util.concurrent.atomic.AtomicLongArray(1)
+    private val lastPacketLossWarningTime = java.util.concurrent.atomic.AtomicLongArray(1)
 
-    private fun parseTelemetry(packet: ByteArray) {
+    private var lastTelemetryLogTime = 0L
+
+    fun parseTelemetry(packet: ByteArray) {
         // Expected schema aligned to ProtocolManager packets:
         // [START][DEV][CMD][D1][D2][D3][D4][D5][CHK][END]
         // We treat CMD_HEARTBEAT (0x03) as telemetry carrier: D1=battery (tenths), D2=status (0/1)
@@ -942,32 +964,37 @@ data class ConnectionHealth(
         // Validate battery voltage is within reasonable bounds (0V to 30V)
         if (battery < 0f || battery > 30f) {
             if (isDebugMode) {
-                log("Invalid telemetry: voltage ${battery}V out of range", LogType.WARNING)
+                val now = System.currentTimeMillis()
+                if (now - lastTelemetryLogTime > 5000) {
+                    log("Invalid telemetry: voltage ${battery}V out of range", LogType.WARNING)
+                    lastTelemetryLogTime = now
+                }
             }
             return
         }
 
         val status = if (statusByte == 1) "Safe Mode" else "Active"
 
-        // Calculate total packet stats across all slots
-        val totalSent = packetsSent.sum()
-        val totalDropped = packetsDropped.sum()
-        val totalFailed = packetsFailed.sum()
+        // Get packet stats
+        val totalSent = packetsSent.get(0)
+        val totalDropped = packetsDropped.get(0)
+        val totalFailed = packetsFailed.get(0)
 
         _telemetry.value = Telemetry(battery, status, totalSent, totalDropped, totalFailed)
 
         // Record battery voltage to history for graph visualization
-        // Determine slot from device ID (DEV_ID in packet[1])
-        val deviceId = packet[1].toInt() and 0xFF
-        val slot = if (deviceId == 1) 0 else 1
-        _telemetryHistoryManager.recordBattery(slot, battery)
+        _telemetryHistoryManager.recordBattery(battery)
 
         if (isDebugMode) {
-            log("Telemetry: Bat=${battery}V, Stat=$status", LogType.SUCCESS)
+            val now = System.currentTimeMillis()
+            if (now - lastTelemetryLogTime > 5000) {
+                log("Telemetry: Bat=${battery}V, Stat=$status", LogType.SUCCESS)
+                lastTelemetryLogTime = now
+            }
         }
     }
 
-    private inner class ConnectThread(private val device: BluetoothDevice, private val slot: Int) : Thread() {
+    private inner class ConnectThread(private val device: BluetoothDevice) : Thread() {
         private var socket: BluetoothSocket? = null
         @Volatile private var cancelled = false
 
@@ -976,11 +1003,11 @@ data class ConnectionHealth(
             try {
                 if (!checkBluetoothPermission()) {
                     log("Connect failed: Missing permissions", LogType.ERROR)
-                    updateConnectionState(slot, ConnectionState.ERROR)
+                    updateConnectionState(ConnectionState.ERROR)
                     return
                 }
 
-                log("Starting connection to ${device.name} (${device.address}) on Slot ${slot + 1}", LogType.INFO)
+                log("Starting connection to ${device.name} (${device.address})", LogType.INFO)
                 log("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (Android ${android.os.Build.VERSION.RELEASE})", LogType.INFO)
 
                 // MILITARY GRADE STABILITY: Ensure discovery is cancelled and radio is settled
@@ -1014,7 +1041,7 @@ data class ConnectionHealth(
                 if (deviceVerificationEnabled) {
                     scope.launch {
                         try {
-                            performDeviceVerification(device, slot)
+                            performDeviceVerification(device)
                         } catch (e: DeviceVerificationException) {
                             log("Device verification failed: ${e.message}", LogType.WARNING)
                             // Verification failure does NOT affect connectivity
@@ -1190,12 +1217,13 @@ data class ConnectionHealth(
 
                 if (cancelled) {
                     closeSocketSafely(socket)
-                    log("Connection attempt cancelled for ${device.name} on Slot ${slot + 1}", LogType.WARNING)
-                    updateConnectionState(slot, ConnectionState.DISCONNECTED)
+                    log("Connection attempt cancelled for ${device.name} ", LogType.WARNING)
+                    updateConnectionState( ConnectionState.DISCONNECTED)
                     return
                 }
 
-                if (connected && socket != null) {
+                val validSocket = socket
+                if (connected && validSocket != null) {
                     // Connection successful
                     // MIUI/Xiaomi-specific fix: Allow socket streams to fully initialize
                     // On Xiaomi devices, socket.outputStream/inputStream fail if accessed too early
@@ -1205,31 +1233,31 @@ data class ConnectionHealth(
                     }
 
                     try {
-                        val connectedThread = ConnectedThread(socket!!, slot)
-                        connections[slot] = connectedThread
+                        val connectedThread = ConnectedThread(validSocket)
+                        connection = connectedThread
                         connectedThread.start()
 
-                        updateConnectionState(slot, ConnectionState.CONNECTED)
+                        updateConnectionState( ConnectionState.CONNECTED)
                     } catch (e: IOException) {
                         // Stream initialization failed (Xiaomi/MIUI blocking)
                         log("Failed to create socket streams: ${e.message}", LogType.ERROR)
                         log("Marking connection as failed and will retry with different method", LogType.WARNING)
-                        closeSocketSafely(socket)
-                        updateConnectionState(slot, ConnectionState.ERROR)
+                        closeSocketSafely(validSocket)
+                        updateConnectionState( ConnectionState.ERROR)
                     }
                 } else {
                     closeSocketSafely(socket)
                     log("============================================", LogType.ERROR)
-                    log("ALL CONNECTION METHODS FAILED for ${device.name} on Slot ${slot + 1}", LogType.ERROR)
+                    log("ALL CONNECTION METHODS FAILED for ${device.name} ", LogType.ERROR)
                     log("Tried: SPP, Reflection Ports 1-3, 12 UUIDs, Secure SPP", LogType.ERROR)
                     log("Module may be defective or incompatible", LogType.ERROR)
                     log("See HC06_TROUBLESHOOTING.md for help", LogType.ERROR)
                     log("============================================", LogType.ERROR)
-                    updateConnectionState(slot, ConnectionState.ERROR)
+                    updateConnectionState( ConnectionState.ERROR)
                 }
             } finally {
                 // Always unlock the mutex when connection attempt completes (success or failure)
-                connectionMutex[slot].unlock()
+                connectionMutex.unlock()
             }
         }
 
@@ -1257,10 +1285,9 @@ data class ConnectionHealth(
             closeSocketSafely(socket)
         }
 
-        @Suppress("UNUSED_PARAMETER")
-        private fun performDeviceVerification(device: BluetoothDevice, slot: Int) {
+        private fun performDeviceVerification(device: BluetoothDevice) {
             try {
-                log("Starting device cryptographic verification for ${device.name} on Slot ${slot + 1}...", LogType.INFO)
+                log("Starting device cryptographic verification for ${device.name} ...", LogType.INFO)
 
                 // Generate verification challenge
                 val challenge = deviceVerificationManager.generateVerificationChallenge(device.address)
@@ -1281,7 +1308,7 @@ data class ConnectionHealth(
                 )
 
                 if (verificationResult) {
-                    log("Device verification SUCCESS: ${device.name} on Slot ${slot + 1} is cryptographically verified", LogType.SUCCESS)
+                    log("Device verification SUCCESS: ${device.name}  is cryptographically verified", LogType.SUCCESS)
 
                     // Generate shared secret for secure communication
                     @Suppress("UNUSED_VARIABLE")
@@ -1289,7 +1316,7 @@ data class ConnectionHealth(
                     log("Generated shared secret for secure communication", LogType.SUCCESS)
                     // Note: sharedSecret would be used for packet encryption in production
                 } else {
-                    log("Device verification FAILED: ${device.name} on Slot ${slot + 1} failed cryptographic verification", LogType.WARNING)
+                    log("Device verification FAILED: ${device.name}  failed cryptographic verification", LogType.WARNING)
                     // Verification failure is non-critical - continue normally
                 }
 
@@ -1303,7 +1330,7 @@ data class ConnectionHealth(
         }
     }
 
-    private inner class ConnectedThread(private val socket: BluetoothSocket, private val slot: Int) : Thread(), BluetoothConnection {
+    private inner class ConnectedThread(private val socket: BluetoothSocket) : Thread(), BluetoothConnection {
         private val outputStream: OutputStream
         private val inputStream: InputStream
         private val buffer = ByteArray(1024)
@@ -1314,14 +1341,14 @@ data class ConnectionHealth(
                 outputStream = socket.outputStream
                 inputStream = socket.inputStream
             } catch (e: IOException) {
-                log("CRITICAL: Failed to initialize socket streams on Slot ${slot + 1}: ${e.message}", LogType.ERROR)
+                log("CRITICAL: Failed to initialize socket streams : ${e.message}", LogType.ERROR)
                 log("This typically indicates MIUI/Xiaomi blocking reflection port access", LogType.ERROR)
                 throw e // Re-throw to prevent thread from starting with invalid streams
             }
         }
 
         override fun run() {
-            log("Socket opened for Slot ${slot + 1}", LogType.SUCCESS)
+            log("Socket opened for Device", LogType.SUCCESS)
             val packetBuffer = ByteArray(20) // Small buffer for packet assembly
             var bufferIndex = 0
             var consecutiveErrors = 0 // Track consecutive read errors for retry logic
@@ -1333,7 +1360,7 @@ data class ConnectionHealth(
                         consecutiveErrors = 0 // Reset error counter on successful read
                         val data = buffer.copyOf(bytesRead)
                         _incomingData.value = data
-                        recordInbound(slot)
+                        recordInbound()
 
                         // Try to decode as text first for terminal display
                         val decodedText = try {
@@ -1345,11 +1372,11 @@ data class ConnectionHealth(
                         // Log incoming data - always log for terminal visibility
                         if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
                             // Looks like text - display as string
-                            log("RX Slot ${slot + 1}: $decodedText", LogType.INFO)
+                            log("RX Device: $decodedText", LogType.INFO)
                         } else {
                             // Binary data - display as hex
                             val hex = data.joinToString(" ") { "%02X".format(it) }
-                            log("RX Slot ${slot + 1}: $hex", LogType.INFO)
+                            log("RX Device: $hex", LogType.INFO)
                         }
 
                         // Simple Packet Parsing (Looking for 0xAA ... 0x55)
@@ -1370,15 +1397,15 @@ data class ConnectionHealth(
                     consecutiveErrors++
                     if (consecutiveErrors >= 3) {
                         // Permanent failure after 3 consecutive errors
-                        Log.e("BT", "Disconnected Slot $slot after $consecutiveErrors errors", e)
-                        log("Disconnected Slot ${slot + 1}: ${e.message}", LogType.ERROR)
-                        updateConnectionState(slot, ConnectionState.DISCONNECTED)
-                        connections[slot] = null
+                        Log.e("BT", "Disconnected Device after $consecutiveErrors errors", e)
+                        log("Disconnected Device: ${e.message}", LogType.ERROR)
+                        updateConnectionState( ConnectionState.DISCONNECTED)
+                        connection = null
                         break
                     } else {
                         // Transient error - log warning and retry
-                        Log.w("BT", "Transient read error $consecutiveErrors/3 on Slot $slot", e)
-                        log("Read error ${consecutiveErrors}/3 on Slot ${slot + 1} - retrying...", LogType.WARNING)
+                        Log.w("BT", "Transient read error $consecutiveErrors/3 on Device", e)
+                        log("Read error ${consecutiveErrors}/3  - retrying...", LogType.WARNING)
                         try {
                             Thread.sleep(50) // Brief pause before retry
                         } catch (ie: InterruptedException) {
@@ -1396,10 +1423,10 @@ data class ConnectionHealth(
                 outputStream.write(bytes)
             } catch (e: IOException) {
                 Log.e("BT", "Write failed - triggering reconnect", e)
-                log("Write failed Slot ${slot + 1}: ${e.message} - reconnecting...", LogType.ERROR)
+                log("Write failed Device: ${e.message} - reconnecting...", LogType.ERROR)
                 // Trigger proper cleanup and reconnection
-                updateConnectionState(slot, ConnectionState.DISCONNECTED)
-                connections[slot] = null
+                updateConnectionState( ConnectionState.DISCONNECTED)
+                connection = null
                 cancel()
             }
         }
@@ -1424,7 +1451,7 @@ data class ConnectionHealth(
             hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
-    private inner class BleConnection(private val device: BluetoothDevice, private val slot: Int) : BluetoothConnection {
+    private inner class BleConnection(private val device: BluetoothDevice) : BluetoothConnection {
         private var bluetoothGatt: android.bluetooth.BluetoothGatt? = null
         private var txCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
 
@@ -1501,7 +1528,7 @@ data class ConnectionHealth(
         @SuppressLint("MissingPermission")
         fun connect() {
             if (!checkBluetoothPermission()) {
-                updateConnectionState(slot, ConnectionState.ERROR)
+                updateConnectionState( ConnectionState.ERROR)
                 log("BLE connect failed: Missing permissions", LogType.ERROR)
                 return
             }
@@ -1511,14 +1538,14 @@ data class ConnectionHealth(
             }
             // Use device.name as fallback for immediate logging
             val deviceName = device.name ?: "Unknown (${device.address})"
-            log("Connecting to BLE device $deviceName on Slot ${slot + 1}...", LogType.INFO)
+            log("Connecting to BLE device $deviceName ...", LogType.INFO)
             connectGattWithTimeout()
         }
 
         @SuppressLint("MissingPermission")
         private fun connectGattWithTimeout() {
             if (!checkBluetoothPermission()) {
-                updateConnectionState(slot, ConnectionState.ERROR)
+                updateConnectionState( ConnectionState.ERROR)
                 log("BLE connect failed: Missing permissions", LogType.ERROR)
                 return
             }
@@ -1526,9 +1553,9 @@ data class ConnectionHealth(
             // Pre-flight checks
             val localAdapter = adapter
             if (localAdapter == null || !localAdapter.isEnabled) {
-                updateConnectionState(slot, ConnectionState.ERROR)
+                updateConnectionState( ConnectionState.ERROR)
                 log("BLE connect failed: Bluetooth is off", LogType.ERROR)
-                connectionMutex[slot].unlock()
+                connectionMutex.unlock()
                 return
             }
 
@@ -1541,8 +1568,8 @@ data class ConnectionHealth(
             // Timeout logic with retry (15 seconds per attempt for slower BLE modules)
             connectionJob = scope.launch {
                 delay(15000) // 15 second timeout (increased for slower modules)
-                if (connections[slot] == this@BleConnection &&
-                    _connectionStates.value[slot] != ConnectionState.CONNECTED) {
+                if (connection == this@BleConnection &&
+                    _connectionState.value != ConnectionState.CONNECTED) {
                     log("BLE Connection timed out after 15s. Retrying once...", LogType.WARNING)
                     bluetoothGatt?.close()
                     bluetoothGatt = null
@@ -1553,14 +1580,14 @@ data class ConnectionHealth(
 
                     // Second timeout - if this fails, mark as ERROR for auto-reconnect
                     delay(15000) // 15 second timeout on retry
-                    if (connections[slot] == this@BleConnection &&
-                        _connectionStates.value[slot] != ConnectionState.CONNECTED) {
+                    if (connection == this@BleConnection &&
+                        _connectionState.value != ConnectionState.CONNECTED) {
                         log("BLE Connection failed after retry (total 30s)", LogType.ERROR)
                         bluetoothGatt?.close()
                         bluetoothGatt = null
-                        updateConnectionState(slot, ConnectionState.ERROR)
-                        connections[slot] = null
-                        connectionMutex[slot].unlock()
+                        updateConnectionState( ConnectionState.ERROR)
+                        connection = null
+                        connectionMutex.unlock()
                     }
                 }
             }
@@ -1572,7 +1599,7 @@ data class ConnectionHealth(
                 while (isActive && bluetoothGatt != null) {
                     delay(2000) // Poll every 2 seconds
                     try {
-                        if (connections[slot] == this@BleConnection && _connectionStates.value[slot] == ConnectionState.CONNECTED) {
+                        if (connection == this@BleConnection && _connectionState.value == ConnectionState.CONNECTED) {
                             if (!checkBluetoothPermission()) {
                                 log("RSSI polling halted: Missing permissions", LogType.WARNING)
                                 delay(2000)
@@ -1607,12 +1634,12 @@ data class ConnectionHealth(
                     if (isPermanent) {
                         // Permanent error - fail immediately without retry
                         log("Permanent GATT error detected. Not retrying.", LogType.ERROR)
-                        updateConnectionState(slot, ConnectionState.ERROR)
+                        updateConnectionState( ConnectionState.ERROR)
                         pollingJob?.cancel()
-                        connections[slot] = null
+                        connection = null
                         gatt.close()
-                        updateRssi(slot, 0)
-                        connectionMutex[slot].unlock()
+                        updateRssi( 0)
+                        connectionMutex.unlock()
                         return
                     }
 
@@ -1637,31 +1664,31 @@ data class ConnectionHealth(
                             Log.e("BT", "GATT disconnect failed", e)
                         }
                         gatt.close()
-                        updateRssi(slot, 0)
+                        updateRssi( 0)
 
                         // Mark as ERROR so auto-reconnect takes over with backoff
-                        updateConnectionState(slot, ConnectionState.ERROR)
-                        connections[slot] = null
-                        connectionMutex[slot].unlock()
+                        updateConnectionState( ConnectionState.ERROR)
+                        connection = null
+                        connectionMutex.unlock()
 
                         // Schedule a short backoff reconnect for transient HM-10/MLT-BT05 errors (e.g., status 62)
                         scope.launch {
                             delay(retryDelayMs)
                             log("Retrying BLE connect after transient error (status $status)...", LogType.WARNING)
-                            connectToDevice(savedDevices[slot]
-                                ?: BluetoothDeviceModel(device.name ?: "Unknown", device.address, DeviceType.LE), slot, isAutoReconnect = true)
+                            connectToDevice(savedDevice
+                                ?: BluetoothDeviceModel(device.name ?: "Unknown", device.address, DeviceType.LE), isAutoReconnect = true)
                         }
                     } else {
                         // Max retries exhausted or unknown error - fail and let auto-reconnect handle it
                         if (gattRetryAttempt >= maxGattRetries) {
                             log("Max GATT retries ($maxGattRetries) exhausted. Failing connection.", LogType.ERROR)
                         }
-                        updateConnectionState(slot, ConnectionState.ERROR)
+                        updateConnectionState( ConnectionState.ERROR)
                         pollingJob?.cancel()
-                        connections[slot] = null
+                        connection = null
                         gatt.close()
-                        updateRssi(slot, 0)
-                        connectionMutex[slot].unlock()
+                        updateRssi( 0)
+                        connectionMutex.unlock()
                         gattRetryAttempt = 0  // Reset for next connection attempt
                     }
                     return
@@ -1669,7 +1696,7 @@ data class ConnectionHealth(
 
                 if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
                     log("BLE Connected to GATT server.", LogType.SUCCESS)
-                    updateConnectionState(slot, ConnectionState.CONNECTED)
+                    updateConnectionState( ConnectionState.CONNECTED)
 
                     // Reset GATT retry counter on successful connection
                     gattRetryAttempt = 0
@@ -1693,37 +1720,41 @@ data class ConnectionHealth(
                     startRssiPolling()
 
                     // Unlock mutex on successful connection
-                    connectionMutex[slot].unlock()
+                    connectionMutex.unlock()
                 } else if (newState == android.bluetooth.BluetoothProfile.STATE_DISCONNECTED) {
                     pollingJob?.cancel()
                     log("BLE Disconnected from GATT server.", LogType.WARNING)
-                    updateConnectionState(slot, ConnectionState.DISCONNECTED)
-                    connections[slot] = null
+                    updateConnectionState( ConnectionState.DISCONNECTED)
+                    connection = null
                     gatt.close() // Critical: Prevent resource leak
-                    updateRssi(slot, 0)
-                    // Unlock mutex on disconnection (if it was locked during connection attempt)
-                    if (connectionMutex[slot].isLocked) {
-                        connectionMutex[slot].unlock()
+                    updateRssi( 0)
+                    // Safely unlock mutex on disconnection - use try-catch to handle race condition
+                    try {
+                        if (connectionMutex.isLocked) {
+                            connectionMutex.unlock()
+                        }
+                    } catch (e: IllegalStateException) {
+                        // Mutex was already unlocked - this is expected
                     }
                 }
             }
 
             override fun onReadRemoteRssi(gatt: android.bluetooth.BluetoothGatt?, rssi: Int, status: Int) {
                 if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
-                    updateRssi(slot, rssi)
-                    rssiFailures[slot] = 0
-                    updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
+                    updateRssi( rssi)
+                    rssiFailures = 0
+                    updateHealth( heartbeatSeq, lastPacketAt, rssiFailures)
                 } else {
                     // Only enforce RSSI-based reconnects for BLE devices
-                    if (connectionTypes[slot] == DeviceType.LE) {
-                        rssiFailures[slot] = (rssiFailures[slot] + 1).coerceAtMost(10)
-                        updateHealth(slot, heartbeatSeq[slot], lastPacketAt[slot], rssiFailures[slot])
-                        if (rssiFailures[slot] >= 3) {
+                    if (connectionType == DeviceType.LE) {
+                        rssiFailures = (rssiFailures + 1).coerceAtMost(10)
+                        updateHealth( heartbeatSeq, lastPacketAt, rssiFailures)
+                        if (rssiFailures >= 3) {
                             val errorDesc = GattStatus.getErrorDescription(status)
-                            log("RSSI read failures on Slot ${slot + 1}: ${rssiFailures[slot]} - $errorDesc", LogType.WARNING)
+                            log("RSSI read failures : ${rssiFailures} - $errorDesc", LogType.WARNING)
                         }
-                        if (rssiFailures[slot] >= 5) {
-                            forceReconnect(slot, "RSSI polling failed ${rssiFailures[slot]} times")
+                        if (rssiFailures >= 5) {
+                            forceReconnect( "RSSI polling failed ${rssiFailures} times")
                         }
                     }
                 }
@@ -1766,7 +1797,7 @@ data class ConnectionHealth(
                         log("  RX Char (write):  ${rxChar.uuid}", LogType.INFO)
 
                         // Queue notification enable for TX characteristic
-                        gatt.setCharacteristicNotification(txChar, true)
+                        setCharacteristicNotificationSafe(gatt, txChar, true)
                         val descriptor = txChar.getDescriptor(CCCD_UUID)
                         if (descriptor != null) {
                             log("→ Queuing CCCD descriptor write for TX characteristic", LogType.INFO)
@@ -1808,17 +1839,10 @@ data class ConnectionHealth(
 
                             // Enable notifications on RX characteristic if available
                             if (rxChar != null) {
-                                gatt.setCharacteristicNotification(rxChar, true)
+                                setCharacteristicNotificationSafe(gatt, rxChar, true)
                                 val rxDescriptor = rxChar.getDescriptor(CCCD_UUID)
                                 if (rxDescriptor != null) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        gatt.writeDescriptor(rxDescriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
-                                    } else {
-                                        @Suppress("DEPRECATION")
-                                        rxDescriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                                        @Suppress("DEPRECATION")
-                                        gatt.writeDescriptor(rxDescriptor)
-                                    }
+                                    writeDescriptorCompat(gatt, rxDescriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
                                 }
                             }
                         }
@@ -1882,7 +1906,7 @@ data class ConnectionHealth(
                             log("  RX Char (write):  ${rxChar.uuid}", LogType.INFO)
 
                             // Queue notification enable for TX characteristic
-                            gatt.setCharacteristicNotification(txChar, true)
+                            setCharacteristicNotificationSafe(gatt, txChar, true)
                             val descriptor = txChar.getDescriptor(CCCD_UUID)
                             if (descriptor != null) {
                                 log("→ Queuing CCCD descriptor write for TX characteristic", LogType.INFO)
@@ -1963,7 +1987,7 @@ data class ConnectionHealth(
                                 log("BLE Module detected: Generic Split (Write: ${writeChar.uuid}, Notify: ${notifyChar.uuid}) [$type]", LogType.SUCCESS)
 
                                 // Queue notification enable
-                                gatt.setCharacteristicNotification(notifyChar, true)
+                                setCharacteristicNotificationSafe(gatt, notifyChar, true)
                                 val descriptor = notifyChar.getDescriptor(CCCD_UUID)
                                 if (descriptor != null) {
                                     val value = if ((notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0)
@@ -1992,7 +2016,7 @@ data class ConnectionHealth(
                         notifyCandidate?.let { notifyChar ->
                             val enableIndication = (notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
 
-                            gatt.setCharacteristicNotification(notifyChar, true)
+                            setCharacteristicNotificationSafe(gatt, notifyChar, true)
                             val descriptor = notifyChar.getDescriptor(CCCD_UUID)
                             if (descriptor != null) {
                                 val descriptorValue = if (enableIndication)
@@ -2026,19 +2050,18 @@ data class ConnectionHealth(
                         log("Available service: ${svc.uuid}", LogType.INFO)
                     }
                     // Fail the connection so auto-reconnect/backoff can retry and avoid silent writes
-                    updateConnectionState(slot, ConnectionState.ERROR)
-                    connections[slot] = null
+                    updateConnectionState( ConnectionState.ERROR)
+                    connection = null
                     bluetoothGatt?.disconnect()
                     bluetoothGatt?.close()
                     bluetoothGatt = null
-                    connectionMutex[slot].unlock()
+                    connectionMutex.unlock()
                     scope.launch {
                         delay(1000)
                         log("Retrying BLE connect after missing service/characteristic...", LogType.WARNING)
                         connectToDevice(
-                            savedDevices[slot]
+                            savedDevice
                                 ?: BluetoothDeviceModel(device.name ?: "Unknown", device.address, DeviceType.LE),
-                            slot,
                             isAutoReconnect = true
                         )
                     }
@@ -2052,7 +2075,7 @@ data class ConnectionHealth(
                 val data = characteristic.value
                 if (data != null && data.isNotEmpty()) {
                     _incomingData.value = data
-                    recordInbound(slot)
+                    recordInbound()
 
                     // Try to decode as text first for terminal display
                     val decodedText = try {
@@ -2064,11 +2087,11 @@ data class ConnectionHealth(
                     // Log incoming data - always log for terminal visibility
                     if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
                         // Looks like text - display as string
-                        log("RX Slot ${slot + 1}: $decodedText", LogType.INFO)
+                        log("RX Device: $decodedText", LogType.INFO)
                     } else {
                         // Binary data - display as hex
                         val hex = data.joinToString(" ") { "%02X".format(it) }
-                        log("RX Slot ${slot + 1}: $hex", LogType.INFO)
+                        log("RX Device: $hex", LogType.INFO)
                     }
 
                     try {
@@ -2088,7 +2111,7 @@ data class ConnectionHealth(
                 // Modern callback - value provided directly
                 if (value.isNotEmpty()) {
                     _incomingData.value = value
-                    recordInbound(slot)
+                    recordInbound()
 
                     // Try to decode as text first for terminal display
                     val decodedText = try {
@@ -2100,11 +2123,11 @@ data class ConnectionHealth(
                     // Log incoming data - always log for terminal visibility
                     if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
                         // Looks like text - display as string
-                        log("RX Slot ${slot + 1}: $decodedText", LogType.INFO)
+                        log("RX Device: $decodedText", LogType.INFO)
                     } else {
                         // Binary data - display as hex
                         val hex = value.joinToString(" ") { "%02X".format(it) }
-                        log("RX Slot ${slot + 1}: $hex", LogType.INFO)
+                        log("RX Device: $hex", LogType.INFO)
                     }
 
                     try {
@@ -2145,18 +2168,50 @@ data class ConnectionHealth(
             }
         }
 
+        @SuppressLint("MissingPermission")
         private fun writeDescriptorCompat(
             gatt: android.bluetooth.BluetoothGatt,
             descriptor: android.bluetooth.BluetoothGattDescriptor,
             value: ByteArray
         ) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                gatt.writeDescriptor(descriptor, value)
-            } else {
-                @Suppress("DEPRECATION")
-                descriptor.value = value
-                @Suppress("DEPRECATION")
-                gatt.writeDescriptor(descriptor)
+            // Check permission before GATT operation to prevent SecurityException crash
+            if (!checkBluetoothPermission()) {
+                log("Descriptor write skipped: Missing Bluetooth permission", LogType.WARNING)
+                return
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    gatt.writeDescriptor(descriptor, value)
+                } else {
+                    @Suppress("DEPRECATION")
+                    descriptor.value = value
+                    @Suppress("DEPRECATION")
+                    gatt.writeDescriptor(descriptor)
+                }
+            } catch (e: SecurityException) {
+                log("Descriptor write failed: Permission revoked", LogType.ERROR)
+            }
+        }
+
+        /**
+         * Safely enable characteristic notifications with permission check.
+         * Returns true if notification was enabled successfully.
+         */
+        @SuppressLint("MissingPermission")
+        private fun setCharacteristicNotificationSafe(
+            gatt: android.bluetooth.BluetoothGatt,
+            characteristic: android.bluetooth.BluetoothGattCharacteristic,
+            enable: Boolean
+        ): Boolean {
+            if (!checkBluetoothPermission()) {
+                log("Notification setup skipped: Missing Bluetooth permission", LogType.WARNING)
+                return false
+            }
+            return try {
+                gatt.setCharacteristicNotification(characteristic, enable)
+            } catch (e: SecurityException) {
+                log("Notification setup failed: Permission revoked", LogType.ERROR)
+                false
             }
         }
 
@@ -2202,9 +2257,9 @@ data class ConnectionHealth(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val status = gatt.writeCharacteristic(char, bytes, writeType)
                 if (status != android.bluetooth.BluetoothStatusCodes.SUCCESS) {
-                    packetsFailed[slot]++
+                    packetsFailed.incrementAndGet(0)
                     val errorDesc = GattStatus.getErrorDescription(status)
-                    log("✗ BLE write failed: $errorDesc (Slot ${slot + 1})", LogType.WARNING)
+                    log("✗ BLE write failed: $errorDesc (Device)", LogType.WARNING)
                 }
             } else {
                 @Suppress("DEPRECATION")
@@ -2214,8 +2269,8 @@ data class ConnectionHealth(
                 @Suppress("DEPRECATION")
                 val ok = gatt.writeCharacteristic(char)
                 if (!ok) {
-                    packetsFailed[slot]++
-                    log("✗ BLE write failed (legacy) (Slot ${slot + 1})", LogType.WARNING)
+                    packetsFailed.incrementAndGet(0)
+                    log("✗ BLE write failed (legacy) (Device)", LogType.WARNING)
                 }
             }
         }
@@ -2229,16 +2284,16 @@ data class ConnectionHealth(
                 writeQueue.offer(bytes) // Add new
 
                 // Track packet drop
-                packetsDropped[slot]++
+                packetsDropped.incrementAndGet(0)
 
                 // Warn user if packet loss is occurring (throttled to once per 5 seconds)
                 val now = System.currentTimeMillis()
-                if (now - lastPacketLossWarningTime[slot] > 5000) {
-                    log("⚠ Packet dropped on Slot ${slot + 1} (queue full)", LogType.WARNING)
-                    lastPacketLossWarningTime[slot] = now
+                if (now - lastPacketLossWarningTime.get(0) > 5000) {
+                    log("⚠ Packet dropped  (queue full)", LogType.WARNING)
+                    lastPacketLossWarningTime.set(0, now)
                 }
             }
-            packetsSent[slot]++
+            packetsSent.incrementAndGet(0)
         }
 
         override fun requestRssi() {
@@ -2259,9 +2314,29 @@ data class ConnectionHealth(
             pollingJob?.cancel()
             writeJob?.cancel()
             writeQueue.clear()
-            bluetoothGatt?.disconnect()
-            bluetoothGatt?.close()
+
+            // Proper GATT disconnect sequence:
+            // 1. Call disconnect() which triggers onConnectionStateChange callback
+            // 2. The callback will call close() when disconnected
+            // 3. If disconnect fails, fall back to close() directly
+            val gatt = bluetoothGatt
             bluetoothGatt = null
+
+            if (gatt != null) {
+                try {
+                    gatt.disconnect()
+                    // Small delay to allow disconnect to complete before close
+                    // This is a pragmatic fix - ideally close() would be called from onConnectionStateChange
+                    Thread.sleep(100)
+                } catch (e: Exception) {
+                    Log.w("BT", "GATT disconnect failed: ${e.message}")
+                }
+                try {
+                    gatt.close()
+                } catch (e: Exception) {
+                    Log.w("BT", "GATT close failed: ${e.message}")
+                }
+            }
         }
     }
 }

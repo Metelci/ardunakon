@@ -1,18 +1,34 @@
 // Ardunakon - Arduino UNO R4 WiFi Sketch
-// Full support for Arduino UNO R4 WiFi with built-in BLE
+// Full support for Arduino UNO R4 WiFi with built-in BLE and WiFi
 // Designed for use with the Ardunakon Android Controller App
 //
 // Board: Arduino UNO R4 WiFi (Renesas RA4M1 + ESP32-S3)
-// Connectivity: Bluetooth Low Energy (BLE) via ESP32-S3 module
+// Connectivity: 
+//   - Bluetooth Low Energy (BLE) via ESP32-S3 module
+//   - WiFi (UDP) via ESP32-S3 module
 //
 // Protocol: 10-byte binary packets at 20Hz
 // [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
 //
-// v2.2 - Servo + Brushless ESC Support + Fixed Matrix Animation
+// v2.3 - WiFi Support + UDP Discovery + Servo + Brushless ESC
 
 #include <ArduinoBLE.h>
 #include <Servo.h>
 #include <Arduino_LED_Matrix.h>
+#include <WiFiS3.h>
+#include <WiFiUdp.h>
+
+// -----------------------------------------------------------------------
+//  WIFI CONFIGURATION - UPDATE THESE CREDENTIALS!
+// -----------------------------------------------------------------------
+#define SECRET_SSID "METELCI"      // <--- CHANGE THIS
+#define SECRET_PASS "hly55ne305"  // <--- CHANGE THIS
+
+char ssid[] = SECRET_SSID;
+char pass[] = SECRET_PASS;
+
+WiFiUDP Udp;
+unsigned int localPort = 8888;  // Local port to listen on
 
 ArduinoLEDMatrix matrix;
 
@@ -46,7 +62,7 @@ uint8_t rockHandDown[8][12] = {
 
 void playRockAnimation() {
   // Play the animation loop 10 times
-  for (int cycle = 0; cycle < 10; cycle++) {
+  for (int cycle = 0; cycle < 15; cycle++) {
       matrix.renderBitmap(rockHand, 8, 12);
       delay(300);
       matrix.renderBitmap(rockHandDown, 8, 12);
@@ -76,6 +92,21 @@ void playRockAnimation() {
 #define CMD_BUTTON    0x02
 #define CMD_HEARTBEAT 0x03
 #define CMD_ESTOP     0x04
+#define CMD_ANNOUNCE_CAPABILITIES 0x05
+
+// Board Type
+#define BOARD_TYPE_UNO_R4_WIFI 0x02
+
+// Capability Flags (Byte 1)
+// Bit 0: ServoX, Bit 1: ServoY, Bit 2: Motor/ESC, Bit 3: LED Matrix
+// Bit 4: Buzzer, Bit 5: WiFi, Bit 6: BLE
+#define CAP1_SERVO_X    0x01
+#define CAP1_SERVO_Y    0x02
+#define CAP1_MOTOR      0x04
+#define CAP1_LED_MATRIX 0x08
+#define CAP1_BUZZER     0x10
+#define CAP1_WIFI       0x20
+#define CAP1_BLE        0x40
 
 // Pin Definitions
 // Servos (directly connected to these pins)
@@ -107,6 +138,7 @@ uint8_t packetBuffer[PACKET_SIZE];
 uint8_t bufferIndex = 0;
 unsigned long lastPacketTime = 0;
 unsigned long lastTelemetryTime = 0;
+bool isWifiConnected = false;
 
 // Control state
 int8_t leftX = 0, leftY = 0; // Drive (Steering, Throttle)
@@ -126,6 +158,8 @@ void handleButton(uint8_t buttonId, uint8_t pressed);
 void safetyStop();
 void sendTelemetry();
 void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow);
+void sendCapabilities();
+void checkWifi();
 
 void setup() {
   Serial.begin(115200);
@@ -147,13 +181,15 @@ void setup() {
   // Initialize LED Matrix
   matrix.begin();
   
-  // Play rock animation on startup (Now works with renderBitmap)
+  // Play rock animation on startup
   playRockAnimation();
   
   // Configure ADC for UNO R4 WiFi (14-bit)
   analogReadResolution(14);
 
+  // -------------------------------------------------------------------
   // Initialize BLE
+  // -------------------------------------------------------------------
   if (!BLE.begin()) {
     Serial.println("Starting BLE failed!");
     while (1);
@@ -180,8 +216,81 @@ void setup() {
   // Start advertising
   BLE.advertise();
 
-  Serial.println("Arduino UNO R4 WiFi - Ardunakon Controller v2.0");
-  Serial.println("Waiting for BLE connection...");
+  // -------------------------------------------------------------------
+  // Initialize WiFi
+  // -------------------------------------------------------------------
+  if (WiFi.status() == WL_NO_MODULE) {
+    Serial.println("Communication with WiFi module failed!");
+  } else {
+    // Check firmware version
+    String fv = WiFi.firmwareVersion();
+    Serial.print("WiFi Firmware: ");
+    Serial.println(fv);
+    
+    // Attempt to connect to WiFi
+    Serial.print("Connecting to WiFi SSID: ");
+    Serial.println(ssid);
+    
+    int status = WL_IDLE_STATUS;
+    int attempts = 0;
+    
+    // Try to connect (with retries)
+    while (status != WL_CONNECTED && attempts < 3) {
+      Serial.print("Attempt ");
+      Serial.print(attempts + 1);
+      Serial.println("...");
+      
+      status = WiFi.begin(ssid, pass);
+      
+      // Wait for connection (up to 10 seconds per attempt)
+      int waitCount = 0;
+      while (WiFi.status() != WL_CONNECTED && waitCount < 20) {
+        delay(500);
+        Serial.print(".");
+        waitCount++;
+      }
+      Serial.println();
+      
+      status = WiFi.status();
+      attempts++;
+    }
+    
+    if (WiFi.status() == WL_CONNECTED) {
+      // Wait for DHCP to assign a valid IP (not 0.0.0.0)
+      Serial.println("Connected! Waiting for DHCP...");
+      int dhcpWait = 0;
+      while (WiFi.localIP() == IPAddress(0, 0, 0, 0) && dhcpWait < 20) {
+        delay(500);
+        Serial.print(".");
+        dhcpWait++;
+      }
+      Serial.println();
+      
+      IPAddress ip = WiFi.localIP();
+      if (ip != IPAddress(0, 0, 0, 0)) {
+        Serial.println("WiFi Connected!");
+        Serial.print("IP Address: ");
+        Serial.println(ip);
+        Serial.print("Signal Strength (RSSI): ");
+        Serial.print(WiFi.RSSI());
+        Serial.println(" dBm");
+        Udp.begin(localPort);
+        Serial.print("UDP Listening on port ");
+        Serial.println(localPort);
+        isWifiConnected = true;
+      } else {
+        Serial.println("DHCP Failed - No valid IP address");
+        isWifiConnected = false;
+      }
+    } else {
+      Serial.print("WiFi Connection Failed. Status: ");
+      Serial.println(WiFi.status());
+      Serial.println("Check SSID/Password and try again.");
+    }
+  }
+
+  Serial.println("Arduino UNO R4 WiFi - Ardunakon Controller v2.3");
+  Serial.println("Ready for BLE or WiFi connection...");
   digitalWrite(LED_STATUS, LOW);
   
   // Ready blink
@@ -192,37 +301,88 @@ void setup() {
 }
 
 void loop() {
-  // Check for BLE connection
   BLEDevice central = BLE.central();
-  if (central) {
-    Serial.print("Connected to: ");
-    Serial.println(central.address());
-    digitalWrite(LED_STATUS, HIGH);
-
-    while (central.connected()) {
-      if (rxCharacteristicHm10.written()) handleIncoming(rxCharacteristicHm10);
-      if (txCharacteristicHm10.written()) handleIncoming(txCharacteristicHm10);
-      // Support Legacy writes
-      if (rxCharacteristicArduino.written()) handleIncoming(rxCharacteristicArduino);
-      if (txCharacteristicArduino.written()) handleIncoming(txCharacteristicArduino);
-      // Support Legacy writes
-
-      BLE.poll();
-      
-      // Send telemetry every 4 seconds
-      if (millis() - lastTelemetryTime > 4000) {
-        sendTelemetry();
-        lastTelemetryTime = millis();
-      }
-
-      // Safety timeout
-      if (millis() - lastPacketTime > 2000) {
-        safetyStop();
-      }
+  
+  // -------------------------------------------------------------------
+  // 1. BLE Handling
+  // -------------------------------------------------------------------
+  static bool bleWasConnected = false;  // Moved outside to persist across loop iterations
+  
+  if (central && central.connected()) {
+    // Just connected?
+    if (!bleWasConnected) {
+       Serial.print("BLE Connected: ");
+       Serial.println(central.address());
+       digitalWrite(LED_STATUS, HIGH);
+       sendCapabilities();
+       bleWasConnected = true;
     }
 
-    Serial.println("Disconnected");
-    digitalWrite(LED_STATUS, LOW);
+    if (rxCharacteristicHm10.written()) handleIncoming(rxCharacteristicHm10);
+    if (txCharacteristicHm10.written()) handleIncoming(txCharacteristicHm10);
+    if (rxCharacteristicArduino.written()) handleIncoming(rxCharacteristicArduino);
+    if (txCharacteristicArduino.written()) handleIncoming(txCharacteristicArduino);
+  } else {
+    // Reset flag when disconnected so reconnect triggers announcement
+    if (bleWasConnected) {
+      Serial.println("BLE Disconnected");
+      digitalWrite(LED_STATUS, LOW);
+      bleWasConnected = false;
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 2. WiFi UDP Handling
+  // -------------------------------------------------------------------
+  if (isWifiConnected) {
+    int packetSize = Udp.parsePacket();
+    if (packetSize) {
+      // Receive Incoming UDP Packet
+      char packetData[255]; // buffer to hold incoming packet
+      int len = Udp.read(packetData, 255);
+      if (len > 0) {
+        packetData[len] = 0;
+      }
+      
+      // Check for Discovery Command "ARDUNAKON_DISCOVER"
+      // If found, reply with "ARDUNAKON_DEVICE:Name|Nonce|Sig"
+      // Detailed security/nonce logic can be added, for now simple discovery:
+      String incoming = String(packetData);
+      if (incoming.startsWith("ARDUNAKON_DISCOVER")) {
+        Serial.println("Discovery received! Sending reply...");
+        
+        // Prepare reply: ARDUNAKON_DEVICE:MyName
+        // If we had a secure session key we would append |Nonce|Sig
+        char reply[] = "ARDUNAKON_DEVICE:ArdunakonR4";
+        
+        Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+        Udp.write(reply);
+        Udp.endPacket();
+      } else {
+        // Assume control packet if size matches
+        // Note: UDP packets might arrive in chunks or whole. 
+        // For simplicity assuming complete 10-byte packets or stream of bytes.
+        // Better to feed bytes into processIncomingByte
+        for(int i=0; i<len; i++) {
+          processIncomingByte((uint8_t)packetData[i]);
+        }
+      }
+      lastPacketTime = millis();
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 3. Common Tasks (Telemetry, Safety)
+  // -------------------------------------------------------------------
+  BLE.poll();
+
+  if (millis() - lastTelemetryTime > 4000) {
+    sendTelemetry();
+    lastTelemetryTime = millis();
+  }
+
+  // Safety timeout
+  if (millis() - lastPacketTime > 2000) {
     safetyStop();
   }
 }
@@ -334,8 +494,20 @@ void sendTelemetry() {
   telemetry[8] = xor_check;
   telemetry[9] = END_BYTE;
 
-  txCharacteristicHm10.writeValue(telemetry, PACKET_SIZE);
-  txCharacteristicArduino.writeValue(telemetry, PACKET_SIZE);
+  // Send via BLE if connected
+  if (BLE.central() && BLE.central().connected()) {
+    txCharacteristicHm10.writeValue(telemetry, PACKET_SIZE);
+    txCharacteristicArduino.writeValue(telemetry, PACKET_SIZE);
+  }
+  
+  // Send via udp if connected (Remote IP must be known, handled by reply logic typically)
+  // For now, UDP telemetry is only sent as response to heartbeat or if we track last sender.
+  // Enhancing to send to last known sender:
+  if (isWifiConnected && Udp.remoteIP() != IPAddress(0,0,0,0)) {
+     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+     Udp.write(telemetry, PACKET_SIZE);
+     Udp.endPacket();
+  }
 }
 
 void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow) {
@@ -349,6 +521,58 @@ void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow) {
   ack[8] = xor_check;
   ack[9] = END_BYTE;
 
-  txCharacteristicHm10.writeValue(ack, PACKET_SIZE);
-  txCharacteristicArduino.writeValue(ack, PACKET_SIZE);
+  if (BLE.central() && BLE.central().connected()) {
+      txCharacteristicHm10.writeValue(ack, PACKET_SIZE);
+      txCharacteristicArduino.writeValue(ack, PACKET_SIZE);
+  }
+  
+  if (isWifiConnected && Udp.remoteIP() != IPAddress(0,0,0,0)) {
+     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+     Udp.write(ack, PACKET_SIZE);
+     Udp.endPacket();
+  }
+}
+
+/**
+ * Send device capabilities announcement packet
+ * Called when a client connects to inform the app of available features
+ */
+void sendCapabilities() {
+  uint8_t packet[PACKET_SIZE];
+  packet[0] = START_BYTE;
+  packet[1] = 0x01; // Device ID
+  packet[2] = CMD_ANNOUNCE_CAPABILITIES;
+  
+  // Capability Byte 1: Core hardware
+  // ServoX | ServoY | Motor | Matrix | Buzzer | WiFi | BLE
+  packet[3] = CAP1_SERVO_X | CAP1_SERVO_Y | CAP1_MOTOR | CAP1_LED_MATRIX | CAP1_BUZZER | CAP1_WIFI | CAP1_BLE;
+  
+  // Capability Byte 2: Modulino modules (none for this board)
+  packet[4] = 0x00;
+  
+  // Board Type
+  packet[5] = BOARD_TYPE_UNO_R4_WIFI;
+  
+  // Reserved
+  packet[6] = 0x00;
+  packet[7] = 0x00;
+  
+  // Calculate checksum (XOR of bytes 1-7)
+  uint8_t xor_check = 0;
+  for (int i = 1; i <= 7; i++) xor_check ^= packet[i];
+  packet[8] = xor_check;
+  packet[9] = END_BYTE;
+  
+  // Send on both BLE services
+  if (BLE.central() && BLE.central().connected()) {
+      txCharacteristicHm10.writeValue(packet, PACKET_SIZE);
+      txCharacteristicArduino.writeValue(packet, PACKET_SIZE);
+  }
+  
+  if (isWifiConnected && Udp.remoteIP() != IPAddress(0,0,0,0)) {
+     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+     Udp.write(packet, PACKET_SIZE);
+     Udp.endPacket();
+  }
+  Serial.println("Capabilities announced to connected device");
 }

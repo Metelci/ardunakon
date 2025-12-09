@@ -46,6 +46,8 @@ class MainActivity : ComponentActivity() {
     private var showPermissionDialog by mutableStateOf(false)
     private var permissionsDenied by mutableStateOf(false)
     private var showBluetoothOffDialog by mutableStateOf(false)
+    private var showNotificationPermissionDialog by mutableStateOf(false)
+    private var notificationPermissionRequested = false
     private var serviceStarted = false
 
     private val connection = object : ServiceConnection {
@@ -82,8 +84,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            showNotificationPermissionDialog = false
+            startAndBindServiceIfPermitted(forceStart = true)
+        } else {
+            showNotificationPermissionDialog = true
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize crash handler first
+        com.metelci.ardunakon.crash.CrashHandler.init(this)
 
         // Enable edge-to-edge display
         enableEdgeToEdge()
@@ -105,6 +121,7 @@ class MainActivity : ComponentActivity() {
                     if (isBound && bluetoothService != null) {
                         ControlScreen(
                             bluetoothManager = bluetoothService!!.bluetoothManager,
+                            wifiManager = bluetoothService!!.wifiManager,
                             isDarkTheme = true,
                             onQuitApp = {
                                 quitApp()
@@ -143,6 +160,23 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+
+                    if (showNotificationPermissionDialog) {
+                        NotificationPermissionDialog(
+                            onDismiss = { showNotificationPermissionDialog = false },
+                            onOpenSettings = {
+                                showNotificationPermissionDialog = false
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = android.net.Uri.fromParts("package", packageName, null)
+                                }
+                                startActivity(intent)
+                            },
+                            onRetry = {
+                                showNotificationPermissionDialog = false
+                                requestNotificationPermission()
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -152,6 +186,7 @@ class MainActivity : ComponentActivity() {
             startAndBindServiceIfPermitted()
         }
         checkBluetoothEnabled()
+        requestNotificationPermission()
     }
 
     override fun onDestroy() {
@@ -201,12 +236,39 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startAndBindServiceIfPermitted() {
+    private fun hasNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (hasNotificationPermission()) return
+        if (notificationPermissionRequested) return
+        notificationPermissionRequested = true
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    private fun startAndBindServiceIfPermitted(forceStart: Boolean = false) {
         if (serviceStarted) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasBluetoothPermissions()) return
+        
+        // Request notification permission but don't block app startup
+        if (!hasNotificationPermission() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !forceStart) {
+            requestNotificationPermission()
+            // Continue anyway - notification is optional
+        }
 
         Intent(this, BluetoothService::class.java).also { intent ->
-            ContextCompat.startForegroundService(this, intent) // Start foreground safely
+            try {
+                ContextCompat.startForegroundService(this, intent)
+            } catch (e: Exception) {
+                // If foreground fails, try regular start
+                startService(intent)
+            }
             bindService(intent, connection, Context.BIND_AUTO_CREATE)
             serviceStarted = true
         }
@@ -263,6 +325,33 @@ fun BluetoothOffDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Later") }
         }
+    )
+}
+
+@Composable
+fun NotificationPermissionDialog(
+    onDismiss: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onRetry: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Notification Permission Needed") },
+        text = {
+            Column {
+                Text(
+                    "Android 13+ requires notification permission to show the foreground service that keeps Bluetooth connections alive.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Granting this permission ensures the app can reconnect and stay active in the background.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        },
+        confirmButton = { Button(onClick = onRetry) { Text("Grant") } },
+        dismissButton = { TextButton(onClick = onOpenSettings) { Text("Open Settings") } }
     )
 }
 

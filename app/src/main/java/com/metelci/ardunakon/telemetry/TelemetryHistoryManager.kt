@@ -8,28 +8,25 @@ import java.util.concurrent.ConcurrentLinkedDeque
 class TelemetryHistoryManager(
     private val maxHistorySize: Int = 150  // 10 minutes at 4s intervals
 ) {
-    // Per-slot, per-metric circular buffers
-    private val batteryHistory = Array(2) { ConcurrentLinkedDeque<TelemetryDataPoint>() }
-    private val rssiHistory = Array(2) { ConcurrentLinkedDeque<TelemetryDataPoint>() }
-    private val rttHistory = Array(2) { ConcurrentLinkedDeque<TelemetryDataPoint>() }
+    // Single device circular buffers
+    private val batteryHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
+    private val rssiHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
+    private val rttHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
 
     // StateFlow for UI reactivity
     private val _historyUpdated = MutableStateFlow(0L)
     val historyUpdated: StateFlow<Long> = _historyUpdated.asStateFlow()
 
-    fun recordBattery(slot: Int, voltage: Float) {
-        if (slot !in 0..1) return
-        addDataPoint(batteryHistory[slot], voltage)
+    fun recordBattery(voltage: Float) {
+        addDataPoint(batteryHistory, voltage)
     }
 
-    fun recordRssi(slot: Int, rssi: Int) {
-        if (slot !in 0..1) return
-        addDataPoint(rssiHistory[slot], rssi.toFloat())
+    fun recordRssi(rssi: Int) {
+        addDataPoint(rssiHistory, rssi.toFloat())
     }
 
-    fun recordRtt(slot: Int, rtt: Long) {
-        if (slot !in 0..1) return
-        addDataPoint(rttHistory[slot], rtt.toFloat())
+    fun recordRtt(rtt: Long) {
+        addDataPoint(rttHistory, rtt.toFloat())
     }
 
     private fun addDataPoint(buffer: ConcurrentLinkedDeque<TelemetryDataPoint>, value: Float) {
@@ -45,19 +42,16 @@ class TelemetryHistoryManager(
         _historyUpdated.value = System.currentTimeMillis()
     }
 
-    fun getBatteryHistory(slot: Int, timeRangeMs: Long? = null): List<TelemetryDataPoint> {
-        if (slot !in 0..1) return emptyList()
-        return filterByTimeRange(batteryHistory[slot], timeRangeMs)
+    fun getBatteryHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> {
+        return filterByTimeRange(batteryHistory, timeRangeMs)
     }
 
-    fun getRssiHistory(slot: Int, timeRangeMs: Long? = null): List<TelemetryDataPoint> {
-        if (slot !in 0..1) return emptyList()
-        return filterByTimeRange(rssiHistory[slot], timeRangeMs)
+    fun getRssiHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> {
+        return filterByTimeRange(rssiHistory, timeRangeMs)
     }
 
-    fun getRttHistory(slot: Int, timeRangeMs: Long? = null): List<TelemetryDataPoint> {
-        if (slot !in 0..1) return emptyList()
-        return filterByTimeRange(rttHistory[slot], timeRangeMs)
+    fun getRttHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> {
+        return filterByTimeRange(rttHistory, timeRangeMs)
     }
 
     private fun filterByTimeRange(
@@ -69,24 +63,18 @@ class TelemetryHistoryManager(
         return buffer.filter { it.timestamp >= cutoff }
     }
 
-    fun clearHistory(slot: Int) {
-        if (slot !in 0..1) return
-        batteryHistory[slot].clear()
-        rssiHistory[slot].clear()
-        rttHistory[slot].clear()
+    fun clearAllHistory() {
+        batteryHistory.clear()
+        rssiHistory.clear()
+        rttHistory.clear()
         _historyUpdated.value = System.currentTimeMillis()
     }
 
-    fun clearAllHistory() {
-        (0..1).forEach { clearHistory(it) }
-    }
-
-    fun getHistorySize(slot: Int): Int {
-        if (slot !in 0..1) return 0
+    fun getHistorySize(): Int {
         return maxOf(
-            batteryHistory[slot].size,
-            rssiHistory[slot].size,
-            rttHistory[slot].size
+            batteryHistory.size,
+            rssiHistory.size,
+            rttHistory.size
         )
     }
 }

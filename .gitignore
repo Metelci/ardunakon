@@ -82,3 +82,5 @@ lint/tmp/
 # Android Profiling
 *.hprof
 .claude/plan.md
+build_log.txt
+build_log_2.txt

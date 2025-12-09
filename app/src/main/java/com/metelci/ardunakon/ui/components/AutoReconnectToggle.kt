@@ -19,7 +19,6 @@ import android.view.HapticFeedbackConstants
 
 @Composable
 fun AutoReconnectToggle(
-    slot: Int,
     enabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
@@ -41,7 +40,7 @@ fun AutoReconnectToggle(
     ) {
         Icon(
             imageVector = if (enabled) Icons.Filled.Sync else Icons.Filled.SyncDisabled,
-            contentDescription = "Auto-reconnect ${if (enabled) "enabled" else "disabled"} for Slot ${slot + 1}",
+            contentDescription = "Auto-reconnect ${if (enabled) "enabled" else "disabled"}",
             tint = if (enabled) Color.White else Color(0xFFFF5252),
             modifier = Modifier.size(20.dp)
         )

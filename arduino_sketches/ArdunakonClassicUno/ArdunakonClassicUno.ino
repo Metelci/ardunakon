@@ -30,6 +30,16 @@
 #define CMD_BUTTON    0x02
 #define CMD_HEARTBEAT 0x03
 #define CMD_ESTOP     0x04
+#define CMD_ANNOUNCE_CAPABILITIES 0x05
+
+// Board Type
+#define BOARD_TYPE_UNO 0x01
+
+// Capability Flags
+#define CAP1_SERVO_X    0x01
+#define CAP1_SERVO_Y    0x02
+#define CAP1_MOTOR      0x04
+#define CAP1_BUZZER     0x10
 
 // Pin Definitions
 // Motors (L298N / TB6612FNG style)
@@ -259,5 +269,28 @@ void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow) {
   ack[9] = END_BYTE;
 
   BTSerial.write(ack, PACKET_SIZE);
+}
+
+/**
+ * Send device capabilities announcement packet
+ */
+void sendCapabilities() {
+  uint8_t packet[PACKET_SIZE];
+  packet[0] = START_BYTE;
+  packet[1] = 0x01;
+  packet[2] = CMD_ANNOUNCE_CAPABILITIES;
+  packet[3] = CAP1_SERVO_X | CAP1_SERVO_Y | CAP1_MOTOR | CAP1_BUZZER; // Core hardware
+  packet[4] = 0x00; // No Modulino
+  packet[5] = BOARD_TYPE_UNO;
+  packet[6] = 0x00;
+  packet[7] = 0x00;
+  
+  uint8_t xor_check = 0;
+  for (int i = 1; i <= 7; i++) xor_check ^= packet[i];
+  packet[8] = xor_check;
+  packet[9] = END_BYTE;
+  
+  BTSerial.write(packet, PACKET_SIZE);
+  Serial.println("Capabilities sent");
 }
 

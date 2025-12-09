@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,8 @@ import android.view.HapticFeedbackConstants
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.bluetooth.TroubleshootHints
+import androidx.compose.ui.text.font.FontStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,20 +140,41 @@ fun EmbeddedTerminal(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
-                    items(logs) { log ->
+                    itemsIndexed(
+                        items = logs,
+                        key = { index, log -> "${index}_${log.timestamp}_${log.message.hashCode()}" }
+                    ) { _, log ->
                         val color = when (log.type) {
                             LogType.INFO -> Color(0xFF90CAF9)
                             LogType.SUCCESS -> Color(0xFF00C853)
                             LogType.WARNING -> Color(0xFFFFD54F)
                             LogType.ERROR -> Color(0xFFFF7675)
                         }
-                        Text(
-                            text = "> ${log.message}",
-                            color = color,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 10.sp,
-                            lineHeight = 12.sp
-                        )
+                        
+                        Column {
+                            Text(
+                                text = "> ${log.message}",
+                                color = color,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 10.sp,
+                                lineHeight = 12.sp
+                            )
+                            
+                            // Show troubleshoot hint for ERROR logs
+                            if (log.type == LogType.ERROR) {
+                                val hint = TroubleshootHints.getHintForError(log.message)
+                                if (hint != null) {
+                                    Text(
+                                        text = "  → ${hint.first}. ${hint.second}",
+                                        color = Color(0xFFFFFF00), // Electric yellow
+                                        fontFamily = FontFamily.Monospace,
+                                        fontStyle = FontStyle.Italic,
+                                        fontSize = 9.sp,
+                                        lineHeight = 11.sp
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -144,29 +144,6 @@ fun AboutDialog(
                         FeatureItem("Changelog reflects latest fixes and attribution updates", isDarkTheme)
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Features
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        Text(
-                            "Key Features:",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        FeatureItem("17 HC-05/HC-06 connection methods", isDarkTheme)
-                        FeatureItem("7 HM-10 BLE UUID variants", isDarkTheme)
-                        FeatureItem("Arduino UNO Q & R4 WiFi support", isDarkTheme)
-                        FeatureItem("99%+ clone compatibility", isDarkTheme)
-                        FeatureItem("Real-time telemetry & debugging", isDarkTheme)
-                    }
-
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // GitHub link button
@@ -191,6 +168,32 @@ fun AboutDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("View on GitHub")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Arduino Cloud link button
+                    OutlinedButton(
+                        onClick = { 
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            webUrlToOpen = "https://cloud.arduino.cc" 
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = if (isDarkTheme) Color(0xFF00C853) else Color(0xFF2E7D32)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isDarkTheme) Color(0xFF00C853) else Color(0xFF2E7D32)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Open Arduino Cloud")
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
