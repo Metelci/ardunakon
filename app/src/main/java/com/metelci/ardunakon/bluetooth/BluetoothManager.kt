@@ -965,7 +965,7 @@ data class ConnectionHealth(
         if (battery < 0f || battery > 30f) {
             if (isDebugMode) {
                 val now = System.currentTimeMillis()
-                if (now - lastTelemetryLogTime > 5000) {
+                if (now - lastTelemetryLogTime > 20000) {
                     log("Invalid telemetry: voltage ${battery}V out of range", LogType.WARNING)
                     lastTelemetryLogTime = now
                 }
@@ -987,7 +987,7 @@ data class ConnectionHealth(
 
         if (isDebugMode) {
             val now = System.currentTimeMillis()
-            if (now - lastTelemetryLogTime > 5000) {
+            if (now - lastTelemetryLogTime > 20000) {
                 log("Telemetry: Bat=${battery}V, Stat=$status", LogType.SUCCESS)
                 lastTelemetryLogTime = now
             }
