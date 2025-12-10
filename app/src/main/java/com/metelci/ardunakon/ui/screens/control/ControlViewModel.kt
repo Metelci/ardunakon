@@ -261,11 +261,25 @@ class ControlViewModel(
 
     // ========== Connection Mode ==========
     fun toggleConnectionMode() {
-        connectionMode = if (connectionMode == ConnectionMode.BLUETOOTH) {
-            ConnectionMode.WIFI
+        if (connectionMode == ConnectionMode.BLUETOOTH) {
+            switchToWifi()
         } else {
-            ConnectionMode.BLUETOOTH
+            switchToBluetooth()
         }
+    }
+
+    fun switchToWifi() {
+        if (connectionMode == ConnectionMode.BLUETOOTH) {
+            bluetoothManager.disconnect()
+        }
+        connectionMode = ConnectionMode.WIFI
+    }
+
+    fun switchToBluetooth() {
+        if (connectionMode == ConnectionMode.WIFI) {
+            wifiManager.disconnect()
+        }
+        connectionMode = ConnectionMode.BLUETOOTH
     }
 
     fun reconnectBluetoothDevice(): Boolean {

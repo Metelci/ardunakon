@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.view.HapticFeedbackConstants
 import android.view.View
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Close
@@ -32,9 +34,14 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -106,7 +113,6 @@ fun ControlHeaderBar(
     view: View,
     modifier: Modifier = Modifier
 ) {
-    var showHeaderMenu by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
 
     Row(
@@ -116,131 +122,32 @@ fun ControlHeaderBar(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (connectionMode == ConnectionMode.BLUETOOTH) {
-            // Bluetooth Mode
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                val stateColor = when (bluetoothConnectionState) {
-                    ConnectionState.CONNECTED -> Color(0xFF00FF00)
-                    ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
-                    ConnectionState.ERROR -> Color(0xFFFF5252)
-                    else -> Color.Gray
-                }
-                SignalStrengthIcon(
-                    rssi = rssiValue,
-                    color = stateColor,
-                    modifier = Modifier
-                )
-                LatencySparkline(
-                    rttValues = rttHistory,
-                    modifier = Modifier.width(40.dp).height(10.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
+        // 1. Connection Status Widget (Signal + Latency + RTT birleşik)
+        ConnectionStatusWidget(
+            connectionMode = connectionMode,
+            btState = bluetoothConnectionState,
+            wifiState = wifiConnectionState,
+            rssi = if (connectionMode == ConnectionMode.BLUETOOTH) rssiValue else wifiRssi,
+            rttHistory = if (connectionMode == ConnectionMode.BLUETOOTH) rttHistory else wifiRttHistory,
+            isDarkTheme = isDarkTheme,
+            onReconnect = onReconnectDevice,
+            onConfigure = onConfigureWifi,
+            view = view,
+            modifier = Modifier.width(52.dp).height(40.dp)
+        )
 
-            // Bluetooth Reconnect button
-            Box {
-                IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        showHeaderMenu = true
-                    },
-                    modifier = Modifier
-                        .size(buttonSize)
-                        .shadow(2.dp, CircleShape)
-                        .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                        .border(1.dp, Color(0xFF00FF00), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Bluetooth,
-                        contentDescription = "Connect / Reconnect",
-                        tint = Color(0xFF00FF00),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = showHeaderMenu,
-                    onDismissRequest = { showHeaderMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Reconnect Device") },
-                        onClick = {
-                            showHeaderMenu = false
-                            onReconnectDevice()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Switch to WiFi") },
-                        onClick = {
-                            showHeaderMenu = false
-                            onSwitchToWifi()
-                        }
-                    )
-                }
-            }
-        } else {
-            // WiFi Mode
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                val stateColor = when (wifiConnectionState) {
-                    WifiConnectionState.CONNECTED -> Color(0xFF00FF00)
-                    WifiConnectionState.CONNECTING -> Color(0xFFFFD54F)
-                    WifiConnectionState.ERROR -> Color(0xFFFF5252)
-                    else -> Color.Gray
-                }
-                SignalStrengthIcon(
-                    rssi = wifiRssi,
-                    color = stateColor,
-                    modifier = Modifier,
-                    isWifi = true,
-                    showLabels = false
-                )
-                LatencySparkline(
-                    rttValues = wifiRttHistory,
-                    modifier = Modifier.width(40.dp).height(10.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
-            // WiFi Config button
-            Box {
-                IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        showHeaderMenu = true
-                    },
-                    modifier = Modifier
-                        .size(buttonSize)
-                        .shadow(2.dp, CircleShape)
-                        .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                        .border(1.dp, Color(0xFF00C853), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "WiFi Configuration",
-                        tint = Color(0xFF00C853),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = showHeaderMenu,
-                    onDismissRequest = { showHeaderMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Configure WiFi") },
-                        onClick = {
-                            showHeaderMenu = false
-                            onConfigureWifi()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Switch to Bluetooth") },
-                        onClick = {
-                            showHeaderMenu = false
-                            onSwitchToBluetooth()
-                        }
-                    )
-                }
-            }
-        }
+        // 2. Connection Mode Selector (Segmented Button)
+        ConnectionModeSelector(
+            selectedMode = connectionMode,
+            onModeSelected = { mode ->
+                if (mode == ConnectionMode.WIFI) onSwitchToWifi() else onSwitchToBluetooth()
+            },
+            isDarkTheme = isDarkTheme,
+            view = view,
+            modifier = Modifier.height(32.dp)
+        )
 
         Spacer(modifier = Modifier.width(12.dp))
 
@@ -393,25 +300,6 @@ fun ControlHeaderBar(
                         showOverflowMenu = false
                     }
                 )
-                DropdownMenuItem(
-                    text = { Text("Switch to ${if (connectionMode == ConnectionMode.BLUETOOTH) "WiFi" else "Bluetooth"}") },
-                    onClick = {
-                        showOverflowMenu = false
-                        if (connectionMode == ConnectionMode.BLUETOOTH) {
-                            onSwitchToWifi()
-                        } else {
-                            onSwitchToBluetooth()
-                        }
-                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = if (connectionMode == ConnectionMode.BLUETOOTH) Icons.Default.Wifi else Icons.Default.Bluetooth,
-                            contentDescription = "Switch Mode",
-                            tint = Color.Gray
-                        )
-                    }
-                )
                 Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
                 DropdownMenuItem(
                     text = { Text("Quit App", color = Color(0xFFFF5252)) },
@@ -423,6 +311,164 @@ fun ControlHeaderBar(
                     }
                 )
             }
+        }
+    }
+}
+
+/**
+ * Combined connection status widget showing signal strength, RTT, and latency sparkline.
+ * Tapping opens a menu for reconnect/configure options.
+ */
+@Composable
+fun ConnectionStatusWidget(
+    connectionMode: ConnectionMode,
+    btState: ConnectionState,
+    wifiState: WifiConnectionState,
+    rssi: Int,
+    rttHistory: List<Long>,
+    isDarkTheme: Boolean,
+    onReconnect: () -> Unit,
+    onConfigure: () -> Unit,
+    view: View,
+    modifier: Modifier = Modifier
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    val lastRtt = rttHistory.lastOrNull() ?: 0L
+
+    val stateColor = when {
+        connectionMode == ConnectionMode.BLUETOOTH -> when (btState) {
+            ConnectionState.CONNECTED -> Color(0xFF00FF00)
+            ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
+            ConnectionState.ERROR -> Color(0xFFFF5252)
+            else -> Color.Gray
+        }
+        else -> when (wifiState) {
+            WifiConnectionState.CONNECTED -> Color(0xFF00FF00)
+            WifiConnectionState.CONNECTING -> Color(0xFFFFD54F)
+            WifiConnectionState.ERROR -> Color(0xFFFF5252)
+            else -> Color.Gray
+        }
+    }
+
+    Box(modifier = modifier) {
+        Surface(
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                showMenu = true
+            },
+            shape = RoundedCornerShape(8.dp),
+            color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
+            border = BorderStroke(1.dp, stateColor),
+            modifier = Modifier.matchParentSize()
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    SignalStrengthIcon(
+                        rssi = rssi,
+                        color = stateColor,
+                        isWifi = connectionMode == ConnectionMode.WIFI,
+                        showLabels = false,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "${lastRtt}ms",
+                        fontSize = 9.sp,
+                        color = stateColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                LatencySparkline(
+                    rttValues = rttHistory,
+                    modifier = Modifier.width(40.dp).height(8.dp)
+                )
+            }
+        }
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        if (connectionMode == ConnectionMode.BLUETOOTH) "Reconnect Device"
+                        else "Configure WiFi"
+                    )
+                },
+                onClick = {
+                    showMenu = false
+                    if (connectionMode == ConnectionMode.BLUETOOTH) onReconnect() else onConfigure()
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Material 3 Segmented Button for switching between BLE and WiFi modes.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConnectionModeSelector(
+    selectedMode: ConnectionMode,
+    onModeSelected: (ConnectionMode) -> Unit,
+    isDarkTheme: Boolean,
+    view: View,
+    modifier: Modifier = Modifier
+) {
+    SingleChoiceSegmentedButtonRow(modifier = modifier) {
+        SegmentedButton(
+            selected = selectedMode == ConnectionMode.BLUETOOTH,
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                onModeSelected(ConnectionMode.BLUETOOTH)
+            },
+            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Bluetooth,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
+            },
+            colors = SegmentedButtonDefaults.colors(
+                activeContainerColor = Color(0xFF00FF00).copy(alpha = 0.2f),
+                activeContentColor = Color(0xFF00FF00),
+                inactiveContainerColor = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
+                inactiveContentColor = Color.Gray
+            )
+        ) {
+            Text("BLE", fontSize = 9.sp)
+        }
+
+        SegmentedButton(
+            selected = selectedMode == ConnectionMode.WIFI,
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                onModeSelected(ConnectionMode.WIFI)
+            },
+            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Wifi,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
+            },
+            colors = SegmentedButtonDefaults.colors(
+                activeContainerColor = Color(0xFF00C853).copy(alpha = 0.2f),
+                activeContentColor = Color(0xFF00C853),
+                inactiveContainerColor = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
+                inactiveContentColor = Color.Gray
+            )
+        ) {
+            Text("WiFi", fontSize = 9.sp)
         }
     }
 }
