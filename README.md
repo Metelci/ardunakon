@@ -19,9 +19,10 @@ Ardunakon is a professional-grade Android application designed to control Arduin
 *   **Custom Sensitivity**: Adjust control response from 10% to 200% to match your driving style.
 
 ### ⚙️ Powerful Customization
-*   **Profile Manager**: Create unlimited profiles for different projects.
 *   **Button Config**: 4 Aux buttons with customizable labels, commands, and colors.
 *   **Live Editing**: Tweak settings instantly without disconnecting.
+*   **Haptic Feedback**: Joystick vibrates at center deadzone and edge boundaries.
+*   **Connection Quality Ring**: Visual indicator around joystick shows connection latency.
 
 ### 📡 Real-World Connectivity
 *   **Military-Grade Stability**: 4 critical reliability improvements including bounded write queues, 3-strike retry logic, and optimized timeouts
@@ -136,7 +137,7 @@ Whether you're driving an RC car, piloting a drone, or controlling a complex rob
 
 *   **🕹️ RC Car Control Layout**: Throttle joystick for smooth speed control + WASD buttons for precise servo positioning. Choose between **Car Mode** (Forward/Reverse) or **Drone/ESC Mode** (0-100% Throttle) for perfect control.
 *   **🔒 Secure & Private**: Your data is yours. All profiles and settings are **encrypted** using industry-standard AES-256 encryption.
-*   **⚙️ Total Customization**: Create unlimited profiles for all your projects. Adjust joystick sensitivity (10% - 200%) and map custom buttons to your exact needs.
+*   **⚙️ Total Customization**: Adjust joystick sensitivity (10% - 200%) and map custom Aux buttons to your exact needs.
 *   **📡 Real-Time Telemetry**: View live data from your Arduino in the built-in Debug Console. No more guessing—see exactly what your device is sending.
 *   **⚡ Auto-Connect**: Seamlessly reconnects if signal is lost, keeping you in control.
 
