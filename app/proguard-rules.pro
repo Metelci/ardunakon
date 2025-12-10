@@ -82,6 +82,14 @@
 -keep class com.metelci.ardunakon.ui.components.HelpDialog { *; }
 -keep class com.metelci.ardunakon.ui.components.AboutDialog { *; }
 
-# Missing rules detected by R8
+# Missing rules detected by R8 - Google Tink and error-prone annotations
 -dontwarn com.google.errorprone.annotations.Immutable
+-dontwarn com.google.errorprone.annotations.CanIgnoreReturnValue
+-dontwarn com.google.errorprone.annotations.CheckReturnValue
+-dontwarn com.google.errorprone.annotations.RestrictedApi
 -dontwarn javax.annotation.concurrent.GuardedBy
+-dontwarn javax.annotation.Nullable
+
+# Keep Google Tink classes (used by androidx.security.crypto)
+-keep class com.google.crypto.tink.** { *; }
+-dontwarn com.google.crypto.tink.**
