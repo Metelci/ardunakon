@@ -8,7 +8,7 @@ What's New in v0.2.3-alpha:
     • **Reduced Log Noise**: Throttled battery telemetry logs in the debug console (now once every 5s) to prevent spam
     • **Landscape Telemetry**: Fixed layout overflow issues in the Telemetry Graph window when using landscape mode
     • **Help Menu Accessibility**: "Open Arduino Cloud" and "View Full Guide" buttons are now always accessible on smaller screens
-
+    • **WiFi Connection Stability**: Improved WiFi connection handling for R4 WiFi boards
 ---
 
 What's New in v0.2.2-alpha:

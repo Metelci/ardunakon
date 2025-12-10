@@ -39,21 +39,17 @@ fun ServoButtonControl(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Top Row: W (Up/Forward)
+        // Top Row: W (Up/Forward) - Incremental movement
         Button(
             onClick = {
                 val currentTime = System.currentTimeMillis()
                 if (currentTime - lastMoveTime >= debounceDelay) {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
 
-                    // Toggle: if already at W position, return to center
-                    val newY = if (servoY == 1f) {
-                        onLog?.invoke("Servo: CENTER (released W)")
-                        0f
-                    } else {
-                        onLog?.invoke("Servo: FORWARD (W)")
-                        1f
-                    }
+                    // Incremental: each press adds +0.1f (≈10°), max 1.0f (180°)
+                    val newY = (servoY + 0.1f).coerceIn(-1f, 1f)
+                    val angle = ((newY + 1f) / 2f * 180f).toInt()
+                    onLog?.invoke("Servo Y: ${angle}° (W)")
                     onMove(servoX, newY)
                     lastMoveTime = currentTime
                 }
@@ -82,21 +78,17 @@ fun ServoButtonControl(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // L (Left)
+            // L (Left) - Incremental movement
             Button(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastMoveTime >= debounceDelay) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
 
-                        // Toggle: if already at L position, return to center
-                        val newX = if (servoX == -1f) {
-                            onLog?.invoke("Servo: CENTER (released L)")
-                            0f
-                        } else {
-                            onLog?.invoke("Servo: LEFT (L)")
-                            -1f
-                        }
+                        // Incremental: each press subtracts -0.1f (≈10°), min -1.0f (0°)
+                        val newX = (servoX - 0.1f).coerceIn(-1f, 1f)
+                        val angle = ((newX + 1f) / 2f * 180f).toInt()
+                        onLog?.invoke("Servo X: ${angle}° (L)")
                         onMove(newX, servoY)
                         lastMoveTime = currentTime
                     }
@@ -120,21 +112,17 @@ fun ServoButtonControl(
                 }
             }
 
-            // B (Backward/Reverse)
+            // B (Backward/Reverse) - Incremental movement
             Button(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastMoveTime >= debounceDelay) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
 
-                        // Toggle: if already at B position, return to center
-                        val newY = if (servoY == -1f) {
-                            onLog?.invoke("Servo: CENTER (released B)")
-                            0f
-                        } else {
-                            onLog?.invoke("Servo: BACKWARD (B)")
-                            -1f
-                        }
+                        // Incremental: each press subtracts -0.1f (≈10°), min -1.0f (0°)
+                        val newY = (servoY - 0.1f).coerceIn(-1f, 1f)
+                        val angle = ((newY + 1f) / 2f * 180f).toInt()
+                        onLog?.invoke("Servo Y: ${angle}° (B)")
                         onMove(servoX, newY)
                         lastMoveTime = currentTime
                     }
@@ -158,21 +146,17 @@ fun ServoButtonControl(
                 }
             }
 
-            // R (Right)
+            // R (Right) - Incremental movement
             Button(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastMoveTime >= debounceDelay) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
 
-                        // Toggle: if already at R position, return to center
-                        val newX = if (servoX == 1f) {
-                            onLog?.invoke("Servo: CENTER (released R)")
-                            0f
-                        } else {
-                            onLog?.invoke("Servo: RIGHT (R)")
-                            1f
-                        }
+                        // Incremental: each press adds +0.1f (≈10°), max 1.0f (180°)
+                        val newX = (servoX + 0.1f).coerceIn(-1f, 1f)
+                        val angle = ((newX + 1f) / 2f * 180f).toInt()
+                        onLog?.invoke("Servo X: ${angle}° (R)")
                         onMove(newX, servoY)
                         lastMoveTime = currentTime
                     }

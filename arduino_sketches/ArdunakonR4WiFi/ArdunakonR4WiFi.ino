@@ -110,11 +110,11 @@ void playRockAnimation() {
 
 // Pin Definitions
 // Servos (directly connected to these pins)
-#define SERVO_X_PIN       6   // Horizontal servo (L/R buttons)
-#define SERVO_Y_PIN       7   // Vertical servo (W/B buttons)
+#define SERVO_X_PIN       9   // Horizontal servo (L/R buttons)
+#define SERVO_Y_PIN       10  // Vertical servo (W/B buttons)
 
 // Brushless ESC (airplane ESC, no reverse)
-#define ESC_PIN           9   // ESC signal wire
+#define ESC_PIN           6   // ESC signal wire
 
 #define LED_STATUS        LED_BUILTIN
 #define BUZZER_PIN        3
@@ -461,7 +461,11 @@ void updateServos() {
   // Map -100..100 to 0..180 degrees
   int angleX = map(rightX, -100, 100, 0, 180);
   int angleY = map(rightY, -100, 100, 0, 180);
-  
+
+  Serial.print("Servo X: "); Serial.print(angleX);
+  Serial.print("° Y: "); Serial.print(angleY);
+  Serial.println("°");
+
   servoX.write(angleX);
   servoY.write(angleY);
 }
