@@ -89,6 +89,8 @@ import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.ui.components.JoystickControl
 import com.metelci.ardunakon.ui.components.ServoButtonControl
+import com.metelci.ardunakon.ui.screens.control.JoystickPanel
+import com.metelci.ardunakon.ui.screens.control.ServoPanel
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
 import com.metelci.ardunakon.model.LogType
@@ -109,6 +111,9 @@ import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.ui.components.WifiConfigDialog
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
+import com.metelci.ardunakon.ui.screens.control.ConnectionMode
+import com.metelci.ardunakon.ui.screens.control.ControlHeaderBar
+import com.metelci.ardunakon.ui.screens.control.dialogs.DeviceListDialog
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,11 +126,9 @@ fun ControlScreen(
 ) {
     // State
     var showDeviceList by rememberSaveable { mutableStateOf(false) }
-    var showProfileSelector by rememberSaveable { mutableStateOf(false) }
     var showDebugConsole by rememberSaveable { mutableStateOf(false) }
     var showHelpDialog by rememberSaveable { mutableStateOf(false) }
     var showAboutDialog by rememberSaveable { mutableStateOf(false) }
-    var showOverflowMenu by rememberSaveable { mutableStateOf(false) }
     var showTelemetryGraph by rememberSaveable { mutableStateOf(false) }
     var isDebugPanelVisible by rememberSaveable { mutableStateOf(true) } // Toggle for embedded debug panel
     var showMaximizedDebug by rememberSaveable { mutableStateOf(false) } // Full-screen debug dialog
@@ -133,7 +136,7 @@ fun ControlScreen(
     var showWifiConfig by rememberSaveable { mutableStateOf(false) }
     var showCrashLog by rememberSaveable { mutableStateOf(false) } // Crash log viewer
     var connectionMode by rememberSaveable { mutableStateOf(ConnectionMode.BLUETOOTH) }
-    var showHeaderMenu by remember { mutableStateOf(false) }
+
 
     val scannedDevices by bluetoothManager.scannedDevices.collectAsState()
     val connectionState by bluetoothManager.connectionState.collectAsState()
@@ -411,307 +414,54 @@ fun ControlScreen(
             ) {
                 val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
 
-                // Top status bar (compact for portrait) - all header buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (connectionMode == ConnectionMode.BLUETOOTH) {
-                        // Signal indicator with sparkline below
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            val stateColor = when (connectionState) {
-                                ConnectionState.CONNECTED -> Color(0xFF00FF00)
-                                ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
-                                ConnectionState.ERROR -> Color(0xFFFF5252)
-                                else -> Color.Gray
-                            }
-                            SignalStrengthIcon(rssi = rssiValue, color = stateColor, modifier = Modifier)
-
-                            // Latency Sparkline below RSSI (width matches RSSI)
-                            LatencySparkline(
-                                rttValues = rttHistory,
-                                modifier = Modifier.width(40.dp).height(10.dp)
-                            )
+                // Top status bar (compact for portrait) - using extracted component
+                ControlHeaderBar(
+                    connectionMode = connectionMode,
+                    bluetoothConnectionState = connectionState,
+                    wifiConnectionState = wifiState,
+                    rssiValue = rssiValue,
+                    wifiRssi = wifiRssi,
+                    rttHistory = rttHistory,
+                    wifiRttHistory = wifiRttHistory,
+                    isEStopActive = isEStopActive,
+                    isDebugPanelVisible = isDebugPanelVisible,
+                    isDarkTheme = isDarkTheme,
+                    allowReflection = allowReflection,
+                    buttonSize = 32.dp,
+                    eStopSize = 56.dp,
+                    onReconnectDevice = {
+                        val reconnected = bluetoothManager.reconnectSavedDevice()
+                        if (!reconnected) showDeviceList = true
+                    },
+                    onSwitchToWifi = { connectionMode = ConnectionMode.WIFI },
+                    onSwitchToBluetooth = { connectionMode = ConnectionMode.BLUETOOTH },
+                    onConfigureWifi = { showWifiConfig = true },
+                    onTelemetryGraph = { showTelemetryGraph = true },
+                    onToggleEStop = {
+                        if (isEStopActive) {
+                            bluetoothManager.setEmergencyStop(false)
+                            bluetoothManager.holdOfflineAfterEStopReset()
+                        } else {
+                            bluetoothManager.setEmergencyStop(true)
+                            bluetoothManager.disconnectAllForEStop()
+                            val stopPacket = ProtocolManager.formatEStopData()
+                            bluetoothManager.sendDataToAll(stopPacket, force = true)
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-    
-                        // Bluetooth Reconnect button
-                        // Bluetooth Reconnect button
-                        Box {
-                            IconButton(
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    showHeaderMenu = true
-                                },
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .shadow(2.dp, CircleShape)
-                                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                                    .border(1.dp, Color(0xFF00FF00), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Bluetooth,
-                                    contentDescription = "Connect / Reconnect",
-                                    tint = Color(0xFF00FF00),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showHeaderMenu,
-                                onDismissRequest = { showHeaderMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Reconnect Device") },
-                                    onClick = {
-                                        showHeaderMenu = false
-                                        val reconnected = bluetoothManager.reconnectSavedDevice()
-                                        if (!reconnected) showDeviceList = true
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Switch to WiFi") },
-                                    onClick = {
-                                        showHeaderMenu = false
-                                        connectionMode = ConnectionMode.WIFI
-                                    }
-                                )
-                            }
-                        }
-                    } else {
-                        // WiFi Mode - Dual Slot Layout (like Bluetooth)
-                        // Slot 1: Active WiFi connection
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            val state = wifiState
-                            val stateColor = when (state) {
-                                WifiConnectionState.CONNECTED -> Color(0xFF00FF00) // Green glow
-                                WifiConnectionState.CONNECTING -> Color(0xFFFFD54F) 
-                                WifiConnectionState.ERROR -> Color(0xFFFF5252)
-                                else -> Color.Gray
-                            }
-                            SignalStrengthIcon(
-                                rssi = wifiRssi, 
-                                color = stateColor, 
-                                modifier = Modifier,
-                                isWifi = true,
-                                showLabels = false
-                            )
-                            LatencySparkline(
-                                rttValues = wifiRttHistory,
-                                modifier = Modifier.width(40.dp).height(10.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
+                    },
+                    onToggleDebugPanel = { isDebugPanelVisible = !isDebugPanelVisible },
+                    onShowHelp = { showHelpDialog = true },
+                    onShowAbout = { showAboutDialog = true },
+                    onShowCrashLog = { showCrashLog = true },
+                    onToggleReflection = { allowReflection = !allowReflection },
+                    onOpenArduinoCloud = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://cloud.arduino.cc"))
+                        context.startActivity(intent)
+                    },
+                    onQuitApp = onQuitApp,
+                    context = context,
+                    view = view
+                )
 
-                        // WiFi Config Button (Replaces BT Button)
-                        Box {
-                            IconButton(
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    showHeaderMenu = true
-                                },
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .shadow(2.dp, CircleShape)
-                                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                                    .border(1.dp, Color(0xFF00C853), CircleShape) 
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "WiFi Configuration",
-                                    tint = Color(0xFF00C853),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showHeaderMenu,
-                                onDismissRequest = { showHeaderMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Configure WiFi") },
-                                    onClick = {
-                                        showHeaderMenu = false
-                                        showWifiConfig = true
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Switch to Bluetooth") },
-                                    onClick = {
-                                        showHeaderMenu = false
-                                        connectionMode = ConnectionMode.BLUETOOTH
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // Telemetry Graph Button
-                    IconButton(
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            showTelemetryGraph = true
-                        },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .shadow(2.dp, CircleShape)
-                            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                            .border(1.dp, Color(0xFF00FF00), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ShowChart,
-                            contentDescription = "Telemetry Graphs",
-                            tint = Color(0xFF00FF00),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // E-STOP Button
-                    IconButton(
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            if (isEStopActive) {
-                                bluetoothManager.setEmergencyStop(false)
-                                bluetoothManager.holdOfflineAfterEStopReset()
-                            } else {
-                                bluetoothManager.setEmergencyStop(true)
-                                bluetoothManager.disconnectAllForEStop()
-                                val stopPacket = ProtocolManager.formatEStopData()
-                                bluetoothManager.sendDataToAll(stopPacket, force = true)
-                            }
-                        },
-                        modifier = Modifier
-                            .size(56.dp)
-                            .shadow(2.dp, CircleShape)
-                            .background(
-                                if (isEStopActive) Color(0xFFFF5252) else if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
-                                CircleShape
-                            )
-                    ) {
-                        Text(
-                            if (isEStopActive) "GO" else "STOP",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = if (isEStopActive) Color.White else Color(0xFFFF5252)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // Debug Panel Toggle Button
-                    IconButton(
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            isDebugPanelVisible = !isDebugPanelVisible
-                        },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .shadow(2.dp, CircleShape)
-                            .background(
-                                if (isDebugPanelVisible) Color(0xFF43A047) else Color(0xFF455A64),
-                                CircleShape
-                            )
-                            .border(1.dp, Color(0xFF00FF00), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Toggle Debug",
-                            tint = if (isDebugPanelVisible) Color.White else Color(0xFF00FF00),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // Menu Button with dropdown
-                    Box {
-                        IconButton(
-                            onClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                showOverflowMenu = !showOverflowMenu
-                            },
-                            modifier = Modifier
-                                .size(32.dp)
-                                .shadow(2.dp, CircleShape)
-                                .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                                .border(1.dp, Color(0xFF00FF00), CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Help,
-                                contentDescription = "Menu",
-                                tint = Color(0xFF00FF00),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showOverflowMenu,
-                            onDismissRequest = { showOverflowMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Help") },
-                                leadingIcon = { Icon(Icons.Default.Help, null) },
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    showHelpDialog = true
-                                    showOverflowMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("About") },
-                                leadingIcon = { Icon(Icons.Outlined.Info, null) },
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    showAboutDialog = true
-                                    showOverflowMenu = false
-                                }
-                            )
-                            if (com.metelci.ardunakon.crash.CrashHandler.hasCrashLog(context)) {
-                                DropdownMenuItem(
-                                    text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
-                                    leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
-                                    onClick = {
-                                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                        showCrashLog = true
-                                        showOverflowMenu = false
-                                    }
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text("Legacy Reflection (HC-06): " + if (allowReflection) "On" else "Off") },
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    allowReflection = !allowReflection
-                                    showOverflowMenu = false
-                                }
-                            )
-
-                            DropdownMenuItem(
-                                text = { Text("Switch to ${if (connectionMode == ConnectionMode.BLUETOOTH) "WiFi" else "Bluetooth"}") },
-                                onClick = {
-                                    showOverflowMenu = false
-                                    connectionMode = if (connectionMode == ConnectionMode.BLUETOOTH) ConnectionMode.WIFI else ConnectionMode.BLUETOOTH
-                                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = if (connectionMode == ConnectionMode.BLUETOOTH) Icons.Default.Wifi else Icons.Default.Bluetooth,
-                                        contentDescription = "Switch Mode",
-                                        tint = Color.Gray
-                                    )
-                                }
-                            )
-                            Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
-                            DropdownMenuItem(
-                                text = { Text("Quit App", color = Color(0xFFFF5252)) },
-                                leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    showOverflowMenu = false
-                                    onQuitApp()
-                                }
-                            )
-                        }
-                    }
-                }
 
                 // Debug Panel (if visible) - at top in portrait
                 if (isDebugPanelVisible) {
@@ -761,38 +511,29 @@ fun ControlScreen(
                 }
 
                 // Servo Buttons - middle
-                Box(
-                    modifier = Modifier.weight(if (isDebugPanelVisible) 0.25f else 0.4f).fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    ServoButtonControl(
-                        servoX = servoX,
-                        servoY = servoY,
-                        onMove = { x, y -> servoX = x; servoY = y },
-                        buttonSize = 56.dp,
-                        onLog = { message -> bluetoothManager.log(message, LogType.INFO) }
-                    )
-                }
+                ServoPanel(
+                    servoX = servoX,
+                    servoY = servoY,
+                    onServoMove = { x, y -> servoX = x; servoY = y },
+                    onLog = { message -> bluetoothManager.log(message, LogType.INFO) },
+                    buttonSize = 56.dp,
+                    modifier = Modifier.weight(if (isDebugPanelVisible) 0.25f else 0.4f).fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Joystick - bottom
-                Box(
-                    modifier = Modifier.weight(if (isDebugPanelVisible) 0.35f else 0.6f).fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val portraitJoystickSize = minOf(orientationConfig.screenWidthDp.dp * 0.5f, 180.dp)
-                    JoystickControl(
-                        onMoved = { state ->
-                            leftJoystick = Pair(
-                                state.x * currentProfile.sensitivity,
-                                state.y * currentProfile.sensitivity
-                            )
-                        },
-                        size = portraitJoystickSize,
-                        isThrottle = false
-                    )
-                }
+                val portraitJoystickSize = minOf(orientationConfig.screenWidthDp.dp * 0.5f, 180.dp)
+                JoystickPanel(
+                    onMoved = { x, y -> leftJoystick = Pair(x, y) },
+                    size = portraitJoystickSize,
+                    isThrottle = false,
+                    bluetoothRttMs = health?.lastRttMs,
+                    wifiRttMs = wifiRtt,
+                    isWifiMode = connectionMode == ConnectionMode.WIFI,
+                    sensitivity = currentProfile.sensitivity,
+                    modifier = Modifier.weight(if (isDebugPanelVisible) 0.35f else 0.6f).fillMaxWidth()
+                )
             }
         } else {
         // Landscape Layout: Side by side (existing layout)
@@ -809,354 +550,55 @@ fun ControlScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
-        // Global Bluetooth status & E-STOP - Centered Layout
+        // Global Bluetooth status & E-STOP - using extracted component
         val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (connectionMode == ConnectionMode.BLUETOOTH) {
-                // Signal Strength Indicator with sparkline below
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val stateColor = when (connectionState) {
-                        ConnectionState.CONNECTED -> Color(0xFF00FF00)
-                        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFFD54F)
-                        ConnectionState.ERROR -> Color(0xFFFF5252)
-                        else -> Color.Gray
-                    }
-
-                    SignalStrengthIcon(
-                        rssi = rssiValue,
-                        color = stateColor,
-                        modifier = Modifier
-                    )
-
-                    // Latency Sparkline below RSSI (width matches RSSI)
-                    LatencySparkline(
-                        rttValues = rttHistory,
-                        modifier = Modifier.width(40.dp).height(10.dp)
-                    )
+        ControlHeaderBar(
+            connectionMode = connectionMode,
+            bluetoothConnectionState = connectionState,
+            wifiConnectionState = wifiState,
+            rssiValue = rssiValue,
+            wifiRssi = wifiRssi,
+            rttHistory = rttHistory,
+            wifiRttHistory = wifiRttHistory,
+            isEStopActive = isEStopActive,
+            isDebugPanelVisible = isDebugPanelVisible,
+            isDarkTheme = isDarkTheme,
+            allowReflection = allowReflection,
+            buttonSize = 36.dp,
+            eStopSize = 72.dp,
+            onReconnectDevice = {
+                val reconnected = bluetoothManager.reconnectSavedDevice()
+                if (!reconnected) showDeviceList = true
+            },
+            onSwitchToWifi = { connectionMode = ConnectionMode.WIFI },
+            onSwitchToBluetooth = { connectionMode = ConnectionMode.BLUETOOTH },
+            onConfigureWifi = { showWifiConfig = true },
+            onTelemetryGraph = { showTelemetryGraph = true },
+            onToggleEStop = {
+                if (isEStopActive) {
+                    bluetoothManager.setEmergencyStop(false)
+                    bluetoothManager.holdOfflineAfterEStopReset()
+                } else {
+                    bluetoothManager.setEmergencyStop(true)
+                    bluetoothManager.disconnectAllForEStop()
+                    val stopPacket = ProtocolManager.formatEStopData()
+                    bluetoothManager.sendDataToAll(stopPacket, force = true)
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Bluetooth Reconnect button (LEFT of E-STOP)
-                Box {
-                    IconButton(
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            showHeaderMenu = true
-                        },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .shadow(2.dp, CircleShape)
-                            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                            .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Bluetooth,
-                            contentDescription = "Connect / Reconnect",
-                            tint = Color(0xFF00FF00), // Electric green
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showHeaderMenu,
-                        onDismissRequest = { showHeaderMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Reconnect Device") },
-                            onClick = {
-                                showHeaderMenu = false
-                                val reconnected = bluetoothManager.reconnectSavedDevice()
-                                if (!reconnected) showDeviceList = true
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Switch to WiFi") },
-                            onClick = {
-                                showHeaderMenu = false
-                                connectionMode = ConnectionMode.WIFI
-                            }
-                        )
-                    }
-                }
-            } else {
-                // WiFi Landscape Header - Dual Slot Layout
-                // Slot 1: Active WiFi connection
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val state = wifiState
-                    val stateColor = when (state) {
-                        WifiConnectionState.CONNECTED -> Color(0xFF00FF00) // Green glow
-                        WifiConnectionState.CONNECTING -> Color(0xFFFFD54F)
-                        WifiConnectionState.ERROR -> Color(0xFFFF5252)
-                        else -> Color.Gray
-                    }
-                    SignalStrengthIcon(
-                        rssi = wifiRssi,
-                        color = stateColor,
-                        modifier = Modifier,
-                        isWifi = true,
-                        showLabels = false
-                    )
-                    LatencySparkline(
-                        rttValues = wifiRttHistory,
-                        modifier = Modifier.width(40.dp).height(10.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // WiFi Connect/Config button (LEFT of E-STOP)
-                Box {
-                    IconButton(
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            showHeaderMenu = true
-                        },
-                        modifier = Modifier
-                            .size(36.dp) // Maintain exact size 36dp
-                            .shadow(2.dp, CircleShape)
-                            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                            .border(1.dp, Color(0xFF00C853), CircleShape) // Electric green border for consistency
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "WiFi Configuration",
-                            tint = Color(0xFF00C853), 
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showHeaderMenu,
-                        onDismissRequest = { showHeaderMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Configure WiFi") },
-                            onClick = {
-                                showHeaderMenu = false
-                                showWifiConfig = true
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Switch to Bluetooth") },
-                            onClick = {
-                                showHeaderMenu = false
-                                connectionMode = ConnectionMode.BLUETOOTH
-                            }
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Telemetry Graph Button
-            IconButton(
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    showTelemetryGraph = true
-                },
-                modifier = Modifier
-                    .size(36.dp)
-                    .shadow(2.dp, CircleShape)
-                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                    .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ShowChart,
-                    contentDescription = "Telemetry Graphs",
-                    tint = Color(0xFF00FF00), // Electric green
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // E-STOP BUTTON (now in position 4)
-            IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        if (isEStopActive) {
-                            // Reset E-Stop
-                            bluetoothManager.setEmergencyStop(false)
-                            bluetoothManager.holdOfflineAfterEStopReset()
-                        } else {
-                            // Activate E-Stop FIRST to block other threads
-                            bluetoothManager.setEmergencyStop(true)
-                            // Immediately drop all links and clear slot visuals
-                            bluetoothManager.disconnectAllForEStop()
-                        // Then Force Send STOP packet
-                        val stopPacket = ProtocolManager.formatEStopData()
-                        bluetoothManager.sendDataToAll(stopPacket, force = true)
-                    }
-                },
-                modifier = Modifier
-                    .size(72.dp)
-                    .shadow(2.dp, CircleShape)
-                    .background(
-                        if (isEStopActive) {
-                            Color(0xFFFF5252) // Active red
-                        } else {
-                            if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0)
-                        },
-                        CircleShape
-                    )
-                    .border(
-                        1.dp,
-                        if (isEStopActive) {
-                            Color(0xFFD32F2F) // Darker red border
-                        } else {
-                            if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64)
-                        },
-                        CircleShape
-                    )
-            ) {
-                Text(
-                    if (isEStopActive) "RESET" else "STOP",
-                    color = if (isEStopActive) Color.White else {
-                        if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Debug Panel Toggle Button
-            IconButton(
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    isDebugPanelVisible = !isDebugPanelVisible
-                },
-                modifier = Modifier
-                    .size(36.dp)
-                    .shadow(2.dp, CircleShape)
-                    .background(
-                        if (isDebugPanelVisible) Color(0xFF43A047) else Color(0xFF455A64),
-                        CircleShape
-                    )
-                    .border(
-                        1.dp,
-                        Color(0xFF00FF00), // Electric green border
-                        CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Toggle Debug",
-                    tint = if (isDebugPanelVisible) Color.White else Color(0xFF00FF00), // Electric green
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            // Clear and consistent spacing between debug and menu icons
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Menu Button with Box wrapper for proper DropdownMenu positioning
-            Box {
-                IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        showOverflowMenu = !showOverflowMenu
-                    },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .shadow(2.dp, CircleShape)
-                        .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                        .border(1.dp, Color(0xFF00FF00), CircleShape) // Electric green border
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Help,
-                        contentDescription = "Menu",
-                        tint = Color(0xFF00FF00), // Electric green
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = showOverflowMenu,
-                    onDismissRequest = { showOverflowMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Help") },
-                        leadingIcon = { Icon(Icons.Default.Help, null) },
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            showHelpDialog = true
-                            showOverflowMenu = false
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("About") },
-                        leadingIcon = { Icon(Icons.Outlined.Info, null) },
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            showAboutDialog = true
-                            showOverflowMenu = false
-                        }
-                    )
-                    if (com.metelci.ardunakon.crash.CrashHandler.hasCrashLog(context)) {
-                        DropdownMenuItem(
-                            text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
-                            leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
-                            onClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                showCrashLog = true
-                                showOverflowMenu = false
-                            }
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text("Legacy Reflection (HC-06): " + if (allowReflection) "On" else "Off") },
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            allowReflection = !allowReflection
-                            showOverflowMenu = false
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Open Arduino Cloud") },
-                        leadingIcon = { Icon(Icons.Default.OpenInNew, null, tint = Color(0xFF00FF00)) },
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            showOverflowMenu = false
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://cloud.arduino.cc"))
-                            context.startActivity(intent)
-                        }
-                    )
-
-                    
-                    DropdownMenuItem(
-                        text = { Text("Switch to ${if (connectionMode == ConnectionMode.BLUETOOTH) "WiFi" else "Bluetooth"}") },
-                        onClick = {
-                            showOverflowMenu = false
-                            connectionMode = if (connectionMode == ConnectionMode.BLUETOOTH) ConnectionMode.WIFI else ConnectionMode.BLUETOOTH
-                             view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = if (connectionMode == ConnectionMode.BLUETOOTH) Icons.Default.Wifi else Icons.Default.Bluetooth,
-                                contentDescription = "Switch Mode",
-                                tint = Color.Gray
-                            )
-                        }
-                    )
-                    Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
-                    DropdownMenuItem(
-                        text = { Text("Quit App", color = Color(0xFFFF5252)) },
-                        leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            showOverflowMenu = false
-                            onQuitApp()
-                        }
-                    )
-                }
-            }
-        }
+            },
+            onToggleDebugPanel = { isDebugPanelVisible = !isDebugPanelVisible },
+            onShowHelp = { showHelpDialog = true },
+            onShowAbout = { showAboutDialog = true },
+            onShowCrashLog = { showCrashLog = true },
+            onToggleReflection = { allowReflection = !allowReflection },
+            onOpenArduinoCloud = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://cloud.arduino.cc"))
+                context.startActivity(intent)
+            },
+            onQuitApp = onQuitApp,
+            context = context,
+            view = view
+        )
 
         if (connectionMode == ConnectionMode.BLUETOOTH) {
             // Bluetooth device information row - Single slot
@@ -1351,48 +793,27 @@ fun ControlScreen(
             horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Stick (Throttle)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                contentAlignment = Alignment.Center
-            ) {
-                // Joystick - Throttle only (vertical), no X axis
-                JoystickControl(
-                    onMoved = { state ->
-                        leftJoystick = Pair(
-                            state.x * currentProfile.sensitivity, // X axis (Steering)
-                            state.y * currentProfile.sensitivity  // Y axis (Throttle)
-                        )
-                    },
-                    size = joystickSize,
-                    isThrottle = false // Enable 2-axis control
-                )
-            }
+            // Left Stick (Joystick)
+            JoystickPanel(
+                onMoved = { x, y -> leftJoystick = Pair(x, y) },
+                size = joystickSize,
+                isThrottle = false,
+                bluetoothRttMs = health?.lastRttMs,
+                wifiRttMs = wifiRtt,
+                isWifiMode = connectionMode == ConnectionMode.WIFI,
+                sensitivity = currentProfile.sensitivity,
+                modifier = Modifier.weight(1f).fillMaxHeight()
+            )
 
-            // Right Side: WASD Servo Control with keyboard integration
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                contentAlignment = Alignment.Center
-            ) {
-                // WASD Button Control with persistent servo state
-                ServoButtonControl(
-                    servoX = servoX,
-                    servoY = servoY,
-                    onMove = { x, y ->
-                        // Directly update persistent servo positions
-                        servoX = x
-                        servoY = y
-                    },
-                    buttonSize = 60.dp,
-                    onLog = { message ->
-                        bluetoothManager.log(message, LogType.INFO)
-                    }
-                )
-            }
+            // Right Side: WASD Servo Control
+            ServoPanel(
+                servoX = servoX,
+                servoY = servoY,
+                onServoMove = { x, y -> servoX = x; servoY = y },
+                onLog = { message -> bluetoothManager.log(message, LogType.INFO) },
+                buttonSize = 60.dp,
+                modifier = Modifier.weight(1f).fillMaxHeight()
+            )
         }
         }
 
@@ -1605,357 +1026,16 @@ fun ControlScreen(
     }
 
     if (showDeviceList) {
-        var isScanning by remember { mutableStateOf(false) }
-
-        AlertDialog(
-            onDismissRequest = { showDeviceList = false },
-            modifier = Modifier.fillMaxWidth(0.95f),
-            title = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Bluetooth Devices", style = MaterialTheme.typography.titleMedium)
-                    if (isScanning) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = Color(0xFF74B9FF)
-                        )
-                    }
-                }
+        DeviceListDialog(
+            scannedDevices = scannedDevices,
+            isDarkTheme = isDarkTheme,
+            onScan = { bluetoothManager.startScan() },
+            onDeviceSelected = { device ->
+                bluetoothManager.connectToDevice(device)
+                showDeviceList = false
             },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.9f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // Compact target slot info
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Select Device",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF546E7A)
-                        )
-                        // Compact scan button
-                        androidx.compose.material3.OutlinedButton(
-                            onClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                isScanning = true
-                                bluetoothManager.startScan()
-                                // Auto-stop scanning indication after 5 seconds
-                                coroutineScope.launch {
-                                    delay(5000)
-                                    isScanning = false
-                                }
-                            },
-                            modifier = Modifier.height(32.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color(0xFF00FF00)
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00FF00)),
-                            enabled = !isScanning,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Bluetooth,
-                                contentDescription = "Scan",
-                                tint = Color(0xFF00FF00),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                if (isScanning) "Scanning..." else "Scan",
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
-                    }
-
-                    Divider(color = Color(0xFFB0BEC5), thickness = 1.dp)
-
-                    // Compact device list header
-                    if (scannedDevices.isNotEmpty()) {
-                        Text(
-                            "Found ${scannedDevices.size} device${if (scannedDevices.size != 1) "s" else ""}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF2D3436)
-                        )
-                    }
-
-                    // Scrollable device list - EXPANDED
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = true),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (scannedDevices.isEmpty()) {
-                            item {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 32.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Bluetooth,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(48.dp),
-                                        tint = Color(0xFFB0BEC5)
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        "No devices found",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = Color(0xFF757575)
-                                    )
-                                    Text(
-                                        "Tap 'Scan for Devices' to search",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color(0xFF9E9E9E)
-                                    )
-                                }
-                            }
-                        } else {
-                            items(scannedDevices, key = { it.address }) { device ->
-                                // Strip MAC address in parentheses from display name (e.g., "HC-06 (AA:BB:CC:DD:EE:FF)")
-                                val displayName = device.name.replace(Regex("\\s*\\([0-9A-Fa-f:]{11,}\\)$"), "")
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(min = 10.dp)
-                                        .clickable {
-                                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                            bluetoothManager.connectToDevice(device)
-                                            showDeviceList = false
-                                        },
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFFF5F5F5)
-                                    ),
-                                    elevation = CardDefaults.cardElevation(1.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Filled.Bluetooth,
-                                                contentDescription = null,
-                                                tint = Color(0xFF2196F3),
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Column {
-                                                Text(
-                                                    text = displayName.ifBlank { device.name },
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = Color(0xFF2D3436)
-                                                )
-                                                Text(
-                                                    text = device.address,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = Color(0xFF757575)
-                                                )
-                                            }
-                                        }
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Connect",
-                                            tint = Color(0xFF74B9FF),
-                                            modifier = Modifier
-                                                .size(18.dp)
-                                                .rotate(180f)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { showDeviceList = false },
-                    modifier = Modifier
-                        .defaultMinSize(minHeight = 12.dp, minWidth = 0.dp)
-                        .height(12.dp)
-                        .padding(vertical = 0.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                ) {
-                    Text(
-                        "Close",
-                        color = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
-        )
-    }
-    
-    // Profile Editor State
-    var showProfileEditor by remember { mutableStateOf(false) }
-    var profileToEdit by remember { mutableStateOf<com.metelci.ardunakon.data.Profile?>(null) }
-    var showDeleteConfirmation by remember { mutableStateOf(false) }
-    var profileIndexToDelete by remember { mutableStateOf(-1) }
-
-    if (showProfileSelector) {
-        AlertDialog(
-            onDismissRequest = { showProfileSelector = false },
-            title = { Text("Select Profile") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    profiles.forEachIndexed { index, profile ->
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (index == currentProfileIndex) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                androidx.compose.material3.OutlinedButton(
-                                    onClick = {
-                                        currentProfileIndex = index
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                                    ),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp, 
-                                        if (isDarkTheme) Color(0xFF546E7A) else Color(0xFFB0BEC5)
-                                    )
-                                ) {
-                                    Text(profile.name, style = MaterialTheme.typography.bodyLarge)
-                                }
-                                
-                                IconButton(onClick = {
-                                    profileToEdit = profile
-                                    showProfileEditor = true
-                                }) {
-                                    Icon(Icons.Default.Edit, "Edit")
-                                }
-                                
-                                IconButton(onClick = {
-                                    if (profiles.size > 1) {
-                                        profileIndexToDelete = index
-                                        showDeleteConfirmation = true
-                                    }
-                                }) {
-                                    Icon(Icons.Default.Delete, "Delete", tint = Color(0xFFFF7675))
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = {
-                            profileToEdit = null
-                            showProfileEditor = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp, 
-                            if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436)
-                        )
-                    ) {
-                        Text("Create New Profile")
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { showProfileSelector = false }
-                ) { Text("Close") }
-            }
-        )
-    }
-
-    if (showProfileEditor) {
-        com.metelci.ardunakon.ui.components.ProfileEditorDialog(
-            profile = profileToEdit,
-            onDismiss = { showProfileEditor = false },
-            onSave = { newProfile ->
-                val index = profiles.indexOfFirst { it.id == newProfile.id }
-                if (index != -1) {
-                    profiles[index] = newProfile
-                } else {
-                    profiles.add(newProfile)
-                }
-                coroutineScope.launch {
-                    saveProfilesSafely()
-                }
-                showProfileEditor = false
-            }
-        )
-    }
-
-    if (showDeleteConfirmation) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete Profile") },
-            text = {
-                Text("Are you sure you want to delete \"${profiles.getOrNull(profileIndexToDelete)?.name ?: "this profile"}\"?")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (profileIndexToDelete in profiles.indices) {
-                            val wasSelected = profileIndexToDelete == currentProfileIndex
-                            val isBeforeSelected = profileIndexToDelete < currentProfileIndex
-
-                            profiles.removeAt(profileIndexToDelete)
-                            coroutineScope.launch { saveProfilesSafely() }
-
-                            if (isBeforeSelected) {
-                                currentProfileIndex--
-                            } else if (wasSelected) {
-                                currentProfileIndex = 0
-                            }
-                            if (currentProfileIndex >= profiles.size) currentProfileIndex = 0
-                        }
-                        showDeleteConfirmation = false
-                        profileIndexToDelete = -1
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF7675))
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showDeleteConfirmation = false
-                    profileIndexToDelete = -1
-                }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showDeviceList = false },
+            view = view
         )
     }
 
@@ -2009,24 +1089,8 @@ fun ControlScreen(
                 // Save config
                 prefs.edit().putString("last_wifi_ip", ip).putInt("last_wifi_port", port).apply()
                 
-                wifiManager.connect(ip, port)
+            wifiManager.connect(ip, port)
             }
         )
     }
 }
-
-enum class ConnectionMode {
-    BLUETOOTH, WIFI
-}
-
-
-
-
-
-
-
-
-
-
-
-

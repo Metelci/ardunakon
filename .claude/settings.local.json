@@ -25,7 +25,8 @@
       "Bash(cmd /c \"h: && cd StudioProjects\\ardunakon && gradlew.bat compileDebugKotlin 2>&1\")",
       "Bash(cmd /c \"gradlew.bat compileDebugKotlin\")",
       "Bash(powershell.exe -Command \"cd ''H:\\StudioProjects\\ardunakon''; .\\gradlew.bat compileDebugKotlin\")",
-      "Bash(powershell.exe -Command \"cd ''H:\\StudioProjects\\ardunakon''; .\\gradlew.bat assembleDebug\")"
+      "Bash(powershell.exe -Command \"cd ''H:\\StudioProjects\\ardunakon''; .\\gradlew.bat assembleDebug\")",
+      "Bash(powershell.exe -Command:*)"
     ],
     "deny": [],
     "ask": []

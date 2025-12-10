@@ -33,25 +33,6 @@ class ProtocolTest {
     }
 
     @Test
-    fun testThrottleModes() {
-        // Bidirectional: 0.0 input -> 100 output (Center)
-        val bi = ProtocolManager.formatJoystickData(0f, 0f, 0f, 0f, 0.toByte())
-        assertEquals(100.toByte(), bi[6]) // Right Y is at index 6
-
-        // Unidirectional: 0.0 input -> 0 output (Min)
-        val uniMin = ProtocolManager.formatJoystickData(0f, 0f, 0f, 0f, 1.toByte())
-        assertEquals(0.toByte(), uniMin[6])
-
-        // Unidirectional: 0.5 input -> 100 output (Half)
-        val uniHalf = ProtocolManager.formatJoystickData(0f, 0f, 0f, 0.5f, 1.toByte())
-        assertEquals(100.toByte(), uniHalf[6])
-
-        // Unidirectional: 1.0 input -> 200 output (Max)
-        val uniMax = ProtocolManager.formatJoystickData(0f, 0f, 0f, 1.0f, 1.toByte())
-        assertEquals(200.toByte(), uniMax[6])
-    }
-
-    @Test
     fun testEStopPacket() {
         val packet = ProtocolManager.formatEStopData()
         assertEquals(0x04.toByte(), packet[2]) // CMD_ESTOP

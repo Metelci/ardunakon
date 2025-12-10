@@ -1,3 +1,25 @@
+What's New in v0.2.4-alpha:
+
+🏗️ **Architecture Refactoring**:
+    • **ControlScreen Decomposition**: Reduced ControlScreen.kt from 2,033 to 1,030 lines (-49%)
+    • **Component Extraction**: Extracted reusable components (ControlHeaderBar, JoystickPanel, ServoPanel)
+    • **Dialog Organization**: Moved dialogs to dedicated folder (DeviceListDialog)
+    • **ViewModel Ready**: Created ControlViewModel for future state management
+
+🎮 **UX Enhancements**:
+    • **Haptic Feedback**: Joystick now vibrates at center deadzone and edge boundaries
+    • **Connection Quality Ring**: Visual ring around joystick shows connection latency (green/yellow/orange/red)
+
+🧹 **Simplifications**:
+    • **Single Profile**: Removed profile management UI, app uses single default car/rover profile
+    • **Dark Theme Only**: Removed light theme conditionals for cleaner code
+
+🔧 **Build Updates**:
+    • **Gradle 8.11.1**: Updated Gradle wrapper for latest Android plugin compatibility
+    • **Zero Warnings**: All Kotlin compilation warnings resolved
+
+---
+
 What's New in v0.2.3-alpha:
 
 📡 **WiFi Telemetry & Monitoring**:
