@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,13 +36,9 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,7 +89,7 @@ fun ControlHeaderBar(
     allowReflection: Boolean,
     
     // Button sizes
-    buttonSize: Dp = 36.dp,
+    buttonSize: Dp = 40.dp,
     eStopSize: Dp = 72.dp,
     
     // Callbacks
@@ -115,65 +114,59 @@ fun ControlHeaderBar(
 ) {
     var showOverflowMenu by remember { mutableStateOf(false) }
 
+    // Responsive spacing based on orientation
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+
+    val sectionSpacing = if (isLandscape) 16.dp else 8.dp  // Spacing between sections and E-STOP
+    val itemSpacing = if (isLandscape) 16.dp else 6.dp     // Spacing between items within sections
+    val modeSelectorWidth = if (isLandscape) 48.dp else 40.dp  // Segment width for BLE/WiFi selector
+    val statusWidgetWidth = if (isLandscape) 64.dp else 56.dp  // Connection status widget width
+    val widgetHeight = if (isLandscape) 48.dp else 40.dp       // Height for left widgets
+    val rightButtonSize = if (isLandscape) buttonSize else 36.dp  // Right button size
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 4.dp),
-        horizontalArrangement = Arrangement.Center,
+            .padding(horizontal = if (isLandscape) 8.dp else 4.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. Connection Status Widget (Signal + Latency + RTT birleşik)
-        ConnectionStatusWidget(
-            connectionMode = connectionMode,
-            btState = bluetoothConnectionState,
-            wifiState = wifiConnectionState,
-            rssi = if (connectionMode == ConnectionMode.BLUETOOTH) rssiValue else wifiRssi,
-            rttHistory = if (connectionMode == ConnectionMode.BLUETOOTH) rttHistory else wifiRttHistory,
-            isDarkTheme = isDarkTheme,
-            onReconnect = onReconnectDevice,
-            onConfigure = onConfigureWifi,
-            view = view,
-            modifier = Modifier.width(52.dp).height(40.dp)
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // 2. Connection Mode Selector (Segmented Button)
-        ConnectionModeSelector(
-            selectedMode = connectionMode,
-            onModeSelected = { mode ->
-                if (mode == ConnectionMode.WIFI) onSwitchToWifi() else onSwitchToBluetooth()
-            },
-            isDarkTheme = isDarkTheme,
-            view = view,
-            modifier = Modifier.height(32.dp)
-        )
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Telemetry Graph Button
-        IconButton(
-            onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                onTelemetryGraph()
-            },
-            modifier = Modifier
-                .size(buttonSize)
-                .shadow(2.dp, CircleShape)
-                .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
-                .border(1.dp, Color(0xFF00FF00), CircleShape)
+        // Left section: [BLE|WiFi] [Signal+RTT+Sparkline]
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(itemSpacing)
         ) {
-            Icon(
-                imageVector = Icons.Default.ShowChart,
-                contentDescription = "Telemetry Graphs",
-                tint = Color(0xFF00FF00),
-                modifier = Modifier.size(18.dp)
+            // 1. Connection Mode Selector (Segmented Button) - FIRST
+            ConnectionModeSelector(
+                selectedMode = connectionMode,
+                onModeSelected = { mode ->
+                    if (mode == ConnectionMode.WIFI) onSwitchToWifi() else onSwitchToBluetooth()
+                },
+                isDarkTheme = isDarkTheme,
+                view = view,
+                segmentWidth = modeSelectorWidth,
+                modifier = Modifier.height(widgetHeight)
             )
+
+            // 2. Connection Status Widget (Signal + Latency + RTT)
+            ConnectionStatusWidget(
+                connectionMode = connectionMode,
+                btState = bluetoothConnectionState,
+                wifiState = wifiConnectionState,
+                rssi = if (connectionMode == ConnectionMode.BLUETOOTH) rssiValue else wifiRssi,
+                rttHistory = if (connectionMode == ConnectionMode.BLUETOOTH) rttHistory else wifiRttHistory,
+                isDarkTheme = isDarkTheme,
+                onReconnect = onReconnectDevice,
+                onConfigure = onConfigureWifi,
+                view = view,
+                modifier = Modifier.width(statusWidgetWidth).height(widgetHeight)
+            )
+
+            Spacer(modifier = Modifier.width(sectionSpacing - itemSpacing))
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // E-STOP Button
+        // Center section: [STOP]
         IconButton(
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -203,54 +196,76 @@ fun ControlHeaderBar(
             )
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Debug Panel Toggle Button
-        IconButton(
-            onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                onToggleDebugPanel()
-            },
-            modifier = Modifier
-                .size(buttonSize)
-                .shadow(2.dp, CircleShape)
-                .background(
-                    if (isDebugPanelVisible) Color(0xFF43A047) else Color(0xFF455A64),
-                    CircleShape
-                )
-                .border(1.dp, Color(0xFF00FF00), CircleShape)
+        // Right section: [Graph] [Debug] [Menu]
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(itemSpacing)
         ) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = "Toggle Debug",
-                tint = if (isDebugPanelVisible) Color.White else Color(0xFF00FF00),
-                modifier = Modifier.size(18.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Overflow Menu Button
-        Box {
+            Spacer(modifier = Modifier.width(sectionSpacing - itemSpacing))
+            // Telemetry Graph Button
             IconButton(
                 onClick = {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    showOverflowMenu = !showOverflowMenu
+                    onTelemetryGraph()
                 },
                 modifier = Modifier
-                    .size(buttonSize)
+                    .size(rightButtonSize)
                     .shadow(2.dp, CircleShape)
                     .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
                     .border(1.dp, Color(0xFF00FF00), CircleShape)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Help,
-                    contentDescription = "Menu",
+                    imageVector = Icons.Default.ShowChart,
+                    contentDescription = "Telemetry Graphs",
                     tint = Color(0xFF00FF00),
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 16.dp)
                 )
             }
-            DropdownMenu(
+
+            // Debug Panel Toggle Button
+            IconButton(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onToggleDebugPanel()
+                },
+                modifier = Modifier
+                    .size(rightButtonSize)
+                    .shadow(2.dp, CircleShape)
+                    .background(
+                        if (isDebugPanelVisible) Color(0xFF43A047) else Color(0xFF455A64),
+                        CircleShape
+                    )
+                    .border(1.dp, Color(0xFF00FF00), CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Toggle Debug",
+                    tint = if (isDebugPanelVisible) Color.White else Color(0xFF00FF00),
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 16.dp)
+                )
+            }
+
+            // Overflow Menu Button
+            Box {
+                IconButton(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        showOverflowMenu = !showOverflowMenu
+                    },
+                    modifier = Modifier
+                        .size(rightButtonSize)
+                        .shadow(2.dp, CircleShape)
+                        .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                        .border(1.dp, Color(0xFF00FF00), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Help,
+                        contentDescription = "Menu",
+                        tint = Color(0xFF00FF00),
+                        modifier = Modifier.size(if (isLandscape) 18.dp else 16.dp)
+                    )
+                }
+                DropdownMenu(
                 expanded = showOverflowMenu,
                 onDismissRequest = { showOverflowMenu = false }
             ) {
@@ -311,12 +326,13 @@ fun ControlHeaderBar(
                     }
                 )
             }
-        }
-    }
+            }  // Close Box
+        }  // Close Right Row
+    }  // Close Main Row
 }
 
 /**
- * Combined connection status widget showing signal strength, RTT, and latency sparkline.
+ * Pill-shaped connection status widget showing signal strength, RTT, and latency sparkline.
  * Tapping opens a menu for reconnect/configure options.
  */
 @Composable
@@ -356,7 +372,7 @@ fun ConnectionStatusWidget(
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 showMenu = true
             },
-            shape = RoundedCornerShape(8.dp),
+            shape = CircleShape,
             color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
             border = BorderStroke(1.dp, stateColor),
             modifier = Modifier.matchParentSize()
@@ -411,64 +427,87 @@ fun ConnectionStatusWidget(
 }
 
 /**
- * Material 3 Segmented Button for switching between BLE and WiFi modes.
+ * Compact pill-shaped segmented button for switching between BLE and WiFi modes.
+ * Custom implementation for precise size control and centered content.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectionModeSelector(
     selectedMode: ConnectionMode,
     onModeSelected: (ConnectionMode) -> Unit,
     isDarkTheme: Boolean,
     view: View,
+    segmentWidth: Dp = 48.dp,
     modifier: Modifier = Modifier
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier) {
-        SegmentedButton(
-            selected = selectedMode == ConnectionMode.BLUETOOTH,
+    // Scale icon size based on segment width
+    val iconSize = if (segmentWidth >= 48.dp) 24.dp else 20.dp
+
+    Row(
+        modifier = modifier
+            .border(1.dp, Color(0xFF00FF00), CircleShape)
+            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // BLE Button
+        Surface(
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 onModeSelected(ConnectionMode.BLUETOOTH)
             },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-            icon = {
+            color = if (selectedMode == ConnectionMode.BLUETOOTH)
+                Color(0xFF00FF00).copy(alpha = 0.25f)
+            else Color.Transparent,
+            shape = RoundedCornerShape(topStartPercent = 50, bottomStartPercent = 50),
+            modifier = Modifier
+                .width(segmentWidth)
+                .fillMaxHeight()
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
                 Icon(
                     imageVector = Icons.Default.Bluetooth,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp)
+                    contentDescription = "Bluetooth",
+                    tint = if (selectedMode == ConnectionMode.BLUETOOTH) Color(0xFF00FF00) else Color.Gray,
+                    modifier = Modifier.size(iconSize)
                 )
-            },
-            colors = SegmentedButtonDefaults.colors(
-                activeContainerColor = Color(0xFF00FF00).copy(alpha = 0.2f),
-                activeContentColor = Color(0xFF00FF00),
-                inactiveContainerColor = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
-                inactiveContentColor = Color.Gray
-            )
-        ) {
-            Text("BLE", fontSize = 9.sp)
+            }
         }
 
-        SegmentedButton(
-            selected = selectedMode == ConnectionMode.WIFI,
+        // Divider
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .fillMaxHeight()
+                .background(Color(0xFF00FF00).copy(alpha = 0.5f))
+        )
+
+        // WiFi Button
+        Surface(
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 onModeSelected(ConnectionMode.WIFI)
             },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-            icon = {
+            color = if (selectedMode == ConnectionMode.WIFI)
+                Color(0xFF00C853).copy(alpha = 0.25f)
+            else Color.Transparent,
+            shape = RoundedCornerShape(topEndPercent = 50, bottomEndPercent = 50),
+            modifier = Modifier
+                .width(segmentWidth)
+                .fillMaxHeight()
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
                 Icon(
                     imageVector = Icons.Default.Wifi,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp)
+                    contentDescription = "WiFi",
+                    tint = if (selectedMode == ConnectionMode.WIFI) Color(0xFF00C853) else Color.Gray,
+                    modifier = Modifier.size(iconSize)
                 )
-            },
-            colors = SegmentedButtonDefaults.colors(
-                activeContainerColor = Color(0xFF00C853).copy(alpha = 0.2f),
-                activeContentColor = Color(0xFF00C853),
-                inactiveContainerColor = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
-                inactiveContentColor = Color.Gray
-            )
-        ) {
-            Text("WiFi", fontSize = 9.sp)
+            }
         }
     }
 }

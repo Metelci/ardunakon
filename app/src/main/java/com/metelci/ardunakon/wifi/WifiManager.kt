@@ -277,20 +277,20 @@ class WifiManager(
         targetIp = ip
         targetPort = port
         _connectionState.value = WifiConnectionState.CONNECTING
-        onLog("Connecting to $ip:$port...")
+        onLog("WiFi: Connecting to $ip:$port...")
 
         scope.launch {
             try {
                 socket = DatagramSocket()
                 isConnected.set(true)
                 _connectionState.value = WifiConnectionState.CONNECTED
-                onLog("Connected to $ip:$port via UDP")
+                onLog("WiFi: Connected to $ip:$port (UDP)")
                 startReceiving()
                 startRssiMonitor()
                 startPing()
             } catch (e: Exception) {
                 Log.e("WifiManager", "Connection failed", e)
-                onLog("Connection failed: ${e.message}")
+                onLog("WiFi: Connection failed - ${e.message}")
                 _connectionState.value = WifiConnectionState.ERROR
                 disconnect()
             }
@@ -298,6 +298,7 @@ class WifiManager(
     }
 
     fun disconnect() {
+        val wasConnected = isConnected.get()
         isConnected.set(false)
         receiveJob?.cancel()
         socket?.close()
@@ -305,6 +306,9 @@ class WifiManager(
         _connectionState.value = WifiConnectionState.DISCONNECTED
         _rssi.value = 0
         _rtt.value = 0L
+        if (wasConnected) {
+            onLog("WiFi: Disconnected")
+        }
     }
 
     fun sendData(data: ByteArray) {

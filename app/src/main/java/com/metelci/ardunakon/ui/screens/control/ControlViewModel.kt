@@ -270,16 +270,22 @@ class ControlViewModel(
 
     fun switchToWifi() {
         if (connectionMode == ConnectionMode.BLUETOOTH) {
+            bluetoothManager.log("Switching from Bluetooth to WiFi mode", LogType.INFO)
             bluetoothManager.disconnect()
+            bluetoothManager.log("Bluetooth disconnected", LogType.WARNING)
         }
         connectionMode = ConnectionMode.WIFI
+        bluetoothManager.log("WiFi mode active", LogType.SUCCESS)
     }
 
     fun switchToBluetooth() {
         if (connectionMode == ConnectionMode.WIFI) {
+            bluetoothManager.log("Switching from WiFi to Bluetooth mode", LogType.INFO)
             wifiManager.disconnect()
+            bluetoothManager.log("WiFi disconnected", LogType.WARNING)
         }
         connectionMode = ConnectionMode.BLUETOOTH
+        bluetoothManager.log("Bluetooth mode active", LogType.SUCCESS)
     }
 
     fun reconnectBluetoothDevice(): Boolean {

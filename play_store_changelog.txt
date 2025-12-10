@@ -1,3 +1,24 @@
+What's New in v0.2.5-alpha:
+
+🧹 **Code Cleanup & Optimization**:
+    • **Removed Orphaned Components**: Eliminated 4 unused files (~450 lines) including duplicate debug console and unused sensor dashboard
+    • **Security Package Cleanup**: Removed unused HandshakeManager and TrustStore classes that were never instantiated
+    • **Better Project Organization**: Relocated example Arduino sketches to dedicated examples/ directory
+    • **Comprehensive Documentation**: Added detailed README files for all Arduino sketches explaining core vs optional projects
+
+📚 **Arduino Sketches Documentation**:
+    • **Core Sketches Guide**: Clear documentation for ArdunakonClassicUno, ArdunakonR4WiFi, ArdunakonUnoQ, and ArdunakonOTA
+    • **Pin Configuration Reference**: Complete pin mapping for motors, servos, and battery monitoring
+    • **Bluetooth Compatibility Matrix**: Detailed module support (HC-06, HC-05, HM-10, HC-08, MLT-BT05)
+    • **Example Projects**: EnvMonitor, MoodLight, and SecuritySystem now clearly marked as optional Modulino examples
+
+🔧 **Technical Improvements**:
+    • **Cleaner Codebase**: Reduced code complexity and improved maintainability
+    • **Build Verification**: All changes verified with successful compilation
+    • **No Breaking Changes**: All active features remain fully functional
+
+---
+
 What's New in v0.2.4-alpha:
 
 🏗️ **Architecture Refactoring**:

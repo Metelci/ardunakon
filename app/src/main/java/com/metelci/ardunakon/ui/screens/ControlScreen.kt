@@ -600,52 +600,6 @@ fun ControlScreen(
             view = view
         )
 
-        if (connectionMode == ConnectionMode.BLUETOOTH) {
-            // Bluetooth device information row - Single slot
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.Top
-            ) {
-                val slotHealth = health
-                val lastPacketAgo = slotHealth?.lastPacketAt?.takeIf { it > 0 }?.let {
-                    val delta = System.currentTimeMillis() - it
-                    "${(delta / 1000).coerceAtLeast(0)}s"
-                } ?: "n/a"
-                val rtt = slotHealth?.lastRttMs?.takeIf { it > 0 }?.let { "${it}ms" } ?: "n/a"
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                ) {
-                    Text(
-                        text = "Device",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
-                    )
-                    Text(
-                        text = "pkt $lastPacketAgo | rssi ${slotHealth?.rssiFailureCount ?: 0} | rtt $rtt",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
-                    )
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            bluetoothManager.requestRssi()
-                        },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                        modifier = Modifier.height(26.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFFD500F9)
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD500F9)),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                    ) {
-                        Text("Refresh", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
-        }
 
         Spacer(modifier = Modifier.height(4.dp))
 
