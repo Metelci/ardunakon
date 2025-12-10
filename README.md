@@ -12,7 +12,7 @@ Ardunakon is a professional-grade Android application designed to control Arduin
 ### 🕹️ Precision Control
 *   **RC Car Layout**: Left joystick for throttle (RC motor) with incremental speed control, WASD buttons for servo control (steering/pan-tilt).
 *   **Throttle Joystick**: Vertical-only control with non-centering for smooth speed adjustments. Perfect for RC car motor control.
-*   **WASD Servo Buttons**: Discrete directional control (Up/Down/Left/Right) for instant full servo deflection.
+*   **W/L/R/B Servo Buttons**: Toggle-based directional control - tap to move servo, tap again to center. W (Forward), L (Left), R (Right), B (Backward).
 *   **Smart Throttle Modes**:
     *   **Car Mode**: Bidirectional control (-100% to +100%) for forward/reverse.
     *   **Drone/Boat Mode**: Unidirectional control (0% to 100%) for ESCs.
