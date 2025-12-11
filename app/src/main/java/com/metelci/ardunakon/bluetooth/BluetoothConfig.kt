@@ -249,6 +249,15 @@ object BluetoothConfig {
      */
     val FORCE_REFLECTION_OEMS = setOf("xiaomi", "redmi", "poco")
 
+    /**
+     * Check if current device requires reflection fallback for SPP connections
+     * Some OEMs block standard SPP on HC-06 modules
+     */
+    fun shouldForceReflectionFallback(): Boolean {
+        val oem = android.os.Build.MANUFACTURER?.lowercase()?.trim() ?: return false
+        return FORCE_REFLECTION_OEMS.contains(oem)
+    }
+
     // ========== Limits and Buffers ==========
 
     /**

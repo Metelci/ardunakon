@@ -107,10 +107,7 @@ data class ConnectionHealth(
     private var keepAliveJob: Job? = null
 
     // Some OEMs (e.g., Xiaomi/Redmi/Poco) block standard SPP on HC-06; force-enable reflection port 1 for them.
-    private fun shouldForceReflectionFallback(): Boolean {
-        val oem = android.os.Build.MANUFACTURER?.lowercase()?.trim() ?: return false
-        return BluetoothConfig.FORCE_REFLECTION_OEMS.contains(oem)
-    }
+    private fun shouldForceReflectionFallback(): Boolean = BluetoothConfig.shouldForceReflectionFallback()
 
     fun log(message: String, type: LogType = LogType.INFO) {
         val currentLogs = _debugLogs.value.toMutableList()
