@@ -94,6 +94,7 @@ fun ControlHeaderBar(
     eStopSize: Dp = 72.dp,
     
     // Callbacks
+    onScanDevices: () -> Unit,
     onReconnectDevice: () -> Unit,
     onSwitchToWifi: () -> Unit,
     onSwitchToBluetooth: () -> Unit,
@@ -158,6 +159,7 @@ fun ControlHeaderBar(
                 rssi = if (connectionMode == ConnectionMode.BLUETOOTH) rssiValue else wifiRssi,
                 rttHistory = if (connectionMode == ConnectionMode.BLUETOOTH) rttHistory else wifiRttHistory,
                 isDarkTheme = isDarkTheme,
+                onScanDevices = onScanDevices,
                 onReconnect = onReconnectDevice,
                 onConfigure = onConfigureWifi,
                 view = view,
@@ -346,6 +348,7 @@ fun ConnectionStatusWidget(
     isDarkTheme: Boolean,
     onReconnect: () -> Unit,
     onConfigure: () -> Unit,
+    onScanDevices: () -> Unit = {},
     view: View,
     modifier: Modifier = Modifier
 ) {
@@ -411,18 +414,33 @@ fun ConnectionStatusWidget(
             expanded = showMenu,
             onDismissRequest = { showMenu = false }
         ) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        if (connectionMode == ConnectionMode.BLUETOOTH) "Reconnect Device"
-                        else "Configure WiFi"
-                    )
-                },
-                onClick = {
-                    showMenu = false
-                    if (connectionMode == ConnectionMode.BLUETOOTH) onReconnect() else onConfigure()
-                }
-            )
+            if (connectionMode == ConnectionMode.BLUETOOTH) {
+                DropdownMenuItem(
+                    text = { Text("Scan for Devices") },
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        showMenu = false
+                        onScanDevices()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Reconnect Device") },
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        showMenu = false
+                        onReconnect()
+                    }
+                )
+            } else {
+                DropdownMenuItem(
+                    text = { Text("Configure WiFi") },
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        showMenu = false
+                        onConfigure()
+                    }
+                )
+            }
         }
     }
 }

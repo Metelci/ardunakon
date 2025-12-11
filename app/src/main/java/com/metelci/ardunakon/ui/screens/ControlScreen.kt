@@ -429,6 +429,7 @@ fun ControlScreen(
                     allowReflection = allowReflection,
                     buttonSize = 32.dp,
                     eStopSize = 56.dp,
+                    onScanDevices = { showDeviceList = true },
                     onReconnectDevice = {
                         val reconnected = bluetoothManager.reconnectSavedDevice()
                         if (!reconnected) showDeviceList = true
@@ -567,6 +568,7 @@ fun ControlScreen(
             allowReflection = allowReflection,
             buttonSize = 36.dp,
             eStopSize = 72.dp,
+            onScanDevices = { showDeviceList = true },
             onReconnectDevice = {
                 val reconnected = bluetoothManager.reconnectSavedDevice()
                 if (!reconnected) showDeviceList = true
