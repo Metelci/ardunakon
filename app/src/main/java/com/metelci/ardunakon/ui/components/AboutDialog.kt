@@ -64,23 +64,27 @@ fun AboutDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "About Ardunakon",
-                        style = MaterialTheme.typography.titleLarge,
+                        "About",
+                        style = MaterialTheme.typography.titleMedium,
                         color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
                     )
-                    IconButton(onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onDismiss()
-                    }) {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onDismiss()
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
+                            tint = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Scrollable content area
                 Column(
@@ -140,9 +144,9 @@ fun AboutDialog(
                             color = if (isDarkTheme) Color.White else Color(0xFF0D47A1)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
-                        FeatureItem("UNO R4 WiFi + clones: dual BLE profile (ArduinoBLE + HM-10) for native connects", isDarkTheme)
-                        FeatureItem("Docs refreshed for R4 clone setup and compatibility", isDarkTheme)
-                        FeatureItem("Changelog reflects latest fixes and attribution updates", isDarkTheme)
+                        FeatureItem("Critical BLE Safety Fix: Motor no longer spins unexpectedly on reconnect (Android 15/16)", isDarkTheme)
+                        FeatureItem("Connection State Check: Transmission only when actually connected", isDarkTheme)
+                        FeatureItem("State Reset on Disconnect: Joystick/servo values auto-reset to neutral", isDarkTheme)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
