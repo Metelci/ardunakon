@@ -1,3 +1,23 @@
+What's New in v0.2.6-alpha:
+
+🔒 **Critical BLE Safety Fix**:
+    • **Motor Spin Bug Fixed**: Resolved issue where motor unexpectedly spins on BLE reconnect (Android 15/16)
+    • **Root Cause**: Stale joystick/steering values in write queue caused Arcade Drive to activate motors on reconnect
+    • **Affected Devices**: Arduino UNO R3 clones with external BLE modules (HM-10, etc.)
+
+🛡️ **Safety Improvements**:
+    • **Connection State Check**: Transmission loop now only sends packets when actually connected
+    • **State Reset on Disconnect**: Joystick and servo values automatically reset to neutral on disconnect
+    • **Write Queue Cleared**: BLE write queue cleared on new connection to prevent stale packet bursts
+    • **Startup Delay**: 200ms delay after BLE connection before packet processing for stack stabilization
+
+🔧 **Technical Details**:
+    • Fixed in: ControlViewModel.kt (connection check + state observer)
+    • Fixed in: BluetoothManager.kt (queue clear + startup delay in startWriteQueue)
+    • No changes to Arduino sketches required
+
+---
+
 What's New in v0.2.5-alpha:
 
 🧹 **Code Cleanup & Optimization**:

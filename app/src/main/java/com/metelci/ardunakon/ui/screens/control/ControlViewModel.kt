@@ -12,6 +12,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.data.Profile
 import com.metelci.ardunakon.data.ProfileManager
 import com.metelci.ardunakon.model.LogType
@@ -100,6 +101,7 @@ class ControlViewModel(
         loadProfiles()
         startTransmissionLoop()
         syncReflectionSetting()
+        observeConnectionState()
     }
 
     private fun loadProfiles() {
@@ -139,6 +141,16 @@ class ControlViewModel(
                     continue
                 }
 
+                // Only send when actually connected - prevents stale packet buffering
+                val btConnected = bluetoothManager.connectionState.value == ConnectionState.CONNECTED
+                val wifiConnected = wifiManager.connectionState.value == WifiConnectionState.CONNECTED
+
+                if ((connectionMode == ConnectionMode.BLUETOOTH && !btConnected) ||
+                    (connectionMode == ConnectionMode.WIFI && !wifiConnected)) {
+                    delay(50)
+                    continue
+                }
+
                 val packet = ProtocolManager.formatJoystickData(
                     leftX = leftJoystick.first,
                     leftY = leftJoystick.second,
@@ -153,6 +165,25 @@ class ControlViewModel(
                     bluetoothManager.sendDataToAll(packet)
                 }
                 delay(50) // 20Hz
+            }
+        }
+    }
+
+    /**
+     * Observes connection state changes and resets control inputs on disconnect.
+     * This prevents stale steering/throttle values from causing motor spin on reconnect.
+     */
+    private fun observeConnectionState() {
+        viewModelScope.launch {
+            bluetoothManager.connectionState.collect { state ->
+                if (state == ConnectionState.DISCONNECTED) {
+                    // Reset control inputs to neutral on disconnect
+                    // This prevents stale steering values from causing motor spin on reconnect
+                    // (Arcade drive mixing: leftSpeed = leftY + leftX - any non-zero leftX causes spin)
+                    leftJoystick = Pair(0f, 0f)
+                    servoX = 0f
+                    servoY = 0f
+                }
             }
         }
     }

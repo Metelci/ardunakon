@@ -2217,7 +2217,13 @@ data class ConnectionHealth(
 
         private fun startWriteQueue() {
             writeJob?.cancel()
+            // Clear any stale packets from previous session to prevent motor spin on reconnect
+            writeQueue.clear()
             writeJob = scope.launch {
+                // Wait for BLE stack to stabilize after connection before processing queue
+                // This prevents burst of stale packets from causing motor issues on Android 15/16
+                delay(200)
+
                 while (isActive) {
                     try {
                         // Take from queue (blocking call)
