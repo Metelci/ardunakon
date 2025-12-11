@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.metelci.ardunakon.ui.components
 
 import androidx.compose.foundation.background

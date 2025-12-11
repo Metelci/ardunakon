@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.metelci.ardunakon.ui.screens.control
 
 import android.content.Context

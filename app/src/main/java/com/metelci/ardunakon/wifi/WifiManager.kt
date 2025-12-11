@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.metelci.ardunakon.wifi
 
 import android.content.Context

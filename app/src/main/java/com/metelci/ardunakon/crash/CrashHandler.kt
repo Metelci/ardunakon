@@ -85,6 +85,7 @@ class CrashHandler private constructor(
             ?: exitProcess(1)
     }
 
+    @Suppress("DEPRECATION")
     private fun saveCrashLog(thread: Thread, throwable: Throwable) {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
         val file = getCrashLogFile(context)
@@ -97,7 +98,9 @@ class CrashHandler private constructor(
         val crashInfo = buildString {
             appendLine("=== CRASH ===")
             appendLine("Timestamp: $timestamp")
-            appendLine("Thread: ${thread.name} (${thread.id})")
+            @Suppress("DEPRECATION")
+            val threadId = thread.id
+            appendLine("Thread: ${thread.name} ($threadId)")
             appendLine()
             appendLine("--- Device Info ---")
             appendLine("App Version: ${getAppVersion()}")
@@ -131,7 +134,13 @@ class CrashHandler private constructor(
     private fun getAppVersion(): String {
         return try {
             val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            "${pInfo.versionName} (${pInfo.longVersionCode})"
+            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                pInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                pInfo.versionCode.toLong()
+            }
+            "${pInfo.versionName} ($versionCode)"
         } catch (_: Exception) {
             "Unknown"
         }
