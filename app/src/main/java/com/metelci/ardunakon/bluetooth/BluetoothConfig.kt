@@ -134,6 +134,15 @@ object BluetoothConfig {
         "ARDUINO", "R4", "UNO R4"
     )
 
+    /**
+     * Check if device name indicates a BLE-only module
+     * Used to force BLE connection path for known BLE modules
+     */
+    fun isBleOnlyName(name: String?): Boolean {
+        val nameUpper = (name ?: "").uppercase()
+        return BLE_ONLY_NAME_MARKERS.any { marker -> nameUpper.contains(marker) }
+    }
+
     // ========== Connection Timeouts ==========
 
     /**

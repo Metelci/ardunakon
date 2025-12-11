@@ -254,10 +254,7 @@ data class ConnectionHealth(
         }
     }
 
-    private fun isBleOnlyName(name: String?): Boolean {
-        val nameUpper = (name ?: "").uppercase()
-        return BluetoothConfig.BLE_ONLY_NAME_MARKERS.any { marker -> nameUpper.contains(marker) }
-    }
+    private fun isBleOnlyName(name: String?): Boolean = BluetoothConfig.isBleOnlyName(name)
 
     private fun shouldForceBle(deviceModel: BluetoothDeviceModel): Boolean {
         return isBleOnlyName(deviceModel.name)
