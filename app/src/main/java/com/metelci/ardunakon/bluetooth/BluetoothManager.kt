@@ -26,83 +26,9 @@ import java.io.OutputStream
 import java.util.UUID
 import kotlin.experimental.xor
 
-// Standard SPP UUID (HC-06, Texas Instruments, Microchip, Telit Bluemod)
-private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-
-// Manufacturer-specific UUIDs for HC-06 variants and clones
-// COMPREHENSIVE LIST - Covers maximum number of HC-06 clone variants
-// Note: Standard SPP (00001101) is already tried in Attempts 1 & 5, so excluded here
-private val MANUFACTURER_UUIDS = listOf(
-    // Nordic Semiconductor nRF51822-based HC-06 clones (VERY common in Chinese clones)
-    UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb"),
-    // Alternative Nordic UART Service (Nordic-based clones, nRF51/nRF52)
-    UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e"),
-    // Object Push Profile - Many HC-06 clones (ZS-040, FC-114, linvor, JY-MCU)
-    UUID.fromString("00001105-0000-1000-8000-00805F9B34FB"),
-    // OBEX Object Push - Alternative HC-06 clones (some linvor firmware)
-    UUID.fromString("00001106-0000-1000-8000-00805F9B34FB"),
-    // Headset Profile - BT 2.0 HC-06 clones (older firmware)
-    UUID.fromString("00001108-0000-1000-8000-00805F9B34FB"),
-    // Hands-Free Profile - Some HC-06 modules configured as hands-free
-    UUID.fromString("0000111E-0000-1000-8000-00805F9B34FB"),
-    // A/V Remote Control Profile - Rare HC-06 clones
-    UUID.fromString("0000110E-0000-1000-8000-00805F9B34FB"),
-    // Advanced Audio Distribution Profile - Some multimedia HC-06 clones
-    UUID.fromString("0000110D-0000-1000-8000-00805F9B34FB"),
-    // Dial-up Networking Profile - Older HC-06 firmware
-    UUID.fromString("00001103-0000-1000-8000-00805F9B34FB"),
-    // LAN Access Profile - Some network-oriented HC-06 clones
-    UUID.fromString("00001102-0000-1000-8000-00805F9B34FB"),
-    // Raw RFCOMM - Bare-metal HC-06 implementations
-    UUID.fromString("00000003-0000-1000-8000-00805F9B34FB"),
-    // Base UUID - Last resort for completely non-standard implementations
-    UUID.fromString("00000000-0000-1000-8000-00805F9B34FB")
-)
-
-// BLE GATT Status Codes for error classification
-private object GattStatus {
-    const val GATT_SUCCESS = 0
-    const val GATT_CONNECTION_TIMEOUT = 8
-    const val GATT_INSUFFICIENT_AUTHENTICATION = 5
-    const val GATT_INSUFFICIENT_ENCRYPTION = 15
-    const val GATT_INTERNAL_ERROR = 129
-    const val GATT_DEVICE_NOT_FOUND = 133
-    const val GATT_LINK_LOSS = 147  // Device-specific: BLE link layer failure
-
-    // Classify GATT errors as transient (retry-able) or permanent
-    fun isTransientError(status: Int): Boolean {
-        return when (status) {
-            GATT_CONNECTION_TIMEOUT,      // 8 - Timeout, retry may work
-            GATT_INTERNAL_ERROR,          // 129 - Android stack issue, retry may work
-            GATT_LINK_LOSS,               // 147 - Link layer failure, retry may work
-            62                            // 62 - Often returned as "Unknown GATT error (62)" on unstable HM-10 clones
-            -> true
-            else -> false
-        }
-    }
-
-    fun isPermanentError(status: Int): Boolean {
-        return when (status) {
-            GATT_DEVICE_NOT_FOUND        // 133 - Device gone, no point retrying
-            -> true
-            else -> false
-        }
-    }
-
-    fun getErrorDescription(status: Int): String {
-        return when (status) {
-            GATT_SUCCESS -> "Success"
-            GATT_CONNECTION_TIMEOUT -> "Connection Timeout (8): Device didn't respond in time"
-            GATT_INSUFFICIENT_AUTHENTICATION -> "Insufficient Authentication (5): Pairing required"
-            GATT_INSUFFICIENT_ENCRYPTION -> "Insufficient Encryption (15): Encryption required"
-            GATT_INTERNAL_ERROR -> "Internal Error (129): Android BLE stack issue"
-            GATT_DEVICE_NOT_FOUND -> "Device Not Found (133): Out of range or powered off"
-            GATT_LINK_LOSS -> "Link Layer Failure (147): Device reset or interference"
-            62 -> "Unknown GATT error (62): Treating as transient HM-10/MLT-BT05 timeout"
-            else -> "Unknown GATT error ($status)"
-        }
-    }
-}
+// Import centralized configuration
+import com.metelci.ardunakon.bluetooth.BluetoothConfig.SPP_UUID
+import com.metelci.ardunakon.bluetooth.BluetoothConfig.MANUFACTURER_UUIDS
 
 enum class ConnectionState {
     DISCONNECTED,
@@ -181,15 +107,14 @@ data class ConnectionHealth(
     private var keepAliveJob: Job? = null
 
     // Some OEMs (e.g., Xiaomi/Redmi/Poco) block standard SPP on HC-06; force-enable reflection port 1 for them.
-    private val forceReflectionDevices = setOf("xiaomi", "redmi", "poco")
     private fun shouldForceReflectionFallback(): Boolean {
         val oem = android.os.Build.MANUFACTURER?.lowercase()?.trim() ?: return false
-        return forceReflectionDevices.contains(oem)
+        return BluetoothConfig.FORCE_REFLECTION_OEMS.contains(oem)
     }
 
     fun log(message: String, type: LogType = LogType.INFO) {
         val currentLogs = _debugLogs.value.toMutableList()
-        if (currentLogs.size > 50) currentLogs.removeAt(0)
+        if (currentLogs.size > BluetoothConfig.MAX_DEBUG_LOGS) currentLogs.removeAt(0)
         currentLogs.add(LogEntry(type = type, message = message))
         _debugLogs.value = currentLogs
         Log.d("Ardunakon", message)
@@ -221,11 +146,10 @@ data class ConnectionHealth(
     private var lastHeartbeatSentAt = 0L
     private var lastPacketAt = 0L
     private var lastRttMs = 0L
-    private val heartbeatTimeoutClassicMs = 20000L  // Increased from 12s to 20s for better tolerance
-    // BLE clones like HM-10/HC-08 often stay silent; allow long idle periods before reconnecting.
-    private val heartbeatTimeoutBleMs = 300000L     // 5 minutes before considering BLE link stale
-    private val missedAckThresholdClassic = 5
-    private val missedAckThresholdBle = 60          // 60 heartbeats @4s ≈ 4 minutes before timeout
+    private val heartbeatTimeoutClassicMs = BluetoothConfig.HEARTBEAT_TIMEOUT_CLASSIC_MS
+    private val heartbeatTimeoutBleMs = BluetoothConfig.HEARTBEAT_TIMEOUT_BLE_MS
+    private val missedAckThresholdClassic = BluetoothConfig.MISSED_ACK_THRESHOLD_CLASSIC
+    private val missedAckThresholdBle = BluetoothConfig.MISSED_ACK_THRESHOLD_BLE
     private var missedHeartbeatAcks = 0
 
     private val leScanner by lazy { adapter?.bluetoothLeScanner }
@@ -332,26 +256,7 @@ data class ConnectionHealth(
 
     private fun isBleOnlyName(name: String?): Boolean {
         val nameUpper = (name ?: "").uppercase()
-        val hm10Markers = listOf(
-            "HM-10",
-            "HM10",
-            "AT-09",
-            "AT09",
-            "MLT-BT05",
-            "BT05",
-            "BT-05",
-            "HC-08",
-            "HC08",
-            "CC41",
-            "CC41-A",
-
-            "BLE",
-            "ARDUNAKON",
-            "ARDUINO",
-            "R4",
-            "UNO R4"
-        )
-        return hm10Markers.any { marker -> nameUpper.contains(marker) }
+        return BluetoothConfig.BLE_ONLY_NAME_MARKERS.any { marker -> nameUpper.contains(marker) }
     }
 
     private fun shouldForceBle(deviceModel: BluetoothDeviceModel): Boolean {
@@ -373,7 +278,7 @@ data class ConnectionHealth(
                             savedDevice != null) {
 
                             // Check circuit breaker
-                            if (reconnectAttempts >= 10) {
+                            if (reconnectAttempts >= BluetoothConfig.MAX_RECONNECT_ATTEMPTS) {
                                 log("Circuit breaker: Too many failed attempts", LogType.ERROR)
                                 _shouldReconnect = false  // Stop auto-reconnect
                                 _autoReconnectEnabled.value = false
@@ -424,8 +329,8 @@ data class ConnectionHealth(
     private fun addRttToHistory(rtt: Long) {
         val current = _rttHistory.value.toMutableList()
         current.add(rtt)
-        // Keep only last 20 values
-        while (current.size > 20) {
+        // Keep only last N values
+        while (current.size > BluetoothConfig.MAX_RTT_HISTORY) {
             current.removeAt(0)
         }
         _rttHistory.value = current
@@ -453,7 +358,7 @@ data class ConnectionHealth(
         keepAliveJob?.cancel()
         keepAliveJob = scope.launch {
             while (isActive) {
-                delay(4000)
+                delay(BluetoothConfig.HEARTBEAT_INTERVAL_MS)
                 val state = _connectionState.value
                 if (state == ConnectionState.CONNECTED && connection != null) {
                     heartbeatSeq = (heartbeatSeq + 1) and 0xFFFF
@@ -506,7 +411,7 @@ data class ConnectionHealth(
 
             // Start new scan timeout
             scanJob = scope.launch {
-                delay(10000)
+                delay(BluetoothConfig.SCAN_TIMEOUT_MS)
                 stopScan()
             }
         } catch (e: SecurityException) {
@@ -737,9 +642,8 @@ data class ConnectionHealth(
 
     private fun calculateBackoffDelay(attempts: Int): Long {
         // Exponential backoff: 3s, 6s, 12s, 24s, 30s (max)
-        val baseDelay = 3000L
-        val maxDelay = 30000L
-        val delay = (baseDelay * (1 shl attempts.coerceAtMost(3))).coerceAtMost(maxDelay)
+        val delay = (BluetoothConfig.BACKOFF_BASE_DELAY_MS * (1 shl attempts.coerceAtMost(3)))
+            .coerceAtMost(BluetoothConfig.BACKOFF_MAX_DELAY_MS)
         return delay
     }
 
@@ -801,7 +705,7 @@ data class ConnectionHealth(
         when(state) {
             ConnectionState.CONNECTED -> {
                 log("Connected!", LogType.SUCCESS)
-                vibrate(200) // Long vibration for connection
+                vibrate(BluetoothConfig.VIBRATION_CONNECTED_MS)
                 lastPacketAt = now
                 updateHealth(heartbeatSeq, lastPacketAt, rssiFailures)
                 // Reset backoff counter on successful connection
@@ -815,11 +719,11 @@ data class ConnectionHealth(
             }
             ConnectionState.DISCONNECTED -> {
                 // Only vibrate if it was previously connected or connecting (avoid noise on startup)
-                vibrate(100) // Short vibration for disconnection
+                vibrate(BluetoothConfig.VIBRATION_DISCONNECTED_MS)
             }
             ConnectionState.ERROR -> {
                 log("Connection error", LogType.ERROR)
-                vibrate(500) // Very long vibration for error
+                vibrate(BluetoothConfig.VIBRATION_ERROR_MS)
             }
             else -> {}
         }
@@ -961,8 +865,8 @@ data class ConnectionHealth(
 
         val battery = batteryRaw / 10f
 
-        // Validate battery voltage is within reasonable bounds (0V to 30V)
-        if (battery < 0f || battery > 30f) {
+        // Validate battery voltage is within reasonable bounds
+        if (battery < BluetoothConfig.MIN_BATTERY_VOLTAGE || battery > BluetoothConfig.MAX_BATTERY_VOLTAGE) {
             if (isDebugMode) {
                 val now = System.currentTimeMillis()
                 if (now - lastTelemetryLogTime > 20000) {
@@ -1455,52 +1359,32 @@ data class ConnectionHealth(
         private var bluetoothGatt: android.bluetooth.BluetoothGatt? = null
         private var txCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
 
-        // HC-08 / HM-10 / AT-09 / MLT-BT05 BLE Module UUID Variants
-        // Different manufacturers and firmware versions use different UUIDs
-        // This comprehensive list supports all major clones and variants
+        // BLE UUID Registry - All variant UUIDs are now in BleUuidRegistry.kt
+        // Using structured registry for better organization and maintainability
 
-        // Variant 1: Most common HC-08 and HM-10 modules (JNHuaMao, DSD TECH, Bolutek)
-        private val SERVICE_UUID_V1 = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
-        private val CHAR_UUID_V1 = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
-
-        // Variant 2: Nordic UART Service (NUS) - Nordic nRF51822/nRF52 based modules
-        // Used by: Some HM-10 clones, Nordic-based HC-08, Adafruit Bluefruit
-        private val SERVICE_UUID_V2 = UUID.fromString("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
-        private val CHAR_UUID_TX_V2 = UUID.fromString("6E400002-B5A3-F393-E0A9-E50E24DCCA9E") // TX (write)
-        private val CHAR_UUID_RX_V2 = UUID.fromString("6E400003-B5A3-F393-E0A9-E50E24DCCA9E") // RX (notify)
-
-        // Variant 3: TI CC2540/CC2541 HM-10 firmware (original JNHuaMao firmware)
-        private val SERVICE_UUID_V3 = UUID.fromString("0000FFF0-0000-1000-8000-00805F9B34FB")
-        private val CHAR_UUID_V3 = UUID.fromString("0000FFF1-0000-1000-8000-00805F9B34FB")
-
-        // Variant 4: Alternative HC-08 firmware (some Chinese clones)
-        private val SERVICE_UUID_V4 = UUID.fromString("0000FFE5-0000-1000-8000-00805F9B34FB")
-        private val CHAR_UUID_V4 = UUID.fromString("0000FFE9-0000-1000-8000-00805F9B34FB")
-
-        // Variant 5: AT-09 BLE Module (CC2541-based, similar to HM-10)
-        private val SERVICE_UUID_V5 = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
-        private val CHAR_UUID_V5 = UUID.fromString("0000FFE4-0000-1000-8000-00805F9B34FB")
-
-        // Variant 6: MLT-BT05 and other TI-based clones
-        private val SERVICE_UUID_V6 = UUID.fromString("0000FFF0-0000-1000-8000-00805F9B34FB")
-        private val CHAR_UUID_V6 = UUID.fromString("0000FFF6-0000-1000-8000-00805F9B34FB")
-
-        // Variant 9: ArduinoBLE Library Standard Example (Uno R4 Wifi / Nano 33 IoT)
-        private val SERVICE_UUID_V9 = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")
-        private val CHAR_UUID_V9 = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214")
-
-        // Updated UUIDs with separate TX/RX (v2.0 sketches)
-        private val CHAR_UUID_TX_V1 = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")  // TX (notify)
-        private val CHAR_UUID_RX_V1 = UUID.fromString("0000FFE2-0000-1000-8000-00805F9B34FB")  // RX (write)
-        private val CHAR_UUID_TX_V9 = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214")  // TX (notify)
-        private val CHAR_UUID_RX_V9 = UUID.fromString("19B10002-E8F2-537E-4F6C-D104768A1214")  // RX (write)
-
-        // Legacy single UUID (backward compatibility)
-        private val CHAR_UUID_V1_LEGACY = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
-        private val CHAR_UUID_V9_LEGACY = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214")
-
-        // Client Characteristic Configuration Descriptor (CCCD) for notifications - standard
-        private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
+        // Quick access aliases for backward compatibility
+        private val SERVICE_UUID_V1 get() = BleUuidRegistry.VARIANT_HC08_HM10.serviceUuid
+        private val CHAR_UUID_V1 get() = BleUuidRegistry.VARIANT_HC08_HM10.legacyCharUuid!!
+        private val SERVICE_UUID_V2 get() = BleUuidRegistry.VARIANT_NORDIC_UART.serviceUuid
+        private val CHAR_UUID_TX_V2 get() = BleUuidRegistry.VARIANT_NORDIC_UART.txCharUuid!!
+        private val CHAR_UUID_RX_V2 get() = BleUuidRegistry.VARIANT_NORDIC_UART.rxCharUuid!!
+        private val SERVICE_UUID_V3 get() = BleUuidRegistry.VARIANT_TI_HM10.serviceUuid
+        private val CHAR_UUID_V3 get() = BleUuidRegistry.VARIANT_TI_HM10.legacyCharUuid!!
+        private val SERVICE_UUID_V4 get() = BleUuidRegistry.VARIANT_HC08_ALT.serviceUuid
+        private val CHAR_UUID_V4 get() = BleUuidRegistry.VARIANT_HC08_ALT.legacyCharUuid!!
+        private val SERVICE_UUID_V5 get() = BleUuidRegistry.VARIANT_AT09.serviceUuid
+        private val CHAR_UUID_V5 get() = BleUuidRegistry.VARIANT_AT09.legacyCharUuid!!
+        private val SERVICE_UUID_V6 get() = BleUuidRegistry.VARIANT_MLT_BT05.serviceUuid
+        private val CHAR_UUID_V6 get() = BleUuidRegistry.VARIANT_MLT_BT05.legacyCharUuid!!
+        private val SERVICE_UUID_V9 get() = BleUuidRegistry.VARIANT_ARDUINO_BLE.serviceUuid
+        private val CHAR_UUID_V9 get() = BleUuidRegistry.VARIANT_ARDUINO_BLE.legacyCharUuid!!
+        private val CHAR_UUID_TX_V1 get() = BleUuidRegistry.VARIANT_HC08_HM10.txCharUuid!!
+        private val CHAR_UUID_RX_V1 get() = BleUuidRegistry.VARIANT_HC08_HM10.rxCharUuid!!
+        private val CHAR_UUID_TX_V9 get() = BleUuidRegistry.VARIANT_ARDUINO_BLE.txCharUuid!!
+        private val CHAR_UUID_RX_V9 get() = BleUuidRegistry.VARIANT_ARDUINO_BLE.rxCharUuid!!
+        private val CHAR_UUID_V1_LEGACY get() = BleUuidRegistry.VARIANT_HC08_HM10.legacyCharUuid!!
+        private val CHAR_UUID_V9_LEGACY get() = BleUuidRegistry.VARIANT_ARDUINO_BLE.legacyCharUuid!!
+        private val CCCD_UUID get() = BleUuidRegistry.CCCD_UUID
 
         // Track which variant was successful
         private var detectedVariant: Int = 0
