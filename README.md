@@ -4,8 +4,13 @@
 Ardunakon is a professional-grade Android application designed to control Arduino projects (RC cars, drones, boats, robots) via Bluetooth Classic or BLE. Fully supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and **classic Arduino UNO** with HC-05/HC-06 or HM-10 modules. It replaces generic controller apps with a robust, crash-proof, and highly customizable interface.
 
 ## Release Info
-* Current Alpha: **0.2.4-alpha** (build 21)
+* Current Alpha: **0.2.5-alpha** (build 22)
 * Target SDK: 35, Min SDK: 26
+
+### What's New in 0.2.5-alpha
+*   **Code Cleanup**: Removed 4 orphaned components (~450 lines) - duplicate debug console, unused sensor dashboard, and unused security classes
+*   **Better Organization**: Relocated example Arduino sketches to `examples/` directory with dedicated README
+*   **Comprehensive Docs**: Added detailed documentation for all Arduino sketches (pin mappings, Bluetooth compatibility matrix)
 
 ## 🚀 Key Features
 
@@ -83,7 +88,7 @@ Requires external Bluetooth module.
 3. Upload the sketch
 4. Device will appear as "HC-05", "HC-06", "HM-10", or custom name
 
-**📖 Full Setup Guide**: See `arduino_sketches/SETUP_GUIDE.md` or check the **built-in offline Help** in the app.
+**📖 Full Setup Guide**: See `arduino_sketches/README.md` for detailed documentation or check the **built-in offline Help** in the app.
 
 ---
 
