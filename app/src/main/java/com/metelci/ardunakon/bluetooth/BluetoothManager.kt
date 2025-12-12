@@ -634,12 +634,7 @@ data class ConnectionHealth(
         autoReconnectPrefs.saveAutoReconnectState(0, enabled)
     }
 
-    private fun calculateBackoffDelay(attempts: Int): Long {
-        // Exponential backoff: 3s, 6s, 12s, 24s, 30s (max)
-        val delay = (BluetoothConfig.BACKOFF_BASE_DELAY_MS * (1 shl attempts.coerceAtMost(3)))
-            .coerceAtMost(BluetoothConfig.BACKOFF_MAX_DELAY_MS)
-        return delay
-    }
+    private fun calculateBackoffDelay(attempts: Int): Long = BluetoothConfig.calculateBackoffDelay(attempts)
 
     fun resetCircuitBreaker() {
         reconnectAttempts = 0

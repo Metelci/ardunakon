@@ -201,6 +201,17 @@ object BluetoothConfig {
     const val BACKOFF_MAX_DELAY_MS = 30000L
 
     /**
+     * Calculate exponential backoff delay for reconnection attempts
+     * Formula: baseDelay * 2^min(attempts, 3), capped at maxDelay
+     * Returns: 3s, 6s, 12s, 24s (then stays at 24s)
+     */
+    fun calculateBackoffDelay(attempts: Int): Long {
+        val multiplier = 1 shl attempts.coerceAtMost(3) // 1, 2, 4, 8
+        val delay = BACKOFF_BASE_DELAY_MS * multiplier
+        return delay.coerceAtMost(BACKOFF_MAX_DELAY_MS)
+    }
+
+    /**
      * Maximum reconnection attempts before circuit breaker activates
      */
     const val MAX_RECONNECT_ATTEMPTS = 10
