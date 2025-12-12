@@ -67,12 +67,30 @@ data class ConnectionHealth(
     private val deviceNameCache = com.metelci.ardunakon.data.DeviceNameCache(context)
     private val autoReconnectPrefs = com.metelci.ardunakon.data.AutoReconnectPreferences(context)
 
+    // Bluetooth Scanner for device discovery
+    private val scanner: BluetoothScanner = BluetoothScanner(
+        context = context,
+        adapter = adapter,
+        scope = scope,
+        callbacks = object : BluetoothScanner.ScannerCallbacks {
+            override fun onDeviceFound(device: BluetoothDeviceModel) {
+                // UI updates via StateFlow
+            }
+            override fun onDeviceUpdated(device: BluetoothDeviceModel) {
+                // Device type upgrade notification
+            }
+            override fun onScanLog(message: String, type: LogType) {
+                log(message, type)
+            }
+        }
+    )
+
     // Telemetry History Manager for graph visualization
     private val _telemetryHistoryManager = com.metelci.ardunakon.telemetry.TelemetryHistoryManager()
     val telemetryHistoryManager: com.metelci.ardunakon.telemetry.TelemetryHistoryManager = _telemetryHistoryManager
 
-    private val _scannedDevices = MutableStateFlow<List<BluetoothDeviceModel>>(emptyList())
-    val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = _scannedDevices.asStateFlow()
+    // Scanned devices - delegated to scanner
+    val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = scanner.scannedDevices
 
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
@@ -149,85 +167,7 @@ data class ConnectionHealth(
     private val missedAckThresholdBle = BluetoothConfig.MISSED_ACK_THRESHOLD_BLE
     private var missedHeartbeatAcks = 0
 
-    private val leScanner by lazy { adapter?.bluetoothLeScanner }
-    private val leScanCallback = object : android.bluetooth.le.ScanCallback() {
-        override fun onScanResult(callbackType: Int, result: android.bluetooth.le.ScanResult?) {
-            if (result == null || result.device == null) return
-            val device = result.device
-            val isNew = addDevice(device, DeviceType.LE, result.rssi)
-            
-            if (isNew) {
-                val record = result.scanRecord
-                val sb = StringBuilder()
-                sb.append("Found LE Device: ${device.name ?: "Unknown"} (${device.address})\n")
-                sb.append("  RSSI: ${result.rssi} dBm\n")
-                sb.append("  Type: ${device.type} (0=Unknown, 1=Classic, 2=LE, 3=Dual)\n")
-                
-                if (record != null) {
-                    sb.append("  Adv Flags: ${record.advertiseFlags}\n")
-                    sb.append("  Local Name: ${record.deviceName ?: "N/A"}\n")
-                    sb.append("  Service UUIDs: ${record.serviceUuids?.joinToString(", ") ?: "None"}")
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                         sb.append("\n  Connectable: ${result.isConnectable}")
-                    }
-                }
-                log(sb.toString(), LogType.INFO)
-            }
-        }
-    }
-
-    // Scan timeout job - only one active at a time
-    private var scanJob: Job? = null
-
-    private val receiver = object : android.content.BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == BluetoothDevice.ACTION_FOUND) {
-                val device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-                } else {
-                    @Suppress("DEPRECATION")
-                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                }
-                val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
-                if (device != null) {
-                    val isNew = addDevice(device, DeviceType.CLASSIC, rssi)
-                    if (isNew) {
-                        val sb = StringBuilder()
-                        sb.append("Found Classic Device: ${device.name ?: "Unknown"} (${device.address})\n")
-                        sb.append("  RSSI: $rssi dBm\n")
-                        sb.append("  Type: ${device.type} (0=Unknown, 1=Classic, 2=LE, 3=Dual)")
-                        
-                        // Try to get UUIDs if available in intent
-                        if (intent.hasExtra(BluetoothDevice.EXTRA_UUID)) {
-                            val parcelUuids = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID, android.os.ParcelUuid::class.java)
-                            } else {
-                                @Suppress("DEPRECATION")
-                                intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID)
-                            }
-                            if (parcelUuids != null && parcelUuids.isNotEmpty()) {
-                                sb.append("\n  UUIDs: ${parcelUuids.joinToString(", ")}")
-                            }
-                        }
-                        log(sb.toString(), LogType.INFO)
-                    }
-                }
-            }
-        }
-    }
-
-    // Track receiver registration state to prevent leaks
-    @Volatile
-    private var isReceiverRegistered = false
-
     init {
-        try {
-            context.registerReceiver(receiver, android.content.IntentFilter(BluetoothDevice.ACTION_FOUND))
-            isReceiverRegistered = true
-        } catch (e: Exception) {
-            log("Failed to register Bluetooth receiver: ${e.message}", LogType.WARNING)
-        }
-
         // Load saved auto-reconnect preference
         scope.launch {
             val saved = autoReconnectPrefs.loadAutoReconnectState()
@@ -380,115 +320,11 @@ data class ConnectionHealth(
     }
 
     fun startScan() {
-        if (!checkBluetoothPermission()) {
-            log("Scan failed: Missing permissions", LogType.ERROR)
-            return
-        }
-        if (adapter == null) {
-            log("Scan failed: Bluetooth adapter unavailable", LogType.ERROR)
-            return
-        }
-        if (!adapter.isEnabled) {
-            log("Scan failed: Bluetooth is turned off", LogType.WARNING)
-            return
-        }
-
-        // Cancel any previous scan job to prevent multiple timeouts
-        scanJob?.cancel()
-
-        _scannedDevices.value = emptyList()
-        try {
-            if (adapter.isDiscovering) adapter.cancelDiscovery()
-            adapter.startDiscovery()
-            leScanner?.stopScan(leScanCallback)
-            leScanner?.startScan(leScanCallback)
-
-            // Start new scan timeout
-            scanJob = scope.launch {
-                delay(BluetoothConfig.SCAN_TIMEOUT_MS)
-                stopScan()
-            }
-        } catch (e: SecurityException) {
-            Log.e("BT", "Permission missing for scan", e)
-            log("Scan failed: Permission missing", LogType.ERROR)
-        } catch (e: Exception) {
-            Log.e("BT", "Scan failed", e)
-        }
+        scanner.startScan()
     }
 
     fun stopScan() {
-        if (!checkBluetoothPermission()) {
-            log("Stop scan skipped: Missing permissions", LogType.WARNING)
-            return
-        }
-        scanJob?.cancel()
-        adapter?.cancelDiscovery()
-        try { leScanner?.stopScan(leScanCallback) } catch (e: Exception) {}
-    }
-
-    fun addDevice(device: BluetoothDevice, type: DeviceType, rssi: Int): Boolean {
-        val list = _scannedDevices.value.toMutableList()
-        val isBleOnly = isBleOnlyName(device.name)
-        val resolvedType = if (isBleOnly) DeviceType.LE else type
-
-        val existingIndex = list.indexOfFirst { it.address == device.address }
-        if (existingIndex >= 0) {
-            // Upgrade existing entry to BLE if needed
-            val existing = list[existingIndex]
-            if (resolvedType == DeviceType.LE && existing.type != DeviceType.LE) {
-                list[existingIndex] = existing.copy(type = DeviceType.LE)
-                _scannedDevices.value = list
-            }
-            return false
-        }
-
-        // Resolve name using multi-layer strategy
-        scope.launch {
-            val resolvedName = resolveDeviceName(device, resolvedType)
-            val updatedList = _scannedDevices.value.toMutableList()
-            if (updatedList.none { it.address == device.address }) {
-                updatedList.add(BluetoothDeviceModel(resolvedName, device.address, resolvedType, rssi))
-                _scannedDevices.value = updatedList
-            }
-        }
-        return true
-    }
-
-    private suspend fun resolveDeviceName(device: BluetoothDevice, type: DeviceType): String {
-        // Layer 1: Check bonded devices (most reliable on Android 12+)
-        if (checkBluetoothPermission()) {
-            try {
-                adapter?.bondedDevices?.find { it.address == device.address }?.let { bondedDevice ->
-                    val bondedName = bondedDevice.name
-                    if (!bondedName.isNullOrBlank() && bondedName != device.address) {
-                        // Save to cache for future lookups
-                        deviceNameCache.saveName(device.address, bondedName, type)
-                        return "$bondedName (${device.address})"
-                    }
-                }
-            } catch (e: SecurityException) {
-                Log.w("BT", "Permission issue accessing bonded devices", e)
-            }
-
-            // Try direct name access (works for some devices)
-            try {
-                val directName = device.name
-                if (!directName.isNullOrBlank() && directName != device.address) {
-                    deviceNameCache.saveName(device.address, directName, type)
-                    return "$directName (${device.address})"
-                }
-            } catch (e: SecurityException) {
-                Log.w("BT", "Permission issue accessing device name", e)
-            }
-        }
-
-        // Layer 2: Check persistent cache
-        deviceNameCache.getName(device.address)?.let { cachedName ->
-            return "$cachedName [cached] (${device.address})"
-        }
-
-        // Layer 3: Fallback to MAC address with clear indicator
-        return "Unknown Device (${device.address})"
+        scanner.stopScan()
     }
 
     fun connectToDevice(deviceModel: BluetoothDeviceModel, isAutoReconnect: Boolean = false) {
@@ -558,10 +394,9 @@ data class ConnectionHealth(
                 return@launch
             }
 
-            // Refresh device name in cache during connection attempt
-            // This ensures the debug window shows the latest name
-            val refreshedName = resolveDeviceName(device, coercedModel.type)
-            log("Device name resolved: $refreshedName", LogType.INFO)
+            // Log device name from cache or device
+            val refreshedName = deviceNameCache.getName(device.address) ?: device.name ?: device.address
+            log("Connecting to: $refreshedName (${device.address})", LogType.INFO)
 
             if (coercedModel.type == DeviceType.LE) {
                 val bleConnection = BleConnection(device)
@@ -792,25 +627,13 @@ data class ConnectionHealth(
         // Cancel the coroutine scope to prevent leaks
         scope.cancel()
 
-        // Cancel scan job if active
-        scanJob?.cancel()
+        // Cleanup scanner (stops scan, unregisters receiver)
+        scanner.cleanup()
         keepAliveJob?.cancel()
 
         // Disconnect active connection
         connection?.cancel()
         connection = null
-
-        // Unregister broadcast receiver safely
-        if (isReceiverRegistered) {
-            try {
-                context.unregisterReceiver(receiver)
-                isReceiverRegistered = false
-            } catch (e: IllegalArgumentException) {
-                // Receiver not registered or already unregistered
-            } catch (e: Exception) {
-                Log.w("BT", "Failed to unregister receiver: ${e.message}")
-            }
-        }
     }
 
     private val isDebugMode = com.metelci.ardunakon.BuildConfig.DEBUG
@@ -1405,12 +1228,9 @@ data class ConnectionHealth(
                 log("BLE connect failed: Missing permissions", LogType.ERROR)
                 return
             }
-            // Resolve device name for logging
-            scope.launch {
-                resolvedDeviceName = resolveDeviceName(device, DeviceType.LE)
-            }
-            // Use device.name as fallback for immediate logging
-            val deviceName = device.name ?: "Unknown (${device.address})"
+            // Use device.name for logging
+            val deviceName = device.name ?: "Unknown"
+            resolvedDeviceName = deviceName
             log("Connecting to BLE device $deviceName ...", LogType.INFO)
             connectGattWithTimeout()
         }
