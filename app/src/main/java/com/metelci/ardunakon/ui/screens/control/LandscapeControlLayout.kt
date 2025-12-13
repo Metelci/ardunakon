@@ -68,7 +68,7 @@ fun LandscapeControlLayout(
                 .weight(if (viewModel.isDebugPanelVisible) 0.65f else 1f)
                 .fillMaxHeight(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Header
             ControlHeaderBar(
@@ -118,7 +118,8 @@ fun LandscapeControlLayout(
 
             // Status row
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -137,21 +138,27 @@ fun LandscapeControlLayout(
                 val currentRssi = if (viewModel.connectionMode == ConnectionMode.WIFI) wifiRssi else rssiValue
                 val hasCrashLog = CrashHandler.hasCrashLog(context)
 
-                StatusCard(
-                    label = "Device",
-                    state = currentConnectionState,
-                    rssi = currentRssi,
-                    hasCrashLog = hasCrashLog,
-                    onClick = {
-                        if (viewModel.connectionMode == ConnectionMode.WIFI) {
-                            viewModel.showWifiConfig = true
-                        } else {
-                            viewModel.showDeviceList = true
-                        }
-                    },
-                    onCrashLogClick = { viewModel.showCrashLog = true },
-                    isDarkTheme = isDarkTheme
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    StatusCard(
+                        label = "Device",
+                        state = currentConnectionState,
+                        rssi = currentRssi,
+                        hasCrashLog = hasCrashLog,
+                        onClick = {
+                            if (viewModel.connectionMode == ConnectionMode.WIFI) {
+                                viewModel.showWifiConfig = true
+                            } else {
+                                viewModel.showDeviceList = true
+                            }
+                        },
+                        onCrashLogClick = { viewModel.showCrashLog = true },
+                        isDarkTheme = isDarkTheme
+                    )
+                }
             }
 
             // Packet Loss Warning

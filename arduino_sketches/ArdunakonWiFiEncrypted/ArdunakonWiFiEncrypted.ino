@@ -1,18 +1,19 @@
 /*
  * Ardunakon WiFi Control - Arduino R4 WiFi
  * 
- * UDP-based remote control with AES encryption support.
+ * UDP-based remote control with AES-GCM encryption support.
  * 
  * Features:
  * - WiFi AP mode (creates Ardunakon hotspot)
  * - UDP command reception
  * - Encryption handshake protocol
+ * - AES-GCM packet decryption
  * - Motor/servo control
  * - Telemetry reporting
  * 
  * Protocol:
- * - Packet: [0xAA, DEV_ID, CMD, D1-D5, CHECKSUM, 0x55]
- * - Encrypted packets: [IV(12)] + [AES-GCM Ciphertext]
+ * - Plaintext: [0xAA, DEV_ID, CMD, D1-D5, CHECKSUM, 0x55]
+ * - Encrypted: [IV(12)] + [AES-GCM Ciphertext + Tag(16)]
  * 
  * Commands:
  * - 0x01: Joystick data
@@ -27,6 +28,8 @@
 #include <WiFiS3.h>
 #include <WiFiUdp.h>
 #include <SHA256.h>
+#include <AES.h>
+#include <GCM.h>
 
 // ========== Configuration ==========
 const char* AP_SSID = "Ardunakon-R4";
@@ -46,6 +49,8 @@ const uint8_t PSK[32] = {
 #define START_BYTE 0xAA
 #define END_BYTE   0x55
 #define PACKET_SIZE 10
+#define IV_SIZE 12
+#define TAG_SIZE 16
 
 // Commands
 #define CMD_JOYSTICK  0x01
@@ -66,6 +71,8 @@ uint16_t clientPort = 0;
 bool encryptionEnabled = false;
 uint8_t sessionKey[32];
 uint8_t deviceNonce[16];
+uint8_t appNonceStored[16];
+GCM<AES256> gcm;
 
 // ========== Motor Control ==========
 // Adjust these pins to match your setup
@@ -83,24 +90,27 @@ int motorRight = 0;  // -100 to 100
 
 // ========== Function Prototypes ==========
 void handlePacket(uint8_t* data, int len);
+void handlePlaintextPacket(uint8_t* data, int len);
+bool decryptPacket(uint8_t* encryptedData, int encLen, uint8_t* plaintext, int* plainLen);
 void handleJoystick(uint8_t* packet);
 void handleButton(uint8_t* packet);
 void handleHeartbeat(uint8_t* packet);
 void handleEStop();
 void handleHandshakeRequest(uint8_t* packet, int len);
-void sendHandshakeResponse();
+void sendHandshakeResponse(uint8_t* signature);
 void sendHeartbeatResponse();
 void updateMotors();
 void emergencyStop();
 bool verifyChecksum(uint8_t* packet);
 void computeHmac(uint8_t* data, int dataLen, uint8_t* key, uint8_t* output);
 void generateNonce(uint8_t* nonce);
+void deriveSessionKey(uint8_t* appNonce, uint8_t* devNonce, uint8_t* output);
 
 // ========== Setup ==========
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("\n=== Ardunakon WiFi Control ===");
+  Serial.println("\n=== Ardunakon WiFi Control (Encrypted) ===");
   
   // Initialize motor pins
   pinMode(MOTOR_LEFT_PWM, OUTPUT);
@@ -137,7 +147,7 @@ void loop() {
   // Check for incoming UDP packets
   int packetSize = udp.parsePacket();
   if (packetSize > 0) {
-    uint8_t buffer[64];
+    uint8_t buffer[128];
     int len = udp.read(buffer, sizeof(buffer));
     
     // Store client address for responses
@@ -170,9 +180,29 @@ void loop() {
 
 // ========== Packet Handling ==========
 void handlePacket(uint8_t* data, int len) {
-  // TODO: If encryption enabled, decrypt first
-  // For now, handle plaintext
+  // Check if this is an encrypted packet
+  // Encrypted packets: IV(12) + Ciphertext(N) + Tag(16)
+  // Minimum encrypted size: 12 + 10 + 16 = 38 bytes
   
+  if (encryptionEnabled && len >= (IV_SIZE + PACKET_SIZE + TAG_SIZE)) {
+    // Try to decrypt
+    uint8_t plaintext[64];
+    int plainLen = 0;
+    
+    if (decryptPacket(data, len, plaintext, &plainLen)) {
+      Serial.println("Decrypted packet successfully");
+      handlePlaintextPacket(plaintext, plainLen);
+      return;
+    } else {
+      Serial.println("Decryption failed, trying plaintext");
+    }
+  }
+  
+  // Handle as plaintext
+  handlePlaintextPacket(data, len);
+}
+
+void handlePlaintextPacket(uint8_t* data, int len) {
   if (len < PACKET_SIZE) return;
   if (data[0] != START_BYTE) return;
   
@@ -207,12 +237,45 @@ void handlePacket(uint8_t* data, int len) {
     case CMD_HANDSHAKE_COMPLETE:
       Serial.println("Encryption handshake complete!");
       encryptionEnabled = true;
+      // Set up GCM cipher with session key
+      gcm.setKey(sessionKey, 32);
       break;
     default:
       Serial.print("Unknown command: 0x");
       Serial.println(cmd, HEX);
       break;
   }
+}
+
+// ========== AES-GCM Decryption ==========
+bool decryptPacket(uint8_t* encryptedData, int encLen, uint8_t* plaintext, int* plainLen) {
+  // Encrypted format: [IV(12)] + [Ciphertext] + [Tag(16)]
+  if (encLen < IV_SIZE + TAG_SIZE + 1) {
+    return false;
+  }
+  
+  // Extract components
+  uint8_t iv[IV_SIZE];
+  memcpy(iv, encryptedData, IV_SIZE);
+  
+  int ciphertextLen = encLen - IV_SIZE - TAG_SIZE;
+  uint8_t* ciphertext = encryptedData + IV_SIZE;
+  uint8_t* tag = encryptedData + IV_SIZE + ciphertextLen;
+  
+  // Set up GCM with IV
+  gcm.setIV(iv, IV_SIZE);
+  
+  // Decrypt
+  gcm.decrypt(plaintext, ciphertext, ciphertextLen);
+  
+  // Verify tag
+  if (!gcm.checkTag(tag, TAG_SIZE)) {
+    Serial.println("GCM tag verification failed!");
+    return false;
+  }
+  
+  *plainLen = ciphertextLen;
+  return true;
 }
 
 void handleJoystick(uint8_t* packet) {
@@ -254,15 +317,17 @@ void handleHandshakeRequest(uint8_t* data, int len) {
   Serial.println("Handshake request received");
   
   // Extract app nonce (16 bytes starting at position 3)
-  uint8_t appNonce[16];
-  memcpy(appNonce, data + 3, 16);
+  memcpy(appNonceStored, data + 3, 16);
   
   // Generate device nonce
   generateNonce(deviceNonce);
   
+  // Derive session key using HKDF-like construction
+  deriveSessionKey(appNonceStored, deviceNonce, sessionKey);
+  
   // Compute signature: HMAC-SHA256(PSK, appNonce || deviceNonce)
   uint8_t signatureInput[32];
-  memcpy(signatureInput, appNonce, 16);
+  memcpy(signatureInput, appNonceStored, 16);
   memcpy(signatureInput + 16, deviceNonce, 16);
   
   uint8_t signature[32];
@@ -270,6 +335,18 @@ void handleHandshakeRequest(uint8_t* data, int len) {
   
   // Send response
   sendHandshakeResponse(signature);
+}
+
+void deriveSessionKey(uint8_t* appNonce, uint8_t* devNonce, uint8_t* output) {
+  // Simple key derivation: HMAC-SHA256(PSK, "SESSION" || appNonce || devNonce)
+  uint8_t kdfInput[39];  // 7 + 16 + 16
+  memcpy(kdfInput, "SESSION", 7);
+  memcpy(kdfInput + 7, appNonce, 16);
+  memcpy(kdfInput + 23, devNonce, 16);
+  
+  computeHmac(kdfInput, 39, (uint8_t*)PSK, output);
+  
+  Serial.println("Session key derived");
 }
 
 void sendHandshakeResponse(uint8_t* signature) {
@@ -299,7 +376,7 @@ void sendHandshakeResponse(uint8_t* signature) {
 }
 
 void sendHeartbeatResponse() {
-  // Telemetry packet
+  // Telemetry packet (plaintext for now - could encrypt if needed)
   uint8_t packet[10];
   packet[0] = START_BYTE;
   packet[1] = 0x01;
@@ -362,7 +439,6 @@ void generateNonce(uint8_t* nonce) {
 
 void computeHmac(uint8_t* data, int dataLen, uint8_t* key, uint8_t* output) {
   // Simple HMAC-SHA256 implementation
-  // Note: For production, use a proper crypto library
   SHA256 sha256;
   
   // Inner padding
@@ -391,3 +467,4 @@ void computeHmac(uint8_t* data, int dataLen, uint8_t* key, uint8_t* output) {
   sha256.update(innerHash, 32);
   sha256.finalize(output, 32);
 }
+

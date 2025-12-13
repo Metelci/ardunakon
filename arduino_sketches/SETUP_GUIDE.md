@@ -137,10 +137,12 @@ For secure wireless control, use the encrypted WiFi sketch.
 2. Install **UNO R4 WiFi board support**:
    - Tools → Board → Boards Manager → Search "Arduino UNO R4" → Install
 3. Install **WiFiS3** library (included with board support)
-4. Open `arduino_sketches/ArdunakonWiFiEncrypted/ArdunakonWiFiEncrypted.ino`
-5. **Configure PSK** (Pre-Shared Key) - See "Setting Up Encryption" below
-6. Select **Board**: Tools → Board → Arduino UNO R4 WiFi
-7. Click **Upload**
+4. Install **Crypto** library for AES-GCM:
+   - Tools → Manage Libraries → Search "Crypto" by rweather → Install
+5. Open `arduino_sketches/ArdunakonWiFiEncrypted/ArdunakonWiFiEncrypted.ino`
+6. **Configure PSK** (Pre-Shared Key) - See "Setting Up Encryption" below
+7. Select **Board**: Tools → Board → Arduino UNO R4 WiFi
+8. Click **Upload**
 
 ### Setting Up Encryption
 
