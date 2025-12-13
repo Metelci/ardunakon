@@ -18,6 +18,9 @@ import javax.crypto.spec.SecretKeySpec
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.metelci.ardunakon.bluetooth.TelemetryParser
+import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+
 
 class WifiManager(
     private val context: Context,
@@ -57,6 +60,16 @@ class WifiManager(
     private val _scannedDevices = MutableStateFlow<List<WifiDevice>>(emptyList())
     val scannedDevices = _scannedDevices.asStateFlow()
     private var isScanning = AtomicBoolean(false)
+
+    // Telemetry State (Matches BluetoothManager for consistency)
+    private val _telemetry = MutableStateFlow<AppBluetoothManager.Telemetry?>(null)
+    val telemetry = _telemetry.asStateFlow()
+
+    // Packet stats for WiFi
+    private var packetsSent = 0L
+    private var packetsFailed = 0L
+    // UDP doesn't really have "dropped" in the same queue-sense as BLE, so we can ignore or count send errors
+
 
     // NsdManager for mDNS (nullable - may not be available on all devices)
     private val nsdManager: android.net.nsd.NsdManager? by lazy {
@@ -339,9 +352,11 @@ class WifiManager(
                 val packetData = encryptIfNeeded(data)
                 val packet = DatagramPacket(packetData, packetData.size, address, targetPort)
                 socket?.send(packet)
+                packetsSent++
             } catch (e: Exception) {
                 Log.e("WifiManager", "Send failed", e)
                 onLog("TX Error (UDP): ${e.message}")
+                packetsFailed++
             }
         }
     }
@@ -387,6 +402,19 @@ class WifiManager(
                     socket?.receive(packet)
                     val data = packet.data.copyOf(packet.length)
                     _incomingData.value = data
+                    
+                    // Parse Telemetry using centralized parser
+                    val result = TelemetryParser.parse(data)
+                    if (result != null) {
+                        _telemetry.value = AppBluetoothManager.Telemetry(
+                            batteryVoltage = result.batteryVoltage,
+                            status = result.status,
+                            packetsSent = packetsSent,
+                            packetsDropped = 0, // Not applicable for UDP (fire and forget)
+                            packetsFailed = packetsFailed
+                        )
+                    }
+
                     onPacketReceived() // Update RTT measurement
                 } catch (e: Exception) {
                     if (isActive && isConnected.get()) {

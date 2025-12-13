@@ -131,11 +131,9 @@ class AppBluetoothManager(private val context: Context) {
     }
 
     // Interface for both Classic and BLE connections
-    interface BluetoothConnection {
-        fun write(bytes: ByteArray)
-        fun cancel()
-        fun requestRssi() {}
-    }
+    // Interface for both Classic and BLE connections
+    // Uses top-level BluetoothConnection interface
+
 
     // Active connection (single slot)
     private var connection: BluetoothConnection? = null
@@ -296,7 +294,9 @@ class AppBluetoothManager(private val context: Context) {
             while (isActive) {
                 delay(BluetoothConfig.HEARTBEAT_INTERVAL_MS)
                 val state = _connectionState.value
-                if (state == ConnectionState.CONNECTED && connection != null) {
+                val conn = connection // Capture reference
+
+                if (state == ConnectionState.CONNECTED && conn != null) {
                     heartbeatSeq = (heartbeatSeq + 1) and 0xFFFF
                     val heartbeat = ProtocolManager.formatHeartbeatData(heartbeatSeq)
                     // Force bypasses E-STOP so the link itself stays alive
@@ -304,6 +304,22 @@ class AppBluetoothManager(private val context: Context) {
                     lastHeartbeatSentAt = System.currentTimeMillis()
                     missedHeartbeatAcks++
                     updateHealth(heartbeatSeq, lastPacketAt, rssiFailures)
+
+                    // Update packet stats from connection
+                    val (sent, dropped, failed) = conn.getPacketStats()
+                    packetsSent.set(0, sent)
+                    packetsDropped.set(0, dropped)
+                    packetsFailed.set(0, failed)
+
+                    // Update telemetry with new stats even if no new packet arrived
+                    val currentTelem = _telemetry.value
+                    if (currentTelem != null) {
+                        _telemetry.value = currentTelem.copy(
+                            packetsSent = sent,
+                            packetsDropped = dropped,
+                            packetsFailed = failed
+                        )
+                    }
 
                     // Require multiple missed acks before forcing reconnect
                     val sinceLastPacket = System.currentTimeMillis() - lastPacketAt

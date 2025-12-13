@@ -369,6 +369,12 @@ class ClassicConnection(
     // Classic SPP does not support remote RSSI polling
     // Default implementation from interface is used
 
+    override fun getPacketStats(): Triple<Long, Long, Long> {
+        // Classic connection doesn't track these detailed stats yet
+        // In a future update, we can wrap OutputStream to count bytes/packets
+        return Triple(0, 0, 0)
+    }
+
     private fun closeSocketSafely() {
         try {
             socket?.close()

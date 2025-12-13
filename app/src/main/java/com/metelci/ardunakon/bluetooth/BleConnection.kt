@@ -490,7 +490,7 @@ class BleConnection(
     /**
      * Gets packet statistics from the write queue.
      */
-    fun getPacketStats(): Triple<Long, Long, Long> = Triple(
+    override fun getPacketStats(): Triple<Long, Long, Long> = Triple(
         writeQueueManager.packetsSent,
         writeQueueManager.packetsDropped,
         writeQueueManager.packetsFailed

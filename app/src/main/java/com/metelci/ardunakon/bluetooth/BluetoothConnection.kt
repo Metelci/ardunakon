@@ -19,4 +19,10 @@ interface BluetoothConnection {
      * Requests RSSI update (optional, only supported by BLE).
      */
     fun requestRssi() {}
+
+    /**
+     * Gets packet statistics (sent, dropped, failed).
+     * Returns a Triple of (Sent, Dropped, Failed).
+     */
+    fun getPacketStats(): Triple<Long, Long, Long> = Triple(0, 0, 0)
 }
