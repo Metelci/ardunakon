@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class TelemetryHistoryManager(private val maxHistorySize: Int = 150 // 10 minutes at 4s intervals) {
+class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 minutes at 4s intervals
     // Single device circular buffers
     private val batteryHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
     private val rssiHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()

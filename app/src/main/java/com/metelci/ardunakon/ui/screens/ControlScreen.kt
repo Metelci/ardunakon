@@ -92,9 +92,8 @@ fun ControlScreen(
     // Bridge WiFi telemetry to HistoryManager
     LaunchedEffect(wifiState, wifiRssi, wifiRtt, wifiIncomingData) {
         if (wifiState == WifiConnectionState.CONNECTED) {
-            // FIXME: Linkage error with TelemetryHistoryManager
-            // if (wifiRssi != 0) bluetoothManager.telemetryHistoryManager.recordRssi(wifiRssi)
-            // if (wifiRtt != 0L) bluetoothManager.telemetryHistoryManager.recordRtt(wifiRtt)
+            if (wifiRssi != 0) bluetoothManager.telemetryHistoryManager.recordRssi(wifiRssi)
+            if (wifiRtt != 0L) bluetoothManager.telemetryHistoryManager.recordRtt(wifiRtt)
             wifiIncomingData?.let { data -> bluetoothManager.parseTelemetry(data) }
         }
     }
