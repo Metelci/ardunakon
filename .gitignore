@@ -84,3 +84,7 @@ lint/tmp/
 .claude/plan.md
 build_log.txt
 build_log_2.txt
+
+# Dependency tree snapshot (generate via `./gradlew :app:dependencies`)
+dependency_tree.txt
+.kotlin/sessions/kotlin-compiler-2034296814045620867.salive
