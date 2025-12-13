@@ -23,7 +23,12 @@ import kotlin.coroutines.resume
 /**
  * WiFi OTA Transport - Connects to Arduino AP and uploads via HTTP
  */
-class WifiOtaTransport(private val context: Context) : OtaTransport {
+class WifiOtaTransport(
+    private val context: Context,
+    private val connectionFactory: (URL, Network?) -> HttpURLConnection = { url, network ->
+        (network?.openConnection(url) ?: url.openConnection()) as HttpURLConnection
+    }
+) : OtaTransport {
     
     companion object {
         const val TAG = "WifiOtaTransport"
@@ -94,7 +99,7 @@ class WifiOtaTransport(private val context: Context) : OtaTransport {
     override suspend fun sendChunk(data: ByteArray, offset: Int): Boolean = withContext(Dispatchers.IO) {
         try {
             val url = URL("http://$ARDUINO_IP:$ARDUINO_PORT/update")
-            val connection = (connectedNetwork?.openConnection(url) ?: url.openConnection()) as HttpURLConnection
+            val connection = connectionFactory(url, connectedNetwork)
             
             connection.apply {
                 requestMethod = "POST"
@@ -121,7 +126,7 @@ class WifiOtaTransport(private val context: Context) : OtaTransport {
     override suspend fun complete(crc: Long): Boolean = withContext(Dispatchers.IO) {
         try {
             val url = URL("http://$ARDUINO_IP:$ARDUINO_PORT/complete")
-            val connection = (connectedNetwork?.openConnection(url) ?: url.openConnection()) as HttpURLConnection
+            val connection = connectionFactory(url, connectedNetwork)
             
             connection.apply {
                 requestMethod = "POST"
@@ -148,7 +153,7 @@ class WifiOtaTransport(private val context: Context) : OtaTransport {
     override suspend fun abort() {
         try {
             val url = URL("http://$ARDUINO_IP:$ARDUINO_PORT/abort")
-            val connection = (connectedNetwork?.openConnection(url) ?: url.openConnection()) as HttpURLConnection
+            val connection = connectionFactory(url, connectedNetwork)
             connection.requestMethod = "POST"
             connection.responseCode
             connection.disconnect()

@@ -48,9 +48,7 @@ class ControlViewModel(
     private val profileManager: ProfileManager
 ) : ViewModel() {
 
-    // ========== Dialog Visibility States ==========
     var showDeviceList by mutableStateOf(false)
-    var showProfileSelector by mutableStateOf(false)
     var showDebugConsole by mutableStateOf(false)
     var showHelpDialog by mutableStateOf(false)
     var showAboutDialog by mutableStateOf(false)
@@ -62,8 +60,6 @@ class ControlViewModel(
     var showWifiConfig by mutableStateOf(false)
     var showCrashLog by mutableStateOf(false)
     var showHeaderMenu by mutableStateOf(false)
-    var showProfileEditor by mutableStateOf(false)
-    var showDeleteConfirmation by mutableStateOf(false)
 
     // ========== Connection State ==========
     var connectionMode by mutableStateOf(ConnectionMode.BLUETOOTH)
@@ -73,8 +69,6 @@ class ControlViewModel(
     val profiles = mutableStateListOf<Profile>()
     var currentProfileIndex by mutableStateOf(0)
     var securityErrorMessage by mutableStateOf<String?>(null)
-    var profileToEdit by mutableStateOf<Profile?>(null)
-    var profileIndexToDelete by mutableStateOf(-1)
 
     val currentProfile: Profile
         get() = if (profiles.isNotEmpty() && currentProfileIndex in profiles.indices) {
@@ -249,8 +243,8 @@ class ControlViewModel(
         }
     }
 
-    // ========== Profile Management ==========
-    fun saveProfiles() {
+    // ========== Profile Save (internal use) ==========
+    private fun saveProfiles() {
         viewModelScope.launch {
             try {
                 profileManager.saveProfiles(profiles)
@@ -258,36 +252,6 @@ class ControlViewModel(
                 securityErrorMessage = e.message ?: "Unlock your device to save encrypted profiles."
             }
         }
-    }
-
-    fun deleteProfile(index: Int) {
-        if (index !in profiles.indices || profiles.size <= 1) return
-
-        val wasSelected = index == currentProfileIndex
-        val isBeforeSelected = index < currentProfileIndex
-
-        profiles.removeAt(index)
-        saveProfiles()
-
-        when {
-            isBeforeSelected -> currentProfileIndex--
-            wasSelected -> currentProfileIndex = 0
-        }
-        if (currentProfileIndex >= profiles.size) currentProfileIndex = 0
-
-        showDeleteConfirmation = false
-        profileIndexToDelete = -1
-    }
-
-    fun saveProfile(profile: Profile) {
-        val index = profiles.indexOfFirst { it.id == profile.id }
-        if (index != -1) {
-            profiles[index] = profile
-        } else {
-            profiles.add(profile)
-        }
-        saveProfiles()
-        showProfileEditor = false
     }
 
     // ========== Connection Mode ==========

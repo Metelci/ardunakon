@@ -5,6 +5,7 @@ import android.util.Log
 import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.model.defaultButtonConfigs
 import com.metelci.ardunakon.security.AuthRequiredException
+import com.metelci.ardunakon.security.CryptoEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -20,10 +21,12 @@ data class Profile(
     val sensitivity: Float = 1.0f // 0.1 to 2.0
 )
 
-class ProfileManager(private val context: Context) {
+class ProfileManager(
+    private val context: Context,
+    private val securityManager: CryptoEngine = com.metelci.ardunakon.security.SecurityManager()
+) {
 
     private val fileName = "profiles.json"
-    private val securityManager = com.metelci.ardunakon.security.SecurityManager()
 
     suspend fun saveProfiles(profiles: List<Profile>) = withContext(Dispatchers.IO) {
         try {

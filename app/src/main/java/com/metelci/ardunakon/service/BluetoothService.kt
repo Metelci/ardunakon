@@ -38,9 +38,12 @@ class BluetoothService : Service() {
         bluetoothManager = AppBluetoothManager(this)
         
         // Initialize WifiManager for persistence
-        wifiManager = WifiManager(this) { msg ->
+        wifiManager = WifiManager(
+            context = this,
+            onLog = { msg ->
             bluetoothManager.log(msg, LogType.INFO)
-        }
+            }
+        )
         
         // Setup WakeLock
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager

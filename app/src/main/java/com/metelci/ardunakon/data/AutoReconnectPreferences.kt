@@ -2,15 +2,18 @@ package com.metelci.ardunakon.data
 
 import android.content.Context
 import android.util.Log
+import com.metelci.ardunakon.security.CryptoEngine
 import com.metelci.ardunakon.security.SecurityManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 
-class AutoReconnectPreferences(private val context: Context) {
+class AutoReconnectPreferences(
+    private val context: Context,
+    private val securityManager: CryptoEngine = SecurityManager()
+) {
     private val fileName = "auto_reconnect_prefs.json"
-    private val securityManager = SecurityManager()
 
     suspend fun saveAutoReconnectState(slot: Int, enabled: Boolean) = withContext(Dispatchers.IO) {
         try {

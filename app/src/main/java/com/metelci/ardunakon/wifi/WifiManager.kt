@@ -20,9 +20,10 @@ import javax.crypto.spec.SecretKeySpec
 
 class WifiManager(
     private val context: Context,
-    private val onLog: (String) -> Unit = {}
+    private val onLog: (String) -> Unit = {},
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(ioDispatcher + SupervisorJob())
     private var socket: DatagramSocket? = null
     private var receiveJob: Job? = null
     private var targetIp: String = "192.168.4.1"
@@ -76,6 +77,23 @@ class WifiManager(
         sessionKey.set(key)
     }
 
+    /**
+     * Builds the discovery message that will be broadcast when scanning.
+     * Returns the raw bytes and the nonce (when present) for verification.
+     */
+    internal fun buildDiscoveryMessage(): Pair<ByteArray, String?> {
+        val key = sessionKey.get()
+        return if (key != null) {
+            val nonceBytes = ByteArray(16).also(secureRandom::nextBytes)
+            val nonce = Base64.encodeToString(nonceBytes, Base64.NO_WRAP)
+            val sig = Base64.encodeToString(hmac(nonceBytes, key), Base64.NO_WRAP)
+            discoveryNonce.set(nonce)
+            "ARDUNAKON_DISCOVER|$nonce|$sig".toByteArray() to nonce
+        } else {
+            "ARDUNAKON_DISCOVER".toByteArray() to null
+        }
+    }
+
     fun startDiscovery() {
         if (isScanning.get()) return
         isScanning.set(true)
@@ -100,17 +118,7 @@ class WifiManager(
                 discoverySocket.broadcast = true
                 discoverySocket.soTimeout = 2000 
 
-                val key = sessionKey.get()
-                val message = if (key != null) {
-                    val nonceBytes = ByteArray(16).also(secureRandom::nextBytes)
-                    val nonce = Base64.encodeToString(nonceBytes, Base64.NO_WRAP)
-                    discoveryNonce.set(nonce)
-                    val sig = Base64.encodeToString(hmac(nonceBytes, key), Base64.NO_WRAP)
-                    "ARDUNAKON_DISCOVER|$nonce|$sig"
-                } else {
-                    "ARDUNAKON_DISCOVER"
-                }
-                val buffer = message.toByteArray()
+                val (buffer, _) = buildDiscoveryMessage()
                 val packet = DatagramPacket(
                     buffer,
                     buffer.size,
@@ -147,6 +155,7 @@ class WifiManager(
                             val name = parts.firstOrNull().orEmpty()
                             val ip = receivePacket.address.hostAddress ?: "Unknown"
                             onLog("Found Device: $name ($ip)")
+                            val key = sessionKey.get()
                             val trusted = when {
                                 key != null && parts.size >= 3 -> {
                                     val nonce = parts[1]
@@ -257,7 +266,8 @@ class WifiManager(
         })
     }
 
-    private fun addDevice(name: String, ip: String, port: Int, trusted: Boolean = false) {
+    // Internal for test visibility
+    internal fun addDevice(name: String, ip: String, port: Int, trusted: Boolean = false) {
         scope.launch(Dispatchers.Main) {
             try {
                 val currentList = _scannedDevices.value.toMutableList()
@@ -329,7 +339,8 @@ class WifiManager(
         }
     }
 
-    private fun encryptIfNeeded(payload: ByteArray): ByteArray {
+    // Internal for test visibility
+    internal fun encryptIfNeeded(payload: ByteArray): ByteArray {
         val key = sessionKey.get() ?: return payload
         return try {
             val iv = ByteArray(12).also(secureRandom::nextBytes)
@@ -343,7 +354,8 @@ class WifiManager(
         }
     }
 
-    private fun verifySignature(nonce: String, sig: String, key: ByteArray): Boolean {
+    // Internal for test visibility
+    internal fun verifySignature(nonce: String, sig: String, key: ByteArray): Boolean {
         return try {
             val nonceBytes = Base64.decode(nonce, Base64.NO_WRAP)
             val sigBytes = Base64.decode(sig, Base64.NO_WRAP)

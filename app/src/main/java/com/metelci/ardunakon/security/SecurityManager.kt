@@ -14,7 +14,16 @@ import android.util.Base64
 
 class AuthRequiredException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-class SecurityManager {
+/**
+ * Minimal interface to allow injecting a fake crypto engine in tests without
+ * touching the Android keystore.
+ */
+interface CryptoEngine {
+    fun encrypt(data: String): String
+    fun decrypt(encryptedData: String): String
+}
+
+class SecurityManager : CryptoEngine {
 
     private val provider = "AndroidKeyStore"
     private val alias = "ArdunakonProfileKey"
@@ -60,7 +69,7 @@ class SecurityManager {
         return keyStore.getKey(alias, null) as SecretKey
     }
 
-    fun encrypt(data: String): String {
+    override fun encrypt(data: String): String {
         try {
             val cipher = Cipher.getInstance(transformation)
             cipher.init(Cipher.ENCRYPT_MODE, getKey())
@@ -82,7 +91,7 @@ class SecurityManager {
         }
     }
 
-    fun decrypt(encryptedData: String): String {
+    override fun decrypt(encryptedData: String): String {
         try {
             val combined = Base64.decode(encryptedData, Base64.DEFAULT)
 
