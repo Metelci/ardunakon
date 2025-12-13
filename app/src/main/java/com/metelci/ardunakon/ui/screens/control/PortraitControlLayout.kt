@@ -19,6 +19,9 @@ import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.screens.control.ConnectionMode
 import com.metelci.ardunakon.wifi.WifiConnectionState
+import com.metelci.ardunakon.ui.components.AutoReconnectToggle
+import com.metelci.ardunakon.ui.components.PacketLossWarningCard
+
 
 /**
  * Portrait layout: Stacked vertically (Header → Debug → Servo → Joystick)
@@ -37,7 +40,9 @@ fun PortraitControlLayout(
     health: com.metelci.ardunakon.bluetooth.ConnectionHealth?,
     debugLogs: List<com.metelci.ardunakon.model.LogEntry>,
     telemetry: AppBluetoothManager.Telemetry?,
+    autoReconnectEnabled: Boolean,
     isEStopActive: Boolean,
+
     isDarkTheme: Boolean,
     safeDrawingPadding: androidx.compose.foundation.layout.PaddingValues,
     orientationConfig: Configuration,
@@ -92,6 +97,32 @@ fun PortraitControlLayout(
             context = context,
             view = view
         )
+
+        // Status & Alerts Row
+        if (viewModel.connectionMode == ConnectionMode.BLUETOOTH) {
+             androidx.compose.foundation.layout.Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AutoReconnectToggle(
+                    enabled = autoReconnectEnabled,
+                    onToggle = { bluetoothManager.setAutoReconnectEnabled(it) }
+                )
+            }
+        }
+
+        // Packet Loss Warning
+        telemetry?.let { telem ->
+            PacketLossWarningCard(
+                packetsSent = telem.packetsSent,
+                packetsDropped = telem.packetsDropped,
+                packetsFailed = telem.packetsFailed
+            )
+        }
+
 
         // Debug Panel (if visible)
         if (viewModel.isDebugPanelVisible) {

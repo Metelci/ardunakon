@@ -130,6 +130,7 @@ fun ControlScreen(
                 health = health,
                 debugLogs = debugLogs,
                 telemetry = telemetry,
+                autoReconnectEnabled = autoReconnectEnabled,
                 isEStopActive = isEStopActive,
                 isDarkTheme = isDarkTheme,
                 safeDrawingPadding = safeDrawingPadding,

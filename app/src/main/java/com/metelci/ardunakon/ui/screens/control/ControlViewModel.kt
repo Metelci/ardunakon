@@ -295,7 +295,8 @@ class ControlViewModel(
         try {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
             val fileName = "ardunakon_logs_$timestamp.txt"
-            val file = File(context.cacheDir, fileName)
+            val exportDir = File(context.cacheDir, "shared_logs").apply { mkdirs() }
+            val file = File(exportDir, fileName)
 
             val logContent = buildString {
                 appendLine("Ardunakon Debug Logs")

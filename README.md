@@ -5,7 +5,7 @@ Ardunakon is a professional-grade Android application designed to control Arduin
 
 ## Release Info
 * Current Alpha: **0.2.6-alpha** (build 23)
-* Target SDK: 35, Min SDK: 26
+* Target SDK: 36, Min SDK: 26
 
 ### What's New in 0.2.6-alpha
 *   **Critical BLE Safety Fix**: Fixed motor unexpectedly spinning on BLE reconnect (Android 15/16)
