@@ -1,60 +1,42 @@
 /*
- * Ardunakon - Arduino UNO R4 WiFi Sketch
- *
- * Full support for Arduino UNO R4 WiFi with built-in BLE/WiFi
- * Designed for use with the Ardunakon Android Controller App
- *
- * Board: Arduino UNO R4 WiFi (Renesas RA4M1 + ESP32-S3)
- * Connectivity: Bluetooth 5 BLE + WiFi (built-in)
- *
- * Protocol: 10-byte binary packets @ 20Hz
- * [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
- *
- * Features:
- * - Dual connectivity: BLE and WiFi (UDP)
- * - Arcade drive mixing for differential drive robots
- * - 2-axis servo control (pan/tilt or steering)
- * - Battery voltage monitoring
- * - E-Stop safety system
- * - Device capability announcement
- *
- * Compatible UUIDs:
- * - Primary: ArduinoBLE default (19B10000/19B10001)
- * - Fallback: HM-10 style (0000FFE0/0000FFE1)
- *
- * v2.2 - WiFi + BLE Dual Mode
+ * Ardunakon + Modulino BLE Yılan Oyunu
+ * Arduino R4 WiFi için tasarlandı
  * 
- * IMPORTANT: Update Servo library to v1.2.2+ for R4 WiFi compatibility
+ * Kontrol Seçenekleri:
+ * 1. Ardunakon Android Uygulaması (BLE)
+ *    - Sol Joystick: Sol/Sağ = Yılanı döndür
+ *    - W butonu: Oyunu başlat
+ *    - L butonu: Sola dön
+ *    - R butonu: Sağa dön
+ *    - B butonu: Oyunu başlat (alternatif)
+ * 
+ * 2. Modulino Buttons (Fiziksel)
+ *    - Sol Buton (0): Sola dön
+ *    - Sağ Buton (2): Sağa dön
+ *    - Orta Buton (1): Oyunu başlat
+ * 
+ * Özellikler:
+ * - Sonsuz Ekran (Pac-Man modu)
+ * - Göreceli yönlendirme
+ * - Zorluk seviyesine göre renk değişimi
+ * - Ses efektleri
+ * 
+ * BLE Protokolü: Nordic UART Service (NUS)
+ * - Service:  6E400001-B5A3-F393-E0A9-E50E24DCCA9E
+ * - TX Char:  6E400003-... (notify - device → phone)
+ * - RX Char:  6E400002-... (write - phone → device) 
  */
 
+#include "Arduino_LED_Matrix.h"
+#include <Modulino.h>
 #include <ArduinoBLE.h>
-#include <Servo.h>
-#include <WiFiS3.h>
-#include <WiFiUdp.h>
 
-// ============== CONFIGURATION ==============
-// WiFi credentials - Change these to match your network
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+// --- BLE Nordic UART Service UUIDs ---
+#define SERVICE_UUID        "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+#define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"  // Phone → Arduino (write)
+#define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"  // Arduino → Phone (notify)
 
-// UDP port for WiFi control
-#define UDP_PORT 4210
-
-// Set to true to enable WiFi mode (requires valid credentials above)
-#define WIFI_ENABLED false
-
-// ============== BLE CONFIGURATION ==============
-// Primary: ArduinoBLE default UUIDs
-#define PRIMARY_SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1214"
-#define PRIMARY_CHAR_UUID_TX        "19B10001-E8F2-537E-4F6C-D104768A1214"
-#define PRIMARY_CHAR_UUID_RX        "19B10002-E8F2-537E-4F6C-D104768A1214"
-
-// Fallback: HM-10 compatible UUIDs (for clones and older apps)
-#define HM10_SERVICE_UUID           "0000ffe0-0000-1000-8000-00805f9b34fb"
-#define HM10_CHAR_UUID_TX           "0000ffe1-0000-1000-8000-00805f9b34fb"
-#define HM10_CHAR_UUID_RX           "0000ffe2-0000-1000-8000-00805f9b34fb"
-
-// ============== PROTOCOL CONSTANTS ==============
+// --- Ardunakon Protocol Constants ---
 #define START_BYTE 0xAA
 #define END_BYTE   0x55
 #define PACKET_SIZE 10
@@ -64,571 +46,690 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 #define CMD_BUTTON    0x02
 #define CMD_HEARTBEAT 0x03
 #define CMD_ESTOP     0x04
-#define CMD_ANNOUNCE_CAPABILITIES 0x05
 
-// Board Type
-#define BOARD_TYPE_R4_WIFI 0x02
+// Aux Button Bits
+#define AUX_W 0x01  // bit 0 - Forward/Start
+#define AUX_A 0x02  // bit 1 - Alternate (B button in some configs)
+#define AUX_L 0x04  // bit 2 - Left
+#define AUX_R 0x08  // bit 3 - Right
+#define AUX_B 0x02  // bit 1 - Back/Start alternate
 
-// Capability Flags (Byte 1)
-#define CAP1_SERVO_X    0x01  // Has horizontal servo
-#define CAP1_SERVO_Y    0x02  // Has vertical servo
-#define CAP1_MOTOR      0x04  // Has motor driver
-#define CAP1_ENCODER    0x08  // Has wheel encoders
-#define CAP1_BUZZER     0x10  // Has buzzer
-#define CAP1_WIFI       0x20  // Has WiFi
-#define CAP1_BLE        0x40  // Has BLE
-#define CAP1_BATTERY    0x80  // Has battery monitoring
+// --- Fonksiyon Ön Tanımları ---
+void gameLoop();
+void checkCollisions();
+void playEatSound();
+void playStartMelody();
+void playGameOverSound();
+void updatePixels();
+void setPixelsColor(int r, int g, int b);
+void spawnFood();
+void drawGame();
+void endGame();
+void resetGame();
+void showIcon(String type);
+void changeDirection(int turn);
+bool isClicked(int btnIndex);
+void handleBlePacket(uint8_t* packet);
+void sendTelemetry();
 
-// ============== PIN DEFINITIONS ==============
-// Motor Driver (L298N / TB6612FNG / Single ESC)
-// Left joystick Y-axis controls throttle, X-axis controls steering
-// Note: R4 WiFi PWM pins: 3, 5, 6, 9, 10, 11
-#define MOTOR_PWM         3   // ESC/Motor PWM signal (brushless ESC or DC motor)
-#define MOTOR_DIR1        8   // Direction 1 (for DC motor, not used for ESC)
-#define MOTOR_DIR2        7   // Direction 2 (for DC motor, not used for ESC)
+// --- BLE Objects ---
+BLEService uartService(SERVICE_UUID);
+BLECharacteristic rxCharacteristic(CHARACTERISTIC_UUID_RX, BLEWrite | BLEWriteWithoutResponse, 20);
+BLECharacteristic txCharacteristic(CHARACTERISTIC_UUID_TX, BLERead | BLENotify, 20);
 
-// Servos - Controlled by W/B/L/R buttons
-// Pin 9: Servo X (Horizontal) - L=Left, R=Right
-// Pin 10: Servo Y (Vertical) - W=Forward/Up, B=Backward/Down
-#define SERVO_X_PIN       9   // Horizontal servo (L/R buttons)
-#define SERVO_Y_PIN       10  // Vertical servo (W/B buttons)
+// --- Modül Tanımları ---
+ModulinoButtons buttons;
+ModulinoPixels pixels;
+ModulinoBuzzer buzzer;
+ArduinoLEDMatrix matrix;
 
-// Motor Deadzone - Prevents motor from running with small joystick drift
-#define MOTOR_DEADZONE    5   // Values below this (%) are treated as zero
-
-// Status LED and Buzzer
-#define LED_STATUS        LED_BUILTIN  // Built-in LED (Pin 13)
-#define LED_WIFI          LED_BUILTIN  // WiFi status
-#define BUZZER_PIN        11           // Passive buzzer (moved from 3 to avoid PWM conflict)
-
-// Battery Voltage (with voltage divider)
-#define BATTERY_PIN       A0
-
-// ============== OBJECTS ==============
-Servo servoX;
-Servo servoY;
-
-// BLE Services and Characteristics
-// Primary service (ArduinoBLE default)
-BLEService primaryService(PRIMARY_SERVICE_UUID);
-BLECharacteristic primaryTxChar(PRIMARY_CHAR_UUID_TX, BLERead | BLENotify, 20);
-BLECharacteristic primaryRxChar(PRIMARY_CHAR_UUID_RX, BLEWrite | BLEWriteWithoutResponse, 20);
-
-// HM-10 compatible service (fallback)
-BLEService hm10Service(HM10_SERVICE_UUID);
-BLECharacteristic hm10TxChar(HM10_CHAR_UUID_TX, BLERead | BLENotify, 20);
-BLECharacteristic hm10RxChar(HM10_CHAR_UUID_RX, BLEWrite | BLEWriteWithoutResponse, 20);
-
-// WiFi UDP
-WiFiUDP udp;
-bool wifiConnected = false;
-
-// ============== STATE VARIABLES ==============
-// Packet buffer
+// --- BLE State ---
+bool bleConnected = false;
 uint8_t packetBuffer[PACKET_SIZE];
 uint8_t bufferIndex = 0;
+unsigned long lastTelemetryTime = 0;
 
-// Timing
-unsigned long lastPacketTime = 0;
-unsigned long lastHeartbeatTime = 0;
-unsigned long lastWifiCheckTime = 0;
+// --- Modulino State ---
+bool buttonsAvailable = false;  // Buton modülü bağlı mı?
 
-// Control state (-100 to +100 range)
-int8_t leftX = 0, leftY = 0;   // Drive joystick (Steering, Throttle)
-int8_t rightX = 0, rightY = 0; // Servo control (X: A/L, Y: W/R)
-uint8_t auxBits = 0;           // Auxiliary button states
-bool emergencyStop = false;
+// --- Joystick Dead Zone ---
+#define JOYSTICK_THRESHOLD 30  // Joystick hassasiyet eşiği
 
-// Telemetry
-float batteryVoltage = 0.0;
-uint8_t systemStatus = 0;
+// --- Oyun Değişkenleri ---
+const int width = 12;
+const int height = 8;
+int gameSpeed = 250; 
 
-// Connection tracking
-bool bleConnected = false;
-String connectedDeviceAddress = "";
+struct Point { int x; int y; };
+Point snake[100];
+int snakeLength = 3;
 
-// ============== FUNCTION PROTOTYPES ==============
-void processIncomingByte(uint8_t inByte);
-bool validateChecksum();
-void handlePacket();
-void updateDrive();
-void updateServos();
-void setMotor(int speed);
-void handleButton(uint8_t buttonId, uint8_t pressed);
-void safetyStop();
-void sendTelemetry(bool viaBle, bool viaWifi);
-void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow, bool viaBle, bool viaWifi);
-void sendCapabilities(bool viaBle, bool viaWifi);
-void setupWiFi();
-void handleWiFiPackets();
-void blinkLed(int times, int delayMs);
+// Yön: 0: Yukarı, 1: Sağ, 2: Aşağı, 3: Sol
+int currentDir = 1; 
+int nextDir = 1; 
 
-// ============== SETUP ==============
+Point food;
+bool gameOver = true;
+unsigned long lastMoveTime = 0;
+
+// Buton Durumları (Tekrarı önlemek için)
+bool btnLastState[3] = {false, false, false};
+
+// BLE Buton Durumları (Tekrarı önlemek için)
+uint8_t lastAuxBits = 0;
+int8_t lastJoystickX = 0;
+
+// Ekran Tamponu
+uint8_t frame[8][12];
+
 void setup() {
-  Serial.begin(115200);
-  while (!Serial && millis() < 3000); // Wait up to 3s for Serial
+  Serial.begin(9600);  // Standart baud rate
+  delay(1000);  // USB stabilizasyonu için bekle
+  Serial.println("Ardunakon Yilan Oyunu v2.0 - BLE + Modulino");
   
-  Serial.println("====================================");
-  Serial.println("Ardunakon R4 WiFi Controller v2.2");
-  Serial.println("====================================");
-
-  // Initialize GPIO pins - Single motor (ESC or DC motor driver)
-  pinMode(MOTOR_PWM, OUTPUT);
-  pinMode(MOTOR_DIR1, OUTPUT);
-  pinMode(MOTOR_DIR2, OUTPUT);
-  pinMode(LED_STATUS, OUTPUT);
-  pinMode(BUZZER_PIN, OUTPUT);  // Buzzer on pin 11
-
-  // Initialize motor to stopped
-  safetyStop();
-
-  // Initialize Servos (centered position)
-  servoX.attach(SERVO_X_PIN);
-  servoY.attach(SERVO_Y_PIN);
-  servoX.write(90); // Center position
-  servoY.write(90); // Center position
-  Serial.println("[OK] Servos initialized (centered at 90°)");
-
-  // Initialize BLE
-  if (!BLE.begin()) {
-    Serial.println("[ERROR] BLE initialization failed!");
-    // Continue anyway - WiFi might work
+  // LED Matrix önce başlat (görsel geri bildirim için)
+  matrix.begin();
+  
+  // Modülleri Başlat
+  Modulino.begin();
+  delay(200);  // Modulino stabilizasyonu
+  
+  // Buton modülünü kontrol et
+  buttonsAvailable = buttons.begin();
+  if (buttonsAvailable) {
+    Serial.println("Modulino Buttons: BAGLI");
   } else {
-    // Set BLE device name (appears in scan results)
-    BLE.setLocalName("ArdunakonR4");
-    BLE.setDeviceName("ArdunakonR4");
+    Serial.println("Modulino Buttons: YOK - Sadece BLE kontrol aktif");
+  }
+  
+  pixels.begin();
+  buzzer.begin();
+  
+  // Başlangıç animasyonu
+  setPixelsColor(50, 50, 0);  // Sarı = başlatılıyor
+  
+  // BLE Başlat - R4 WiFi bazen birkaç deneme gerektirir
+  Serial.println("BLE baslatiliyor...");
+  
+  bool bleOk = false;
+  for (int attempt = 1; attempt <= 3; attempt++) {
+    Serial.print("BLE deneme "); Serial.print(attempt); Serial.println("/3...");
     
-    // Setup primary service (ArduinoBLE default)
-    primaryService.addCharacteristic(primaryTxChar);
-    primaryService.addCharacteristic(primaryRxChar);
-    BLE.addService(primaryService);
+    delay(500 * attempt);  // Her denemede daha uzun bekle
     
-    // Setup HM-10 compatible service (fallback for clone modules)
-    hm10Service.addCharacteristic(hm10TxChar);
-    hm10Service.addCharacteristic(hm10RxChar);
-    BLE.addService(hm10Service);
+    if (BLE.begin()) {
+      bleOk = true;
+      Serial.println("BLE baslatildi!");
+      break;
+    }
     
-    // Set advertised service
-    BLE.setAdvertisedService(primaryService);
+    Serial.println("BLE basarisiz, tekrar deneniyor...");
+  }
+  
+  if (!bleOk) {
+    Serial.println("BLE baslatma HATASI! (3 deneme sonra)");
+    Serial.println("Sadece Modulino butonlari ile oynanabilir.");
+    setPixelsColor(100, 0, 0);  // Kırmızı = hata
+  } else {
+    // Cihaz adını ayarla
+    BLE.setLocalName("SnakeR4");
+    BLE.setDeviceName("SnakeR4");
     
-    // Start advertising
-    BLE.advertise();
+    // Bağlanılabilir olarak ayarla
+    BLE.setConnectable(true);
     
-    Serial.println("[OK] BLE initialized - Advertising as 'ArdunakonR4'");
-    Serial.print("     Primary Service: ");
-    Serial.println(PRIMARY_SERVICE_UUID);
-    Serial.print("     HM-10 Service:   ");
-    Serial.println(HM10_SERVICE_UUID);
+    // Service ve Characteristic ekle
+    uartService.addCharacteristic(rxCharacteristic);
+    uartService.addCharacteristic(txCharacteristic);
+    BLE.addService(uartService);
+    
+    // Reklam ayarları - daha hızlı ve görünür
+    BLE.setAdvertisedServiceUuid(uartService.uuid());
+    BLE.setAdvertisedService(uartService);
+    
+    // Reklam aralığını ayarla (ms cinsinden, varsayılan 100ms)
+    // Daha kısa = daha hızlı keşfedilir ama daha fazla güç tüketir
+    
+    // Reklamı başlat
+    if (BLE.advertise()) {
+      Serial.println("BLE hazir - 'SnakeR4' olarak yayinda");
+      Serial.println("Service UUID: " + String(SERVICE_UUID));
+    } else {
+      Serial.println("BLE advertise HATASI!");
+      setPixelsColor(100, 50, 0);  // Turuncu = reklam hatası
+    }
   }
 
-  // Initialize WiFi (optional)
-  #if WIFI_ENABLED
-  setupWiFi();
-  #else
-  Serial.println("[INFO] WiFi disabled (set WIFI_ENABLED=true to enable)");
-  #endif
-
-  // Ready indication
-  blinkLed(3, 200);
-  tone(BUZZER_PIN, 1000, 100);
+  // Rastgelelik için çekirdek oluştur
+  randomSeed(analogRead(0));
   
-  Serial.println("====================================");
-  Serial.println("Ready! Waiting for connection...");
-  Serial.println("====================================");
+  // Bekleme Modu Işıkları (Mavi)
+  setPixelsColor(0, 0, 50);
+  showIcon("START"); 
+  
+  // Buton durumlarını senkronize et (sadece modül bağlıysa)
+  if (buttonsAvailable) {
+    Serial.println("Butonlar senkronize ediliyor...");
+    delay(1000);  // 1 saniye bekle
+    
+    // Birkaç kez oku ve son durumu kaydet
+    for (int j = 0; j < 10; j++) {
+      buttons.update();
+      delay(50);
+    }
+    for (int i = 0; i < 3; i++) {
+      btnLastState[i] = buttons.isPressed(i);
+      Serial.print("Buton "); Serial.print(i); 
+      Serial.print(" durumu: "); Serial.println(btnLastState[i] ? "BASILI" : "SERBEST");
+    }
+  }
+  
+  Serial.println("Oyun Hazir - Bir butona basin veya Ardunakon ile baglanin!");
+  buzzer.tone(1000, 100);  // Hazır sesi
 }
 
-// ============== MAIN LOOP ==============
 void loop() {
-  // -------- BLE Handling --------
+  // BLE olaylarını işle (reklam, bağlantı vb.)
+  BLE.poll();
+  
+  // --- BLE İşlemleri ---
   BLEDevice central = BLE.central();
-
+  
   if (central) {
     if (!bleConnected) {
-      // New connection
       bleConnected = true;
-      connectedDeviceAddress = central.address();
-      Serial.print("[BLE] Connected: ");
-      Serial.println(connectedDeviceAddress);
-      digitalWrite(LED_STATUS, HIGH);
+      Serial.println("BLE Baglandi: " + central.address());
       
-      // Send capabilities on connect
-      delay(100); // Small delay for stable connection
-      sendCapabilities(true, false);
+      // Bağlantı bildirimi - yeşil flaş
+      setPixelsColor(0, 100, 0);
+      buzzer.tone(1500, 50);
+      delay(100);
+      setPixelsColor(0, 0, 50);
     }
-
-    // Process incoming data from both characteristic pairs
-    if (primaryRxChar.written()) {
-      int len = primaryRxChar.valueLength();
-      const uint8_t* data = primaryRxChar.value();
+    
+    // Gelen veri var mı kontrol et
+    if (rxCharacteristic.written()) {
+      int len = rxCharacteristic.valueLength();
+      const uint8_t* data = rxCharacteristic.value();
+      
+      // DEBUG: Gelen veriyi göster
+      Serial.print("RX ["); Serial.print(len); Serial.print(" bytes]: ");
       for (int i = 0; i < len; i++) {
-        processIncomingByte(data[i]);
+        if (data[i] < 0x10) Serial.print("0");
+        Serial.print(data[i], HEX); Serial.print(" ");
+      }
+      Serial.println();
+      
+      // Paket parse et
+      for (int i = 0; i < len; i++) {
+        uint8_t byte = data[i];
+        
+        if (bufferIndex == 0 && byte != START_BYTE) continue;
+        
+        packetBuffer[bufferIndex++] = byte;
+        
+        if (bufferIndex >= PACKET_SIZE) {
+          if (packetBuffer[9] == END_BYTE) {
+            Serial.print("PAKET ALINDI - CMD: 0x"); Serial.println(packetBuffer[2], HEX);
+            handleBlePacket(packetBuffer);
+          }
+          bufferIndex = 0;
+        }
       }
     }
     
-    if (hm10RxChar.written()) {
-      int len = hm10RxChar.valueLength();
-      const uint8_t* data = hm10RxChar.value();
-      for (int i = 0; i < len; i++) {
-        processIncomingByte(data[i]);
+    // Telemetri gönder (20 saniye aralıkla)
+    if (millis() - lastTelemetryTime > 20000) {
+      sendTelemetry();
+      lastTelemetryTime = millis();
+    }
+  } else {
+    if (bleConnected) {
+      bleConnected = false;
+      Serial.println("BLE Baglanti kesildi");
+      setPixelsColor(0, 0, 50);  // Mavi'ye dön
+    }
+  }
+
+  // --- Modulino Buton Kontrolleri (sadece modül bağlıysa) ---
+  if (buttonsAvailable) {
+    buttons.update();
+
+    // Eğer oyun bitmişse (Bekleme Modu)
+    if (gameOver) {
+      // Herhangi bir butona basılırsa oyunu başlat
+      if (isClicked(0) || isClicked(1) || isClicked(2)) {
+        resetGame();
+      }
+    } else {
+      // --- OYUN SIRASINDA KONTROLLER ---
+      
+      // Sol Buton (0): Sola dön
+      if (isClicked(0)) {
+        changeDirection(-1);
+        buzzer.tone(1000, 20);
+      }
+      
+      // Sağ Buton (2): Sağa dön
+      if (isClicked(2)) {
+        changeDirection(1);
+        buzzer.tone(1000, 20);
       }
     }
-
-  } else if (bleConnected) {
-    // Disconnection detected
-    bleConnected = false;
-    Serial.println("[BLE] Disconnected");
-    digitalWrite(LED_STATUS, LOW);
-    safetyStop();
-    connectedDeviceAddress = "";
   }
-
-  // -------- WiFi Handling --------
-  #if WIFI_ENABLED
-  handleWiFiPackets();
   
-  // Periodic WiFi reconnection check
-  if (millis() - lastWifiCheckTime > 10000) {
-    lastWifiCheckTime = millis();
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("[WiFi] Connection lost, reconnecting...");
-      setupWiFi();
+  // Bekleme Animasyonu (her zaman çalışır)
+  if (gameOver) {
+    if (!bleConnected) {
+      if(millis() % 2000 < 1000) setPixelsColor(0, 0, 20); 
+      else setPixelsColor(0, 0, 50);
+    } else {
+      // BLE bağlıyken yeşil nefes
+      if(millis() % 2000 < 1000) setPixelsColor(0, 20, 0); 
+      else setPixelsColor(0, 50, 0);
     }
-  }
-  #endif
-
-  // -------- Periodic Telemetry --------
-  if (millis() - lastHeartbeatTime > 4000) {
-    sendTelemetry(bleConnected, wifiConnected);
-    lastHeartbeatTime = millis();
-  }
-
-  // -------- Safety Timeout --------
-  // If no packets received for 2 seconds, stop motors
-  if (millis() - lastPacketTime > 2000 && lastPacketTime > 0) {
-    safetyStop();
-  }
-}
-
-// ============== PACKET PROCESSING ==============
-void processIncomingByte(uint8_t inByte) {
-  // Wait for START_BYTE
-  if (bufferIndex == 0 && inByte != START_BYTE) {
     return;
   }
+
+  // Oyun Döngüsü
+  if (millis() - lastMoveTime > gameSpeed) {
+    gameLoop();
+    lastMoveTime = millis();
+  }
+}
+
+// --- BLE Paket İşleme ---
+void handleBlePacket(uint8_t* packet) {
+  uint8_t cmd = packet[2];
   
-  packetBuffer[bufferIndex++] = inByte;
-
-  // Check for complete packet
-  if (bufferIndex >= PACKET_SIZE) {
-    if (packetBuffer[PACKET_SIZE - 1] == END_BYTE && validateChecksum()) {
-      handlePacket();
-    } else {
-      Serial.println("[WARN] Invalid packet (checksum/end byte)");
-    }
-    bufferIndex = 0; // Reset buffer
-  }
-}
-
-bool validateChecksum() {
-  uint8_t xorCheck = 0;
-  for (int i = 1; i <= 7; i++) {
-    xorCheck ^= packetBuffer[i];
-  }
-  return (xorCheck == packetBuffer[8]);
-}
-
-void handlePacket() {
-  lastPacketTime = millis();
-  uint8_t cmd = packetBuffer[2];
-
   switch (cmd) {
-    case CMD_JOYSTICK:
-      // Map 0-200 range to -100 to +100
-      leftX = map(packetBuffer[3], 0, 200, -100, 100);  // Steering
-      leftY = map(packetBuffer[4], 0, 200, -100, 100);  // Throttle
-      rightX = map(packetBuffer[5], 0, 200, -100, 100); // Servo X (A/L)
-      rightY = map(packetBuffer[6], 0, 200, -100, 100); // Servo Y (W/R)
-      auxBits = packetBuffer[7];
-
-      if (!emergencyStop) {
-        updateDrive();
-        updateServos();
+    case CMD_JOYSTICK: {
+      // Paket yapısı: [AA, DEV, CMD, leftX, leftY, rightX, rightY, auxBits, checksum, 55]
+      int8_t leftX = (int8_t)(packet[3] - 128);   // Sol joystick X
+      int8_t leftY = (int8_t)(packet[4] - 128);   // Sol joystick Y
+      int8_t rightX = (int8_t)(packet[5] - 128);  // Servo X (L/R butonları)
+      int8_t rightY = (int8_t)(packet[6] - 128);  // Servo Y (W/B butonları)
+      
+      // DEBUG
+      Serial.print("Joy: LX="); Serial.print(leftX);
+      Serial.print(" LY="); Serial.print(leftY);
+      Serial.print(" RX="); Serial.print(rightX);
+      Serial.print(" RY="); Serial.print(rightY);
+      Serial.print(" game="); Serial.println(gameOver ? "OVER" : "PLAY");
+      
+      // Servo butonlarını algıla - merkez→basılı geçişini algıla
+      // Merkez bölgesi: -30 to +30
+      // Basılı bölgesi: < -50 veya > +50
+      
+      static int8_t lastRightX = 0;
+      static int8_t lastRightY = 0;
+      static bool servoLActive = false;
+      static bool servoRActive = false;
+      static bool servoWActive = false;
+      static bool servoBActive = false;
+      
+      // L butonu - merkez→negatif geçişi
+      bool lPressed = rightX < -50;
+      if (lPressed && !servoLActive) {
+        servoLActive = true;
+        Serial.println(">>> L: SOLA");
+        if (!gameOver) { changeDirection(-1); buzzer.tone(1000, 20); }
+      } else if (!lPressed && rightX > -30) {
+        servoLActive = false;  // Merkeze döndü
+      }
+      
+      // R butonu - merkez→pozitif geçişi
+      bool rPressed = rightX > 50;
+      if (rPressed && !servoRActive) {
+        servoRActive = true;
+        Serial.println(">>> R: SAGA");
+        if (!gameOver) { changeDirection(1); buzzer.tone(1000, 20); }
+      } else if (!rPressed && rightX < 30) {
+        servoRActive = false;  // Merkeze döndü
+      }
+      
+      // W butonu - pozitif yön
+      bool wPressed = rightY > 50;
+      if (wPressed && !servoWActive) {
+        servoWActive = true;
+        Serial.println(">>> W: OYUN BASLAT");
+        if (gameOver) resetGame();
+      } else if (!wPressed && rightY < 30) {
+        servoWActive = false;
+      }
+      
+      // B butonu - negatif yön
+      bool bPressed = rightY < -50;
+      if (bPressed && !servoBActive) {
+        servoBActive = true;
+        Serial.println(">>> B: OYUN BASLAT");
+        if (gameOver) resetGame();
+      } else if (!bPressed && rightY > -30) {
+        servoBActive = false;
+      }
+      
+      lastRightX = rightX;
+      lastRightY = rightY;
+      
+      // Sol Joystick ile kontrol
+      if (gameOver) {
+        // Oyun başlat: herhangi bir yöne
+        if (abs(leftX) > 30 || abs(leftY) > 30) {
+          Serial.println(">>> JOY: OYUN BASLAT");
+          resetGame();
+        }
+      } else {
+        // Oyun sırasında: Sol/sağ dönüş (geçiş algılama)
+        if (leftX < -30 && lastJoystickX >= -30) {
+          Serial.println(">>> JOY: SOLA");
+          changeDirection(-1);
+          buzzer.tone(1000, 20);
+        } else if (leftX > 30 && lastJoystickX <= 30) {
+          Serial.println(">>> JOY: SAGA");
+          changeDirection(1);
+          buzzer.tone(1000, 20);
+        }
+      }
+      
+      lastJoystickX = leftX;
+      break;
+    }
+    
+    case CMD_BUTTON: {
+      // D1 = auxBits
+      uint8_t auxBits = packet[3];
+      
+      // DEBUG
+      Serial.print("Butonlar: 0x"); Serial.print(auxBits, HEX);
+      Serial.print(" (W="); Serial.print((auxBits & AUX_W) ? "1" : "0");
+      Serial.print(" L="); Serial.print((auxBits & AUX_L) ? "1" : "0");
+      Serial.print(" R="); Serial.print((auxBits & AUX_R) ? "1" : "0");
+      Serial.println(")");
+      
+      // W veya B butonu - Oyunu başlat
+      if ((auxBits & AUX_W) && !(lastAuxBits & AUX_W)) {
+        Serial.println(">>> W BUTONU - OYUN BASLAT");
+        if (gameOver) {
+          resetGame();
+        }
+      }
+      if ((auxBits & AUX_B) && !(lastAuxBits & AUX_B)) {
+        Serial.println(">>> B BUTONU - OYUN BASLAT");
+        if (gameOver) {
+          resetGame();
+        }
+      }
+      
+      // L butonu - Sola dön
+      if ((auxBits & AUX_L) && !(lastAuxBits & AUX_L)) {
+        Serial.println(">>> L BUTONU - SOLA DON");
+        if (!gameOver) {
+          changeDirection(-1);
+          buzzer.tone(1000, 20);
+        }
+      }
+      
+      // R butonu - Sağa dön
+      if ((auxBits & AUX_R) && !(lastAuxBits & AUX_R)) {
+        Serial.println(">>> R BUTONU - SAGA DON");
+        if (!gameOver) {
+          changeDirection(1);
+          buzzer.tone(1000, 20);
+        }
+      }
+      
+      lastAuxBits = auxBits;
+      break;
+    }
+    
+    case CMD_HEARTBEAT:
+      // Heartbeat - bağlantı sağlığı
+      break;
+      
+    case CMD_ESTOP:
+      Serial.println(">>> E-STOP");
+      if (!gameOver) {
+        endGame();
       }
       break;
-
-    case CMD_BUTTON:
-      handleButton(packetBuffer[3], packetBuffer[4]);
-      break;
-
-    case CMD_HEARTBEAT:
-      sendHeartbeatAck(packetBuffer[3], packetBuffer[4], bleConnected, wifiConnected);
-      break;
-
-    case CMD_ESTOP:
-      emergencyStop = true;
-      safetyStop();
-      Serial.println("[E-STOP] ACTIVATED!");
-      tone(BUZZER_PIN, 2000, 500);
-      break;
   }
 }
 
-// ============== MOTOR CONTROL ==============
-// Single motor/ESC controlled by left joystick Y-axis (throttle)
-// IMPORTANT: Deadzone prevents motor from running due to joystick drift
-void updateDrive() {
-  // Apply deadzone - values below MOTOR_DEADZONE are treated as zero
-  // This prevents the motor from running when joystick is at center
-  int throttle = leftY;
-  
-  if (abs(throttle) < MOTOR_DEADZONE) {
-    throttle = 0; // Kill small values to prevent unintended movement
-  }
-
-  // Clamp to valid range
-  throttle = constrain(throttle, -100, 100);
-
-  // Set motor speed
-  setMotor(throttle);
-}
-
-void setMotor(int speed) {
-  // Apply deadzone one more time for safety
-  if (abs(speed) < MOTOR_DEADZONE) {
-    speed = 0;
-  }
-  
-  if (speed > 0) {
-    // Forward
-    digitalWrite(MOTOR_DIR1, HIGH);
-    digitalWrite(MOTOR_DIR2, LOW);
-    analogWrite(MOTOR_PWM, map(speed, 0, 100, 0, 255));
-  } else if (speed < 0) {
-    // Reverse
-    digitalWrite(MOTOR_DIR1, LOW);
-    digitalWrite(MOTOR_DIR2, HIGH);
-    analogWrite(MOTOR_PWM, map(-speed, 0, 100, 0, 255));
-  } else {
-    // Stop (brake mode) - CRITICAL: Ensure motor is off
-    digitalWrite(MOTOR_DIR1, LOW);
-    digitalWrite(MOTOR_DIR2, LOW);
-    analogWrite(MOTOR_PWM, 0);
-  }
-}
-
-// ============== SERVO CONTROL ==============
-void updateServos() {
-  // Map -100..+100 to 0..180 degrees
-  // Center (0) = 90 degrees
-  int angleX = map(rightX, -100, 100, 0, 180);
-  int angleY = map(rightY, -100, 100, 0, 180);
-  
-  servoX.write(angleX);
-  servoY.write(angleY);
-}
-
-// ============== BUTTON HANDLING ==============
-void handleButton(uint8_t buttonId, uint8_t pressed) {
-  Serial.print("[BTN] Button ");
-  Serial.print(buttonId);
-  Serial.print(" = ");
-  Serial.println(pressed ? "PRESSED" : "RELEASED");
-  
-  // Button 1 = Clear E-Stop
-  if (buttonId == 1 && pressed == 1) {
-    emergencyStop = false;
-    Serial.println("[E-STOP] CLEARED");
-    tone(BUZZER_PIN, 500, 200);
-  }
-  
-  // Add custom button handling here
-  // Example: buttonId 2 = Toggle LED
-  // if (buttonId == 2 && pressed == 1) {
-  //   digitalWrite(SOME_PIN, !digitalRead(SOME_PIN));
-  // }
-}
-
-// ============== SAFETY ==============
-void safetyStop() {
-  // Stop motor immediately - CRITICAL for safety
-  analogWrite(MOTOR_PWM, 0);
-  digitalWrite(MOTOR_DIR1, LOW);
-  digitalWrite(MOTOR_DIR2, LOW);
-  
-  // Reset ALL control state to neutral
-  leftX = 0;
-  leftY = 0;
-  rightX = 0;
-  rightY = 0;
-  
-  // Reset servos to center
-  servoX.write(90);
-  servoY.write(90);
-}
-
-// ============== TELEMETRY ==============
-void sendTelemetry(bool viaBle, bool viaWifi) {
-  // Read battery voltage (assuming 3:1 voltage divider for 12V batteries)
-  int rawValue = analogRead(BATTERY_PIN);
-  batteryVoltage = (rawValue / 1023.0) * 3.3 * 3.0; // R4 is 3.3V ADC
-
-  // Build telemetry packet
-  uint8_t telemetry[PACKET_SIZE];
+// --- Telemetri Gönder ---
+void sendTelemetry() {
+  // Basit telemetri paketi: Oyun durumu + skor
+  uint8_t telemetry[10];
   telemetry[0] = START_BYTE;
-  telemetry[1] = 0x01; // Device ID
-  telemetry[2] = CMD_HEARTBEAT;
-  telemetry[3] = (uint8_t)(batteryVoltage * 10); // Battery in 0.1V units
-  telemetry[4] = emergencyStop ? 1 : 0;
-  telemetry[5] = WiFi.status() == WL_CONNECTED ? 1 : 0; // WiFi status
-  telemetry[6] = 0; // Reserved
-  telemetry[7] = 0; // Reserved
+  telemetry[1] = 0x01;  // Device ID
+  telemetry[2] = 0x10;  // Telemetry command (custom)
+  telemetry[3] = gameOver ? 0 : 1;  // Game state
+  telemetry[4] = (uint8_t)snakeLength;  // Score
+  telemetry[5] = (uint8_t)(gameSpeed / 10);  // Speed indicator
+  telemetry[6] = bleConnected ? 1 : 0;
+  telemetry[7] = 0;
   
-  // Calculate checksum
-  uint8_t xorCheck = 0;
+  // Checksum
+  uint8_t checksum = 0;
   for (int i = 1; i <= 7; i++) {
-    xorCheck ^= telemetry[i];
+    checksum ^= telemetry[i];
   }
-  telemetry[8] = xorCheck;
+  telemetry[8] = checksum;
   telemetry[9] = END_BYTE;
-
-  // Send via BLE
-  if (viaBle) {
-    primaryTxChar.writeValue(telemetry, PACKET_SIZE);
-    hm10TxChar.writeValue(telemetry, PACKET_SIZE);
-  }
-
-  // Send via WiFi UDP
-  #if WIFI_ENABLED
-  if (viaWifi && wifiConnected) {
-    // Broadcast telemetry
-    udp.beginPacket(udp.remoteIP(), udp.remotePort());
-    udp.write(telemetry, PACKET_SIZE);
-    udp.endPacket();
-  }
-  #endif
+  
+  txCharacteristic.writeValue(telemetry, 10);
 }
 
-void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow, bool viaBle, bool viaWifi) {
-  uint8_t ack[PACKET_SIZE];
-  ack[0] = START_BYTE;
-  ack[1] = 0x01;
-  ack[2] = CMD_HEARTBEAT;
-  ack[3] = seqHigh;
-  ack[4] = seqLow;
-  ack[5] = 0;
-  ack[6] = 0;
-  ack[7] = 0;
+// Buton Tıklama Kontrolü (State Change Detection)
+bool isClicked(int btnIndex) {
+  bool currentState = buttons.isPressed(btnIndex);
   
-  uint8_t xorCheck = 0;
-  for (int i = 1; i <= 7; i++) {
-    xorCheck ^= ack[i];
+  if (currentState && !btnLastState[btnIndex]) {
+    btnLastState[btnIndex] = true;
+    return true;
+  } else if (!currentState) {
+    btnLastState[btnIndex] = false;
   }
-  ack[8] = xorCheck;
-  ack[9] = END_BYTE;
-
-  if (viaBle) {
-    primaryTxChar.writeValue(ack, PACKET_SIZE);
-    hm10TxChar.writeValue(ack, PACKET_SIZE);
-  }
-
-  #if WIFI_ENABLED
-  if (viaWifi && wifiConnected) {
-    udp.beginPacket(udp.remoteIP(), udp.remotePort());
-    udp.write(ack, PACKET_SIZE);
-    udp.endPacket();
-  }
-  #endif
+  
+  return false;
 }
 
-void sendCapabilities(bool viaBle, bool viaWifi) {
-  uint8_t packet[PACKET_SIZE];
-  packet[0] = START_BYTE;
-  packet[1] = 0x01;
-  packet[2] = CMD_ANNOUNCE_CAPABILITIES;
+// Yön Değiştirme Mantığı (Göreceli)
+void changeDirection(int turn) {
+  nextDir = currentDir + turn;
   
-  // Capability byte 1: Hardware features
-  packet[3] = CAP1_SERVO_X | CAP1_SERVO_Y | CAP1_MOTOR | CAP1_BUZZER | CAP1_BLE | CAP1_WIFI | CAP1_BATTERY;
-  packet[4] = 0x00; // Capability byte 2: Modulino (none)
-  packet[5] = BOARD_TYPE_R4_WIFI;
-  packet[6] = 0x02; // Firmware version major
-  packet[7] = 0x02; // Firmware version minor (v2.2)
-  
-  uint8_t xorCheck = 0;
-  for (int i = 1; i <= 7; i++) {
-    xorCheck ^= packet[i];
-  }
-  packet[8] = xorCheck;
-  packet[9] = END_BYTE;
-
-  if (viaBle) {
-    primaryTxChar.writeValue(packet, PACKET_SIZE);
-    hm10TxChar.writeValue(packet, PACKET_SIZE);
-  }
-
-  #if WIFI_ENABLED
-  if (viaWifi && wifiConnected) {
-    udp.beginPacket(udp.remoteIP(), udp.remotePort());
-    udp.write(packet, PACKET_SIZE);
-    udp.endPacket();
-  }
-  #endif
-
-  Serial.println("[OK] Capabilities announced");
+  if (nextDir > 3) nextDir = 0;
+  if (nextDir < 0) nextDir = 3;
 }
 
-// ============== WIFI FUNCTIONS ==============
-void setupWiFi() {
-  #if WIFI_ENABLED
-  Serial.print("[WiFi] Connecting to ");
-  Serial.println(WIFI_SSID);
+// --- Ana Oyun Mantığı ---
+void gameLoop() {
+  currentDir = nextDir;
+  
+  // Kuyruğu takip ettir
+  for (int i = snakeLength - 1; i > 0; i--) {
+    snake[i] = snake[i - 1];
+  }
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  // Başı hareket ettir
+  if (currentDir == 0) snake[0].y--;
+  else if (currentDir == 1) snake[0].x++;
+  else if (currentDir == 2) snake[0].y++;
+  else if (currentDir == 3) snake[0].x--;
+
+  // Sonsuz Ekran
+  if (snake[0].x >= width) snake[0].x = 0;
+  else if (snake[0].x < 0) snake[0].x = width - 1;
   
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
+  if (snake[0].y >= height) snake[0].y = 0;
+  else if (snake[0].y < 0) snake[0].y = height - 1;
+
+  checkCollisions();
   
-  if (WiFi.status() == WL_CONNECTED) {
-    wifiConnected = true;
-    Serial.println();
-    Serial.print("[WiFi] Connected! IP: ");
-    Serial.println(WiFi.localIP());
-    
-    // Start UDP listener
-    udp.begin(UDP_PORT);
-    Serial.print("[WiFi] UDP listening on port ");
-    Serial.println(UDP_PORT);
-  } else {
-    wifiConnected = false;
-    Serial.println();
-    Serial.println("[WiFi] Connection failed!");
+  if (!gameOver) {
+    drawGame();
+    updatePixels();
   }
-  #endif
 }
 
-void handleWiFiPackets() {
-  #if WIFI_ENABLED
-  int packetSize = udp.parsePacket();
-  if (packetSize > 0) {
-    uint8_t buffer[32];
-    int bytesRead = udp.read(buffer, min(packetSize, 32));
-    
-    for (int i = 0; i < bytesRead; i++) {
-      processIncomingByte(buffer[i]);
+void checkCollisions() {
+  // Kendine Çarpma
+  for (int i = 1; i < snakeLength; i++) {
+    if (snake[0].x == snake[i].x && snake[0].y == snake[i].y) {
+      endGame();
+      return;
     }
   }
-  #endif
+
+  // Yem Yeme
+  if (snake[0].x == food.x && snake[0].y == food.y) {
+    snakeLength++;
+    playEatSound();
+    
+    if (gameSpeed > 80) gameSpeed -= 5;
+    
+    spawnFood();
+  }
 }
 
-// ============== UTILITY FUNCTIONS ==============
-void blinkLed(int times, int delayMs) {
-  for (int i = 0; i < times; i++) {
-    digitalWrite(LED_STATUS, HIGH);
-    delay(delayMs);
-    digitalWrite(LED_STATUS, LOW);
-    if (i < times - 1) delay(delayMs);
+// --- Ses Efektleri ---
+void playEatSound() {
+  buzzer.tone(2000, 50); 
+}
+
+void playStartMelody() {
+  int notes[] = {523, 659, 784, 1047};
+  int duration = 100;
+  
+  for(int i=0; i<4; i++) {
+    buzzer.tone(notes[i], duration);
+    delay(duration + 20);
   }
+}
+
+void playGameOverSound() {
+  int notes[] = {330, 294, 262, 196}; 
+  int durations[] = {150, 150, 150, 400};
+
+  for (int i = 0; i < 4; i++) {
+    buzzer.tone(notes[i], durations[i]);
+    delay(durations[i] * 1.3);
+  }
+}
+
+// --- Görsel Efektler ---
+void updatePixels() {
+  int r, g, b;
+  
+  if (snakeLength < 6) {       
+    r = 0; g = 50; b = 0;
+  } else if (snakeLength < 12) { 
+    r = 40; g = 30; b = 0;
+  } else {                       
+    r = 60; g = 0; b = 0;
+  }
+
+  for (int i = 0; i < 8; i++) {
+    pixels.set(i, r, g, b);
+  }
+  pixels.show();
+}
+
+void setPixelsColor(int r, int g, int b) {
+  for (int i = 0; i < 8; i++) {
+    pixels.set(i, r, g, b);
+  }
+  pixels.show();
+}
+
+// --- Yardımcı Fonksiyonlar ---
+void spawnFood() {
+  bool valid = false;
+  int attempts = 0;
+  
+  while (!valid && attempts < 100) {
+    food.x = random(0, width);
+    food.y = random(0, height);
+    valid = true;
+    for (int i = 0; i < snakeLength; i++) {
+      if (snake[i].x == food.x && snake[i].y == food.y) {
+        valid = false;
+        break;
+      }
+    }
+    attempts++;
+  }
+}
+
+void drawGame() {
+  memset(frame, 0, sizeof(frame));
+
+  // Yılan
+  for (int i = 0; i < snakeLength; i++) {
+    frame[snake[i].y][snake[i].x] = 1;
+  }
+  // Yem
+  frame[food.y][food.x] = 1;
+  
+  matrix.renderBitmap(frame, 8, 12);
+}
+
+void endGame() {
+  gameOver = true;
+  playGameOverSound();
+  
+  // Kırmızı Yanıp Sönme
+  for(int k=0; k<3; k++){
+    setPixelsColor(100, 0, 0);
+    delay(300);
+    setPixelsColor(0, 0, 0);
+    delay(300);
+  }
+  showIcon("OVER");
+  
+  // Skor bildirimi gönder
+  if (bleConnected) {
+    sendTelemetry();
+  }
+  
+  Serial.println("Game Over! Skor: " + String(snakeLength - 3));
+}
+
+void resetGame() {
+  snakeLength = 3;
+  snake[0] = {4, 4}; snake[1] = {3, 4}; snake[2] = {2, 4};
+  currentDir = 1;
+  nextDir = 1;
+  gameSpeed = 250;
+  gameOver = false;
+  
+  // BLE buton durumlarını sıfırla
+  lastAuxBits = 0;
+  lastJoystickX = 0;
+  
+  spawnFood();
+  playStartMelody();
+  
+  Serial.println("Oyun basladi!");
+}
+
+void showIcon(String type) {
+   uint8_t tempFrame[8][12] = {0};
+   
+   if (type == "OVER") {
+      // X İkonu
+      tempFrame[0][0]=1; tempFrame[0][11]=1;
+      tempFrame[1][1]=1; tempFrame[1][10]=1;
+      tempFrame[2][2]=1; tempFrame[2][9]=1;
+      tempFrame[3][3]=1; tempFrame[3][8]=1;
+      tempFrame[4][3]=1; tempFrame[4][8]=1;
+      tempFrame[5][2]=1; tempFrame[5][9]=1;
+      tempFrame[6][1]=1; tempFrame[6][10]=1;
+      tempFrame[7][0]=1; tempFrame[7][11]=1;
+   } else if (type == "START") {
+      // Ok İkonu (Play)
+      for(int y=1; y<=6; y++) tempFrame[y][4] = 1;
+      for(int y=2; y<=5; y++) tempFrame[y][5] = 1;
+      for(int y=3; y<=4; y++) tempFrame[y][6] = 1;
+   }
+   matrix.renderBitmap(tempFrame, 8, 12);
 }

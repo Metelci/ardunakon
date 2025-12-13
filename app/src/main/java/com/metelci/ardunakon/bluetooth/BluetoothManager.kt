@@ -1518,24 +1518,32 @@ data class ConnectionHealth(
                 }
 
                 // Variant 2: Nordic UART Service (NUS)
+                // Nordic naming convention is reversed from phone perspective:
+                // - Nordic TX (6E400003) = data FROM device TO phone (notify) - we READ from this
+                // - Nordic RX (6E400002) = data FROM phone TO device (write) - we WRITE to this
                 if (!serviceFound) {
                     service = gatt.getService(SERVICE_UUID_V2)
                     if (service != null) {
                         // Nordic uses separate TX and RX characteristics
-                        val txChar = service.getCharacteristic(CHAR_UUID_TX_V2)
-                        val rxChar = service.getCharacteristic(CHAR_UUID_RX_V2)
-                        if (txChar != null) {
-                            txCharacteristic = txChar // Use TX for writing
+                        val nordicTxChar = service.getCharacteristic(CHAR_UUID_TX_V2)  // 6E400003 (notify - device → phone)
+                        val nordicRxChar = service.getCharacteristic(CHAR_UUID_RX_V2)  // 6E400002 (write - phone → device)
+                        
+                        if (nordicRxChar != null) {
+                            // Use Nordic RX (6E400002) for WRITING to device
+                            txCharacteristic = nordicRxChar
                             detectedVariant = 2
                             serviceFound = true
-                            log("BLE Module detected: Nordic UART Service (NUS)", LogType.SUCCESS)
+                            log("✓ BLE Module detected: Nordic UART Service (NUS)", LogType.SUCCESS)
+                            log("  Nordic TX Char (notify): ${nordicTxChar?.uuid ?: "N/A"}", LogType.INFO)
+                            log("  Nordic RX Char (write):  ${nordicRxChar.uuid}", LogType.INFO)
 
-                            // Enable notifications on RX characteristic if available
-                            if (rxChar != null) {
-                                setCharacteristicNotificationSafe(gatt, rxChar, true)
-                                val rxDescriptor = rxChar.getDescriptor(CCCD_UUID)
-                                if (rxDescriptor != null) {
-                                    writeDescriptorCompat(gatt, rxDescriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                            // Enable notifications on Nordic TX characteristic (6E400003) to receive data FROM device
+                            if (nordicTxChar != null) {
+                                setCharacteristicNotificationSafe(gatt, nordicTxChar, true)
+                                val txDescriptor = nordicTxChar.getDescriptor(CCCD_UUID)
+                                if (txDescriptor != null) {
+                                    log("→ Queuing CCCD descriptor write for Nordic TX characteristic", LogType.INFO)
+                                    pendingDescriptorWrites.add(Triple(gatt, txDescriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE))
                                 }
                             }
                         }
