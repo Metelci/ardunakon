@@ -71,6 +71,7 @@ fun ControlScreen(
     val wifiRtt by wifiManager.rtt.collectAsState()
     val wifiRttHistory by wifiManager.rttHistory.collectAsState()
     val wifiTelemetry by wifiManager.telemetry.collectAsState()
+    val isWifiEncrypted by wifiManager.isEncrypted.collectAsState()
 
     // Active Telemetry (Bluetooth or WiFi based on connection)
     val telemetry = if (wifiState == WifiConnectionState.CONNECTED) wifiTelemetry else btTelemetry
@@ -146,6 +147,7 @@ fun ControlScreen(
                 telemetry = telemetry,
                 autoReconnectEnabled = autoReconnectEnabled,
                 isEStopActive = isEStopActive,
+                isWifiEncrypted = isWifiEncrypted,
                 isDarkTheme = isDarkTheme,
                 safeDrawingPadding = safeDrawingPadding,
                 orientationConfig = orientationConfig,
@@ -170,6 +172,7 @@ fun ControlScreen(
                 telemetry = telemetry,
                 autoReconnectEnabled = autoReconnectEnabled,
                 isEStopActive = isEStopActive,
+                isWifiEncrypted = isWifiEncrypted,
                 isDarkTheme = isDarkTheme,
                 safeDrawingPadding = safeDrawingPadding,
                 orientationConfig = orientationConfig,

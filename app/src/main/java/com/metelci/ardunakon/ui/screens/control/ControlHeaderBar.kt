@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
@@ -86,6 +87,9 @@ fun ControlHeaderBar(
     isEStopActive: Boolean,
     autoReconnectEnabled: Boolean,
     onToggleAutoReconnect: (Boolean) -> Unit,
+
+    // Encryption status
+    isWifiEncrypted: Boolean = false,
 
     // Debug panel state
     isDebugPanelVisible: Boolean,
@@ -165,6 +169,7 @@ fun ControlHeaderBar(
                 rssi = if (connectionMode == ConnectionMode.BLUETOOTH) rssiValue else wifiRssi,
                 rttHistory = if (connectionMode == ConnectionMode.BLUETOOTH) rttHistory else wifiRttHistory,
                 isDarkTheme = isDarkTheme,
+                isEncrypted = connectionMode == ConnectionMode.WIFI && isWifiEncrypted,
                 onScanDevices = onScanDevices,
                 onReconnect = onReconnectDevice,
                 onConfigure = onConfigureWifi,
@@ -391,6 +396,7 @@ fun ConnectionStatusWidget(
     rssi: Int,
     rttHistory: List<Long>,
     isDarkTheme: Boolean,
+    isEncrypted: Boolean = false,
     onReconnect: () -> Unit,
     onConfigure: () -> Unit,
     onScanDevices: () -> Unit = {},
@@ -435,6 +441,15 @@ fun ConnectionStatusWidget(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
+                    // Lock icon when encrypted
+                    if (isEncrypted) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Encrypted connection",
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(10.dp)
+                        )
+                    }
                     SignalStrengthIcon(
                         rssi = rssi,
                         color = stateColor,

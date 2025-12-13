@@ -42,6 +42,7 @@ fun PortraitControlLayout(
     telemetry: AppBluetoothManager.Telemetry?,
     autoReconnectEnabled: Boolean,
     isEStopActive: Boolean,
+    isWifiEncrypted: Boolean = false,
 
     isDarkTheme: Boolean,
     safeDrawingPadding: androidx.compose.foundation.layout.PaddingValues,
@@ -70,6 +71,7 @@ fun PortraitControlLayout(
             isEStopActive = isEStopActive,
             autoReconnectEnabled = autoReconnectEnabled,
             onToggleAutoReconnect = { bluetoothManager.setAutoReconnectEnabled(it) },
+            isWifiEncrypted = isWifiEncrypted,
             isDebugPanelVisible = viewModel.isDebugPanelVisible,
 
             isDarkTheme = isDarkTheme,
