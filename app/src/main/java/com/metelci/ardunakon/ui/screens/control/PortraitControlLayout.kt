@@ -68,7 +68,10 @@ fun PortraitControlLayout(
             rttHistory = rttHistory,
             wifiRttHistory = wifiRttHistory,
             isEStopActive = isEStopActive,
+            autoReconnectEnabled = autoReconnectEnabled,
+            onToggleAutoReconnect = { bluetoothManager.setAutoReconnectEnabled(it) },
             isDebugPanelVisible = viewModel.isDebugPanelVisible,
+
             isDarkTheme = isDarkTheme,
             allowReflection = viewModel.allowReflection,
             buttonSize = 32.dp,
@@ -98,21 +101,7 @@ fun PortraitControlLayout(
             view = view
         )
 
-        // Status & Alerts Row
-        if (viewModel.connectionMode == ConnectionMode.BLUETOOTH) {
-             androidx.compose.foundation.layout.Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AutoReconnectToggle(
-                    enabled = autoReconnectEnabled,
-                    onToggle = { bluetoothManager.setAutoReconnectEnabled(it) }
-                )
-            }
-        }
+
 
         // Packet Loss Warning
         telemetry?.let { telem ->

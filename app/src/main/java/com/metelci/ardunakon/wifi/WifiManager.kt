@@ -2,7 +2,9 @@
 
 package com.metelci.ardunakon.wifi
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Base64
 import android.util.Log
 import java.net.DatagramPacket
@@ -114,10 +116,22 @@ class WifiManager(
         _scannedDevices.value = emptyList()
 
         // Acquire Multicast Lock
+        if (!hasWifiStatePermission()) {
+            onLog("WiFi discovery requires ACCESS_WIFI_STATE permission")
+            isScanning.set(false)
+            return
+        }
         val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
-        multicastLock = wifi.createMulticastLock("ArdunakonMulticastLock").apply {
-            setReferenceCounted(true)
-            acquire()
+        multicastLock = try {
+            wifi.createMulticastLock("ArdunakonMulticastLock").apply {
+                setReferenceCounted(true)
+                acquire()
+            }
+        } catch (e: SecurityException) {
+            onLog("WiFi discovery failed: Missing multicast permission")
+            Log.e("WifiManager", "Missing WiFi permission", e)
+            isScanning.set(false)
+            return
         }
 
         // Calculate Broadcast Address
@@ -428,6 +442,10 @@ class WifiManager(
     // Monitor WiFi signal strength from system
     private fun startRssiMonitor() {
         scope.launch {
+            if (!hasWifiStatePermission()) {
+                onLog("RSSI monitor requires ACCESS_WIFI_STATE permission")
+                return@launch
+            }
             val wifiManager = context.applicationContext.getSystemService(
                 Context.WIFI_SERVICE
             ) as android.net.wifi.WifiManager
@@ -438,6 +456,8 @@ class WifiManager(
                     _rssi.value = info.rssi
                 } catch (e: SecurityException) {
                     Log.e("WifiManager", "Missing WiFi permission", e)
+                    onLog("RSSI monitor failed: Missing WiFi permission")
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("WifiManager", "Error reading RSSI", e)
                 }
@@ -507,13 +527,22 @@ class WifiManager(
     }
 
     private fun getBroadcastAddress(): InetAddress? {
-        val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
-        val dhcp = wifi.dhcpInfo ?: return null
-        val broadcast = (dhcp.ipAddress and dhcp.netmask) or dhcp.netmask.inv()
-        val quads = ByteArray(4)
-        for (k in 0..3) quads[k] = ((broadcast shr k * 8) and 0xFF).toByte()
-        return InetAddress.getByAddress(quads)
+        if (!hasWifiStatePermission()) return null
+        return try {
+            val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+            val dhcp = wifi.dhcpInfo ?: return null
+            val broadcast = (dhcp.ipAddress and dhcp.netmask) or dhcp.netmask.inv()
+            val quads = ByteArray(4)
+            for (k in 0..3) quads[k] = ((broadcast shr k * 8) and 0xFF).toByte()
+            InetAddress.getByAddress(quads)
+        } catch (e: SecurityException) {
+            Log.e("WifiManager", "Missing WiFi permission", e)
+            null
+        }
     }
+
+    private fun hasWifiStatePermission(): Boolean =
+        context.checkSelfPermission(Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED
 }
 
 enum class WifiConnectionState {

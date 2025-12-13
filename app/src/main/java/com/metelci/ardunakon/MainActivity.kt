@@ -272,6 +272,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @android.annotation.SuppressLint("MissingPermission")
     private fun checkBluetoothEnabled() {
         val bluetoothAdapter = (getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
         showBluetoothOffDialog = bluetoothAdapter == null || !bluetoothAdapter.isEnabled

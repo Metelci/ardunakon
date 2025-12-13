@@ -9,8 +9,10 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.metelci.ardunakon.model.LogType
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -83,8 +85,21 @@ class BleConnection(
             connectionMutex.unlock()
             return
         }
+        if (!hasBluetoothConnectPermission()) {
+            callbacks.onStateChanged(ConnectionState.ERROR)
+            callbacks.log("BLE connect failed: BLUETOOTH_CONNECT not granted", LogType.ERROR)
+            connectionMutex.unlock()
+            return
+        }
 
-        val adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()
+        val adapter = try {
+            android.bluetooth.BluetoothAdapter.getDefaultAdapter()
+        } catch (se: SecurityException) {
+            callbacks.log("BLE connect failed: Missing permission for adapter access", LogType.ERROR)
+            callbacks.onStateChanged(ConnectionState.ERROR)
+            connectionMutex.unlock()
+            null
+        }
         if (adapter == null || !adapter.isEnabled) {
             callbacks.onStateChanged(ConnectionState.ERROR)
             callbacks.log("BLE connect failed: Bluetooth is off", LogType.ERROR)
@@ -130,6 +145,14 @@ class BleConnection(
         manager.getConnectionState(gatt.device, BluetoothProfile.GATT)
     } catch (e: Exception) {
         BluetoothProfile.STATE_DISCONNECTED
+    }
+
+    private fun hasBluetoothConnectPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
     }
 
     private fun startRssiPolling() {

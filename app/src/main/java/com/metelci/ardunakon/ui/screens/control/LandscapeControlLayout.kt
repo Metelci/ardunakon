@@ -79,7 +79,10 @@ fun LandscapeControlLayout(
                 rttHistory = rttHistory,
                 wifiRttHistory = wifiRttHistory,
                 isEStopActive = isEStopActive,
+                autoReconnectEnabled = autoReconnectEnabled,
+                onToggleAutoReconnect = { bluetoothManager.setAutoReconnectEnabled(it) },
                 isDebugPanelVisible = viewModel.isDebugPanelVisible,
+
                 isDarkTheme = isDarkTheme,
                 allowReflection = viewModel.allowReflection,
                 buttonSize = 36.dp,
@@ -117,14 +120,8 @@ fun LandscapeControlLayout(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                AutoReconnectToggle(
-                    enabled = autoReconnectEnabled,
-                    onToggle = { bluetoothManager.setAutoReconnectEnabled(it) }
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
                 val currentConnectionState = if (viewModel.connectionMode == ConnectionMode.WIFI) {
+
                     when (wifiState) {
                         WifiConnectionState.CONNECTED -> ConnectionState.CONNECTED
                         WifiConnectionState.CONNECTING -> ConnectionState.CONNECTING

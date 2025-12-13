@@ -64,13 +64,16 @@ class BluetoothScanner(
         @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: android.bluetooth.le.ScanResult?) {
             if (result == null || result.device == null) return
+            if (!checkBluetoothPermission()) return
             val device = result.device
             val isNew = addDevice(device, DeviceType.LE, result.rssi)
 
             if (isNew) {
                 val record = result.scanRecord
                 val sb = StringBuilder()
-                sb.append("Found LE Device: ${device.name ?: "Unknown"} (${device.address})\n")
+                val name = safeGetDeviceName(device) ?: "Unknown"
+                val address = safeGetDeviceAddress(device) ?: "Unknown"
+                sb.append("Found LE Device: $name ($address)\n")
                 sb.append("  RSSI: ${result.rssi} dBm\n")
                 sb.append("  Type: ${device.type} (0=Unknown, 1=Classic, 2=LE, 3=Dual)\n")
 
@@ -92,6 +95,7 @@ class BluetoothScanner(
         @SuppressLint("MissingPermission")
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == BluetoothDevice.ACTION_FOUND) {
+                if (!checkBluetoothPermission()) return
                 val device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
                 } else {
@@ -103,8 +107,10 @@ class BluetoothScanner(
                 if (device != null) {
                     val isNew = addDevice(device, DeviceType.CLASSIC, rssi)
                     if (isNew) {
+                        val name = safeGetDeviceName(device) ?: "Unknown"
+                        val address = safeGetDeviceAddress(device) ?: "Unknown"
                         val sb = StringBuilder()
-                        sb.append("Found Classic Device: ${device.name ?: "Unknown"} (${device.address})\n")
+                        sb.append("Found Classic Device: $name ($address)\n")
                         sb.append("  RSSI: $rssi dBm\n")
                         sb.append("  Type: ${device.type} (0=Unknown, 1=Classic, 2=LE, 3=Dual)")
 
@@ -213,11 +219,14 @@ class BluetoothScanner(
      */
     @SuppressLint("MissingPermission")
     fun addDevice(device: BluetoothDevice, type: DeviceType, rssi: Int): Boolean {
+        if (!checkBluetoothPermission()) return false
         val list = _scannedDevices.value.toMutableList()
-        val isBleOnly = isBleOnlyName(device.name)
+        val address = safeGetDeviceAddress(device) ?: return false
+        val rawName = safeGetDeviceName(device)
+        val isBleOnly = isBleOnlyName(rawName)
         val resolvedType = if (isBleOnly) DeviceType.LE else type
 
-        val existingIndex = list.indexOfFirst { it.address == device.address }
+        val existingIndex = list.indexOfFirst { it.address == address }
         if (existingIndex >= 0) {
             // Upgrade to BLE if needed
             val existing = list[existingIndex]
@@ -232,10 +241,10 @@ class BluetoothScanner(
 
         // Resolve name using multi-layer strategy
         scope.launch {
-            val resolvedName = resolveDeviceName(device, resolvedType)
+            val resolvedName = resolveDeviceName(device, address, resolvedType)
             val updatedList = _scannedDevices.value.toMutableList()
-            if (updatedList.none { it.address == device.address }) {
-                val newDevice = BluetoothDeviceModel(resolvedName, device.address, resolvedType, rssi)
+            if (updatedList.none { it.address == address }) {
+                val newDevice = BluetoothDeviceModel(resolvedName, address, resolvedType, rssi)
                 updatedList.add(newDevice)
                 _scannedDevices.value = updatedList
                 callbacks.onDeviceFound(newDevice)
@@ -248,15 +257,15 @@ class BluetoothScanner(
      * Resolve device name using multi-layer fallback
      */
     @SuppressLint("MissingPermission")
-    private suspend fun resolveDeviceName(device: BluetoothDevice, type: DeviceType): String {
+    private suspend fun resolveDeviceName(device: BluetoothDevice, address: String, type: DeviceType): String {
         // Layer 1: Bonded devices (most reliable)
         if (checkBluetoothPermission()) {
             try {
-                adapter?.bondedDevices?.find { it.address == device.address }?.let { bondedDevice ->
+                adapter?.bondedDevices?.find { safeGetDeviceAddress(it) == address }?.let { bondedDevice ->
                     val bondedName = bondedDevice.name
-                    if (!bondedName.isNullOrBlank() && bondedName != device.address) {
-                        deviceNameCache.saveName(device.address, bondedName, type)
-                        return "$bondedName (${device.address})"
+                    if (!bondedName.isNullOrBlank() && bondedName != address) {
+                        deviceNameCache.saveName(address, bondedName, type)
+                        return "$bondedName ($address)"
                     }
                 }
             } catch (e: SecurityException) {
@@ -266,9 +275,9 @@ class BluetoothScanner(
             // Try direct name access
             try {
                 val directName = device.name
-                if (!directName.isNullOrBlank() && directName != device.address) {
-                    deviceNameCache.saveName(device.address, directName, type)
-                    return "$directName (${device.address})"
+                if (!directName.isNullOrBlank() && directName != address) {
+                    deviceNameCache.saveName(address, directName, type)
+                    return "$directName ($address)"
                 }
             } catch (e: SecurityException) {
                 Log.w("BluetoothScanner", "Permission issue accessing device name", e)
@@ -276,12 +285,12 @@ class BluetoothScanner(
         }
 
         // Layer 2: Persistent cache
-        deviceNameCache.getName(device.address)?.let { cachedName ->
-            return "$cachedName [cached] (${device.address})"
+        deviceNameCache.getName(address)?.let { cachedName ->
+            return "$cachedName [cached] ($address)"
         }
 
         // Layer 3: Fallback to MAC address
-        return "Unknown Device (${device.address})"
+        return "Unknown Device ($address)"
     }
 
     /**
@@ -318,4 +327,16 @@ class BluetoothScanner(
 
     private fun hasPermission(permission: String): Boolean =
         context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+
+    private fun safeGetDeviceName(device: BluetoothDevice): String? = try {
+        device.name
+    } catch (_: SecurityException) {
+        null
+    }
+
+    private fun safeGetDeviceAddress(device: BluetoothDevice): String? = try {
+        device.address
+    } catch (_: SecurityException) {
+        null
+    }
 }

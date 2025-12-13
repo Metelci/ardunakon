@@ -103,16 +103,22 @@ class ClassicConnection(
             // Bonding check
             if (device.bondState == BluetoothDevice.BOND_NONE) {
                 callbacks.log("Device not bonded. Initiating pairing...", LogType.WARNING)
-                device.createBond()
-                var bondWait = 0
-                while (device.bondState != BluetoothDevice.BOND_BONDED && bondWait < 100 && !cancelled) {
-                    safeSleep(100)
-                    bondWait++
-                }
-                if (device.bondState != BluetoothDevice.BOND_BONDED) {
-                    callbacks.log("Pairing might have failed or timed out. Proceeding anyway...", LogType.WARNING)
-                } else {
-                    callbacks.log("Pairing successful!", LogType.SUCCESS)
+                try {
+                    device.createBond()
+                    var bondWait = 0
+                    while (device.bondState != BluetoothDevice.BOND_BONDED && bondWait < 100 && !cancelled) {
+                        safeSleep(100)
+                        bondWait++
+                    }
+                    if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                        callbacks.log("Pairing might have failed or timed out. Proceeding anyway...", LogType.WARNING)
+                    } else {
+                        callbacks.log("Pairing successful!", LogType.SUCCESS)
+                    }
+                } catch (se: SecurityException) {
+                    callbacks.log("Pairing failed: Missing Bluetooth permission", LogType.ERROR)
+                    callbacks.onStateChanged(ConnectionState.ERROR)
+                    return
                 }
             }
 

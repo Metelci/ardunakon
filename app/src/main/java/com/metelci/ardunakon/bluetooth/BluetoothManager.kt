@@ -416,8 +416,17 @@ class AppBluetoothManager(private val context: Context) {
             }
 
             // Log device name from cache or device
-            val refreshedName = deviceNameCache.getName(device.address) ?: device.name ?: device.address
-            log("Connecting to: $refreshedName (${device.address})", LogType.INFO)
+            val refreshedName = try {
+                deviceNameCache.getName(device.address) ?: device.name ?: device.address
+            } catch (e: SecurityException) {
+                "Unknown Device"
+            }
+            val safeAddress = try {
+                device.address
+            } catch (e: SecurityException) {
+                "Unknown"
+            }
+            log("Connecting to: $refreshedName ($safeAddress)", LogType.INFO)
 
             if (coercedModel.type == DeviceType.LE) {
                 val bleConnection = BleConnection(device)
@@ -521,6 +530,7 @@ class AppBluetoothManager(private val context: Context) {
         connection?.requestRssi()
     }
 
+    @SuppressLint("MissingPermission")
     fun reconnectSavedDevice(): Boolean {
         // Reset circuit breaker on manual reconnect
         reconnectAttempts = 0
@@ -697,7 +707,7 @@ class AppBluetoothManager(private val context: Context) {
         for (i in 1..7) xor = xor xor packet[i]
         if (xor != packet[8]) return
 
-        if (packet[2] != com.metelci.ardunakon.protocol.ProtocolManager.CMD_HEARTBEAT) return
+        if (packet[2] != ProtocolManager.CMD_HEARTBEAT) return
 
         val batteryRaw = packet[3].toInt() and 0xFF
         val statusByte = packet[4].toInt() and 0xFF
@@ -738,6 +748,7 @@ class AppBluetoothManager(private val context: Context) {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private inner class ConnectThread(private val device: BluetoothDevice) : Thread() {
         private var socket: BluetoothSocket? = null
 
@@ -752,9 +763,20 @@ class AppBluetoothManager(private val context: Context) {
                     return
                 }
 
-                log("Starting connection to ${device.name} (${device.address})", LogType.INFO)
+                val deviceName = try {
+                    device.name ?: "Unknown"
+                } catch (_: SecurityException) {
+                    "Unknown"
+                }
+                val deviceAddress = try {
+                    device.address ?: "Unknown"
+                } catch (_: SecurityException) {
+                    "Unknown"
+                }
+
+                log("Starting connection to $deviceName ($deviceAddress)", LogType.INFO)
                 log(
-                    "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (Android ${android.os.Build.VERSION.RELEASE})",
+                    "Device: ${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})",
                     LogType.INFO
                 )
 
@@ -766,20 +788,26 @@ class AppBluetoothManager(private val context: Context) {
                 }
 
                 // MILITARY GRADE STABILITY: Check bonding state
-                if (device.bondState == BluetoothDevice.BOND_NONE) {
-                    log("Device not bonded. Initiating pairing...", LogType.WARNING)
-                    device.createBond()
-                    // Wait for bonding (simple timeout-based wait)
-                    var bondWait = 0
-                    while (device.bondState != BluetoothDevice.BOND_BONDED && bondWait < 100 && !cancelled) {
-                        safeSleep(100)
-                        bondWait++
+                try {
+                    if (device.bondState == BluetoothDevice.BOND_NONE) {
+                        log("Device not bonded. Initiating pairing...", LogType.WARNING)
+                        device.createBond()
+                        // Wait for bonding (simple timeout-based wait)
+                        var bondWait = 0
+                        while (device.bondState != BluetoothDevice.BOND_BONDED && bondWait < 100 && !cancelled) {
+                            safeSleep(100)
+                            bondWait++
+                        }
+                        if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                            log("Pairing might have failed or timed out. Proceeding anyway...", LogType.WARNING)
+                        } else {
+                            log("Pairing successful!", LogType.SUCCESS)
+                        }
                     }
-                    if (device.bondState != BluetoothDevice.BOND_BONDED) {
-                        log("Pairing might have failed or timed out. Proceeding anyway...", LogType.WARNING)
-                    } else {
-                        log("Pairing successful!", LogType.SUCCESS)
-                    }
+                } catch (se: SecurityException) {
+                    log("Pairing failed: Missing Bluetooth permission", LogType.ERROR)
+                    updateConnectionState(ConnectionState.ERROR)
+                    return
                 }
 
                 var connected = false
@@ -795,7 +823,7 @@ class AppBluetoothManager(private val context: Context) {
                             // Verification failure does NOT affect connectivity
                             // This is purely informational for security logging
                         } catch (e: Exception) {
-                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            if (e is CancellationException) throw e
                             log("Device verification error: ${e.message}", LogType.WARNING)
                             // Any verification errors are non-critical
                         }
@@ -1048,6 +1076,7 @@ class AppBluetoothManager(private val context: Context) {
             closeSocketSafely(socket)
         }
 
+        @SuppressLint("MissingPermission")
         private fun performDeviceVerification(device: BluetoothDevice) {
             try {
                 log("Starting device cryptographic verification for ${device.name} ...", LogType.INFO)
@@ -1222,6 +1251,7 @@ class AppBluetoothManager(private val context: Context) {
     } else {
         hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
     }
+    @SuppressLint("MissingPermission")
     private inner class BleConnection(private val device: BluetoothDevice) : BluetoothConnection {
         private var bluetoothGatt: android.bluetooth.BluetoothGatt? = null
         private var txCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
@@ -1430,8 +1460,15 @@ class AppBluetoothManager(private val context: Context) {
                             delay(retryDelayMs)
                             log("Retrying BLE connect after transient error (status $status)...", LogType.WARNING)
                             connectToDevice(
-                                savedDevice
-                                    ?: BluetoothDeviceModel(device.name ?: "Unknown", device.address, DeviceType.LE),
+                                savedDevice ?: try {
+                                    BluetoothDeviceModel(
+                                        device.name ?: "Unknown",
+                                        device.address,
+                                        DeviceType.LE
+                                    )
+                                } catch (e: SecurityException) {
+                                    BluetoothDeviceModel("Unknown", "Unknown", DeviceType.LE)
+                                },
                                 isAutoReconnect = true
                             )
                         }
@@ -1884,8 +1921,15 @@ class AppBluetoothManager(private val context: Context) {
                         delay(1000)
                         log("Retrying BLE connect after missing service/characteristic...", LogType.WARNING)
                         connectToDevice(
-                            savedDevice
-                                ?: BluetoothDeviceModel(device.name ?: "Unknown", device.address, DeviceType.LE),
+                            savedDevice ?: try {
+                                BluetoothDeviceModel(
+                                    device.name ?: "Unknown",
+                                    device.address,
+                                    DeviceType.LE
+                                )
+                            } catch (e: SecurityException) {
+                                BluetoothDeviceModel("Unknown", "Unknown", DeviceType.LE)
+                            },
                             isAutoReconnect = true
                         )
                     }

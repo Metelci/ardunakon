@@ -1,7 +1,5 @@
 package com.metelci.ardunakon.ui.screens
 
-import android.content.Context
-import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -21,12 +19,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
-import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.ui.screens.control.ControlViewModel
 import com.metelci.ardunakon.ui.screens.control.ControlViewModelFactory
-import com.metelci.ardunakon.ui.screens.control.dialogs.ControlScreenDialogs
-import com.metelci.ardunakon.ui.screens.control.PortraitControlLayout
 import com.metelci.ardunakon.ui.screens.control.LandscapeControlLayout
+import com.metelci.ardunakon.ui.screens.control.PortraitControlLayout
+import com.metelci.ardunakon.ui.screens.control.dialogs.ControlScreenDialogs
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiManager
 
@@ -79,8 +76,8 @@ fun ControlScreen(
         if (wifiState == WifiConnectionState.CONNECTED) {
             if (wifiRssi != 0) bluetoothManager.telemetryHistoryManager.recordRssi(wifiRssi)
             if (wifiRtt != 0L) bluetoothManager.telemetryHistoryManager.recordRtt(wifiRtt)
-            
-            wifiTelemetry?.let { t -> 
+
+            wifiTelemetry?.let { t ->
                 bluetoothManager.telemetryHistoryManager.recordBattery(t.batteryVoltage)
             }
         }

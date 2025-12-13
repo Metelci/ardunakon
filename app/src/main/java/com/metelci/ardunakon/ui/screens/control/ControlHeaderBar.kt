@@ -59,7 +59,9 @@ import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.crash.CrashHandler
 import com.metelci.ardunakon.ui.components.LatencySparkline
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
+import com.metelci.ardunakon.ui.components.SignalStrengthIcon
 import com.metelci.ardunakon.wifi.WifiConnectionState
+import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 
 /**
  * Reusable header bar for the control screen.
@@ -80,6 +82,8 @@ fun ControlHeaderBar(
 
     // E-Stop state
     isEStopActive: Boolean,
+    autoReconnectEnabled: Boolean,
+    onToggleAutoReconnect: (Boolean) -> Unit,
 
     // Debug panel state
     isDebugPanelVisible: Boolean,
@@ -165,6 +169,14 @@ fun ControlHeaderBar(
                 view = view,
                 modifier = Modifier.width(statusWidgetWidth).height(widgetHeight)
             )
+
+            // 3. Auto Reconnect Toggle (Bluetooth only)
+            if (connectionMode == ConnectionMode.BLUETOOTH) {
+                AutoReconnectToggle(
+                    enabled = autoReconnectEnabled,
+                    onToggle = onToggleAutoReconnect
+                )
+            }
 
             Spacer(modifier = Modifier.width(sectionSpacing - itemSpacing))
         }
