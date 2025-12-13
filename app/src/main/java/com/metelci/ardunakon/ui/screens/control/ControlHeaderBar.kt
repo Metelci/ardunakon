@@ -105,6 +105,7 @@ fun ControlHeaderBar(
     onShowHelp: () -> Unit,
     onShowAbout: () -> Unit,
     onShowCrashLog: () -> Unit,
+    onShowOta: () -> Unit,
     onToggleReflection: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
     onQuitApp: () -> Unit,
@@ -306,6 +307,15 @@ fun ControlHeaderBar(
                     onClick = {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         onToggleReflection()
+                        showOverflowMenu = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("OTA Firmware Update") },
+                    leadingIcon = { Icon(Icons.Default.Settings, null) },
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onShowOta()
                         showOverflowMenu = false
                     }
                 )

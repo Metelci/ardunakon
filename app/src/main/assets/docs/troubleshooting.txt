@@ -205,7 +205,7 @@ SOLUTIONS:
   Reduces power noise that causes data corruption
 
 ✓ SOLUTION 3: Shorten wires
-  Keep HC-06 TX/RX wires < 15cm
+  Keep HC-06 TX/RX wires &lt; 15cm
   Twist TX/RX wires together to reduce interference
 
 ✓ SOLUTION 4: Check packet validation
@@ -573,7 +573,7 @@ SOLUTIONS:
   Check HM-10 firmware version:
     AT+VERS?
   
-  If very old (< V522), consider firmware update
+  If very old (&lt; V522), consider firmware update
   See HM-10 datasheet for update procedure
 
 ----------------------------------------------------------------------------------------------------
@@ -735,8 +735,8 @@ SYMPTOMS:
 SOLUTIONS:
 
 ✓ SOLUTION 1: Rename all modules uniquely
-  HC-05/HC-06: AT+NAME<custom_name>
-  HM-10/HC-08: AT+NAME<custom_name>
+  HC-05/HC-06: AT+NAME&lt;custom_name&gt;
+  HM-10/HC-08: AT+NAME&lt;custom_name&gt;
   
   Examples:
     AT+NAMELeftMotor
@@ -901,7 +901,7 @@ ENABLE HCI SNOOP:
 5. Analyze with Wireshark:
    Install Wireshark on PC
    Open btsnoop_hci.log
-   Filter: bluetooth.addr == <your_module_mac>
+   Filter: bluetooth.addr == &lt;your_module_mac&gt;
 
 This shows low-level Bluetooth packets for expert debugging.
 
@@ -1083,7 +1083,7 @@ DATA CORRUPTED / GARBAGE?
 │
 ├─ Baud rate mismatch → Set both to 9600
 ├─ Add 100µF capacitor to module power pins
-├─ Shorten wires (< 15cm, twist TX/RX together)
+├─ Shorten wires (&lt; 15cm, twist TX/RX together)
 └─ Check Arduino is reading serial buffer fast enough
 
 DISCONNECTS RANDOMLY?

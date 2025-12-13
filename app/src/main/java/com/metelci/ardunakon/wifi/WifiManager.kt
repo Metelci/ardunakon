@@ -286,9 +286,11 @@ class WifiManager(
                 isConnected.set(true)
                 _connectionState.value = WifiConnectionState.CONNECTED
                 onLog("WiFi: Connected to $ip:$port (UDP)")
+                lastRxTime = System.currentTimeMillis() // Initialize to prevent immediate timeout
                 startReceiving()
                 startRssiMonitor()
                 startPing()
+                startTimeoutMonitor()
             } catch (e: Exception) {
                 Log.e("WifiManager", "Connection failed", e)
                 onLog("WiFi: Connection failed - ${e.message}")
@@ -399,23 +401,36 @@ class WifiManager(
     
     // Simple Ping for RTT - sends a packet and measures response time
     private var lastPingTime = 0L
+    private var lastRxTime = 0L
     private var pingSequence = 0
     
     private fun startPing() {
         scope.launch {
             while (isActive && isConnected.get()) {
                 try {
-                    // Send a lightweight PING packet
-                    lastPingTime = System.currentTimeMillis()
+                    // Send standard Heartbeat packet
                     pingSequence++
-                    val pingData = "PING:$pingSequence".toByteArray()
+                    val pingData = com.metelci.ardunakon.protocol.ProtocolManager.formatHeartbeatData(pingSequence)
                     val address = InetAddress.getByName(targetIp)
                     val packet = DatagramPacket(pingData, pingData.size, address, targetPort)
                     socket?.send(packet)
                     
-                    delay(2000) // Check RTT every 2 seconds
+                    delay(2000) // Heartbeat interval
                 } catch (e: Exception) {
                     Log.e("WifiManager", "Ping failed", e)
+                }
+            }
+        }
+    }
+
+    private fun startTimeoutMonitor() {
+        scope.launch {
+            while (isActive && isConnected.get()) {
+                delay(1000)
+                // Timeout if no data received for 10 seconds
+                if (System.currentTimeMillis() - lastRxTime > 10000L) {
+                     onLog("Connection timed out (no data for 10s)")
+                     disconnect()
                 }
             }
         }
@@ -423,6 +438,7 @@ class WifiManager(
     
     // Called from receive loop when PONG or any data is received
     internal fun onPacketReceived() {
+        lastRxTime = System.currentTimeMillis()
         if (lastPingTime > 0) {
             val rtt = System.currentTimeMillis() - lastPingTime
             if (rtt in 1..5000) { // Valid RTT range

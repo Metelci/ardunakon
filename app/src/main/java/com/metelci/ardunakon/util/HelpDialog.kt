@@ -240,15 +240,16 @@ fun HelpDialog(
             val linkColor = if (isDarkTheme) "#74B9FF" else "#1976D2"
             
             // Escape HTML in content but preserve anchor tags
+            // Render content as HTML directly.
+            // Note: Manual escaping of literal < and > in text files is required.
+            // We use simple replacements for basic text file compatibility if needed, 
+            // but for full HTML support we pass content largely as-is.
+            
             val processedContent = content
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                // Re-enable anchor tags
-                .replace("&lt;a href=\"#", "<a href=\"#")
-                .replace("\"&gt;", "\">")
-                .replace("&lt;/a&gt;", "</a>")
-                .replace("&lt;a id=\"", "<a id=\"")
+                // Re-enable specific anchor tags if they were escaped in source (compatibility)
+                // or just pass through if source is correct.
+                // Since we rely on the source being correct HTML-friendly text:
+                .trim()
             
             val htmlContent = """
                 <html>

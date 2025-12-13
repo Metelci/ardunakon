@@ -114,6 +114,9 @@ import androidx.compose.material.icons.filled.WifiOff
 import com.metelci.ardunakon.ui.screens.control.ConnectionMode
 import com.metelci.ardunakon.ui.screens.control.ControlHeaderBar
 import com.metelci.ardunakon.ui.screens.control.dialogs.DeviceListDialog
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.metelci.ardunakon.ui.screens.control.ControlViewModel
+import com.metelci.ardunakon.ui.screens.control.ControlViewModelFactory
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,18 +127,18 @@ fun ControlScreen(
     isDarkTheme: Boolean = true,
     onQuitApp: () -> Unit = {}
 ) {
-    // State
-    var showDeviceList by rememberSaveable { mutableStateOf(false) }
-    var showDebugConsole by rememberSaveable { mutableStateOf(false) }
-    var showHelpDialog by rememberSaveable { mutableStateOf(false) }
-    var showAboutDialog by rememberSaveable { mutableStateOf(false) }
-    var showTelemetryGraph by rememberSaveable { mutableStateOf(false) }
-    var isDebugPanelVisible by rememberSaveable { mutableStateOf(true) } // Toggle for embedded debug panel
-    var showMaximizedDebug by rememberSaveable { mutableStateOf(false) } // Full-screen debug dialog
-    var showOtaDialog by rememberSaveable { mutableStateOf(false) } // OTA Firmware Update dialog
-    var showWifiConfig by rememberSaveable { mutableStateOf(false) }
-    var showCrashLog by rememberSaveable { mutableStateOf(false) } // Crash log viewer
-    var connectionMode by rememberSaveable { mutableStateOf(ConnectionMode.BLUETOOTH) }
+    val context = LocalContext.current
+    
+    // ViewModel instantiation
+    val viewModel: ControlViewModel = viewModel(
+        factory = ControlViewModelFactory(
+            bluetoothManager = bluetoothManager,
+            wifiManager = wifiManager,
+            context = context
+        )
+    )
+
+    val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
 
 
     val scannedDevices by bluetoothManager.scannedDevices.collectAsState()
@@ -152,9 +155,6 @@ fun ControlScreen(
 
     // Removed pastelBrush for better visibility
 
-
-    val context = LocalContext.current
-    var allowReflection by remember { mutableStateOf(false) }
     
     // OTA Manager and Transports
     val otaManager = remember { OtaManager(context) }
@@ -180,69 +180,7 @@ fun ControlScreen(
     }
 
     // Export logs function
-    val exportLogs: () -> Unit = {
-        try {
-            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-            val fileName = "ardunakon_logs_$timestamp.txt"
-            val file = File(context.cacheDir, fileName)
-
-            // Format logs with timestamps
-            val logContent = buildString {
-                appendLine("Ardunakon Debug Logs")
-                appendLine("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
-                appendLine("=".repeat(50))
-                appendLine()
-
-                if (debugLogs.isEmpty()) {
-                    appendLine("No logs available")
-                } else {
-                    debugLogs.forEach { log ->
-                        val timeStr = SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date(log.timestamp))
-                        val typeStr = log.type.name.padEnd(8)
-                        appendLine("[$timeStr] $typeStr: ${log.message}")
-                    }
-                }
-
-                appendLine()
-                appendLine("=".repeat(50))
-                val currentTelemetry = telemetry
-                if (currentTelemetry != null) {
-                    appendLine("Telemetry:")
-                    appendLine("  Battery Voltage: ${currentTelemetry.batteryVoltage}V")
-                    appendLine("  Status: ${currentTelemetry.status}")
-                    appendLine("  Packets Sent: ${currentTelemetry.packetsSent}")
-                    appendLine("  Packets Dropped: ${currentTelemetry.packetsDropped}")
-                    appendLine("  Packets Failed: ${currentTelemetry.packetsFailed}")
-                    val totalLoss = currentTelemetry.packetsDropped + currentTelemetry.packetsFailed
-                    val lossPercent = if (currentTelemetry.packetsSent > 0) {
-                        (totalLoss.toFloat() / currentTelemetry.packetsSent * 100)
-                    } else 0f
-                    appendLine("  Packet Loss: ${"%.2f".format(lossPercent)}%")
-                }
-            }
-
-            file.writeText(logContent)
-
-            // Create share intent
-            val fileUri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-
-            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_STREAM, fileUri)
-                putExtra(Intent.EXTRA_SUBJECT, "Ardunakon Debug Logs")
-                putExtra(Intent.EXTRA_TEXT, "Debug logs from Ardunakon app")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-
-            context.startActivity(Intent.createChooser(shareIntent, "Export Logs"))
-        } catch (e: Exception) {
-            bluetoothManager.log("Export failed: ${e.message}", LogType.ERROR)
-        }
-    }
+    val exportLogs: () -> Unit = { viewModel.exportLogs(context) }
 
     // Keep Screen On
     val currentActivity = context as? android.app.Activity
@@ -256,98 +194,11 @@ fun ControlScreen(
     // Haptics
     val view = LocalView.current
 
-    // Profile State
-    val profileManager = remember(context) { com.metelci.ardunakon.data.ProfileManager(context) }
-    // Use mutableStateListOf to allow UI updates
-    val profiles = remember { mutableStateListOf<com.metelci.ardunakon.data.Profile>() }
-    var securityErrorMessage by remember { mutableStateOf<String?>(null) }
-    val saveProfilesSafely: suspend () -> Unit = {
-        try {
-            profileManager.saveProfiles(profiles)
-        } catch (e: AuthRequiredException) {
-            securityErrorMessage = e.message ?: "Unlock your device to save encrypted profiles."
-        }
-    }
+    // Left unchanged for now as they are effectively removed by previous edit or not used locally in a way that conflicts if removed above
+    // Actually, I need to remove the local vals I added in lines 277-283
 
-    // Load profiles asynchronously with comprehensive error handling
-    LaunchedEffect(Unit) {
-        try {
-            profiles.addAll(profileManager.loadProfiles())
-        } catch (e: AuthRequiredException) {
-            securityErrorMessage = e.message ?: "Unlock your device to load encrypted profiles."
-            profiles.addAll(profileManager.createDefaultProfiles())
-        } catch (e: java.io.IOException) {
-            // Handle file I/O errors (corrupted file, permission issues, etc.)
-            bluetoothManager.log("Failed to load profiles: ${e.message}", com.metelci.ardunakon.model.LogType.ERROR)
-            profiles.addAll(profileManager.createDefaultProfiles())
-        } catch (e: Exception) {
-            // Catch any unexpected errors to prevent crashes
-            bluetoothManager.log("Unexpected error loading profiles: ${e.message}", LogType.ERROR)
-            profiles.addAll(profileManager.createDefaultProfiles())
-        }
-    }
-    LaunchedEffect(allowReflection) {
-        bluetoothManager.allowReflectionFallback = allowReflection
-    }
     
-    var currentProfileIndex by remember { mutableStateOf(0) }
-    
-    // Derived directly from the state list to ensure updates trigger recomposition
-    val currentProfile = if (profiles.isNotEmpty() && currentProfileIndex in profiles.indices) {
-        profiles[currentProfileIndex]
-    } else {
-        // Fallback if list is empty or index invalid
-        if (profiles.isEmpty()) {
-            val defaults = profileManager.createDefaultProfiles()
-            profiles.addAll(defaults)
-            defaults[0]
-        } else {
-            profiles[0]
-        }
-    }
-
-    // Joystick State (motor control)
-    var leftJoystick by remember { mutableStateOf(Pair(0f, 0f)) }
-    
-    // Servo Control State (W, A, L, R buttons) - Persistent positions
-    var servoX by remember { mutableStateOf(0f) } // Horizontal: A=-1, L=+1, CENTER=0
-    var servoY by remember { mutableStateOf(0f) } // Vertical: W=+1, R=-1, CENTER=0
-    
-    // Transmission Loop - Combine joystick and servo inputs
-    LaunchedEffect(currentProfile, leftJoystick, servoX, servoY, connectionMode) {
-
-        while (isActive) {
-            // Check E-STOP state - block all transmissions if active
-            val isEStopActive = bluetoothManager.isEmergencyStopActive.value
-            if (isEStopActive) {
-                delay(50) // Still maintain loop timing
-                continue  // Skip sending any packets
-            }
-
-            // Joystick controls motors (left stick)
-            val leftX = leftJoystick.first // Joystick throttle X axis
-            val leftY = leftJoystick.second // Joystick throttle Y axis
-
-            // Servo positions are persistent, set by W/A/L/R buttons
-            val rightX = servoX  // Set directly from button state
-            val rightY = servoY  // Set directly from button state
-
-            val packet = ProtocolManager.formatJoystickData(
-                leftX = leftX,
-                leftY = leftY,
-                rightX = rightX,
-                rightY = rightY,
-                auxBits = 0 // Aux buttons are sent as separate commands
-            )
-
-            if (connectionMode == ConnectionMode.WIFI) {
-                wifiManager.sendData(packet)
-            } else {
-                bluetoothManager.sendDataToAll(packet)
-            }
-            delay(50) // 20Hz
-        }
-    }
+    // Transmission Loop is handled in ViewModel init block
 
     // WiFi Incoming Data Processing
     val wifiRttHistory by wifiManager.rttHistory.collectAsState()
@@ -416,7 +267,7 @@ fun ControlScreen(
 
                 // Top status bar (compact for portrait) - using extracted component
                 ControlHeaderBar(
-                    connectionMode = connectionMode,
+                    connectionMode = viewModel.connectionMode,
                     bluetoothConnectionState = connectionState,
                     wifiConnectionState = wifiState,
                     rssiValue = rssiValue,
@@ -424,36 +275,27 @@ fun ControlScreen(
                     rttHistory = rttHistory,
                     wifiRttHistory = wifiRttHistory,
                     isEStopActive = isEStopActive,
-                    isDebugPanelVisible = isDebugPanelVisible,
+                    isDebugPanelVisible = viewModel.isDebugPanelVisible,
                     isDarkTheme = isDarkTheme,
-                    allowReflection = allowReflection,
+                    allowReflection = viewModel.allowReflection,
                     buttonSize = 32.dp,
                     eStopSize = 56.dp,
-                    onScanDevices = { showDeviceList = true },
+                    onScanDevices = { viewModel.showDeviceList = true },
                     onReconnectDevice = {
                         val reconnected = bluetoothManager.reconnectSavedDevice()
-                        if (!reconnected) showDeviceList = true
+                        if (!reconnected) viewModel.showDeviceList = true
                     },
-                    onSwitchToWifi = { connectionMode = ConnectionMode.WIFI },
-                    onSwitchToBluetooth = { connectionMode = ConnectionMode.BLUETOOTH },
-                    onConfigureWifi = { showWifiConfig = true },
-                    onTelemetryGraph = { showTelemetryGraph = true },
-                    onToggleEStop = {
-                        if (isEStopActive) {
-                            bluetoothManager.setEmergencyStop(false)
-                            bluetoothManager.holdOfflineAfterEStopReset()
-                        } else {
-                            bluetoothManager.setEmergencyStop(true)
-                            bluetoothManager.disconnectAllForEStop()
-                            val stopPacket = ProtocolManager.formatEStopData()
-                            bluetoothManager.sendDataToAll(stopPacket, force = true)
-                        }
-                    },
-                    onToggleDebugPanel = { isDebugPanelVisible = !isDebugPanelVisible },
-                    onShowHelp = { showHelpDialog = true },
-                    onShowAbout = { showAboutDialog = true },
-                    onShowCrashLog = { showCrashLog = true },
-                    onToggleReflection = { allowReflection = !allowReflection },
+                    onSwitchToWifi = { viewModel.connectionMode = ConnectionMode.WIFI },
+                    onSwitchToBluetooth = { viewModel.connectionMode = ConnectionMode.BLUETOOTH },
+                    onConfigureWifi = { viewModel.showWifiConfig = true },
+                    onTelemetryGraph = { viewModel.showTelemetryGraph = true },
+                    onToggleEStop = { viewModel.toggleEStop(view) },
+                    onToggleDebugPanel = { viewModel.isDebugPanelVisible = !viewModel.isDebugPanelVisible },
+                    onShowHelp = { viewModel.showHelpDialog = true },
+                    onShowAbout = { viewModel.showAboutDialog = true },
+                    onShowCrashLog = { viewModel.showCrashLog = true },
+                    onShowOta = { viewModel.showOtaDialog = true },
+                    onToggleReflection = { viewModel.allowReflection = !viewModel.allowReflection },
                     onOpenArduinoCloud = {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://cloud.arduino.cc"))
                         context.startActivity(intent)
@@ -465,45 +307,14 @@ fun ControlScreen(
 
 
                 // Debug Panel (if visible) - at top in portrait
-                if (isDebugPanelVisible) {
+                if (viewModel.isDebugPanelVisible) {
                     EmbeddedTerminal(
                         logs = debugLogs,
                         telemetry = telemetry,
-                        onSendCommand = { cmd: String ->
-                            // Parse servo commands (W/A/L/R/B)
-                            when (cmd.uppercase().trim()) {
-                                "W" -> {
-                                    servoY = if (servoY == 1f) 0f else 1f
-                                    bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.INFO)
-                                }
-                                "B" -> {
-                                    servoY = if (servoY == -1f) 0f else -1f
-                                    bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
-                                }
-                                "L", "A" -> {
-                                    servoX = if (servoX == -1f) 0f else -1f
-                                    bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
-                                }
-                                "R" -> {
-                                    servoX = if (servoX == 1f) 0f else 1f
-                                    bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
-                                }
-                                else -> {
-                                    // Send raw command to Connection (WiFi or Bluetooth)
-                                    val bytes = "$cmd\n".toByteArray()
-                                    if (connectionMode == ConnectionMode.WIFI) {
-                                         wifiManager.sendData(bytes)
-                                         bluetoothManager.log("TX (WiFi): $cmd", LogType.INFO)
-                                    } else {
-                                         bluetoothManager.sendDataToAll(bytes, force = true)
-                                         bluetoothManager.log("TX (BT): $cmd", LogType.INFO)
-                                    }
-                                }
-                            }
-                        },
+                        onSendCommand = { cmd: String -> viewModel.handleServoCommand(cmd) },
                         onClearLogs = { bluetoothManager.log("Logs cleared", LogType.INFO) },
-                        onMaximize = { showMaximizedDebug = true },
-                        onMinimize = { isDebugPanelVisible = false },
+                        onMaximize = { viewModel.showMaximizedDebug = true },
+                        onMinimize = { viewModel.isDebugPanelVisible = false },
                         isDarkTheme = isDarkTheme,
                         modifier = Modifier.weight(0.4f).fillMaxWidth(),
                         onExportLogs = exportLogs
@@ -513,12 +324,12 @@ fun ControlScreen(
 
                 // Servo Buttons - middle
                 ServoPanel(
-                    servoX = servoX,
-                    servoY = servoY,
-                    onServoMove = { x, y -> servoX = x; servoY = y },
+                    servoX = viewModel.servoX,
+                    servoY = viewModel.servoY,
+                    onServoMove = { x, y -> viewModel.updateServo(x, y) },
                     onLog = { message -> bluetoothManager.log(message, LogType.INFO) },
                     buttonSize = 56.dp,
-                    modifier = Modifier.weight(if (isDebugPanelVisible) 0.25f else 0.4f).fillMaxWidth()
+                    modifier = Modifier.weight(if (viewModel.isDebugPanelVisible) 0.25f else 0.4f).fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -526,14 +337,14 @@ fun ControlScreen(
                 // Joystick - bottom
                 val portraitJoystickSize = minOf(orientationConfig.screenWidthDp.dp * 0.5f, 180.dp)
                 JoystickPanel(
-                    onMoved = { x, y -> leftJoystick = Pair(x, y) },
+                    onMoved = { x, y -> viewModel.updateJoystick(x, y) },
                     size = portraitJoystickSize,
                     isThrottle = false,
                     bluetoothRttMs = health?.lastRttMs,
                     wifiRttMs = wifiRtt,
-                    isWifiMode = connectionMode == ConnectionMode.WIFI,
-                    sensitivity = currentProfile.sensitivity,
-                    modifier = Modifier.weight(if (isDebugPanelVisible) 0.35f else 0.6f).fillMaxWidth()
+                    isWifiMode = viewModel.connectionMode == ConnectionMode.WIFI,
+                    sensitivity = viewModel.currentProfile.sensitivity,
+                    modifier = Modifier.weight(if (viewModel.isDebugPanelVisible) 0.35f else 0.6f).fillMaxWidth()
                 )
             }
         } else {
@@ -546,7 +357,7 @@ fun ControlScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .weight(if (isDebugPanelVisible) 0.65f else 1f)
+                    .weight(if (viewModel.isDebugPanelVisible) 0.65f else 1f)
                     .fillMaxHeight(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
@@ -555,7 +366,7 @@ fun ControlScreen(
         val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
 
         ControlHeaderBar(
-            connectionMode = connectionMode,
+            connectionMode = viewModel.connectionMode,
             bluetoothConnectionState = connectionState,
             wifiConnectionState = wifiState,
             rssiValue = rssiValue,
@@ -563,36 +374,27 @@ fun ControlScreen(
             rttHistory = rttHistory,
             wifiRttHistory = wifiRttHistory,
             isEStopActive = isEStopActive,
-            isDebugPanelVisible = isDebugPanelVisible,
+            isDebugPanelVisible = viewModel.isDebugPanelVisible,
             isDarkTheme = isDarkTheme,
-            allowReflection = allowReflection,
+            allowReflection = viewModel.allowReflection,
             buttonSize = 36.dp,
             eStopSize = 72.dp,
-            onScanDevices = { showDeviceList = true },
+            onScanDevices = { viewModel.showDeviceList = true },
             onReconnectDevice = {
                 val reconnected = bluetoothManager.reconnectSavedDevice()
-                if (!reconnected) showDeviceList = true
+                if (!reconnected) viewModel.showDeviceList = true
             },
-            onSwitchToWifi = { connectionMode = ConnectionMode.WIFI },
-            onSwitchToBluetooth = { connectionMode = ConnectionMode.BLUETOOTH },
-            onConfigureWifi = { showWifiConfig = true },
-            onTelemetryGraph = { showTelemetryGraph = true },
-            onToggleEStop = {
-                if (isEStopActive) {
-                    bluetoothManager.setEmergencyStop(false)
-                    bluetoothManager.holdOfflineAfterEStopReset()
-                } else {
-                    bluetoothManager.setEmergencyStop(true)
-                    bluetoothManager.disconnectAllForEStop()
-                    val stopPacket = ProtocolManager.formatEStopData()
-                    bluetoothManager.sendDataToAll(stopPacket, force = true)
-                }
-            },
-            onToggleDebugPanel = { isDebugPanelVisible = !isDebugPanelVisible },
-            onShowHelp = { showHelpDialog = true },
-            onShowAbout = { showAboutDialog = true },
-            onShowCrashLog = { showCrashLog = true },
-            onToggleReflection = { allowReflection = !allowReflection },
+            onSwitchToWifi = { viewModel.connectionMode = ConnectionMode.WIFI },
+            onSwitchToBluetooth = { viewModel.connectionMode = ConnectionMode.BLUETOOTH },
+            onConfigureWifi = { viewModel.showWifiConfig = true },
+            onTelemetryGraph = { viewModel.showTelemetryGraph = true },
+            onToggleEStop = { viewModel.toggleEStop(view) },
+            onToggleDebugPanel = { viewModel.isDebugPanelVisible = !viewModel.isDebugPanelVisible },
+            onShowHelp = { viewModel.showHelpDialog = true },
+            onShowAbout = { viewModel.showAboutDialog = true },
+            onShowCrashLog = { viewModel.showCrashLog = true },
+            onShowOta = { viewModel.showOtaDialog = true },
+            onToggleReflection = { viewModel.allowReflection = !viewModel.allowReflection },
             onOpenArduinoCloud = {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://cloud.arduino.cc"))
                 context.startActivity(intent)
@@ -622,7 +424,7 @@ fun ControlScreen(
             // Device Status Card
             val hasCrashLog = com.metelci.ardunakon.crash.CrashHandler.hasCrashLog(context)
 
-            val currentConnectionState = if (connectionMode == ConnectionMode.WIFI) {
+            val currentConnectionState = if (viewModel.connectionMode == ConnectionMode.WIFI) {
                 when (wifiState) {
                     WifiConnectionState.CONNECTED -> ConnectionState.CONNECTED
                     WifiConnectionState.CONNECTING -> ConnectionState.CONNECTING
@@ -633,7 +435,7 @@ fun ControlScreen(
                 connectionState
             }
 
-            val currentRssi = if (connectionMode == ConnectionMode.WIFI) wifiRssi else rssiValue
+            val currentRssi = if (viewModel.connectionMode == ConnectionMode.WIFI) wifiRssi else rssiValue
 
             StatusCard(
                 label = "Device",
@@ -641,14 +443,14 @@ fun ControlScreen(
                 rssi = currentRssi,
                 hasCrashLog = hasCrashLog,
                 onClick = {
-                    if (connectionMode == ConnectionMode.WIFI) {
-                        showWifiConfig = true
+                    if (viewModel.connectionMode == ConnectionMode.WIFI) {
+                        viewModel.showWifiConfig = true
                     } else {
-                        showDeviceList = true
+                        viewModel.showDeviceList = true
                     }
                 },
                 onCrashLogClick = {
-                    showCrashLog = true
+                    viewModel.showCrashLog = true
                 },
                 isDarkTheme = isDarkTheme
             )
@@ -732,7 +534,7 @@ fun ControlScreen(
         val availableHeight = (screenHeight - 250.dp).coerceAtLeast(150.dp)
         // Adjust available width based on debug panel visibility to prevent joystick overlap
         // Adjust available width based on debug panel visibility
-        val panelWidth = if (isDebugPanelVisible) screenWidth * 0.65f else screenWidth
+        val panelWidth = if (viewModel.isDebugPanelVisible) screenWidth * 0.65f else screenWidth
         // Subtract Aux column (120dp) and padding (16dp) to get actual space for joysticks
         val availableForJoysticks = (panelWidth - 136.dp).coerceAtLeast(10.dp)
         
@@ -751,21 +553,22 @@ fun ControlScreen(
         ) {
             // Left Stick (Joystick)
             JoystickPanel(
-                onMoved = { x, y -> leftJoystick = Pair(x, y) },
+                onMoved = { x, y -> viewModel.updateJoystick(x, y) },
                 size = joystickSize,
                 isThrottle = false,
                 bluetoothRttMs = health?.lastRttMs,
                 wifiRttMs = wifiRtt,
-                isWifiMode = connectionMode == ConnectionMode.WIFI,
-                sensitivity = currentProfile.sensitivity,
+                isWifiMode = viewModel.connectionMode == ConnectionMode.WIFI,
+                sensitivity = viewModel.currentProfile.sensitivity,
                 modifier = Modifier.weight(1f).fillMaxHeight()
             )
 
             // Right Side: WASD Servo Control
+            // Right Side: WASD Servo Control
             ServoPanel(
-                servoX = servoX,
-                servoY = servoY,
-                onServoMove = { x, y -> servoX = x; servoY = y },
+                servoX = viewModel.servoX,
+                servoY = viewModel.servoY,
+                onServoMove = { x, y -> viewModel.updateServo(x, y) },
                 onLog = { message -> bluetoothManager.log(message, LogType.INFO) },
                 buttonSize = 60.dp,
                 modifier = Modifier.weight(1f).fillMaxHeight()
@@ -774,45 +577,21 @@ fun ControlScreen(
         }
 
         // Right side: Embedded Debug Panel (Full Height)
-        if (isDebugPanelVisible) {
+        // Right side: Embedded Debug Panel (Full Height)
+        if (viewModel.isDebugPanelVisible) {
             Spacer(modifier = Modifier.width(8.dp))
             EmbeddedTerminal(
                 logs = debugLogs,
                 telemetry = telemetry,
-                onSendCommand = { cmd: String ->
-                    // Parse servo commands (W/A/L/R/B)
-                    when (cmd.uppercase().trim()) {
-                        "W" -> {
-                            servoY = if (servoY == 1f) 0f else 1f
-                            bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.INFO)
-                        }
-                        "B" -> {
-                            servoY = if (servoY == -1f) 0f else -1f
-                            bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
-                        }
-                        "L", "A" -> {
-                            servoX = if (servoX == -1f) 0f else -1f
-                            bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
-                        }
-                        "R" -> {
-                            servoX = if (servoX == 1f) 0f else 1f
-                            bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
-                        }
-                        else -> {
-                            val bytes = "$cmd\n".toByteArray()
-                            bluetoothManager.sendDataToAll(bytes, force = true)
-                            bluetoothManager.log("TX: $cmd", LogType.INFO)
-                        }
-                    }
-                },
+                onSendCommand = { cmd: String -> viewModel.handleServoCommand(cmd) },
                 onClearLogs = {
                     bluetoothManager.log("Logs cleared", LogType.INFO)
                 },
                 onMaximize = {
-                    showMaximizedDebug = true
+                    viewModel.showMaximizedDebug = true
                 },
                 onMinimize = {
-                    isDebugPanelVisible = false
+                    viewModel.isDebugPanelVisible = false
                 },
                 isDarkTheme = isDarkTheme,
                 modifier = Modifier.weight(0.35f).fillMaxHeight(),
@@ -824,37 +603,12 @@ fun ControlScreen(
     }
 
     // Dialogs
-    if (showDebugConsole) {
+    if (viewModel.showDebugConsole) {
         com.metelci.ardunakon.ui.components.TerminalDialog(
             logs = debugLogs,
             telemetry = telemetry,
-            onDismiss = { showDebugConsole = false },
-            onSendCommand = { cmd ->
-                // Parse servo commands (W/A/L/R/B)
-                when (cmd.uppercase().trim()) {
-                    "W" -> {
-                        servoY = if (servoY == 1f) 0f else 1f
-                        bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.INFO)
-                    }
-                    "B" -> {
-                        servoY = if (servoY == -1f) 0f else -1f
-                        bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
-                    }
-                    "L", "A" -> {
-                        servoX = if (servoX == -1f) 0f else -1f
-                        bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
-                    }
-                    "R" -> {
-                        servoX = if (servoX == 1f) 0f else 1f
-                        bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
-                    }
-                    else -> {
-                        val bytes = "$cmd\n".toByteArray()
-                        bluetoothManager.sendDataToAll(bytes, force = true)
-                        bluetoothManager.log("TX: $cmd", LogType.INFO)
-                    }
-                }
-            },
+            onDismiss = { viewModel.showDebugConsole = false },
+            onSendCommand = { cmd -> viewModel.handleServoCommand(cmd) },
             onClearLogs = {
                 // We need to add a clearLogs method to BluetoothManager or just ignore for now
                 // For now, let's just log a message
@@ -865,37 +619,12 @@ fun ControlScreen(
     }
 
     // Maximized Debug Dialog (from embedded terminal)
-    if (showMaximizedDebug) {
+    if (viewModel.showMaximizedDebug) {
         com.metelci.ardunakon.ui.components.TerminalDialog(
             logs = debugLogs,
             telemetry = telemetry,
-            onDismiss = { showMaximizedDebug = false },
-            onSendCommand = { cmd ->
-                // Parse servo commands (W/A/L/R/B)
-                when (cmd.uppercase().trim()) {
-                    "W" -> {
-                        servoY = if (servoY == 1f) 0f else 1f
-                        bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.INFO)
-                    }
-                    "B" -> {
-                        servoY = if (servoY == -1f) 0f else -1f
-                        bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
-                    }
-                    "L", "A" -> {
-                        servoX = if (servoX == -1f) 0f else -1f
-                        bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
-                    }
-                    "R" -> {
-                        servoX = if (servoX == 1f) 0f else 1f
-                        bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
-                    }
-                    else -> {
-                        val bytes = "$cmd\n".toByteArray()
-                        bluetoothManager.sendDataToAll(bytes, force = true)
-                        bluetoothManager.log("TX: $cmd", LogType.INFO)
-                    }
-                }
-            },
+            onDismiss = { viewModel.showMaximizedDebug = false },
+            onSendCommand = { cmd -> viewModel.handleServoCommand(cmd) },
             onClearLogs = {
                 bluetoothManager.log("Logs cleared", LogType.INFO)
             },
@@ -903,33 +632,33 @@ fun ControlScreen(
         )
     }
 
-    if (showTelemetryGraph) {
+    if (viewModel.showTelemetryGraph) {
         com.metelci.ardunakon.ui.components.TelemetryGraphDialog(
             telemetryHistoryManager = bluetoothManager.telemetryHistoryManager,
-            onDismiss = { showTelemetryGraph = false },
+            onDismiss = { viewModel.showTelemetryGraph = false },
             isDarkTheme = isDarkTheme
         )
     }
 
-    if (showHelpDialog) {
+    if (viewModel.showHelpDialog) {
         com.metelci.ardunakon.ui.components.HelpDialog(
-            onDismiss = { showHelpDialog = false },
+            onDismiss = { viewModel.showHelpDialog = false },
             isDarkTheme = isDarkTheme
         )
     }
 
-    if (showAboutDialog) {
+    if (viewModel.showAboutDialog) {
         com.metelci.ardunakon.ui.components.AboutDialog(
-            onDismiss = { showAboutDialog = false },
+            onDismiss = { viewModel.showAboutDialog = false },
             isDarkTheme = isDarkTheme
         )
     }
 
     // Crash Log Dialog
-    if (showCrashLog) {
+    if (viewModel.showCrashLog) {
         val crashLog = com.metelci.ardunakon.crash.CrashHandler.getCrashLog(context)
         AlertDialog(
-            onDismissRequest = { showCrashLog = false },
+            onDismissRequest = { viewModel.showCrashLog = false },
             modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.8f),
             title = {
                 Row(
@@ -951,7 +680,7 @@ fun ControlScreen(
                         IconButton(onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             com.metelci.ardunakon.crash.CrashHandler.clearCrashLog(context)
-                            showCrashLog = false
+                            viewModel.showCrashLog = false
                         }) {
                             Icon(Icons.Default.Delete, "Clear", tint = Color(0xFFFF5252))
                         }
@@ -974,36 +703,36 @@ fun ControlScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showCrashLog = false }) {
+                TextButton(onClick = { viewModel.showCrashLog = false }) {
                     Text("Close", color = Color(0xFF00E5FF))
                 }
             }
         )
     }
 
-    if (showDeviceList) {
+    if (viewModel.showDeviceList) {
         DeviceListDialog(
             scannedDevices = scannedDevices,
             isDarkTheme = isDarkTheme,
             onScan = { bluetoothManager.startScan() },
             onDeviceSelected = { device ->
                 bluetoothManager.connectToDevice(device)
-                showDeviceList = false
+                viewModel.showDeviceList = false
             },
-            onDismiss = { showDeviceList = false },
+            onDismiss = { viewModel.showDeviceList = false },
             view = view
         )
     }
 
-    securityErrorMessage?.let { msg ->
+    viewModel.securityErrorMessage?.let { msg ->
         AlertDialog(
-            onDismissRequest = { securityErrorMessage = null },
+            onDismissRequest = { viewModel.securityErrorMessage = null },
             title = { Text("Unlock Required") },
             text = { Text(msg) },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        securityErrorMessage = null
+                        viewModel.securityErrorMessage = null
                         try {
                             context.startActivity(android.content.Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS))
                         } catch (_: Exception) {}
@@ -1011,18 +740,18 @@ fun ControlScreen(
                 ) { Text("Open Security Settings") }
             },
             dismissButton = {
-                TextButton(onClick = { securityErrorMessage = null }) { Text("Close") }
+                TextButton(onClick = { viewModel.securityErrorMessage = null }) { Text("Close") }
             }
         )
     }
     
     // OTA Firmware Update Dialog
-    if (showOtaDialog) {
+    if (viewModel.showOtaDialog) {
         OtaDialog(
             otaManager = otaManager,
             bleTransport = bleOtaTransport,
             wifiTransport = wifiOtaTransport,
-            onDismiss = { showOtaDialog = false }
+            onDismiss = { viewModel.showOtaDialog = false }
         )
     }
     // Load saved WiFi config
@@ -1033,15 +762,15 @@ fun ControlScreen(
     // Scanned devices state
     val wifiScannedDevices by wifiManager.scannedDevices.collectAsState()
 
-    if (showWifiConfig) {
+    if (viewModel.showWifiConfig) {
         WifiConfigDialog(
             initialIp = savedIp,
             initialPort = savedPort,
             scannedDevices = wifiScannedDevices,
             onScan = { wifiManager.startDiscovery() },
-            onDismiss = { showWifiConfig = false },
+            onDismiss = { viewModel.showWifiConfig = false },
             onSave = { ip, port -> 
-                showWifiConfig = false
+                viewModel.showWifiConfig = false
                 // Save config
                 prefs.edit().putString("last_wifi_ip", ip).putInt("last_wifi_port", port).apply()
                 
