@@ -520,6 +520,37 @@ PERMISSIONS USED:
   LOCATION - Required by Android for BLE scan (we don't use GPS!)
   NEARBY_DEVICES - Android 12+ Bluetooth permission
 
+----------------------------------------------------------------------------------------------------
+WIFI ENCRYPTION
+----------------------------------------------------------------------------------------------------
+
+When connecting via WiFi to ArdunakonWiFiEncrypted sketch:
+
+ENCRYPTION STATUS:
+  🔒 Lock icon (GREEN)  - Connection encrypted with AES-256
+  ⚠️ Lock open (ORANGE) - Connection not encrypted
+
+HOW IT WORKS:
+  1. App generates a unique Pre-Shared Key (PSK) per Arduino device
+  2. PSK stored securely in Android Keystore (hardware-backed)
+  3. During connection, app and Arduino perform a handshake:
+     - App sends random nonce
+     - Arduino responds with device nonce + HMAC signature
+     - Both derive shared session key using HKDF
+  4. All control packets encrypted with AES-GCM after handshake
+
+SETUP:
+  To enable encryption, use ArdunakonWiFiEncrypted sketch:
+  1. Upload ArdunakonWiFiEncrypted.ino to Arduino R4 WiFi
+  2. Set your own PSK in the sketch (must match app's PSK)
+  3. Connect via WiFi in the app - lock icon appears when encrypted
+
+GENERATING A MATCHING PSK:
+  The app auto-generates a 32-byte PSK for each device.
+  To view and copy to Arduino sketch:
+  1. Settings → WiFi Encryption → Show PSK Preview
+  2. Copy the full PSK bytes to your Arduino sketch
+
 ====================================================================================================
 TIPS & TRICKS
 ====================================================================================================

@@ -71,7 +71,7 @@ Pin A0           →    10kΩ → Battery+
 
 ---
 
-## Option 2: Arduino UNO R4 WiFi
+## Option 2: Arduino UNO R4 WiFi (Bluetooth BLE)
 
 ### What You Need
 - Arduino UNO R4 WiFi board
@@ -119,6 +119,90 @@ Pin A0           →    10kΩ → Battery+
 3. Tap **"Dev 1"** or **"Dev 2"**
 4. Look for **"ArdunakonR4"** in the device list
 5. Tap to connect - Status will turn **Green**
+
+---
+
+## Option 2B: Arduino UNO R4 WiFi (with Encryption) 🔒
+
+For secure wireless control, use the encrypted WiFi sketch.
+
+### What You Need
+- Arduino UNO R4 WiFi board
+- USB-C cable
+- Motor driver (L298N or similar)
+- Power supply for motors
+
+### Software Setup
+1. Install **Arduino IDE 2.x**
+2. Install **UNO R4 WiFi board support**:
+   - Tools → Board → Boards Manager → Search "Arduino UNO R4" → Install
+3. Install **WiFiS3** library (included with board support)
+4. Open `arduino_sketches/ArdunakonWiFiEncrypted/ArdunakonWiFiEncrypted.ino`
+5. **Configure PSK** (Pre-Shared Key) - See "Setting Up Encryption" below
+6. Select **Board**: Tools → Board → Arduino UNO R4 WiFi
+7. Click **Upload**
+
+### Setting Up Encryption
+
+The PSK in your Arduino sketch **must match** the app's PSK for that device.
+
+**Step 1: Generate PSK in App**
+1. Open Ardunakon app
+2. Go to WiFi settings
+3. Connect to your Arduino's WiFi network (default: "Ardunakon-R4")
+4. The app auto-generates a 32-byte PSK for new devices
+
+**Step 2: Copy PSK to Arduino Sketch**
+Edit the `PSK` array in `ArdunakonWiFiEncrypted.ino`:
+```cpp
+// 32-byte Pre-Shared Key (MUST match the Android app's PSK for this device!)
+const byte PSK[32] = {
+  0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03, 0x04,
+  0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
+  0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
+  0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C
+};
+```
+
+**Or Generate Matching Key:**
+For testing, use a simple key in both app and sketch:
+```cpp
+// Simple test key (use strong random key for production!)
+const byte PSK[32] = {
+  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+  0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+  0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+};
+```
+
+### Wiring
+Same as Option 2 (standard R4 WiFi). No additional hardware needed.
+
+### How Encryption Works
+
+1. **Handshake Phase**:
+   - App sends `CMD_HANDSHAKE_REQUEST` with 16-byte app nonce
+   - Arduino responds with device nonce + HMAC-SHA256 signature
+   - Both derive shared AES session key using HKDF
+
+2. **Data Phase**:
+   - All joystick/button packets encrypted with AES-GCM
+   - 12-byte IV + encrypted payload + 16-byte auth tag
+   - Fully authenticated encryption (tampering detected)
+
+3. **Visual Indicator**:
+   - App shows 🔒 lock icon when encrypted
+   - App shows ⚠️ warning when not encrypted
+
+### Connecting to Ardunakon App (Encrypted)
+1. Upload ArdunakonWiFiEncrypted sketch
+2. Arduino creates WiFi AP "Ardunakon-R4" (password: "ardunakon123")
+3. Connect phone to this WiFi network
+4. Open Ardunakon app → Switch to **WiFi mode**
+5. Tap **Configure WiFi** → IP: 192.168.4.1, Port: 8888
+6. Tap **Connect** → Encryption handshake occurs
+7. Lock icon 🔒 appears when encrypted!
 
 ---
 
