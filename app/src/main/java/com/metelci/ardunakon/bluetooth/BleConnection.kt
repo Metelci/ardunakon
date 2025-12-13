@@ -75,6 +75,7 @@ class BleConnection(
     }
 
     @SuppressLint("MissingPermission")
+    @Suppress("DEPRECATION") // BluetoothAdapter#getDefaultAdapter is still required for pre-Q devices
     private fun connectGattWithTimeout() {
         if (!callbacks.checkBluetoothPermission()) {
             callbacks.onStateChanged(ConnectionState.ERROR)

@@ -73,6 +73,7 @@ class ClassicConnection(
     @Volatile private var isConnected = false
 
     @SuppressLint("MissingPermission")
+    @Suppress("DEPRECATION") // getDefaultAdapter is deprecated but needed for broad device support
     override fun run() {
         try {
             if (!callbacks.checkBluetoothPermission()) {
