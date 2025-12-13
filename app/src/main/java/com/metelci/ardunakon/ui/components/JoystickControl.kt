@@ -14,6 +14,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.atan2
@@ -65,6 +68,14 @@ fun JoystickControl(
     val initialPosition = remember(center) { center }
     var knobPosition by remember(initialPosition) { mutableStateOf(initialPosition) }
 
+    val positionDescription by remember {
+        derivedStateOf {
+            val normalizedX = ((knobPosition.x - center.x) / radius).coerceIn(-1f, 1f)
+            val normalizedY = (-(knobPosition.y - center.y) / radius).coerceIn(-1f, 1f)
+            "X ${(normalizedX * 100).toInt()} percent, Y ${(normalizedY * 100).toInt()} percent"
+        }
+    }
+
     // Haptic feedback state
     var wasInDeadzone by remember { mutableStateOf(true) }
     var wasAtEdge by remember { mutableStateOf(false) }
@@ -91,7 +102,14 @@ fun JoystickControl(
         )
     }
 
-    Box(modifier = modifier.size(size)) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .semantics {
+                contentDescription = if (isThrottle) "Throttle joystick" else "Steering joystick"
+                stateDescription = positionDescription
+            }
+    ) {
         Canvas(
             modifier = Modifier
                 .size(size)

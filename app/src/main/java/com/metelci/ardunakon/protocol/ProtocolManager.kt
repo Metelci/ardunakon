@@ -97,6 +97,61 @@ object ProtocolManager {
         return packet
     }
 
+    /**
+     * Format handshake request packet with app nonce.
+     * Payload: [NONCE_0..NONCE_15] in extended packet format (26 bytes total)
+     */
+    fun formatHandshakeRequest(nonce: ByteArray): ByteArray {
+        require(nonce.size == 16) { "Nonce must be 16 bytes" }
+        // Extended packet: START, DEV_ID, CMD, NONCE[16], CHECKSUM, END
+        val packet = ByteArray(21) // 1+1+1+16+1+1
+        packet[0] = START_BYTE
+        packet[1] = DEFAULT_DEVICE_ID
+        packet[2] = CMD_HANDSHAKE_REQUEST
+        System.arraycopy(nonce, 0, packet, 3, 16)
+        var xor: Byte = 0
+        for (i in 1..18) xor = xor xor packet[i]
+        packet[19] = xor
+        packet[20] = END_BYTE
+        return packet
+    }
+
+    /**
+     * Parse handshake response packet.
+     * Returns (deviceNonce, signature) or null if invalid.
+     */
+    fun parseHandshakeResponse(data: ByteArray): Pair<ByteArray, ByteArray>? {
+        // Expected: START, DEV_ID, CMD, NONCE[16], SIG[32], CHECKSUM, END
+        // Total: 1+1+1+16+32+1+1 = 53 bytes
+        if (data.size < 53) return null
+        if (data[0] != START_BYTE) return null
+        if (data[2] != CMD_HANDSHAKE_RESPONSE) return null
+        if (data[52] != END_BYTE) return null
+
+        // Verify checksum
+        var xor: Byte = 0
+        for (i in 1..50) xor = xor xor data[i]
+        if (data[51] != xor) return null
+
+        val deviceNonce = data.copyOfRange(3, 19)
+        val signature = data.copyOfRange(19, 51)
+        return Pair(deviceNonce, signature)
+    }
+
+    /**
+     * Format handshake complete acknowledgment.
+     */
+    fun formatHandshakeComplete(): ByteArray {
+        val packet = ByteArray(PACKET_SIZE)
+        packet[0] = START_BYTE
+        packet[1] = DEFAULT_DEVICE_ID
+        packet[2] = CMD_HANDSHAKE_COMPLETE
+        for (i in 3..7) packet[i] = 0
+        packet[8] = calculateChecksum(packet)
+        packet[9] = END_BYTE
+        return packet
+    }
+
     private fun calculateChecksum(packet: ByteArray): Byte {
         var xor: Byte = 0
         // XOR from DEV_ID (1) to D5 (7)

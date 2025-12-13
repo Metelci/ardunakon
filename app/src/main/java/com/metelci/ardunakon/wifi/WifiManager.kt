@@ -74,6 +74,13 @@ class WifiManager(
     private val _encryptionError = MutableStateFlow<EncryptionException?>(null)
     val encryptionError = _encryptionError.asStateFlow()
 
+    // Encryption Status - true when session key is established via handshake
+    private val _isEncrypted = MutableStateFlow(false)
+    val isEncrypted = _isEncrypted.asStateFlow()
+
+    // Handshake constants
+    private val handshakeTimeoutMs = 5000L
+
     // Packet stats for WiFi
     private var packetsSent = 0L
     private var packetsFailed = 0L
@@ -394,8 +401,92 @@ class WifiManager(
         _connectionState.value = WifiConnectionState.DISCONNECTED
         _rssi.value = 0
         _rtt.value = 0L
+        _isEncrypted.value = false
+        sessionKey.set(null)
         if (wasConnected) {
             onLog("WiFi: Disconnected")
+        }
+    }
+
+    /**
+     * Perform encryption handshake with device using PSK.
+     * Returns true if handshake succeeded and session key is established.
+     *
+     * @param psk Pre-shared key (32 bytes) for this device
+     */
+    suspend fun performEncryptionHandshake(psk: ByteArray): Boolean = withContext(ioDispatcher) {
+        if (!isConnected.get()) {
+            onLog("WiFi: Cannot handshake - not connected")
+            return@withContext false
+        }
+
+        try {
+            val negotiator = com.metelci.ardunakon.security.SessionKeyNegotiator(psk)
+            val appNonce = negotiator.startHandshake()
+
+            // Send handshake request
+            val requestPacket = com.metelci.ardunakon.protocol.ProtocolManager.formatHandshakeRequest(appNonce)
+            val address = InetAddress.getByName(targetIp)
+            val sendPacket = DatagramPacket(requestPacket, requestPacket.size, address, targetPort)
+            socket?.send(sendPacket)
+            onLog("WiFi: Handshake request sent")
+
+            // Wait for response
+            val responseBuffer = ByteArray(64)
+            val receivePacket = DatagramPacket(responseBuffer, responseBuffer.size)
+            socket?.soTimeout = handshakeTimeoutMs.toInt()
+
+            try {
+                socket?.receive(receivePacket)
+            } catch (e: java.net.SocketTimeoutException) {
+                onLog("WiFi: Handshake timeout - device may not support encryption")
+                _encryptionError.value = EncryptionException.HandshakeFailedException(
+                    "Device did not respond to handshake request"
+                )
+                return@withContext false
+            }
+
+            // Parse response
+            val responseData = receivePacket.data.copyOf(receivePacket.length)
+            val parsed = com.metelci.ardunakon.protocol.ProtocolManager.parseHandshakeResponse(responseData)
+            if (parsed == null) {
+                onLog("WiFi: Invalid handshake response")
+                _encryptionError.value = EncryptionException.HandshakeFailedException(
+                    "Invalid handshake response from device"
+                )
+                return@withContext false
+            }
+
+            val (deviceNonce, signature) = parsed
+
+            // Complete handshake
+            val newSessionKey = negotiator.completeHandshake(deviceNonce, signature)
+            setSessionKey(newSessionKey)
+            _isEncrypted.value = true
+
+            // Send acknowledgment
+            val ackPacket = com.metelci.ardunakon.protocol.ProtocolManager.formatHandshakeComplete()
+            val ackSendPacket = DatagramPacket(ackPacket, ackPacket.size, address, targetPort)
+            socket?.send(ackSendPacket)
+
+            // Reset socket timeout
+            socket?.soTimeout = 0
+
+            onLog("WiFi: Encryption established ✓")
+            true
+
+        } catch (e: EncryptionException.HandshakeFailedException) {
+            Log.e("WifiManager", "Handshake failed", e)
+            _encryptionError.value = e
+            onLog("WiFi: Handshake failed - ${e.message}")
+            false
+        } catch (e: Exception) {
+            Log.e("WifiManager", "Handshake error", e)
+            _encryptionError.value = EncryptionException.HandshakeFailedException(
+                "Unexpected error during handshake: ${e.message}"
+            )
+            onLog("WiFi: Handshake error - ${e.message}")
+            false
         }
     }
 

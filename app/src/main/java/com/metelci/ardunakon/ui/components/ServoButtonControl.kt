@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,7 +56,9 @@ fun ServoButtonControl(
                     lastMoveTime = currentTime
                 }
             },
-            modifier = Modifier.size(buttonSize),
+            modifier = Modifier
+                .size(buttonSize)
+                .semantics { contentDescription = "Move servo forward" },
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (servoY == 1f) Color(0xFF00C853) else Color(0xFF2D3436),
                 contentColor = Color(0xFF00FF00)
@@ -93,7 +97,9 @@ fun ServoButtonControl(
                         lastMoveTime = currentTime
                     }
                 },
-                modifier = Modifier.size(buttonSize),
+                modifier = Modifier
+                    .size(buttonSize)
+                    .semantics { contentDescription = "Move servo left" },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (servoX == -1f) Color(0xFF00C853) else Color(0xFF2D3436),
                     contentColor = Color(0xFF00FF00)
@@ -127,7 +133,9 @@ fun ServoButtonControl(
                         lastMoveTime = currentTime
                     }
                 },
-                modifier = Modifier.size(buttonSize),
+                modifier = Modifier
+                    .size(buttonSize)
+                    .semantics { contentDescription = "Move servo backward" },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (servoY == -1f) Color(0xFF00C853) else Color(0xFF2D3436),
                     contentColor = Color(0xFF00FF00)
@@ -161,7 +169,9 @@ fun ServoButtonControl(
                         lastMoveTime = currentTime
                     }
                 },
-                modifier = Modifier.size(buttonSize),
+                modifier = Modifier
+                    .size(buttonSize)
+                    .semantics { contentDescription = "Move servo right" },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (servoX == 1f) Color(0xFF00C853) else Color(0xFF2D3436),
                     contentColor = Color(0xFF00FF00)
