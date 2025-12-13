@@ -14,6 +14,13 @@ object ProtocolManager {
     const val CMD_BUTTON: Byte = 0x02
     const val CMD_HEARTBEAT: Byte = 0x03
     const val CMD_ESTOP: Byte = 0x04
+    const val CMD_ANNOUNCE_CAPABILITIES: Byte = 0x05
+
+    // Encryption Handshake Commands
+    const val CMD_HANDSHAKE_REQUEST: Byte = 0x10
+    const val CMD_HANDSHAKE_RESPONSE: Byte = 0x11
+    const val CMD_HANDSHAKE_COMPLETE: Byte = 0x12
+    const val CMD_HANDSHAKE_FAILED: Byte = 0x13
 
     const val DEFAULT_DEVICE_ID: Byte = 0x01
 

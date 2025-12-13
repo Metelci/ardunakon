@@ -78,7 +78,6 @@ jobs:
 
       - name: Run OWASP Dependency Check
         run: ./gradlew dependencyCheckAnalyze --info
-        continue-on-error: true  # Don't fail build on vulnerabilities, just report
 
       - name: Upload dependency check report
         uses: actions/upload-artifact@v4

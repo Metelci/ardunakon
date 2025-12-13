@@ -10,8 +10,6 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 
 /**
@@ -26,7 +24,6 @@ class ClassicConnection(
     private val config: BluetoothConfig = BluetoothConfig,
     private val allowReflectionFallback: Boolean = false,
     private val forceReflectionFirst: Boolean = false,
-    private val scope: CoroutineScope,
     private val connectionMutex: Mutex
 ) : Thread(),
     BluetoothConnection {
@@ -39,7 +36,6 @@ class ClassicConnection(
         fun onRssiSnapshot(): Int? // Classic BT doesn't support RSSI polling directly
         fun log(message: String, type: LogType)
         fun checkBluetoothPermission(): Boolean
-        fun performDeviceVerification(device: BluetoothDevice)
     }
 
     // Standard SPP UUID
@@ -119,16 +115,6 @@ class ClassicConnection(
                     callbacks.log("Pairing failed: Missing Bluetooth permission", LogType.ERROR)
                     callbacks.onStateChanged(ConnectionState.ERROR)
                     return
-                }
-            }
-
-            // Device verification (non-blocking)
-            scope.launch {
-                try {
-                    callbacks.performDeviceVerification(device)
-                } catch (e: Exception) {
-                    if (e is kotlinx.coroutines.CancellationException) throw e
-                    callbacks.log("Device verification error: ${e.message}", LogType.WARNING)
                 }
             }
 

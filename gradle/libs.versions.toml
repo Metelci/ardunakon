@@ -5,10 +5,10 @@ kotlin = "2.2.21"
 owaspDependencyCheck = "9.0.9"
 
 # AndroidX / Compose
-androidxCore = "1.17.0"
-androidxLifecycle = "2.10.0"
-androidxActivityCompose = "1.12.1"
-androidxComposeBom = "2025.12.00"
+androidxCore = "1.13.1"
+androidxLifecycle = "2.8.4"
+androidxActivityCompose = "1.9.3"
+androidxComposeBom = "2024.09.02"
 androidxSecurityCrypto = "1.1.0"
 
 # Test

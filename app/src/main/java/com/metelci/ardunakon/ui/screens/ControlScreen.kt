@@ -17,7 +17,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.ui.screens.control.ControlViewModel
 import com.metelci.ardunakon.ui.screens.control.ControlViewModelFactory
@@ -41,6 +44,7 @@ fun ControlScreen(
 ) {
     val context = LocalContext.current
     val view = LocalView.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     // ViewModel instantiation
     val viewModel: ControlViewModel = viewModel(
@@ -93,6 +97,19 @@ fun ControlScreen(
         onDispose {
             currentActivity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
+    }
+
+    // Pause/resume transmission based on lifecycle to reduce background battery usage
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.setForegroundActive(true)
+                Lifecycle.Event.ON_STOP -> viewModel.setForegroundActive(false)
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     // Layout

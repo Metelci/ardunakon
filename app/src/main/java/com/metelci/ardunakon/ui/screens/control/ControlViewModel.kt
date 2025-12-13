@@ -18,12 +18,15 @@ import com.metelci.ardunakon.data.ProfileManager
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.security.AuthRequiredException
+import com.metelci.ardunakon.security.EncryptionException
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiManager
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -46,7 +49,8 @@ enum class ConnectionMode {
 class ControlViewModel(
     val bluetoothManager: AppBluetoothManager,
     val wifiManager: WifiManager,
-    private val profileManager: ProfileManager
+    private val profileManager: ProfileManager,
+    private val transmissionDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : ViewModel() {
 
     var showDeviceList by mutableStateOf(false)
@@ -66,10 +70,13 @@ class ControlViewModel(
     var connectionMode by mutableStateOf(ConnectionMode.BLUETOOTH)
     var allowReflection by mutableStateOf(false)
 
-    // ========== Profile State ==========
     val profiles = mutableStateListOf<Profile>()
     var currentProfileIndex by mutableStateOf(0)
     var securityErrorMessage by mutableStateOf<String?>(null)
+
+    // ========== Encryption State ==========
+    var encryptionError by mutableStateOf<EncryptionException?>(null)
+    var requireEncryption by mutableStateOf(false)
 
     val currentProfile: Profile
         get() = if (profiles.isNotEmpty() && currentProfileIndex in profiles.indices) {
@@ -91,12 +98,14 @@ class ControlViewModel(
 
     // ========== Transmission ==========
     private var transmissionJob: Job? = null
+    private var isForegroundActive = true
 
     init {
         loadProfiles()
         startTransmissionLoop()
         syncReflectionSetting()
         observeConnectionState()
+        observeEncryptionErrors()
     }
 
     private fun loadProfiles() {
@@ -122,14 +131,30 @@ class ControlViewModel(
         }
     }
 
+    fun setForegroundActive(active: Boolean) {
+        if (isForegroundActive == active) return
+        isForegroundActive = active
+        if (active) {
+            startTransmissionLoop()
+        } else {
+            transmissionJob?.cancel()
+            transmissionJob = null
+        }
+    }
+
     fun updateAllowReflection(enabled: Boolean) {
         allowReflection = enabled
         bluetoothManager.allowReflectionFallback = enabled
     }
 
     private fun startTransmissionLoop() {
-        transmissionJob = viewModelScope.launch {
+        transmissionJob?.cancel()
+        transmissionJob = viewModelScope.launch(transmissionDispatcher) {
             while (isActive) {
+                if (!isForegroundActive) {
+                    delay(200)
+                    continue
+                }
                 // Check E-STOP state - block all transmissions if active
                 if (bluetoothManager.isEmergencyStopActive.value) {
                     delay(50)
@@ -182,6 +207,57 @@ class ControlViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * Observes encryption errors from WifiManager and updates the UI state.
+     */
+    private fun observeEncryptionErrors() {
+        viewModelScope.launch {
+            wifiManager.encryptionError.collect { error ->
+                encryptionError = error
+            }
+        }
+    }
+
+    /**
+     * Retries the WiFi connection with encryption enabled.
+     */
+    fun retryWithEncryption() {
+        encryptionError = null
+        wifiManager.clearEncryptionError()
+        requireEncryption = true
+        wifiManager.setRequireEncryption(true)
+        // User should reconnect via WiFi config dialog
+        bluetoothManager.log("Encryption required - please reconnect", LogType.INFO)
+    }
+
+    /**
+     * Continues the connection without encryption requirement.
+     */
+    fun continueWithoutEncryption() {
+        encryptionError = null
+        wifiManager.clearEncryptionError()
+        requireEncryption = false
+        wifiManager.setRequireEncryption(false)
+        bluetoothManager.log("Continuing without encryption", LogType.WARNING)
+    }
+
+    /**
+     * Dismisses encryption error and disconnects.
+     */
+    fun dismissEncryptionError() {
+        encryptionError = null
+        wifiManager.clearEncryptionError()
+        wifiManager.disconnect()
+    }
+
+    /**
+     * Updates the encryption requirement setting.
+     */
+    fun updateRequireEncryption(required: Boolean) {
+        requireEncryption = required
+        wifiManager.setRequireEncryption(required)
     }
 
     // ========== E-Stop Handling ==========

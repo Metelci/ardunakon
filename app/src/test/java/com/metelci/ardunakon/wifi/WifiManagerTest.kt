@@ -26,6 +26,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import com.metelci.ardunakon.security.EncryptionException
 
 @RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -255,5 +256,58 @@ class WifiManagerTest {
         val listenerField = WifiManager::class.java.getDeclaredField("discoveryListener").apply { isAccessible = true }
         assertFalse(scanning.get())
         assertNull(listenerField.get(manager))
+    }
+
+    // ========== Encryption Enforcement Tests ==========
+
+    @Test
+    fun encryptIfNeededThrowsWhenRequiredAndNoKey() {
+        manager.setRequireEncryption(true)
+        val payload = "test".toByteArray()
+
+        assertThrows(EncryptionException.NoSessionKeyException::class.java) {
+            manager.encryptIfNeeded(payload)
+        }
+    }
+
+    @Test
+    fun encryptIfNeededSucceedsWhenRequiredAndKeyPresent() {
+        val key = ByteArray(16) { it.toByte() }
+        manager.setSessionKey(key)
+        manager.setRequireEncryption(true)
+        val payload = "secret".toByteArray()
+
+        val encrypted = manager.encryptIfNeeded(payload)
+
+        assertFalse("Should encrypt when key present", encrypted.contentEquals(payload))
+        assertTrue("Encrypted data should include IV (12 bytes) + ciphertext", encrypted.size > payload.size)
+    }
+
+    @Test
+    fun setRequireEncryptionUpdatesState() {
+        assertFalse("Default should be false", manager.isEncryptionRequired())
+
+        manager.setRequireEncryption(true)
+        assertTrue(manager.isEncryptionRequired())
+
+        manager.setRequireEncryption(false)
+        assertFalse(manager.isEncryptionRequired())
+    }
+
+    @Test
+    fun clearEncryptionErrorResetsState() = runTest {
+        // Manually set an error
+        val errorField = WifiManager::class.java.getDeclaredField("_encryptionError").apply {
+            isAccessible = true
+        }
+        @Suppress("UNCHECKED_CAST")
+        val errorFlow = errorField.get(manager) as MutableStateFlow<EncryptionException?>
+        errorFlow.value = EncryptionException.NoSessionKeyException("test")
+
+        assertNotNull(manager.encryptionError.value)
+
+        manager.clearEncryptionError()
+
+        assertNull(manager.encryptionError.value)
     }
 }

@@ -1,7 +1,7 @@
-# Ardunakon 🎮📡
-**The Ultimate Arduino Bluetooth Controller**
+# Ardunakon
+**Arduino Bluetooth + Wi-Fi Controller**
 
-Ardunakon is a professional-grade Android application designed to control Arduino projects (RC cars, drones, boats, robots) via Bluetooth Classic or BLE. Fully supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and **classic Arduino UNO** with HC-05/HC-06 or HM-10 modules. It replaces generic controller apps with a robust, crash-proof, and highly customizable interface.
+Ardunakon is an Android application designed to control Arduino projects (RC cars, drones, boats, robots) via Bluetooth Classic, BLE, or Wi-Fi UDP. It supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and classic Arduino UNO with HC-05/HC-06 or HM-10 modules. The app focuses on stability, clear telemetry, and a customizable interface.
 
 ## Release Info
 * Current Alpha: **0.2.6-alpha** (build 23)
@@ -17,31 +17,27 @@ Ardunakon is a professional-grade Android application designed to control Arduin
 *   **Better Organization**: Relocated example Arduino sketches to `examples/` directory with dedicated README
 *   **Comprehensive Docs**: Added detailed documentation for all Arduino sketches (pin mappings, Bluetooth compatibility matrix)
 
-## 🚀 Key Features
+## Key Features
 
-### 🕹️ Precision Control
-*   **RC Car Layout**: Left joystick for throttle (RC motor) with incremental speed control, WASD buttons for servo control (steering/pan-tilt).
-*   **Throttle Joystick**: Vertical-only control with non-centering for smooth speed adjustments. Perfect for RC car motor control.
-*   **W/L/R/B Servo Buttons**: Toggle-based directional control - tap to move servo, tap again to center. W (Forward), L (Left), R (Right), B (Backward).
-*   **Smart Throttle Modes**:
-    *   **Car Mode**: Bidirectional control (-100% to +100%) for forward/reverse.
-    *   **Drone/Boat Mode**: Unidirectional control (0% to 100%) for ESCs.
-*   **Custom Sensitivity**: Adjust control response from 10% to 200% to match your driving style.
+### Precision Control
+*   **RC Car Layout**: Left joystick for throttle with incremental speed control; WASD buttons for servo control (steering/pan-tilt).
+*   **Throttle Joystick**: Vertical-only, non-centering for smooth speed changes.
+*   **W/L/R/B Servo Buttons**: Tap to move, tap again to center (W forward, B backward, L left, R right).
+*   **Smart Throttle Modes**: Car mode (-100% to +100%) and Drone/Boat mode (0% to 100%).
+*   **Custom Sensitivity**: 10% to 200% response curve.
 
-### ⚙️ Powerful Customization
-*   **Button Config**: 4 Aux buttons with customizable labels, commands, and colors.
-*   **Live Editing**: Tweak settings instantly without disconnecting.
-*   **Haptic Feedback**: Joystick vibrates at center deadzone and edge boundaries.
-*   **Connection Quality Ring**: Visual indicator around joystick shows connection latency.
+### Powerful Customization
+*   **Aux Buttons**: 4 buttons with configurable labels, commands, and colors.
+*   **Live Editing**: Change settings while connected.
+*   **Haptics & Feedback**: Joystick haptics and connection quality ring.
 
-### 📡 Real-World Connectivity
-*   **Military-Grade Stability**: 4 critical reliability improvements including bounded write queues, 3-strike retry logic, and optimized timeouts
-*   **Bidirectional Data**: View real-time feedback from your Arduino in the Debug Console.
-*   **Auto-Reconnect**: Automatically restores connection if signal is lost.
-*   **Resilient Error Handling**: Tolerates transient interference and temporary signal issues without disconnecting
-*   **Zero Fakes**: No mock data. Every signal strength bar and log entry is real.
+### Connectivity
+*   **Stability-focused reliability**: Bounded write queues, 3-strike retry logic, tuned timeouts.
+*   **Bidirectional Data**: View telemetry in the Debug Console.
+*   **Auto-Reconnect**: Restores connection when signal returns.
+*   **Resilient Error Handling**: Tolerates transient interference without dropping immediately.
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### 1. Installation
 1.  Download and install the APK on your Android device (Android 12+ recommended).
@@ -51,7 +47,7 @@ Ardunakon is a professional-grade Android application designed to control Arduin
 
 Choose your Arduino board and follow the setup guide:
 
-#### ✨ **Arduino UNO Q** (2025 Latest Board)
+#### Arduino UNO Q (2025 Latest Board)
 The Arduino UNO Q features **built-in Bluetooth 5.1 BLE** - no external module needed!
 
 1. Open `arduino_sketches/ArdunakonUnoQ/ArdunakonUnoQ.ino`
@@ -59,11 +55,11 @@ The Arduino UNO Q features **built-in Bluetooth 5.1 BLE** - no external module n
 3. Upload to your Arduino UNO Q
 4. Device will appear as **"ArdunakonQ"** in the app
 
-**No external Bluetooth module required!** ✅
+**No external Bluetooth module required!**
 
 ---
 
-#### 🔥 **Arduino UNO R4 WiFi**
+#### Arduino UNO R4 WiFi
 The R4 WiFi has **built-in BLE** via the ESP32-S3 module.
 
 1. Open `arduino_sketches/ArdunakonR4WiFi/ArdunakonR4WiFi.ino`
@@ -73,27 +69,27 @@ The R4 WiFi has **built-in BLE** via the ESP32-S3 module.
 5. Device will appear as **"ArdunakonR4"** in the app
 
 **Wiring (v2.2+)**:
-- Pin 6 → Servo X (horizontal)
-- Pin 7 → Servo Y (vertical)
-- Pin 9 → Brushless ESC signal
+- Pin 6 -> Servo X (horizontal)
+- Pin 7 -> Servo Y (vertical)
+- Pin 9 -> Brushless ESC signal
 
-**No external Bluetooth module required!** ✅ Works with official boards and BLE-capable clones; sketch advertises both ArduinoBLE default service (19B10000/19B10001) and HM-10-style UUIDs for maximum compatibility.
+**No external Bluetooth module required!** Works with official boards and BLE-capable clones; sketch advertises both ArduinoBLE default service (19B10000/19B10001) and HM-10-style UUIDs for maximum compatibility.
 
 ---
 
-#### 🎛️ **Classic Arduino UNO** (with HC-05/HC-06 or HM-10)
+#### Classic Arduino UNO (with HC-05/HC-06 or HM-10)
 Requires external Bluetooth module.
 
 1. Open `arduino_sketches/ArdunakonClassicUno/ArdunakonClassicUno.ino`
 2. Wire your HC-05/HC-06 or HM-10 module:
-   - **VCC** → 5V
-   - **GND** → GND
-   - **TX** → Arduino Pin 10 (RX)
-   - **RX** → Arduino Pin 11 (TX)
+   - **VCC** -> 5V
+   - **GND** -> GND
+   - **TX** -> Arduino Pin 10 (RX)
+   - **RX** -> Arduino Pin 11 (TX)
 3. Upload the sketch
 4. Device will appear as "HC-05", "HC-06", "HM-10", or custom name
 
-**📖 Full Setup Guide**: See `arduino_sketches/README.md` for detailed documentation or check the **built-in offline Help** in the app.
+**Full Setup Guide**: See `arduino_sketches/README.md` for detailed documentation or check the **built-in offline Help** in the app.
 
 ---
 
@@ -103,7 +99,14 @@ Requires external Bluetooth module.
 3.  Select your Arduino from the device list.
 4.  The status card will turn **Green** upon connection.
 
-## 📝 Protocol Overview
+### 4. Wi-Fi Mode Quickstart
+1. Connect your phone and Arduino/ESP running the Wi-Fi sketch to the same network (UDP 8888; replies with `ARDUNAKON_DEVICE:<name>`).
+2. In the app, switch to Wi-Fi mode and open **Wi-Fi Config** to enter the target IP/port if discovery is blocked.
+3. Allow Wi-Fi/Location permissions when prompted (Android 13+ may request Nearby Wi-Fi/Location for discovery).
+4. Security: Wi-Fi control packets are currently sent in plaintext; use trusted networks until session key exchange is added.
+
+
+## Protocol Overview
 Ardunakon sends a fixed 10-byte packet @ 20Hz:
 `[START, DEV_ID, CMD, LX, LY, RX, RY, AUX, CS, END]`
 
@@ -111,10 +114,10 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 *   **LX/LY/RX/RY**: `0-200` (100 is center)
 *   **END**: `0x55`
 
-## 🐞 Troubleshooting
+## Troubleshooting
 
 ### Quick Fixes
-*   **"Permission Denied"**: Go to Android Settings → Apps → Ardunakon → Permissions and allow "Nearby Devices".
+*   **"Permission Denied"**: Go to Android Settings > Apps > Ardunakon > Permissions and allow "Nearby Devices".
 *   **No Data Received**: Check your Arduino TX/RX wiring (TX must go to RX).
 *   **App Closes in Background**: Disable "Battery Optimization" for Ardunakon.
 *   **HC-06 on Xiaomi/MIUI**: Automatically handled! The app now auto-enables reflection fallback and stream initialization delays for Xiaomi/Redmi/Poco devices.
@@ -126,35 +129,33 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 *   **[HM-10 Troubleshooting](HM10_TROUBLESHOOTING.md)** - 7 UUID variants, all clones covered
 *   **[Android Manufacturer Guide](ANDROID_MANUFACTURERS_GUIDE.md)** - Samsung, Xiaomi, Huawei-specific fixes
 *   **[Dependency Analysis](DEPENDENCY_ANALYSIS.md)** - Zero dependency hell, full compatibility report
-*   **In-App Help** - Tap Menu → Help for offline documentation with 4 detailed guides
+*   **In-App Help** - Tap Menu > Help for offline documentation with 4 detailed guides
 
 ---
 *Built for Makers, by Makers.*
 
-## 📢 Play Store Listing
+## Play Store Listing
 
 **Title**: Ardunakon: Pro Arduino Bluetooth Controller
 
 **Short Description**:
-Control Arduino RC cars, drones & robots with precision. Secure, customizable & crash-proof.
+Control Arduino RC cars, drones & robots with precision. Customizable with live telemetry.
 
 **Full Description**:
-Unlock the full potential of your Arduino projects with **Ardunakon**, the professional-grade Bluetooth controller designed for makers, hobbyists, and engineers.
+Unlock the full potential of your Arduino projects with **Ardunakon**, a stability-focused Bluetooth and Wi-Fi controller for makers, hobbyists, and engineers.
 
-Whether you're driving an RC car, piloting a drone, or controlling a complex robot, Ardunakon delivers a crash-proof, high-performance interface that just works. Forget about generic, buggy controllers—experience precision, security, and total customization.
+**Key Features:**
 
-**🚀 Key Features:**
-
-*   **🕹️ RC Car Control Layout**: Throttle joystick for smooth speed control + WASD buttons for precise servo positioning. Choose between **Car Mode** (Forward/Reverse) or **Drone/ESC Mode** (0-100% Throttle) for perfect control.
-*   **🔒 Secure & Private**: Your data is yours. All profiles and settings are **encrypted** using industry-standard AES-256 encryption.
-*   **⚙️ Total Customization**: Adjust joystick sensitivity (10% - 200%) and map custom Aux buttons to your exact needs.
-*   **📡 Real-Time Telemetry**: View live data from your Arduino in the built-in Debug Console. No more guessing—see exactly what your device is sending.
-*   **⚡ Auto-Connect**: Seamlessly reconnects if signal is lost, keeping you in control.
+*   **RC Car Control Layout**: Throttle joystick for smooth speed control + WASD buttons for precise servo positioning. Car (bidirectional) and ESC (0-100%) modes included.
+*   **Secure & Private**: Profiles/settings stay on-device and are encrypted via Android Keystore. Wi-Fi control traffic is currently unencrypted; use trusted networks until key exchange ships.
+*   **Total Customization**: Adjust joystick sensitivity (10% - 200%) and map custom Aux buttons.
+*   **Real-Time Telemetry**: View live data from your Arduino in the built-in Debug Console.
+*   **Auto-Connect**: Seamlessly reconnects if signal is lost.
 
 **Compatible With:**
-*   **Latest Arduino Boards**: UNO Q (2025), UNO R4 WiFi (built-in BLE) - **Native Support Added!**
+*   **Latest Arduino Boards**: UNO Q (2025), UNO R4 WiFi (built-in BLE) - native support
     * Official R4 WiFi and BLE-capable clones work out of the box (ArduinoBLE default profile + HM-10-compatible fallback).
-*   **Bluetooth Classic**: HC-05, HC-06 (and all clones) - **Now with Military-Grade Stability**
+*   **Bluetooth Classic**: HC-05, HC-06 (and clones) with connection fallbacks
 *   **Bluetooth LE**: HM-10, AT-09, MLT-BT05, TI CC2541 (Generic Discovery Engine supports 99% of clones)
 *   **Classic Arduino**: UNO, Nano, Mega with external modules
 *   Any ESP32 or STM32 project!

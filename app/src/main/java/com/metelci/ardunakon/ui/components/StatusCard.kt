@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.ConnectionState
 
@@ -68,7 +70,9 @@ fun StatusCard(
         contentColor = contentColor,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(50), // Fully rounded like Button
         border = BorderStroke(1.dp, borderColor),
-        modifier = Modifier.height(36.dp)
+        modifier = Modifier
+            .height(36.dp)
+            .semantics { contentDescription = "$label status: $stateText" }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

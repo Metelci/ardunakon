@@ -135,6 +135,16 @@ fun ControlScreenDialogs(
         )
     }
 
+    // Encryption Error Dialog - blocking prompt for encryption failures
+    viewModel.encryptionError?.let { error ->
+        EncryptionErrorDialog(
+            error = error,
+            onRetry = { viewModel.retryWithEncryption() },
+            onDisableEncryption = { viewModel.continueWithoutEncryption() },
+            onDismiss = { viewModel.dismissEncryptionError() }
+        )
+    }
+
     // OTA Dialog
     if (viewModel.showOtaDialog) {
         OtaDialog(

@@ -107,32 +107,35 @@ class BleConnection(
             return
         }
 
-        // Settling delay
-        Thread.sleep(500)
-
-        bluetoothGatt = device.connectGatt(context, false, gattCallback)
-
-        // Timeout with retry
+        connectionJob?.cancel()
         connectionJob = scope.launch {
-            delay(15000)
-            if (callbacks.getSavedDevice() != null) {
-                val state = bluetoothGatt?.let { getConnectionState(it) }
-                if (state != BluetoothProfile.STATE_CONNECTED) {
-                    callbacks.log("BLE Connection timed out after 15s. Retrying...", LogType.WARNING)
-                    bluetoothGatt?.close()
-                    bluetoothGatt = null
-                    delay(500)
+            // Settling delay without blocking the thread
+            delay(500)
 
-                    bluetoothGatt = device.connectGatt(context, false, gattCallback)
+            bluetoothGatt = device.connectGatt(context, false, gattCallback)
 
-                    delay(15000)
-                    val retryState = bluetoothGatt?.let { getConnectionState(it) }
-                    if (retryState != BluetoothProfile.STATE_CONNECTED) {
-                        callbacks.log("BLE Connection failed after retry (30s total)", LogType.ERROR)
+            // Timeout with retry inside structured scope
+            launch {
+                delay(15000)
+                if (callbacks.getSavedDevice() != null) {
+                    val state = bluetoothGatt?.let { getConnectionState(it) }
+                    if (state != BluetoothProfile.STATE_CONNECTED) {
+                        callbacks.log("BLE Connection timed out after 15s. Retrying...", LogType.WARNING)
                         bluetoothGatt?.close()
                         bluetoothGatt = null
-                        callbacks.onStateChanged(ConnectionState.ERROR)
-                        connectionMutex.unlock()
+                        delay(500)
+
+                        bluetoothGatt = device.connectGatt(context, false, gattCallback)
+
+                        delay(15000)
+                        val retryState = bluetoothGatt?.let { getConnectionState(it) }
+                        if (retryState != BluetoothProfile.STATE_CONNECTED) {
+                            callbacks.log("BLE Connection failed after retry (30s total)", LogType.ERROR)
+                            bluetoothGatt?.close()
+                            bluetoothGatt = null
+                            callbacks.onStateChanged(ConnectionState.ERROR)
+                            connectionMutex.unlock()
+                        }
                     }
                 }
             }

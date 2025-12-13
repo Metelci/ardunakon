@@ -5,6 +5,7 @@ package com.metelci.ardunakon.wifi
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Base64
 import android.util.Log
 import java.net.DatagramPacket
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import com.metelci.ardunakon.bluetooth.TelemetryParser
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import com.metelci.ardunakon.security.EncryptionException
 
 
 class WifiManager(
@@ -38,6 +40,7 @@ class WifiManager(
     private val sessionKey = AtomicReference<ByteArray?>(null)
     private val discoveryNonce = AtomicReference<String?>(null)
     private val secureRandom = SecureRandom()
+    private val requireEncryption = AtomicBoolean(false)
 
     // Connection State
     private val _connectionState = MutableStateFlow(WifiConnectionState.DISCONNECTED)
@@ -67,6 +70,10 @@ class WifiManager(
     private val _telemetry = MutableStateFlow<AppBluetoothManager.Telemetry?>(null)
     val telemetry = _telemetry.asStateFlow()
 
+    // Encryption Error State - exposed for UI to show blocking dialogs
+    private val _encryptionError = MutableStateFlow<EncryptionException?>(null)
+    val encryptionError = _encryptionError.asStateFlow()
+
     // Packet stats for WiFi
     private var packetsSent = 0L
     private var packetsFailed = 0L
@@ -86,11 +93,31 @@ class WifiManager(
     private var multicastLock: android.net.wifi.WifiManager.MulticastLock? = null
 
     /**
-     * Injects/updates the current session encryption key derived from the verification handshake.
+     * Injects/updates the current session encryption key when an external flow establishes one.
      * When present, discovery replies are authenticated and control packets are AES-GCM encrypted.
      */
     fun setSessionKey(key: ByteArray?) {
         sessionKey.set(key)
+    }
+
+    /**
+     * Sets whether encryption is required for all outgoing packets.
+     * When true, sendData() will fail and notify the user if encryption cannot be performed.
+     */
+    fun setRequireEncryption(required: Boolean) {
+        requireEncryption.set(required)
+    }
+
+    /**
+     * Returns whether encryption is currently required.
+     */
+    fun isEncryptionRequired(): Boolean = requireEncryption.get()
+
+    /**
+     * Clears any pending encryption error.
+     */
+    fun clearEncryptionError() {
+        _encryptionError.value = null
     }
 
     /**
@@ -114,6 +141,20 @@ class WifiManager(
         if (isScanning.get()) return
         isScanning.set(true)
         _scannedDevices.value = emptyList()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNearbyWifiPermission()) {
+            onLog("WiFi discovery requires NEARBY_WIFI_DEVICES permission on Android 13+")
+            isScanning.set(false)
+            return
+        }
+
+        // Ensure Arduino R4 WiFi AP is discoverable even if mDNS/UDP broadcast is blocked
+        addDevice(
+            name = "Arduino R4 WiFi (AP mode)",
+            ip = "192.168.4.1",
+            port = 8888,
+            trusted = false
+        )
 
         // Acquire Multicast Lock
         if (!hasWifiStatePermission()) {
@@ -367,6 +408,14 @@ class WifiManager(
                 val packet = DatagramPacket(packetData, packetData.size, address, targetPort)
                 socket?.send(packet)
                 packetsSent++
+            } catch (e: EncryptionException) {
+                Log.e("WifiManager", "Encryption error", e)
+                _encryptionError.value = e
+                onLog("Encryption Error: ${e.message}")
+                // Disconnect on encryption failure to prevent plaintext leakage
+                if (requireEncryption.get()) {
+                    disconnect()
+                }
             } catch (e: Exception) {
                 Log.e("WifiManager", "Send failed", e)
                 onLog("TX Error (UDP): ${e.message}")
@@ -376,8 +425,18 @@ class WifiManager(
     }
 
     // Internal for test visibility
+    @Throws(EncryptionException::class)
     internal fun encryptIfNeeded(payload: ByteArray): ByteArray {
-        val key = sessionKey.get() ?: return payload
+        val key = sessionKey.get()
+        if (key == null) {
+            if (requireEncryption.get()) {
+                throw EncryptionException.NoSessionKeyException(
+                    "Encryption required but no session key established. " +
+                    "Connect to a device that supports encryption or disable this requirement."
+                )
+            }
+            return payload
+        }
         return try {
             val iv = ByteArray(12).also(secureRandom::nextBytes)
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -385,8 +444,10 @@ class WifiManager(
             val encrypted = cipher.doFinal(payload)
             iv + encrypted
         } catch (e: Exception) {
-            Log.e("WifiManager", "Encryption failed, sending plaintext", e)
-            payload
+            Log.e("WifiManager", "Encryption failed", e)
+            throw EncryptionException.EncryptionFailedException(
+                "Failed to encrypt packet: ${e.message}", e
+            )
         }
     }
 
@@ -543,6 +604,9 @@ class WifiManager(
 
     private fun hasWifiStatePermission(): Boolean =
         context.checkSelfPermission(Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED
+
+    private fun hasNearbyWifiPermission(): Boolean =
+        context.checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED
 }
 
 enum class WifiConnectionState {

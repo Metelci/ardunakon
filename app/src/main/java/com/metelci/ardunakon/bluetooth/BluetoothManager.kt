@@ -13,8 +13,6 @@ import android.util.Log
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
-import com.metelci.ardunakon.security.DeviceVerificationException
-import com.metelci.ardunakon.security.DeviceVerificationManager
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,8 +55,6 @@ class AppBluetoothManager(private val context: Context) {
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val adapter: BluetoothAdapter? = bluetoothManager.adapter
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val deviceVerificationManager = DeviceVerificationManager(context)
-    private val deviceVerificationEnabled = true // Can be made configurable
     private val deviceNameCache = com.metelci.ardunakon.data.DeviceNameCache(context)
     private val autoReconnectPrefs = com.metelci.ardunakon.data.AutoReconnectPreferences(context)
 
@@ -812,24 +808,6 @@ class AppBluetoothManager(private val context: Context) {
 
                 var connected = false
 
-                // Device Verification: Perform cryptographic verification if enabled
-                // This is NON-BLOCKING and does NOT affect connectivity
-                if (deviceVerificationEnabled) {
-                    scope.launch {
-                        try {
-                            performDeviceVerification(device)
-                        } catch (e: DeviceVerificationException) {
-                            log("Device verification failed: ${e.message}", LogType.WARNING)
-                            // Verification failure does NOT affect connectivity
-                            // This is purely informational for security logging
-                        } catch (e: Exception) {
-                            if (e is CancellationException) throw e
-                            log("Device verification error: ${e.message}", LogType.WARNING)
-                            // Any verification errors are non-critical
-                        }
-                    }
-                }
-
                 // HC-06 Connection Strategy:
                 // Reflection is only used when user explicitly enables Legacy Reflection.
                 // For Xiaomi/MIUI, we reorder to try reflection first only if the toggle is ON
@@ -1076,52 +1054,6 @@ class AppBluetoothManager(private val context: Context) {
             closeSocketSafely(socket)
         }
 
-        @SuppressLint("MissingPermission")
-        private fun performDeviceVerification(device: BluetoothDevice) {
-            try {
-                log("Starting device cryptographic verification for ${device.name} ...", LogType.INFO)
-
-                // Generate verification challenge
-                val challenge = deviceVerificationManager.generateVerificationChallenge(device.address)
-                log("Generated verification challenge", LogType.INFO)
-
-                // In a real implementation, this challenge would be sent to the device
-                // and the device would respond with the encrypted challenge
-                // For now, we simulate the verification process
-
-                // Simulate device response (in real implementation, this would come from the device)
-                val simulatedResponse = deviceVerificationManager.generateVerificationChallenge(device.address)
-
-                // Verify the response
-                val verificationResult = deviceVerificationManager.verifyDeviceResponse(
-                    device.address,
-                    challenge,
-                    simulatedResponse
-                )
-
-                if (verificationResult) {
-                    log("Device verification SUCCESS: ${device.name}  is cryptographically verified", LogType.SUCCESS)
-
-                    // Generate shared secret for secure communication
-                    @Suppress("UNUSED_VARIABLE")
-                    val sharedSecret = deviceVerificationManager.generateSharedSecret(device.address)
-                    log("Generated shared secret for secure communication", LogType.SUCCESS)
-                    // Note: sharedSecret would be used for packet encryption in production
-                } else {
-                    log(
-                        "Device verification FAILED: ${device.name}  failed cryptographic verification",
-                        LogType.WARNING
-                    )
-                    // Verification failure is non-critical - continue normally
-                }
-            } catch (e: DeviceVerificationException) {
-                log("Device verification error: ${e.message}", LogType.WARNING)
-                // All verification errors are non-critical and don't affect connectivity
-            } catch (e: Exception) {
-                log("Unexpected verification error: ${e.message}", LogType.WARNING)
-                // Any unexpected errors are caught and logged but don't affect connectivity
-            }
-        }
     }
 
     private inner class ConnectedThread(private val socket: BluetoothSocket) :
