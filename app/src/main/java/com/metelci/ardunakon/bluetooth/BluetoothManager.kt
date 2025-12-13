@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import android.content.Context
-import android.content.Intent
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -23,7 +22,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import java.util.UUID
 import kotlin.experimental.xor
 
 // Import centralized configuration
@@ -38,15 +36,11 @@ enum class ConnectionState {
     RECONNECTING
 }
 
-data class BluetoothDeviceModel(
-    val name: String,
-    val address: String,
-    val type: DeviceType,
-    val rssi: Int = 0
-)
+data class BluetoothDeviceModel(val name: String, val address: String, val type: DeviceType, val rssi: Int = 0)
 
 enum class DeviceType {
-    CLASSIC, LE
+    CLASSIC,
+    LE
 }
 
 data class ConnectionHealth(
@@ -57,7 +51,7 @@ data class ConnectionHealth(
     val lastRttMs: Long = 0L
 )
 
-    class AppBluetoothManager(private val context: Context) {
+class AppBluetoothManager(private val context: Context) {
 
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val adapter: BluetoothAdapter? = bluetoothManager.adapter
@@ -144,19 +138,22 @@ data class ConnectionHealth(
 
     // Active connection (single slot)
     private var connection: BluetoothConnection? = null
+
     // Saved device for auto-reconnect
     private var savedDevice: BluetoothDeviceModel? = null
     private var connectionType: DeviceType? = null
     private var _shouldReconnect = false
     private val _autoReconnectEnabled = MutableStateFlow(false)
     val autoReconnectEnabled: StateFlow<Boolean> = _autoReconnectEnabled.asStateFlow()
+
     // Connection mutex to prevent concurrent connection attempts
     private val connectionMutex = kotlinx.coroutines.sync.Mutex()
     private var lastStateChangeAt = 0L
     private var rssiFailures = 0
+
     // Exponential backoff state
-    private var reconnectAttempts = 0  // Count consecutive failures
-    private var nextReconnectAt = 0L   // Timestamp when next attempt allowed
+    private var reconnectAttempts = 0 // Count consecutive failures
+    private var nextReconnectAt = 0L // Timestamp when next attempt allowed
     private var heartbeatSeq = 0
     private var lastHeartbeatSentAt = 0L
     private var lastPacketAt = 0L
@@ -193,9 +190,7 @@ data class ConnectionHealth(
 
     private fun isBleOnlyName(name: String?): Boolean = BluetoothConfig.isBleOnlyName(name)
 
-    private fun shouldForceBle(deviceModel: BluetoothDeviceModel): Boolean {
-        return isBleOnlyName(deviceModel.name)
-    }
+    private fun shouldForceBle(deviceModel: BluetoothDeviceModel): Boolean = isBleOnlyName(deviceModel.name)
 
     private fun startReconnectMonitor() {
         scope.launch {
@@ -209,16 +204,19 @@ data class ConnectionHealth(
                         // Reconnect if disconnected OR in error state (failed connection attempt)
                         if (_shouldReconnect &&
                             (currentState == ConnectionState.DISCONNECTED || currentState == ConnectionState.ERROR) &&
-                            savedDevice != null) {
-
+                            savedDevice != null
+                        ) {
                             // Check circuit breaker
                             if (reconnectAttempts >= BluetoothConfig.MAX_RECONNECT_ATTEMPTS) {
                                 log("Circuit breaker: Too many failed attempts", LogType.ERROR)
-                                _shouldReconnect = false  // Stop auto-reconnect
+                                _shouldReconnect = false // Stop auto-reconnect
                                 _autoReconnectEnabled.value = false
                             } else {
                                 val backoffDelay = calculateBackoffDelay(reconnectAttempts)
-                                log("Auto-reconnecting to ${savedDevice?.name}... (attempt ${reconnectAttempts + 1}, backoff ${backoffDelay}ms)", LogType.WARNING)
+                                log(
+                                    "Auto-reconnecting to ${savedDevice?.name}... (attempt ${reconnectAttempts + 1}, backoff ${backoffDelay}ms)",
+                                    LogType.WARNING
+                                )
 
                                 reconnectAttempts++
                                 nextReconnectAt = now + backoffDelay
@@ -245,7 +243,7 @@ data class ConnectionHealth(
 
         lastPacketAt = now
         rssiFailures = 0
-        missedHeartbeatAcks = 0  // Reset missed ACK counter
+        missedHeartbeatAcks = 0 // Reset missed ACK counter
 
         if (wasTimeout) {
             log("Heartbeat recovered", LogType.SUCCESS)
@@ -275,7 +273,10 @@ data class ConnectionHealth(
      */
     fun updateCapabilities(capabilities: DeviceCapabilities) {
         _deviceCapability.value = capabilities
-        log("Device capabilities: ${capabilities.toDisplayString()} (${capabilities.boardType.displayName})", LogType.SUCCESS)
+        log(
+            "Device capabilities: ${capabilities.toDisplayString()} (${capabilities.boardType.displayName})",
+            LogType.SUCCESS
+        )
     }
 
     /**
@@ -310,7 +311,10 @@ data class ConnectionHealth(
                     val ackThreshold = if (isBle) missedAckThresholdBle else missedAckThresholdClassic
 
                     if (missedHeartbeatAcks >= ackThreshold && lastPacketAt > 0 && sinceLastPacket > timeoutMs) {
-                        log("Heartbeat timeout after ${sinceLastPacket}ms (missed $missedHeartbeatAcks acks)", LogType.ERROR)
+                        log(
+                            "Heartbeat timeout after ${sinceLastPacket}ms (missed $missedHeartbeatAcks acks)",
+                            LogType.ERROR
+                        )
                         missedHeartbeatAcks = 0
                         forceReconnect("Heartbeat timeout")
                     }
@@ -526,7 +530,7 @@ data class ConnectionHealth(
         lastStateChangeAt = now
         _connectionState.value = state
 
-        when(state) {
+        when (state) {
             ConnectionState.CONNECTED -> {
                 log("Connected!", LogType.SUCCESS)
                 vibrate(BluetoothConfig.VIBRATION_CONNECTED_MS)
@@ -555,9 +559,13 @@ data class ConnectionHealth(
 
     private fun vibrate(durationMs: Long) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
+            val vibratorManager = context.getSystemService(
+                Context.VIBRATOR_MANAGER_SERVICE
+            ) as android.os.VibratorManager
             val vibrator = vibratorManager.defaultVibrator
-            vibrator.vibrate(android.os.VibrationEffect.createOneShot(durationMs, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            vibrator.vibrate(
+                android.os.VibrationEffect.createOneShot(durationMs, android.os.VibrationEffect.DEFAULT_AMPLITUDE)
+            )
         } else {
             @Suppress("DEPRECATION")
             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
@@ -591,7 +599,10 @@ data class ConnectionHealth(
         val currentRtt = lastRttMs
 
         log("Reconnecting: $reason", LogType.WARNING)
-        log("  └─ Diagnostics: missedAcks=$missedAcks, timeSinceLastPacket=${timeSinceLastPacket}ms, lastRTT=${currentRtt}ms", LogType.INFO)
+        log(
+            "  └─ Diagnostics: missedAcks=$missedAcks, timeSinceLastPacket=${timeSinceLastPacket}ms, lastRTT=${currentRtt}ms",
+            LogType.INFO
+        )
 
         connection?.cancel()
         connection = null
@@ -712,6 +723,7 @@ data class ConnectionHealth(
 
     private inner class ConnectThread(private val device: BluetoothDevice) : Thread() {
         private var socket: BluetoothSocket? = null
+
         @Volatile private var cancelled = false
 
         @SuppressLint("MissingPermission")
@@ -724,7 +736,10 @@ data class ConnectionHealth(
                 }
 
                 log("Starting connection to ${device.name} (${device.address})", LogType.INFO)
-                log("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (Android ${android.os.Build.VERSION.RELEASE})", LogType.INFO)
+                log(
+                    "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (Android ${android.os.Build.VERSION.RELEASE})",
+                    LogType.INFO
+                )
 
                 // MILITARY GRADE STABILITY: Ensure discovery is cancelled and radio is settled
                 if (adapter?.isDiscovering == true) {
@@ -782,8 +797,14 @@ data class ConnectionHealth(
                 // Attempt A (OEM-first): Reflection Port 1 (when forced)
                 if (!connected && !cancelled && forceReflectionFirst) {
                     try {
-                        log("Forcing Reflection Port 1 FIRST (OEM fallback: ${android.os.Build.MANUFACTURER})", LogType.WARNING)
-                        val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                        log(
+                            "Forcing Reflection Port 1 FIRST (OEM fallback: ${android.os.Build.MANUFACTURER})",
+                            LogType.WARNING
+                        )
+                        val m: java.lang.reflect.Method = device.javaClass.getMethod(
+                            "createRfcommSocket",
+                            Int::class.javaPrimitiveType
+                        )
                         socket = m.invoke(device, 1) as BluetoothSocket
                         socket?.connect()
                         connected = true
@@ -801,7 +822,10 @@ data class ConnectionHealth(
                 if (!connected && !cancelled && reflectionAllowed) {
                     try {
                         log("Attempting RAW RFCOMM via reflection (Port 1, no UUID)...", LogType.WARNING)
-                        val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                        val m: java.lang.reflect.Method = device.javaClass.getMethod(
+                            "createRfcommSocket",
+                            Int::class.javaPrimitiveType
+                        )
                         socket = m.invoke(device, 1) as BluetoothSocket
                         socket?.connect()
                         connected = true
@@ -837,7 +861,10 @@ data class ConnectionHealth(
                 if (!connected && !cancelled && reflectionAllowed) {
                     try {
                         log("Attempting REFLECTION connection (Port 1 - HC-06 Fallback)...", LogType.WARNING)
-                        val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                        val m: java.lang.reflect.Method = device.javaClass.getMethod(
+                            "createRfcommSocket",
+                            Int::class.javaPrimitiveType
+                        )
                         socket = m.invoke(device, 1) as BluetoothSocket
                         socket?.connect()
                         connected = true
@@ -897,7 +924,10 @@ data class ConnectionHealth(
 
                         try {
                             log("Attempting REFLECTION connection (Port $port)...", LogType.WARNING)
-                            val m: java.lang.reflect.Method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                            val m: java.lang.reflect.Method = device.javaClass.getMethod(
+                                "createRfcommSocket",
+                                Int::class.javaPrimitiveType
+                            )
                             socket = m.invoke(device, port) as BluetoothSocket
                             socket?.connect()
                             connected = true
@@ -934,7 +964,7 @@ data class ConnectionHealth(
                 if (cancelled) {
                     closeSocketSafely(socket)
                     log("Connection attempt cancelled for ${device.name} ", LogType.WARNING)
-                    updateConnectionState( ConnectionState.DISCONNECTED)
+                    updateConnectionState(ConnectionState.DISCONNECTED)
                     return
                 }
 
@@ -953,13 +983,13 @@ data class ConnectionHealth(
                         connection = connectedThread
                         connectedThread.start()
 
-                        updateConnectionState( ConnectionState.CONNECTED)
+                        updateConnectionState(ConnectionState.CONNECTED)
                     } catch (e: IOException) {
                         // Stream initialization failed (Xiaomi/MIUI blocking)
                         log("Failed to create socket streams: ${e.message}", LogType.ERROR)
                         log("Marking connection as failed and will retry with different method", LogType.WARNING)
                         closeSocketSafely(validSocket)
-                        updateConnectionState( ConnectionState.ERROR)
+                        updateConnectionState(ConnectionState.ERROR)
                     }
                 } else {
                     closeSocketSafely(socket)
@@ -969,7 +999,7 @@ data class ConnectionHealth(
                     log("Module may be defective or incompatible", LogType.ERROR)
                     log("See HC06_TROUBLESHOOTING.md for help", LogType.ERROR)
                     log("============================================", LogType.ERROR)
-                    updateConnectionState( ConnectionState.ERROR)
+                    updateConnectionState(ConnectionState.ERROR)
                 }
             } finally {
                 // Always unlock the mutex when connection attempt completes (success or failure)
@@ -1032,10 +1062,12 @@ data class ConnectionHealth(
                     log("Generated shared secret for secure communication", LogType.SUCCESS)
                     // Note: sharedSecret would be used for packet encryption in production
                 } else {
-                    log("Device verification FAILED: ${device.name}  failed cryptographic verification", LogType.WARNING)
+                    log(
+                        "Device verification FAILED: ${device.name}  failed cryptographic verification",
+                        LogType.WARNING
+                    )
                     // Verification failure is non-critical - continue normally
                 }
-
             } catch (e: DeviceVerificationException) {
                 log("Device verification error: ${e.message}", LogType.WARNING)
                 // All verification errors are non-critical and don't affect connectivity
@@ -1046,7 +1078,9 @@ data class ConnectionHealth(
         }
     }
 
-    private inner class ConnectedThread(private val socket: BluetoothSocket) : Thread(), BluetoothConnection {
+    private inner class ConnectedThread(private val socket: BluetoothSocket) :
+        Thread(),
+        BluetoothConnection {
         private val outputStream: OutputStream
         private val inputStream: InputStream
         private val buffer = ByteArray(1024)
@@ -1086,7 +1120,14 @@ data class ConnectionHealth(
                         }
 
                         // Log incoming data - always log for terminal visibility
-                        if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
+                        if (decodedText != null &&
+                            decodedText.isNotEmpty() &&
+                            decodedText.all {
+                                it.isLetterOrDigit() ||
+                                    it.isWhitespace() ||
+                                    it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r"
+                            }
+                        ) {
                             // Looks like text - display as string
                             log("RX Device: $decodedText", LogType.INFO)
                         } else {
@@ -1115,13 +1156,13 @@ data class ConnectionHealth(
                         // Permanent failure after 3 consecutive errors
                         Log.e("BT", "Disconnected Device after $consecutiveErrors errors", e)
                         log("Disconnected Device: ${e.message}", LogType.ERROR)
-                        updateConnectionState( ConnectionState.DISCONNECTED)
+                        updateConnectionState(ConnectionState.DISCONNECTED)
                         connection = null
                         break
                     } else {
                         // Transient error - log warning and retry
                         Log.w("BT", "Transient read error $consecutiveErrors/3 on Device", e)
-                        log("Read error ${consecutiveErrors}/3  - retrying...", LogType.WARNING)
+                        log("Read error $consecutiveErrors/3  - retrying...", LogType.WARNING)
                         try {
                             Thread.sleep(50) // Brief pause before retry
                         } catch (ie: InterruptedException) {
@@ -1131,8 +1172,6 @@ data class ConnectionHealth(
                 }
             }
         }
-        
-
 
         override fun write(bytes: ByteArray) {
             try {
@@ -1141,14 +1180,16 @@ data class ConnectionHealth(
                 Log.e("BT", "Write failed - triggering reconnect", e)
                 log("Write failed Device: ${e.message} - reconnecting...", LogType.ERROR)
                 // Trigger proper cleanup and reconnection
-                updateConnectionState( ConnectionState.DISCONNECTED)
+                updateConnectionState(ConnectionState.DISCONNECTED)
                 connection = null
                 cancel()
             }
         }
 
         override fun cancel() {
-            try { socket.close() } catch (e: IOException) {}
+            try {
+                socket.close()
+            } catch (e: IOException) {}
         }
 
         override fun requestRssi() {
@@ -1156,16 +1197,13 @@ data class ConnectionHealth(
         }
     }
 
-    private fun hasPermission(permission: String): Boolean {
-        return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun hasPermission(permission: String): Boolean =
+        context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
 
-    private fun checkBluetoothPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            hasPermission(Manifest.permission.BLUETOOTH_SCAN) && hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
-        } else {
-            hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
+    private fun checkBluetoothPermission(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        hasPermission(Manifest.permission.BLUETOOTH_SCAN) && hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    } else {
+        hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
     }
     private inner class BleConnection(private val device: BluetoothDevice) : BluetoothConnection {
         private var bluetoothGatt: android.bluetooth.BluetoothGatt? = null
@@ -1210,7 +1248,8 @@ data class ConnectionHealth(
         private var writeJob: Job? = null
 
         // Descriptor write queue management - ensures sequential GATT operations
-        private val pendingDescriptorWrites = mutableListOf<Triple<android.bluetooth.BluetoothGatt, android.bluetooth.BluetoothGattDescriptor, ByteArray>>()
+        private val pendingDescriptorWrites =
+            mutableListOf<Triple<android.bluetooth.BluetoothGatt, android.bluetooth.BluetoothGattDescriptor, ByteArray>>()
         private var descriptorWriteIndex = 0
 
         // GATT retry tracking for transient errors
@@ -1224,7 +1263,7 @@ data class ConnectionHealth(
         @SuppressLint("MissingPermission")
         fun connect() {
             if (!checkBluetoothPermission()) {
-                updateConnectionState( ConnectionState.ERROR)
+                updateConnectionState(ConnectionState.ERROR)
                 log("BLE connect failed: Missing permissions", LogType.ERROR)
                 return
             }
@@ -1238,7 +1277,7 @@ data class ConnectionHealth(
         @SuppressLint("MissingPermission")
         private fun connectGattWithTimeout() {
             if (!checkBluetoothPermission()) {
-                updateConnectionState( ConnectionState.ERROR)
+                updateConnectionState(ConnectionState.ERROR)
                 log("BLE connect failed: Missing permissions", LogType.ERROR)
                 return
             }
@@ -1246,7 +1285,7 @@ data class ConnectionHealth(
             // Pre-flight checks
             val localAdapter = adapter
             if (localAdapter == null || !localAdapter.isEnabled) {
-                updateConnectionState( ConnectionState.ERROR)
+                updateConnectionState(ConnectionState.ERROR)
                 log("BLE connect failed: Bluetooth is off", LogType.ERROR)
                 connectionMutex.unlock()
                 return
@@ -1262,7 +1301,8 @@ data class ConnectionHealth(
             connectionJob = scope.launch {
                 delay(15000) // 15 second timeout (increased for slower modules)
                 if (connection == this@BleConnection &&
-                    _connectionState.value != ConnectionState.CONNECTED) {
+                    _connectionState.value != ConnectionState.CONNECTED
+                ) {
                     log("BLE Connection timed out after 15s. Retrying once...", LogType.WARNING)
                     bluetoothGatt?.close()
                     bluetoothGatt = null
@@ -1274,11 +1314,12 @@ data class ConnectionHealth(
                     // Second timeout - if this fails, mark as ERROR for auto-reconnect
                     delay(15000) // 15 second timeout on retry
                     if (connection == this@BleConnection &&
-                        _connectionState.value != ConnectionState.CONNECTED) {
+                        _connectionState.value != ConnectionState.CONNECTED
+                    ) {
                         log("BLE Connection failed after retry (total 30s)", LogType.ERROR)
                         bluetoothGatt?.close()
                         bluetoothGatt = null
-                        updateConnectionState( ConnectionState.ERROR)
+                        updateConnectionState(ConnectionState.ERROR)
                         connection = null
                         connectionMutex.unlock()
                     }
@@ -1318,7 +1359,7 @@ data class ConnectionHealth(
                     val errorDesc = GattStatus.getErrorDescription(status)
 
                     // Log the error with detailed description
-                    log("BLE GATT ${errorDesc}", LogType.ERROR)
+                    log("BLE GATT $errorDesc", LogType.ERROR)
 
                     // Classify error and decide on retry strategy
                     val shouldRetry = GattStatus.isTransientError(status) && gattRetryAttempt < maxGattRetries
@@ -1327,11 +1368,11 @@ data class ConnectionHealth(
                     if (isPermanent) {
                         // Permanent error - fail immediately without retry
                         log("Permanent GATT error detected. Not retrying.", LogType.ERROR)
-                        updateConnectionState( ConnectionState.ERROR)
+                        updateConnectionState(ConnectionState.ERROR)
                         pollingJob?.cancel()
                         connection = null
                         gatt.close()
-                        updateRssi( 0)
+                        updateRssi(0)
                         connectionMutex.unlock()
                         return
                     }
@@ -1340,13 +1381,16 @@ data class ConnectionHealth(
                         // Transient error - log and track, but let connection timeout retry handle it
                         gattRetryAttempt++
                         val retryDelayMs = when (gattRetryAttempt) {
-                            1 -> 2000L  // 2 seconds
-                            2 -> 4000L  // 4 seconds
-                            3 -> 6000L  // 6 seconds
+                            1 -> 2000L // 2 seconds
+                            2 -> 4000L // 4 seconds
+                            3 -> 6000L // 6 seconds
                             else -> 6000L
                         }
 
-                        log("Transient GATT error detected (attempt $gattRetryAttempt/$maxGattRetries). Will retry with ${retryDelayMs}ms backoff.", LogType.WARNING)
+                        log(
+                            "Transient GATT error detected (attempt $gattRetryAttempt/$maxGattRetries). Will retry with ${retryDelayMs}ms backoff.",
+                            LogType.WARNING
+                        )
 
                         // Clean up current GATT connection properly
                         pollingJob?.cancel()
@@ -1357,10 +1401,10 @@ data class ConnectionHealth(
                             Log.e("BT", "GATT disconnect failed", e)
                         }
                         gatt.close()
-                        updateRssi( 0)
+                        updateRssi(0)
 
                         // Mark as ERROR so auto-reconnect takes over with backoff
-                        updateConnectionState( ConnectionState.ERROR)
+                        updateConnectionState(ConnectionState.ERROR)
                         connection = null
                         connectionMutex.unlock()
 
@@ -1368,28 +1412,31 @@ data class ConnectionHealth(
                         scope.launch {
                             delay(retryDelayMs)
                             log("Retrying BLE connect after transient error (status $status)...", LogType.WARNING)
-                            connectToDevice(savedDevice
-                                ?: BluetoothDeviceModel(device.name ?: "Unknown", device.address, DeviceType.LE), isAutoReconnect = true)
+                            connectToDevice(
+                                savedDevice
+                                    ?: BluetoothDeviceModel(device.name ?: "Unknown", device.address, DeviceType.LE),
+                                isAutoReconnect = true
+                            )
                         }
                     } else {
                         // Max retries exhausted or unknown error - fail and let auto-reconnect handle it
                         if (gattRetryAttempt >= maxGattRetries) {
                             log("Max GATT retries ($maxGattRetries) exhausted. Failing connection.", LogType.ERROR)
                         }
-                        updateConnectionState( ConnectionState.ERROR)
+                        updateConnectionState(ConnectionState.ERROR)
                         pollingJob?.cancel()
                         connection = null
                         gatt.close()
-                        updateRssi( 0)
+                        updateRssi(0)
                         connectionMutex.unlock()
-                        gattRetryAttempt = 0  // Reset for next connection attempt
+                        gattRetryAttempt = 0 // Reset for next connection attempt
                     }
                     return
                 }
 
                 if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
                     log("BLE Connected to GATT server.", LogType.SUCCESS)
-                    updateConnectionState( ConnectionState.CONNECTED)
+                    updateConnectionState(ConnectionState.CONNECTED)
 
                     // Reset GATT retry counter on successful connection
                     gattRetryAttempt = 0
@@ -1417,10 +1464,10 @@ data class ConnectionHealth(
                 } else if (newState == android.bluetooth.BluetoothProfile.STATE_DISCONNECTED) {
                     pollingJob?.cancel()
                     log("BLE Disconnected from GATT server.", LogType.WARNING)
-                    updateConnectionState( ConnectionState.DISCONNECTED)
+                    updateConnectionState(ConnectionState.DISCONNECTED)
                     connection = null
                     gatt.close() // Critical: Prevent resource leak
-                    updateRssi( 0)
+                    updateRssi(0)
                     // Safely unlock mutex on disconnection - use try-catch to handle race condition
                     try {
                         if (connectionMutex.isLocked) {
@@ -1434,20 +1481,20 @@ data class ConnectionHealth(
 
             override fun onReadRemoteRssi(gatt: android.bluetooth.BluetoothGatt?, rssi: Int, status: Int) {
                 if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
-                    updateRssi( rssi)
+                    updateRssi(rssi)
                     rssiFailures = 0
-                    updateHealth( heartbeatSeq, lastPacketAt, rssiFailures)
+                    updateHealth(heartbeatSeq, lastPacketAt, rssiFailures)
                 } else {
                     // Only enforce RSSI-based reconnects for BLE devices
                     if (connectionType == DeviceType.LE) {
                         rssiFailures = (rssiFailures + 1).coerceAtMost(10)
-                        updateHealth( heartbeatSeq, lastPacketAt, rssiFailures)
+                        updateHealth(heartbeatSeq, lastPacketAt, rssiFailures)
                         if (rssiFailures >= 3) {
                             val errorDesc = GattStatus.getErrorDescription(status)
-                            log("RSSI read failures : ${rssiFailures} - $errorDesc", LogType.WARNING)
+                            log("RSSI read failures : $rssiFailures - $errorDesc", LogType.WARNING)
                         }
                         if (rssiFailures >= 5) {
-                            forceReconnect( "RSSI polling failed ${rssiFailures} times")
+                            forceReconnect("RSSI polling failed $rssiFailures times")
                         }
                     }
                 }
@@ -1478,11 +1525,11 @@ data class ConnectionHealth(
                 if (service != null) {
                     // Try new split TX/RX first (v2.0 sketches)
                     log("→ Checking for HM-10 v2.0 split TX/RX characteristics...", LogType.INFO)
-                    val txChar = service.getCharacteristic(CHAR_UUID_TX_V1)  // FFE1 (notify)
-                    val rxChar = service.getCharacteristic(CHAR_UUID_RX_V1)  // FFE2 (write)
+                    val txChar = service.getCharacteristic(CHAR_UUID_TX_V1) // FFE1 (notify)
+                    val rxChar = service.getCharacteristic(CHAR_UUID_RX_V1) // FFE2 (write)
 
                     if (txChar != null && rxChar != null) {
-                        txCharacteristic = rxChar  // Use RX for writing TO Arduino
+                        txCharacteristic = rxChar // Use RX for writing TO Arduino
                         detectedVariant = 1
                         serviceFound = true
                         log("✓ BLE Module detected: HM-10 v2.0 (FFE0/FFE1/FFE2)", LogType.SUCCESS)
@@ -1494,7 +1541,13 @@ data class ConnectionHealth(
                         val descriptor = txChar.getDescriptor(CCCD_UUID)
                         if (descriptor != null) {
                             log("→ Queuing CCCD descriptor write for TX characteristic", LogType.INFO)
-                            pendingDescriptorWrites.add(Triple(gatt, descriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE))
+                            pendingDescriptorWrites.add(
+                                Triple(
+                                    gatt,
+                                    descriptor,
+                                    android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                )
+                            )
                         }
                     } else {
                         // Fallback: Try legacy single UUID (backward compatibility)
@@ -1525,9 +1578,9 @@ data class ConnectionHealth(
                     service = gatt.getService(SERVICE_UUID_V2)
                     if (service != null) {
                         // Nordic uses separate TX and RX characteristics
-                        val nordicTxChar = service.getCharacteristic(CHAR_UUID_TX_V2)  // 6E400003 (notify - device → phone)
-                        val nordicRxChar = service.getCharacteristic(CHAR_UUID_RX_V2)  // 6E400002 (write - phone → device)
-                        
+                        val nordicTxChar = service.getCharacteristic(CHAR_UUID_TX_V2) // 6E400003 (notify - device → phone)
+                        val nordicRxChar = service.getCharacteristic(CHAR_UUID_RX_V2) // 6E400002 (write - phone → device)
+
                         if (nordicRxChar != null) {
                             // Use Nordic RX (6E400002) for WRITING to device
                             txCharacteristic = nordicRxChar
@@ -1543,7 +1596,13 @@ data class ConnectionHealth(
                                 val txDescriptor = nordicTxChar.getDescriptor(CCCD_UUID)
                                 if (txDescriptor != null) {
                                     log("→ Queuing CCCD descriptor write for Nordic TX characteristic", LogType.INFO)
-                                    pendingDescriptorWrites.add(Triple(gatt, txDescriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE))
+                                    pendingDescriptorWrites.add(
+                                        Triple(
+                                            gatt,
+                                            txDescriptor,
+                                            android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -1595,11 +1654,11 @@ data class ConnectionHealth(
                     if (service != null) {
                         // Try new split TX/RX first (v2.0 sketches)
                         log("→ Checking for Arduino v2.0 split TX/RX characteristics...", LogType.INFO)
-                        val txChar = service.getCharacteristic(CHAR_UUID_TX_V9)  // 19B10001 (notify)
-                        val rxChar = service.getCharacteristic(CHAR_UUID_RX_V9)  // 19B10002 (write)
+                        val txChar = service.getCharacteristic(CHAR_UUID_TX_V9) // 19B10001 (notify)
+                        val rxChar = service.getCharacteristic(CHAR_UUID_RX_V9) // 19B10002 (write)
 
                         if (txChar != null && rxChar != null) {
-                            txCharacteristic = rxChar  // Use RX for writing TO Arduino
+                            txCharacteristic = rxChar // Use RX for writing TO Arduino
                             detectedVariant = 9
                             serviceFound = true
                             log("✓ BLE Module detected: Arduino v2.0 (19B10000/01/02)", LogType.SUCCESS)
@@ -1611,7 +1670,13 @@ data class ConnectionHealth(
                             val descriptor = txChar.getDescriptor(CCCD_UUID)
                             if (descriptor != null) {
                                 log("→ Queuing CCCD descriptor write for TX characteristic", LogType.INFO)
-                                pendingDescriptorWrites.add(Triple(gatt, descriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE))
+                                pendingDescriptorWrites.add(
+                                    Triple(
+                                        gatt,
+                                        descriptor,
+                                        android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                    )
+                                )
                             }
                         } else {
                             // Fallback: Try legacy single UUID (backward compatibility)
@@ -1633,18 +1698,28 @@ data class ConnectionHealth(
                 // Look for ANY characteristic that supports WRITE (or WRITE_NO_RESPONSE) and NOTIFY
                 if (!serviceFound) {
                     log("Known UUIDs not found. Attempting generic discovery...", LogType.WARNING)
-                    
+
                     val services = gatt.services
                     for (svc in services) {
                         if (serviceFound) break
-                        
+
                         // Strategy A: Look for a single characteristic that is both Writable and Notifiable/Indicatable (HM-10 style)
                         for (char in svc.characteristics) {
                             val props = char.properties
-                            val hasWrite = (props and (android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE or android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0
-                            val hasNotify = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
-                            val hasIndicate = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
-                            
+                            val hasWrite =
+                                (
+                                    props and
+                                        (
+                                            android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE or
+                                                android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE
+                                            )
+                                    ) !=
+                                    0
+                            val hasNotify =
+                                (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
+                            val hasIndicate =
+                                (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+
                             if (hasWrite && (hasNotify || hasIndicate)) {
                                 txCharacteristic = char
                                 detectedVariant = 7 // Generic Unified
@@ -1662,10 +1737,18 @@ data class ConnectionHealth(
 
                             for (char in svc.characteristics) {
                                 val props = char.properties
-                                val hasWrite = (props and (android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE or
-                                                           android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0
-                                val hasNotify = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
-                                val hasIndicate = (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                                val hasWrite =
+                                    (
+                                        props and (
+                                            android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE or
+                                                android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE
+                                            )
+                                        ) !=
+                                        0
+                                val hasNotify =
+                                    (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
+                                val hasIndicate =
+                                    (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
 
                                 // Prioritize write-only characteristics (avoids selecting notify char for writing)
                                 if (hasWrite && !hasNotify && !hasIndicate && writeChar == null) {
@@ -1683,18 +1766,35 @@ data class ConnectionHealth(
                                 txCharacteristic = writeChar
                                 detectedVariant = 8 // Generic Split
                                 serviceFound = true
-                                val type = if ((notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0)
-                                    "Notify" else "Indicate"
-                                log("BLE Module detected: Generic Split (Write: ${writeChar.uuid}, Notify: ${notifyChar.uuid}) [$type]", LogType.SUCCESS)
+                                val type = if ((
+                                        notifyChar.properties and
+                                            android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY
+                                        ) !=
+                                    0
+                                ) {
+                                    "Notify"
+                                } else {
+                                    "Indicate"
+                                }
+                                log(
+                                    "BLE Module detected: Generic Split (Write: ${writeChar.uuid}, Notify: ${notifyChar.uuid}) [$type]",
+                                    LogType.SUCCESS
+                                )
 
                                 // Queue notification enable
                                 setCharacteristicNotificationSafe(gatt, notifyChar, true)
                                 val descriptor = notifyChar.getDescriptor(CCCD_UUID)
                                 if (descriptor != null) {
-                                    val value = if ((notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0)
+                                    val value = if ((
+                                            notifyChar.properties and
+                                                android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE
+                                            ) !=
+                                        0
+                                    ) {
                                         android.bluetooth.BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-                                    else
+                                    } else {
                                         android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                    }
                                     pendingDescriptorWrites.add(Triple(gatt, descriptor, value))
                                 }
                             }
@@ -1711,19 +1811,25 @@ data class ConnectionHealth(
                         val notifyCandidate = txService?.characteristics?.firstOrNull { char ->
                             val props = char.properties
                             (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 ||
-                                    (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                                (props and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
                         } ?: txCharacteristic
 
                         notifyCandidate?.let { notifyChar ->
-                            val enableIndication = (notifyChar.properties and android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                            val enableIndication =
+                                (
+                                    notifyChar.properties and
+                                        android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE
+                                    ) !=
+                                    0
 
                             setCharacteristicNotificationSafe(gatt, notifyChar, true)
                             val descriptor = notifyChar.getDescriptor(CCCD_UUID)
                             if (descriptor != null) {
-                                val descriptorValue = if (enableIndication)
+                                val descriptorValue = if (enableIndication) {
                                     android.bluetooth.BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-                                else
+                                } else {
                                     android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                }
 
                                 // Queue descriptor write instead of writing inline
                                 pendingDescriptorWrites.add(Triple(gatt, descriptor, descriptorValue))
@@ -1751,7 +1857,7 @@ data class ConnectionHealth(
                         log("Available service: ${svc.uuid}", LogType.INFO)
                     }
                     // Fail the connection so auto-reconnect/backoff can retry and avoid silent writes
-                    updateConnectionState( ConnectionState.ERROR)
+                    updateConnectionState(ConnectionState.ERROR)
                     connection = null
                     bluetoothGatt?.disconnect()
                     bluetoothGatt?.close()
@@ -1770,7 +1876,10 @@ data class ConnectionHealth(
             }
 
             @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-            override fun onCharacteristicChanged(gatt: android.bluetooth.BluetoothGatt, characteristic: android.bluetooth.BluetoothGattCharacteristic) {
+            override fun onCharacteristicChanged(
+                gatt: android.bluetooth.BluetoothGatt,
+                characteristic: android.bluetooth.BluetoothGattCharacteristic
+            ) {
                 // Incoming data - using legacy callback for compatibility
                 @Suppress("DEPRECATION")
                 val data = characteristic.value
@@ -1786,7 +1895,14 @@ data class ConnectionHealth(
                     }
 
                     // Log incoming data - always log for terminal visibility
-                    if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
+                    if (decodedText != null &&
+                        decodedText.isNotEmpty() &&
+                        decodedText.all {
+                            it.isLetterOrDigit() ||
+                                it.isWhitespace() ||
+                                it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r"
+                        }
+                    ) {
                         // Looks like text - display as string
                         log("RX Device: $decodedText", LogType.INFO)
                     } else {
@@ -1822,7 +1938,14 @@ data class ConnectionHealth(
                     }
 
                     // Log incoming data - always log for terminal visibility
-                    if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
+                    if (decodedText != null &&
+                        decodedText.isNotEmpty() &&
+                        decodedText.all {
+                            it.isLetterOrDigit() ||
+                                it.isWhitespace() ||
+                                it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r"
+                        }
+                    ) {
                         // Looks like text - display as string
                         log("RX Device: $decodedText", LogType.INFO)
                     } else {
@@ -1845,23 +1968,35 @@ data class ConnectionHealth(
                 status: Int
             ) {
                 if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
-                    log("✓ CCCD descriptor ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size} configured for ${descriptor.characteristic.uuid}", LogType.INFO)
+                    log(
+                        "✓ CCCD descriptor ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size} configured for ${descriptor.characteristic.uuid}",
+                        LogType.INFO
+                    )
 
                     // Write next descriptor if any pending
                     descriptorWriteIndex++
                     if (descriptorWriteIndex < pendingDescriptorWrites.size) {
                         val (g, desc, value) = pendingDescriptorWrites[descriptorWriteIndex]
-                        log("→ Writing CCCD descriptor ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size}...", LogType.INFO)
+                        log(
+                            "→ Writing CCCD descriptor ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size}...",
+                            LogType.INFO
+                        )
                         writeDescriptorCompat(g, desc, value)
                     } else {
                         // All descriptors configured - NOW safe to start write queue
-                        log("✓ All ${pendingDescriptorWrites.size} CCCD descriptor(s) configured successfully!", LogType.SUCCESS)
+                        log(
+                            "✓ All ${pendingDescriptorWrites.size} CCCD descriptor(s) configured successfully!",
+                            LogType.SUCCESS
+                        )
                         log("→ Starting BLE write queue...", LogType.INFO)
                         startWriteQueue()
                     }
                 } else {
                     val errorDesc = GattStatus.getErrorDescription(status)
-                    log("✗ CCCD descriptor ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size} write failed: $errorDesc", LogType.WARNING)
+                    log(
+                        "✗ CCCD descriptor ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size} write failed: $errorDesc",
+                        LogType.WARNING
+                    )
                     // Continue anyway - may still work
                     log("→ Starting write queue despite descriptor error (may still work)...", LogType.WARNING)
                     startWriteQueue()

@@ -1,7 +1,7 @@
 package com.metelci.ardunakon.protocol
 
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
 
 class ProtocolTest {
 

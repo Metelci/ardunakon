@@ -1,4 +1,5 @@
 @file:Suppress("DEPRECATION")
+
 package com.metelci.ardunakon.ui.components
 
 import androidx.compose.foundation.background
@@ -32,10 +33,7 @@ import com.metelci.ardunakon.util.AssetReader
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HelpDialog(
-    onDismiss: () -> Unit,
-    isDarkTheme: Boolean = true
-) {
+fun HelpDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
@@ -47,7 +45,6 @@ fun HelpDialog(
         "docs/compatibility.txt",
         "docs/app_features.txt"
     )
-
 
     // Load content for selected tab
     val content = remember(selectedTab) {
@@ -131,7 +128,6 @@ fun HelpDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-
                 // Content area (scrollable) containing text AND buttons
                 LazyColumn(
                     modifier = Modifier
@@ -161,13 +157,13 @@ fun HelpDialog(
 
                     item {
                         Spacer(modifier = Modifier.height(24.dp))
-                        
+
                         // "View Full Guide" button
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
                             Button(
                                 onClick = {
                                     // Trigger the dialog with current content
-                                    webUrlToOpen = "offline" 
+                                    webUrlToOpen = "offline"
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                                 modifier = Modifier
@@ -191,12 +187,12 @@ fun HelpDialog(
                     }
 
                     item {
-                         Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // Arduino Cloud Link
                         OutlinedButton(
-                            onClick = { 
-                                webUrlToOpen = "https://cloud.arduino.cc" 
+                            onClick = {
+                                webUrlToOpen = "https://cloud.arduino.cc"
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.outlinedButtonColors(
@@ -215,11 +211,10 @@ fun HelpDialog(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Open Arduino Cloud")
                         }
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
-
             }
         }
     }
@@ -234,23 +229,23 @@ fun HelpDialog(
                 isDarkTheme = isDarkTheme
             )
         } else {
-             // Generate HTML for the text content with proper anchor link support
+            // Generate HTML for the text content with proper anchor link support
             val bgColor = if (isDarkTheme) "#1E1E2E" else "#FFFFFF"
             val textColor = if (isDarkTheme) "#E0E0E0" else "#212121"
             val linkColor = if (isDarkTheme) "#74B9FF" else "#1976D2"
-            
+
             // Escape HTML in content but preserve anchor tags
             // Render content as HTML directly.
             // Note: Manual escaping of literal < and > in text files is required.
-            // We use simple replacements for basic text file compatibility if needed, 
+            // We use simple replacements for basic text file compatibility if needed,
             // but for full HTML support we pass content largely as-is.
-            
+
             val processedContent = content
                 // Re-enable specific anchor tags if they were escaped in source (compatibility)
                 // or just pass through if source is correct.
                 // Since we rely on the source being correct HTML-friendly text:
                 .trim()
-            
+
             val htmlContent = """
                 <html>
                 <head>
@@ -313,12 +308,11 @@ fun HelpDialog(
                 </script>
                 </head>
                 <body>
-                ${processedContent}
+                $processedContent
                 <button id="backToTop" onclick="scrollToTop()" aria-label="Back to top">↑</button>
                 </body>
                 </html>
             """.trimIndent()
-
 
             com.metelci.ardunakon.ui.components.WebViewDialog(
                 htmlContent = htmlContent,

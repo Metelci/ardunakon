@@ -76,7 +76,7 @@ class DeviceCapabilitiesTest {
         // Servo X + Servo Y + Motor + Buzzer = 0x01 + 0x02 + 0x04 + 0x10 = 0x17
         val packet = byteArrayOf(0x17, 0x00, 0x01)
         val caps = DeviceCapabilities.fromPacket(packet)
-        
+
         assertTrue(caps.hasServoX)
         assertTrue(caps.hasServoY)
         assertTrue(caps.hasMotor)
@@ -147,7 +147,7 @@ class DeviceCapabilitiesTest {
     fun `parse with offset`() {
         val packet = byteArrayOf(0xAA.toByte(), 0x01, 0x01, 0x07, 0x00, 0x02) // Offset at index 3
         val caps = DeviceCapabilities.fromPacket(packet, 3)
-        
+
         assertTrue(caps.hasServoX)
         assertTrue(caps.hasServoY)
         assertTrue(caps.hasMotor)
@@ -171,8 +171,11 @@ class DeviceCapabilitiesTest {
     @Test
     fun `display string shows WiFi and BLE`() {
         val caps = DeviceCapabilities(
-            hasServoX = false, hasServoY = false, hasMotor = false,
-            hasWiFi = true, hasBLE = true
+            hasServoX = false,
+            hasServoY = false,
+            hasMotor = false,
+            hasWiFi = true,
+            hasBLE = true
         )
         assertTrue(caps.toDisplayString().contains("WiFi"))
         assertTrue(caps.toDisplayString().contains("BLE"))
@@ -181,8 +184,13 @@ class DeviceCapabilitiesTest {
     @Test
     fun `display string returns Basic for no capabilities`() {
         val caps = DeviceCapabilities(
-            hasServoX = false, hasServoY = false, hasMotor = false,
-            hasLedMatrix = false, hasBuzzer = false, hasWiFi = false, hasBLE = false
+            hasServoX = false,
+            hasServoY = false,
+            hasMotor = false,
+            hasLedMatrix = false,
+            hasBuzzer = false,
+            hasWiFi = false,
+            hasBLE = false
         )
         assertEquals("Basic", caps.toDisplayString())
     }

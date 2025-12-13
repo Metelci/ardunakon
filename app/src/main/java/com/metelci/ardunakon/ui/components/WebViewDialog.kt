@@ -1,6 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
 import android.os.Build
+import android.view.HapticFeedbackConstants
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -15,12 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.platform.LocalView
-import android.view.HapticFeedbackConstants
 
 /**
  * WebView dialog for displaying web content inside the app.

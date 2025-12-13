@@ -1,8 +1,8 @@
 package com.metelci.ardunakon.bluetooth
 
+import java.util.UUID
 import org.junit.Assert.*
 import org.junit.Test
-import java.util.UUID
 
 /**
  * Tests for BleUuidRegistry - validates UUID organization and lookup functions.
@@ -145,7 +145,7 @@ class BleUuidRegistryTest {
     fun `findByServiceUuid returns correct variants`() {
         val ffE0Service = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
         val variants = BleUuidRegistry.findByServiceUuid(ffE0Service)
-        
+
         assertTrue(variants.isNotEmpty())
         // FFE0 is used by HC08_HM10, MLT-BT05, and AT09
         assertTrue(variants.any { it.name == "HC-08/HM-10 Standard" })
@@ -179,13 +179,13 @@ class BleUuidRegistryTest {
     fun `getCharacteristicCandidates returns all characteristics for service`() {
         val ffE0Service = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
         val candidates = BleUuidRegistry.getCharacteristicCandidates(ffE0Service)
-        
+
         assertTrue(candidates.isNotEmpty())
         // Should include FFE1 (TX), FFE2 (RX), and FFE4 (AT-09 legacy)
         val ffe1 = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
         val ffe2 = UUID.fromString("0000FFE2-0000-1000-8000-00805F9B34FB")
         val ffe4 = UUID.fromString("0000FFE4-0000-1000-8000-00805F9B34FB")
-        
+
         assertTrue(candidates.contains(ffe1))
         assertTrue(candidates.contains(ffe2))
         assertTrue(candidates.contains(ffe4))
@@ -195,7 +195,7 @@ class BleUuidRegistryTest {
     fun `getCharacteristicCandidates returns distinct UUIDs`() {
         val ffE0Service = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
         val candidates = BleUuidRegistry.getCharacteristicCandidates(ffE0Service)
-        
+
         assertEquals(candidates.size, candidates.distinct().size)
     }
 

@@ -1,29 +1,25 @@
 package com.metelci.ardunakon.ui.components
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalView
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.ConnectionState
 
 @Composable
@@ -38,7 +34,7 @@ fun StatusCard(
 ) {
     val view = LocalView.current
 
-    val stateText = when(state) {
+    val stateText = when (state) {
         ConnectionState.CONNECTED -> "Connected"
         ConnectionState.CONNECTING -> "Connecting..."
         ConnectionState.RECONNECTING -> "Reconnecting..."
@@ -47,20 +43,20 @@ fun StatusCard(
     }
 
     // Soft filled background for connected, pale for disconnected/error
-    val containerColor = when(state) {
+    val containerColor = when (state) {
         ConnectionState.CONNECTED -> Color(0xFFFFFF00).copy(alpha = 0.2f) // Electric Yellow shadow
         ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFF9800).copy(alpha = 0.2f) // Orange shadow
         else -> Color.Transparent // Pale (no fill)
     }
 
-    val contentColor = when(state) {
+    val contentColor = when (state) {
         ConnectionState.CONNECTED -> Color(0xFFFFFF00) // Electric Yellow text
         ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFF9800) // Orange text
         ConnectionState.ERROR -> Color(0xFFFF5252).copy(alpha = 0.6f) // Pale red
         ConnectionState.DISCONNECTED -> Color(0xFF9E9E9E) // Pale gray
     }
 
-    val borderColor = when(state) {
+    val borderColor = when (state) {
         ConnectionState.CONNECTED -> Color(0xFFFFFF00) // Electric Yellow border
         ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFF9800) // Orange border
         ConnectionState.ERROR -> Color(0xFFFF5252).copy(alpha = 0.6f) // Pale red border

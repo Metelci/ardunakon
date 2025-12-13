@@ -14,11 +14,11 @@ import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.R
-import com.metelci.ardunakon.wifi.WifiManager
-import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
-import kotlinx.coroutines.*
 import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.wifi.WifiManager
+import kotlinx.coroutines.*
 
 class BluetoothService : Service() {
 
@@ -36,15 +36,15 @@ class BluetoothService : Service() {
     override fun onCreate() {
         super.onCreate()
         bluetoothManager = AppBluetoothManager(this)
-        
+
         // Initialize WifiManager for persistence
         wifiManager = WifiManager(
             context = this,
             onLog = { msg ->
-            bluetoothManager.log(msg, LogType.INFO)
+                bluetoothManager.log(msg, LogType.INFO)
             }
         )
-        
+
         // Setup WakeLock
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Ardunakon::BluetoothService")
@@ -90,7 +90,7 @@ class BluetoothService : Service() {
     private fun startForegroundService() {
         val channelId = "ArdunakonConnection"
         val channelName = "Bluetooth Connection"
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW)
             val manager = getSystemService(NotificationManager::class.java)
@@ -99,7 +99,9 @@ class BluetoothService : Service() {
 
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, notificationIntent,
+            this,
+            0,
+            notificationIntent,
             PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -119,9 +121,7 @@ class BluetoothService : Service() {
         }
     }
 
-    override fun onBind(intent: Intent): IBinder {
-        return binder
-    }
+    override fun onBind(intent: Intent): IBinder = binder
 
     override fun onDestroy() {
         super.onDestroy()

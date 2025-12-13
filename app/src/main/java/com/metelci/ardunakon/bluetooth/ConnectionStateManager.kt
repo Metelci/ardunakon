@@ -13,10 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * Manages Bluetooth connection state transitions with debouncing and haptic feedback.
  * Centralizes state management and health tracking for both Classic and BLE connections.
  */
-class ConnectionStateManager(
-    private val context: Context,
-    private val config: BluetoothConfig = BluetoothConfig
-) {
+class ConnectionStateManager(private val context: Context, private val config: BluetoothConfig = BluetoothConfig) {
     private val _state = MutableStateFlow(ConnectionState.DISCONNECTED)
     val state: StateFlow<ConnectionState> = _state.asStateFlow()
 
@@ -38,13 +35,13 @@ class ConnectionStateManager(
      */
     fun updateState(newState: ConnectionState) {
         val now = System.currentTimeMillis()
-        
+
         // Debounce noisy DISCONNECTED/ERROR flips to avoid UI spam
         val isNoisyState = newState == ConnectionState.DISCONNECTED || newState == ConnectionState.ERROR
         if (isNoisyState && (now - lastStateChangeAt) < 800) {
             return
         }
-        
+
         lastStateChangeAt = now
         _state.value = newState
 

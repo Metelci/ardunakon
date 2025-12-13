@@ -1,9 +1,9 @@
 package com.metelci.ardunakon.bluetooth
 
 import android.util.Log
-import kotlinx.coroutines.*
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.*
 
 /**
  * Manages the BLE write queue with bounded capacity and packet drop handling.
@@ -33,19 +33,15 @@ class WriteQueueManager(
 
     /**
      * Starts the write queue processing loop.
-     * 
+     *
      * @param performWrite Suspend function to actually write data to the device
      * @param writeDelayMs Delay between writes to prevent overwhelming BLE stack
      * @param initialDelayMs Initial delay before processing (for BLE stack stability)
      */
-    fun start(
-        performWrite: suspend (ByteArray) -> Boolean,
-        writeDelayMs: Long = 10L,
-        initialDelayMs: Long = 200L
-    ) {
+    fun start(performWrite: suspend (ByteArray) -> Boolean, writeDelayMs: Long = 10L, initialDelayMs: Long = 200L) {
         writeJob?.cancel()
         queue.clear() // Clear stale packets from previous session
-        
+
         writeJob = scope.launch {
             // Wait for BLE stack to stabilize after connection
             delay(initialDelayMs)
@@ -54,7 +50,7 @@ class WriteQueueManager(
                 try {
                     // Take from queue (blocking call)
                     val data = queue.take()
-                    
+
                     // Perform actual write
                     val success = performWrite(data)
                     if (success) {
@@ -102,20 +98,20 @@ class WriteQueueManager(
 
     /**
      * Enqueues data for writing. If queue is full, drops the oldest packet.
-     * 
+     *
      * @return true if enqueued successfully, false if a packet was dropped
      */
     fun enqueue(data: ByteArray): Boolean {
         if (queue.offer(data)) {
             return true
         }
-        
+
         // Queue full - drop oldest packet
         queue.poll()
         queue.offer(data)
         _packetsDropped.incrementAndGet()
         onPacketDropped?.invoke()
-        
+
         onLog?.invoke("⚠ Packet dropped (queue full)", com.metelci.ardunakon.model.LogType.WARNING)
         return false
     }

@@ -1,6 +1,8 @@
 @file:Suppress("DEPRECATION")
+
 package com.metelci.ardunakon.ui.components
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,10 +12,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,14 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.view.HapticFeedbackConstants
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import com.metelci.ardunakon.bluetooth.TroubleshootHints
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
-import com.metelci.ardunakon.bluetooth.TroubleshootHints
-import androidx.compose.ui.text.font.FontStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,7 +102,12 @@ fun EmbeddedTerminal(
                         },
                         modifier = Modifier.size(28.dp)
                     ) {
-                        Icon(Icons.Default.OpenInNew, "Maximize", tint = Color(0xFF90CAF9), modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.OpenInNew,
+                            "Maximize",
+                            tint = Color(0xFF90CAF9),
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                     // Minimize/Hide button
                     IconButton(
@@ -151,7 +157,7 @@ fun EmbeddedTerminal(
                             LogType.WARNING -> Color(0xFFFFD54F)
                             LogType.ERROR -> Color(0xFFFF7675)
                         }
-                        
+
                         Column {
                             Text(
                                 text = "> ${log.message}",
@@ -160,7 +166,7 @@ fun EmbeddedTerminal(
                                 fontSize = 10.sp,
                                 lineHeight = 12.sp
                             )
-                            
+
                             // Show troubleshoot hint for ERROR logs
                             if (log.type == LogType.ERROR) {
                                 val hint = TroubleshootHints.getHintForError(log.message)

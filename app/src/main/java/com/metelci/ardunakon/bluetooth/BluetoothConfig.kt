@@ -60,67 +60,121 @@ object BluetoothConfig {
     val CCCD_UUID: UUID get() = BleUuidRegistry.CCCD_UUID
 
     // Legacy aliases for backward compatibility (V1 - HC-08/HM-10)
-    @Deprecated("Use BleUuidRegistry.VARIANT_HC08_HM10 instead", ReplaceWith("BleUuidRegistry.VARIANT_HC08_HM10.serviceUuid"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_HC08_HM10 instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_HC08_HM10.serviceUuid")
+    )
     val BLE_SERVICE_UUID_V1: UUID get() = BleUuidRegistry.VARIANT_HC08_HM10.serviceUuid
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_HC08_HM10 instead", ReplaceWith("BleUuidRegistry.VARIANT_HC08_HM10.legacyCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_HC08_HM10 instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_HC08_HM10.legacyCharUuid!!")
+    )
     val BLE_CHAR_UUID_V1: UUID get() = BleUuidRegistry.VARIANT_HC08_HM10.legacyCharUuid!!
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_HC08_HM10 instead", ReplaceWith("BleUuidRegistry.VARIANT_HC08_HM10.txCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_HC08_HM10 instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_HC08_HM10.txCharUuid!!")
+    )
     val BLE_CHAR_TX_V1: UUID get() = BleUuidRegistry.VARIANT_HC08_HM10.txCharUuid!!
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_HC08_HM10 instead", ReplaceWith("BleUuidRegistry.VARIANT_HC08_HM10.rxCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_HC08_HM10 instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_HC08_HM10.rxCharUuid!!")
+    )
     val BLE_CHAR_RX_V1: UUID get() = BleUuidRegistry.VARIANT_HC08_HM10.rxCharUuid!!
 
     // Legacy aliases (V2 - Nordic UART)
-    @Deprecated("Use BleUuidRegistry.VARIANT_NORDIC_UART instead", ReplaceWith("BleUuidRegistry.VARIANT_NORDIC_UART.serviceUuid"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_NORDIC_UART instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_NORDIC_UART.serviceUuid")
+    )
     val BLE_SERVICE_UUID_V2: UUID get() = BleUuidRegistry.VARIANT_NORDIC_UART.serviceUuid
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_NORDIC_UART instead", ReplaceWith("BleUuidRegistry.VARIANT_NORDIC_UART.txCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_NORDIC_UART instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_NORDIC_UART.txCharUuid!!")
+    )
     val BLE_CHAR_TX_V2: UUID get() = BleUuidRegistry.VARIANT_NORDIC_UART.txCharUuid!!
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_NORDIC_UART instead", ReplaceWith("BleUuidRegistry.VARIANT_NORDIC_UART.rxCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_NORDIC_UART instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_NORDIC_UART.rxCharUuid!!")
+    )
     val BLE_CHAR_RX_V2: UUID get() = BleUuidRegistry.VARIANT_NORDIC_UART.rxCharUuid!!
 
     // Legacy aliases (V3 - TI HM-10)
-    @Deprecated("Use BleUuidRegistry.VARIANT_TI_HM10 instead", ReplaceWith("BleUuidRegistry.VARIANT_TI_HM10.serviceUuid"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_TI_HM10 instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_TI_HM10.serviceUuid")
+    )
     val BLE_SERVICE_UUID_V3: UUID get() = BleUuidRegistry.VARIANT_TI_HM10.serviceUuid
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_TI_HM10 instead", ReplaceWith("BleUuidRegistry.VARIANT_TI_HM10.legacyCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_TI_HM10 instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_TI_HM10.legacyCharUuid!!")
+    )
     val BLE_CHAR_UUID_V3: UUID get() = BleUuidRegistry.VARIANT_TI_HM10.legacyCharUuid!!
 
     // Legacy aliases (V4 - HC-08 Alt)
-    @Deprecated("Use BleUuidRegistry.VARIANT_HC08_ALT instead", ReplaceWith("BleUuidRegistry.VARIANT_HC08_ALT.serviceUuid"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_HC08_ALT instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_HC08_ALT.serviceUuid")
+    )
     val BLE_SERVICE_UUID_V4: UUID get() = BleUuidRegistry.VARIANT_HC08_ALT.serviceUuid
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_HC08_ALT instead", ReplaceWith("BleUuidRegistry.VARIANT_HC08_ALT.legacyCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_HC08_ALT instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_HC08_ALT.legacyCharUuid!!")
+    )
     val BLE_CHAR_UUID_V4: UUID get() = BleUuidRegistry.VARIANT_HC08_ALT.legacyCharUuid!!
 
     // Legacy aliases (V5 - AT-09)
     @Deprecated("Use BleUuidRegistry.VARIANT_AT09 instead", ReplaceWith("BleUuidRegistry.VARIANT_AT09.serviceUuid"))
     val BLE_SERVICE_UUID_V5: UUID get() = BleUuidRegistry.VARIANT_AT09.serviceUuid
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_AT09 instead", ReplaceWith("BleUuidRegistry.VARIANT_AT09.legacyCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_AT09 instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_AT09.legacyCharUuid!!")
+    )
     val BLE_CHAR_UUID_V5: UUID get() = BleUuidRegistry.VARIANT_AT09.legacyCharUuid!!
 
     // Legacy aliases (V6 - MLT-BT05)
-    @Deprecated("Use BleUuidRegistry.VARIANT_MLT_BT05 instead", ReplaceWith("BleUuidRegistry.VARIANT_MLT_BT05.serviceUuid"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_MLT_BT05 instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_MLT_BT05.serviceUuid")
+    )
     val BLE_SERVICE_UUID_V6: UUID get() = BleUuidRegistry.VARIANT_MLT_BT05.serviceUuid
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_MLT_BT05 instead", ReplaceWith("BleUuidRegistry.VARIANT_MLT_BT05.legacyCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_MLT_BT05 instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_MLT_BT05.legacyCharUuid!!")
+    )
     val BLE_CHAR_UUID_V6: UUID get() = BleUuidRegistry.VARIANT_MLT_BT05.legacyCharUuid!!
 
     // Legacy aliases (V9 - ArduinoBLE)
-    @Deprecated("Use BleUuidRegistry.VARIANT_ARDUINO_BLE instead", ReplaceWith("BleUuidRegistry.VARIANT_ARDUINO_BLE.serviceUuid"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_ARDUINO_BLE instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_ARDUINO_BLE.serviceUuid")
+    )
     val BLE_SERVICE_UUID_V9: UUID get() = BleUuidRegistry.VARIANT_ARDUINO_BLE.serviceUuid
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_ARDUINO_BLE instead", ReplaceWith("BleUuidRegistry.VARIANT_ARDUINO_BLE.legacyCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_ARDUINO_BLE instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_ARDUINO_BLE.legacyCharUuid!!")
+    )
     val BLE_CHAR_UUID_V9: UUID get() = BleUuidRegistry.VARIANT_ARDUINO_BLE.legacyCharUuid!!
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_ARDUINO_BLE instead", ReplaceWith("BleUuidRegistry.VARIANT_ARDUINO_BLE.txCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_ARDUINO_BLE instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_ARDUINO_BLE.txCharUuid!!")
+    )
     val BLE_CHAR_TX_V9: UUID get() = BleUuidRegistry.VARIANT_ARDUINO_BLE.txCharUuid!!
 
-    @Deprecated("Use BleUuidRegistry.VARIANT_ARDUINO_BLE instead", ReplaceWith("BleUuidRegistry.VARIANT_ARDUINO_BLE.rxCharUuid!!"))
+    @Deprecated(
+        "Use BleUuidRegistry.VARIANT_ARDUINO_BLE instead",
+        ReplaceWith("BleUuidRegistry.VARIANT_ARDUINO_BLE.rxCharUuid!!")
+    )
     val BLE_CHAR_RX_V9: UUID get() = BleUuidRegistry.VARIANT_ARDUINO_BLE.rxCharUuid!!
 
     // ========== BLE Device Name Patterns ==========
@@ -155,7 +209,7 @@ object BluetoothConfig {
      * Heartbeat timeout for BLE connections (milliseconds)
      * BLE clones like HM-10/HC-08 often stay silent; allow long idle periods
      */
-    const val HEARTBEAT_TIMEOUT_BLE_MS = 300000L  // 5 minutes
+    const val HEARTBEAT_TIMEOUT_BLE_MS = 300000L // 5 minutes
 
     /**
      * Missed ACK threshold before reconnect for Classic BT

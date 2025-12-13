@@ -2,6 +2,8 @@ package com.metelci.ardunakon.ota
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import java.io.File
+import java.util.zip.CRC32
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -9,8 +11,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.io.File
-import java.util.zip.CRC32
 
 private class FakeOtaTransport(
     private val connectResult: Boolean = true,
@@ -118,7 +118,9 @@ class OtaManagerTest {
             override suspend fun connect() = true
             override suspend fun sendChunk(data: ByteArray, offset: Int) = true
             override suspend fun complete(crc: Long) = true
-            override suspend fun abort() { aborted = true }
+            override suspend fun abort() {
+                aborted = true
+            }
             override fun disconnect() {}
         }
         val fake = AbortTrackingTransport()

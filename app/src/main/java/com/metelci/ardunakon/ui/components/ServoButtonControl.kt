@@ -1,5 +1,6 @@
 package com.metelci.ardunakon.ui.components
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -10,14 +11,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import android.view.HapticFeedbackConstants
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun ServoButtonControl(
@@ -31,7 +31,7 @@ fun ServoButtonControl(
     val view = LocalView.current
     var lastMoveTime by remember { mutableStateOf(0L) }
     val debounceDelay = 100L
-    
+
     // All buttons use uniform sizing for consistent appearance
 
     Column(
@@ -49,7 +49,7 @@ fun ServoButtonControl(
                     // Incremental: each press adds +0.1f (≈10°), max 1.0f (180°)
                     val newY = (servoY + 0.1f).coerceIn(-1f, 1f)
                     val angle = ((newY + 1f) / 2f * 180f).toInt()
-                    onLog?.invoke("Servo Y: ${angle}° (W)")
+                    onLog?.invoke("Servo Y: $angle° (W)")
                     onMove(servoX, newY)
                     lastMoveTime = currentTime
                 }
@@ -88,7 +88,7 @@ fun ServoButtonControl(
                         // Incremental: each press subtracts -0.1f (≈10°), min -1.0f (0°)
                         val newX = (servoX - 0.1f).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo X: ${angle}° (L)")
+                        onLog?.invoke("Servo X: $angle° (L)")
                         onMove(newX, servoY)
                         lastMoveTime = currentTime
                     }
@@ -122,7 +122,7 @@ fun ServoButtonControl(
                         // Incremental: each press subtracts -0.1f (≈10°), min -1.0f (0°)
                         val newY = (servoY - 0.1f).coerceIn(-1f, 1f)
                         val angle = ((newY + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo Y: ${angle}° (B)")
+                        onLog?.invoke("Servo Y: $angle° (B)")
                         onMove(servoX, newY)
                         lastMoveTime = currentTime
                     }
@@ -156,7 +156,7 @@ fun ServoButtonControl(
                         // Incremental: each press adds +0.1f (≈10°), max 1.0f (180°)
                         val newX = (servoX + 0.1f).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo X: ${angle}° (R)")
+                        onLog?.invoke("Servo X: $angle° (R)")
                         onMove(newX, servoY)
                         lastMoveTime = currentTime
                     }

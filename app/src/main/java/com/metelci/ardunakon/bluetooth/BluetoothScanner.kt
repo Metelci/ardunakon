@@ -11,6 +11,8 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import com.metelci.ardunakon.data.DeviceNameCache
+import com.metelci.ardunakon.model.LogType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -18,12 +20,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.metelci.ardunakon.data.DeviceNameCache
-import com.metelci.ardunakon.model.LogType
 
 /**
  * Bluetooth Scanner - Handles device discovery for both Classic and BLE
- * 
+ *
  * Responsibilities:
  * - Classic Bluetooth discovery via BroadcastReceiver
  * - BLE scanning via BluetoothLeScanner
@@ -111,7 +111,10 @@ class BluetoothScanner(
                         // Try to get UUIDs if available
                         if (intent.hasExtra(BluetoothDevice.EXTRA_UUID)) {
                             val parcelUuids = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID, android.os.ParcelUuid::class.java)
+                                intent.getParcelableArrayExtra(
+                                    BluetoothDevice.EXTRA_UUID,
+                                    android.os.ParcelUuid::class.java
+                                )
                             } else {
                                 @Suppress("DEPRECATION")
                                 intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID)
@@ -306,16 +309,13 @@ class BluetoothScanner(
         }
     }
 
-    private fun checkBluetoothPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            hasPermission(Manifest.permission.BLUETOOTH_SCAN) &&
-                    hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
-        } else {
-            hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
+    private fun checkBluetoothPermission(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        hasPermission(Manifest.permission.BLUETOOTH_SCAN) &&
+            hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    } else {
+        hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
-    private fun hasPermission(permission: String): Boolean {
-        return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun hasPermission(permission: String): Boolean =
+        context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
 }

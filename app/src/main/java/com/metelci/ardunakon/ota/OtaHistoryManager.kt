@@ -2,24 +2,24 @@ package com.metelci.ardunakon.ota
 
 import android.content.Context
 import android.content.SharedPreferences
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.util.zip.CRC32
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * OTA History Manager - Tracks recent firmware uploads
  */
 class OtaHistoryManager(context: Context) {
-    
+
     companion object {
         private const val PREFS_NAME = "ota_history"
         private const val KEY_HISTORY = "recent_files"
         private const val MAX_HISTORY = 5
     }
-    
+
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    
+
     data class HistoryEntry(
         val fileName: String,
         val filePath: String,
@@ -36,7 +36,7 @@ class OtaHistoryManager(context: Context) {
             put("uploadDate", uploadDate)
             put("successful", successful)
         }
-        
+
         companion object {
             fun fromJson(json: JSONObject): HistoryEntry = HistoryEntry(
                 fileName = json.getString("fileName"),
@@ -48,7 +48,7 @@ class OtaHistoryManager(context: Context) {
             )
         }
     }
-    
+
     /**
      * Get recent upload history
      */
@@ -61,7 +61,7 @@ class OtaHistoryManager(context: Context) {
             emptyList()
         }
     }
-    
+
     /**
      * Add entry to history
      */
@@ -75,26 +75,26 @@ class OtaHistoryManager(context: Context) {
             uploadDate = System.currentTimeMillis(),
             successful = successful
         )
-        
+
         val history = getHistory().toMutableList()
-        
+
         // Remove duplicate if exists
         history.removeAll { it.filePath == file.absolutePath }
-        
+
         // Add new entry at beginning
         history.add(0, entry)
-        
+
         // Trim to max size
         while (history.size > MAX_HISTORY) {
             history.removeAt(history.size - 1)
         }
-        
+
         // Save
         val array = JSONArray()
         history.forEach { array.put(it.toJson()) }
         prefs.edit().putString(KEY_HISTORY, array.toString()).apply()
     }
-    
+
     /**
      * Calculate CRC32 of file
      */
@@ -109,7 +109,7 @@ class OtaHistoryManager(context: Context) {
         }
         return crc.value
     }
-    
+
     /**
      * Validate file exists and matches CRC
      */
@@ -119,7 +119,7 @@ class OtaHistoryManager(context: Context) {
         if (file.length() != entry.fileSize) return false
         return calculateCrc32(file) == entry.crc32
     }
-    
+
     /**
      * Clear history
      */

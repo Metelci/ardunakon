@@ -11,7 +11,7 @@ import com.metelci.ardunakon.ui.components.ServoButtonControl
 /**
  * Wrapper component for ServoButtonControl.
  * Provides consistent layout and styling for servo control panels.
- * 
+ *
  * @param servoX Current X position (-1 to 1)
  * @param servoY Current Y position (-1 to 1)
  * @param onServoMove Callback when servo position changes

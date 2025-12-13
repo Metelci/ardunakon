@@ -3,13 +3,13 @@ package com.metelci.ardunakon.data
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.metelci.ardunakon.TestCryptoEngine
+import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class AutoReconnectPreferencesTest {

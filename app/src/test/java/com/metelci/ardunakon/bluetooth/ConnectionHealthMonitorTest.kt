@@ -1,10 +1,10 @@
 package com.metelci.ardunakon.bluetooth
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 
 /**
  * Tests for ConnectionHealthMonitor - validates backoff, timeout detection, and circuit breaker logic.
@@ -19,7 +19,7 @@ class ConnectionHealthMonitorTest {
         private var _connectionType: DeviceType? = DeviceType.CLASSIC
         private var _autoReconnectEnabled = true
         private var _hasSavedDevice = true
-        
+
         var heartbeatTimeoutCalled = false
         var missedAckThresholdCalled = false
         var reconnectAttemptCalled = false
@@ -72,10 +72,10 @@ class ConnectionHealthMonitorTest {
     @Test
     fun `backoff delay doubles each attempt`() {
         val base = BluetoothConfig.BACKOFF_BASE_DELAY_MS
-        assertEquals(base * 1, monitor.calculateBackoffDelay(0))  // 3000
-        assertEquals(base * 2, monitor.calculateBackoffDelay(1))  // 6000
-        assertEquals(base * 4, monitor.calculateBackoffDelay(2))  // 12000
-        assertEquals(base * 8, monitor.calculateBackoffDelay(3))  // 24000
+        assertEquals(base * 1, monitor.calculateBackoffDelay(0)) // 3000
+        assertEquals(base * 2, monitor.calculateBackoffDelay(1)) // 6000
+        assertEquals(base * 4, monitor.calculateBackoffDelay(2)) // 12000
+        assertEquals(base * 8, monitor.calculateBackoffDelay(3)) // 24000
     }
 
     @Test
@@ -83,7 +83,7 @@ class ConnectionHealthMonitorTest {
         val delay4 = monitor.calculateBackoffDelay(4)
         val delay10 = monitor.calculateBackoffDelay(10)
         val delay100 = monitor.calculateBackoffDelay(100)
-        
+
         // All should be capped at 24000 (3000 * 8)
         assertEquals(delay4, delay10)
         assertEquals(delay4, delay100)
@@ -100,7 +100,7 @@ class ConnectionHealthMonitorTest {
     fun `scheduleNextReconnect increments attempts`() {
         monitor.scheduleNextReconnect()
         assertEquals(1, monitor.getReconnectAttempts())
-        
+
         monitor.scheduleNextReconnect()
         assertEquals(2, monitor.getReconnectAttempts())
     }
@@ -111,7 +111,7 @@ class ConnectionHealthMonitorTest {
         monitor.scheduleNextReconnect()
         monitor.scheduleNextReconnect()
         assertEquals(3, monitor.getReconnectAttempts())
-        
+
         monitor.resetReconnectBackoff()
         assertEquals(0, monitor.getReconnectAttempts())
     }
@@ -150,7 +150,7 @@ class ConnectionHealthMonitorTest {
             monitor.scheduleNextReconnect()
         }
         assertTrue(monitor.isCircuitBreakerTripped())
-        
+
         monitor.resetReconnectBackoff()
         assertFalse(monitor.isCircuitBreakerTripped())
     }
@@ -162,7 +162,7 @@ class ConnectionHealthMonitorTest {
         monitor.scheduleNextReconnect()
         monitor.scheduleNextReconnect()
         assertEquals(2, monitor.getReconnectAttempts())
-        
+
         monitor.recordInboundPacket()
         assertEquals(0, monitor.getReconnectAttempts())
     }
@@ -172,7 +172,7 @@ class ConnectionHealthMonitorTest {
     @Test
     fun `default config uses BluetoothConfig values`() {
         val config = ConnectionHealthMonitor.HealthConfig()
-        
+
         assertEquals(BluetoothConfig.HEARTBEAT_TIMEOUT_CLASSIC_MS, config.heartbeatTimeoutClassicMs)
         assertEquals(BluetoothConfig.HEARTBEAT_TIMEOUT_BLE_MS, config.heartbeatTimeoutBleMs)
         assertEquals(BluetoothConfig.MISSED_ACK_THRESHOLD_CLASSIC, config.missedAckThresholdClassic)
@@ -186,7 +186,7 @@ class ConnectionHealthMonitorTest {
             heartbeatTimeoutClassicMs = 5000L,
             maxReconnectAttempts = 5
         )
-        
+
         assertEquals(5000L, customConfig.heartbeatTimeoutClassicMs)
         assertEquals(5, customConfig.maxReconnectAttempts)
         // Other values should still be defaults

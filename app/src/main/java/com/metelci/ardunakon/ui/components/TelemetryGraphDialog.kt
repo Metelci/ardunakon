@@ -1,6 +1,8 @@
 @file:Suppress("DEPRECATION")
+
 package com.metelci.ardunakon.ui.components
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,13 +18,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import android.view.HapticFeedbackConstants
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 
-
-
 enum class GraphTab {
-    BATTERY, RSSI, RTT
+    BATTERY,
+    RSSI,
+    RTT
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -113,7 +114,9 @@ fun TelemetryGraphDialog(
                     Tab(
                         selected = selectedTab == GraphTab.BATTERY,
                         onClick = { selectedTab = GraphTab.BATTERY },
-                        text = { Text("Battery", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 13.sp) }
+                        text = {
+                            Text("Battery", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 13.sp)
+                        }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.RSSI,
@@ -123,7 +126,9 @@ fun TelemetryGraphDialog(
                     Tab(
                         selected = selectedTab == GraphTab.RTT,
                         onClick = { selectedTab = GraphTab.RTT },
-                        text = { Text("Latency", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 13.sp) }
+                        text = {
+                            Text("Latency", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 13.sp)
+                        }
                     )
                 }
 
@@ -139,10 +144,7 @@ fun TelemetryGraphDialog(
                     style = MaterialTheme.typography.labelSmall
                 )
 
-
                 Spacer(modifier = Modifier.height(8.dp))
-
-
 
                 Spacer(modifier = Modifier.height(6.dp))
 

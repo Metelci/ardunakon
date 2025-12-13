@@ -1,6 +1,5 @@
 package com.metelci.ardunakon.security
 
-import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -11,7 +10,6 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 class DeviceVerificationException(message: String, cause: Throwable? = null) : Exception(message, cause)
 

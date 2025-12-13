@@ -16,18 +16,16 @@ enum class OtaError(val code: String, val message: String, val suggestion: Strin
     E010("E010", "Device not responding", "Arduino may need to be reset manually"),
     E011("E011", "BLE not connected", "Connect to Arduino via Bluetooth first"),
     E012("E012", "File not found", "The selected file no longer exists");
-    
+
     fun getFullMessage(): String = "[$code] $message\n$suggestion"
-    
+
     companion object {
-        fun fromException(e: Exception): OtaError {
-            return when {
-                e.message?.contains("timeout", ignoreCase = true) == true -> E002
-                e.message?.contains("connection", ignoreCase = true) == true -> E003
-                e.message?.contains("auth", ignoreCase = true) == true -> E007
-                e.message?.contains("network", ignoreCase = true) == true -> E008
-                else -> E003 // Default to transfer interrupted
-            }
+        fun fromException(e: Exception): OtaError = when {
+            e.message?.contains("timeout", ignoreCase = true) == true -> E002
+            e.message?.contains("connection", ignoreCase = true) == true -> E003
+            e.message?.contains("auth", ignoreCase = true) == true -> E007
+            e.message?.contains("network", ignoreCase = true) == true -> E008
+            else -> E003 // Default to transfer interrupted
         }
     }
 }

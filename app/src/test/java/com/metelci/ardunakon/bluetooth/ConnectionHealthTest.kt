@@ -10,7 +10,7 @@ import org.junit.Test
 class ConnectionHealthTest {
 
     // ============== Reconnect Backoff Algorithm ==============
-    
+
     private fun calculateBackoffDelay(attempts: Int): Long {
         // Exponential backoff: 3s, 6s, 12s, 24s, 30s (max)
         val baseDelay = 3000L
@@ -26,8 +26,8 @@ class ConnectionHealthTest {
 
     @Test
     fun `backoff delay doubles each attempt`() {
-        assertEquals(3000L, calculateBackoffDelay(0))  // 3s
-        assertEquals(6000L, calculateBackoffDelay(1))  // 6s
+        assertEquals(3000L, calculateBackoffDelay(0)) // 3s
+        assertEquals(6000L, calculateBackoffDelay(1)) // 6s
         assertEquals(12000L, calculateBackoffDelay(2)) // 12s
         assertEquals(24000L, calculateBackoffDelay(3)) // 24s
     }
@@ -47,24 +47,20 @@ class ConnectionHealthTest {
     }
 
     // ============== GATT Error Classification ==============
-    
-    private fun isTransientError(status: Int): Boolean {
-        return when (status) {
-            8,     // GATT_CONNECTION_TIMEOUT
-            129,   // GATT_INTERNAL_ERROR
-            147,   // GATT_LINK_LOSS
-            62     // Unknown GATT error (HM-10 clones)
-            -> true
-            else -> false
-        }
+
+    private fun isTransientError(status: Int): Boolean = when (status) {
+        8, // GATT_CONNECTION_TIMEOUT
+        129, // GATT_INTERNAL_ERROR
+        147, // GATT_LINK_LOSS
+        62 // Unknown GATT error (HM-10 clones)
+        -> true
+        else -> false
     }
 
-    private fun isPermanentError(status: Int): Boolean {
-        return when (status) {
-            133    // GATT_DEVICE_NOT_FOUND
-            -> true
-            else -> false
-        }
+    private fun isPermanentError(status: Int): Boolean = when (status) {
+        133 // GATT_DEVICE_NOT_FOUND
+        -> true
+        else -> false
     }
 
     @Test
@@ -103,7 +99,7 @@ class ConnectionHealthTest {
     }
 
     // ============== Device Name Classification ==============
-    
+
     private fun isBleOnlyName(name: String?): Boolean {
         val nameUpper = (name ?: "").uppercase()
         val hm10Markers = listOf(

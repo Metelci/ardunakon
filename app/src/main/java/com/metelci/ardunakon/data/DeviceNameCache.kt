@@ -5,23 +5,15 @@ import android.util.Log
 import com.metelci.ardunakon.bluetooth.DeviceType
 import com.metelci.ardunakon.security.CryptoEngine
 import com.metelci.ardunakon.security.SecurityManager
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
 
-data class CachedDevice(
-    val address: String,
-    val name: String,
-    val type: DeviceType,
-    val lastSeen: Long
-)
+data class CachedDevice(val address: String, val name: String, val type: DeviceType, val lastSeen: Long)
 
-class DeviceNameCache(
-    private val context: Context,
-    private val securityManager: CryptoEngine = SecurityManager()
-) {
+class DeviceNameCache(private val context: Context, private val securityManager: CryptoEngine = SecurityManager()) {
     private val fileName = "device_names.json"
     private val maxCacheSize = 100
     private val maxAgeDays = 30L

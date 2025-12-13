@@ -9,11 +9,7 @@ import androidx.compose.runtime.Composable
  * Dialog shown when secure profile storage requires device unlock.
  */
 @Composable
-fun SecurityErrorDialog(
-    message: String,
-    onOpenSettings: () -> Unit,
-    onDismiss: () -> Unit
-) {
+fun SecurityErrorDialog(message: String, onOpenSettings: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Unlock Required") },

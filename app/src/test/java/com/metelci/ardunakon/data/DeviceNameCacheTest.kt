@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.metelci.ardunakon.TestCryptoEngine
 import com.metelci.ardunakon.bluetooth.DeviceType
+import java.io.File
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.test.runTest
 import org.json.JSONArray
 import org.json.JSONObject
@@ -13,8 +15,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.io.File
-import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 class DeviceNameCacheTest {

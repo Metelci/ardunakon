@@ -6,13 +6,12 @@ import com.metelci.ardunakon.model.ButtonConfig
 import com.metelci.ardunakon.model.defaultButtonConfigs
 import com.metelci.ardunakon.security.AuthRequiredException
 import com.metelci.ardunakon.security.CryptoEngine
+import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-
-import java.util.UUID
 
 data class Profile(
     val id: String = UUID.randomUUID().toString(),
@@ -102,7 +101,6 @@ class ProfileManager(
                 }
                 profiles.add(Profile(id, name, buttons, sensitivity))
             }
-
         } catch (e: Exception) {
             if (e is AuthRequiredException) throw e
             Log.e("ProfileManager", "Error loading profiles", e)
@@ -111,14 +109,12 @@ class ProfileManager(
 
         return@withContext profiles
     }
-    
-    fun createDefaultProfiles(): List<Profile> {
-        return listOf(
-            Profile(
-                name = "Rover (Car Mode)",
-                buttonConfigs = defaultButtonConfigs,
-                sensitivity = 1.0f
-            )
+
+    fun createDefaultProfiles(): List<Profile> = listOf(
+        Profile(
+            name = "Rover (Car Mode)",
+            buttonConfigs = defaultButtonConfigs,
+            sensitivity = 1.0f
         )
-    }
+    )
 }

@@ -1,12 +1,10 @@
 @file:Suppress("DEPRECATION")
+
 package com.metelci.ardunakon.wifi
 
 import android.content.Context
 import android.util.Base64
 import android.util.Log
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -17,6 +15,9 @@ import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class WifiManager(
     private val context: Context,
@@ -58,7 +59,7 @@ class WifiManager(
     private var isScanning = AtomicBoolean(false)
 
     // NsdManager for mDNS (nullable - may not be available on all devices)
-    private val nsdManager: android.net.nsd.NsdManager? by lazy { 
+    private val nsdManager: android.net.nsd.NsdManager? by lazy {
         try {
             context.getSystemService(Context.NSD_SERVICE) as? android.net.nsd.NsdManager
         } catch (e: Exception) {
@@ -116,7 +117,7 @@ class WifiManager(
             try {
                 discoverySocket = DatagramSocket()
                 discoverySocket.broadcast = true
-                discoverySocket.soTimeout = 2000 
+                discoverySocket.soTimeout = 2000
 
                 val (buffer, _) = buildDiscoveryMessage()
                 val packet = DatagramPacket(
@@ -142,12 +143,12 @@ class WifiManager(
 
                 val receiveBuffer = ByteArray(1024)
                 val endTime = System.currentTimeMillis() + 5000
-                
+
                 while (System.currentTimeMillis() < endTime && isActive) {
                     try {
                         val receivePacket = DatagramPacket(receiveBuffer, receiveBuffer.size)
                         discoverySocket.receive(receivePacket)
-                        
+
                         val response = String(receivePacket.data, 0, receivePacket.length).trim()
                         if (response.startsWith("ARDUNAKON_DEVICE:")) {
                             val payload = response.substringAfter("ARDUNAKON_DEVICE:")
@@ -187,11 +188,15 @@ class WifiManager(
                 override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
                     Log.e("WifiManager", "mDNS Start Failed: $errorCode")
                     onLog("mDNS Start Failed: $errorCode")
-                    try { stopDiscoveryListener() } catch (_: Exception) {}
+                    try {
+                        stopDiscoveryListener()
+                    } catch (_: Exception) {}
                 }
                 override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
                     Log.e("WifiManager", "mDNS Stop Failed: $errorCode")
-                    try { stopDiscoveryListener() } catch (_: Exception) {}
+                    try {
+                        stopDiscoveryListener()
+                    } catch (_: Exception) {}
                 }
                 override fun onDiscoveryStarted(serviceType: String) {
                     Log.d("WifiManager", "mDNS Discovery Started")
@@ -214,7 +219,6 @@ class WifiManager(
             }
             // Scan for common Arduino/IoT services
             nsdManager?.discoverServices("_http._tcp", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, discoveryListener)
-            
         } catch (e: Exception) {
             Log.e("WifiManager", "mDNS Init Failed", e)
             onLog("mDNS not available: ${e.message}")
@@ -230,7 +234,7 @@ class WifiManager(
     private fun stopDiscovery() {
         isScanning.set(false)
         stopDiscoveryListener()
-        
+
         multicastLock?.let {
             if (it.isHeld) it.release()
         }
@@ -249,21 +253,24 @@ class WifiManager(
     }
 
     private fun resolveService(serviceInfo: android.net.nsd.NsdServiceInfo) {
-        nsdManager?.resolveService(serviceInfo, object : android.net.nsd.NsdManager.ResolveListener {
-            override fun onResolveFailed(serviceInfo: android.net.nsd.NsdServiceInfo, errorCode: Int) {
-                Log.e("WifiManager", "mDNS Resolve Failed: $errorCode")
-            }
-            override fun onServiceResolved(serviceInfo: android.net.nsd.NsdServiceInfo) {
-                val ip = serviceInfo.host.hostAddress
-                val port = serviceInfo.port
-                val name = serviceInfo.serviceName
-                Log.d("WifiManager", "mDNS Resolved: $name @ $ip:$port")
-                onLog("mDNS Resolved: $name @ $ip:$port")
-                if (ip != null) {
-                    addDevice(name, ip, port)
+        nsdManager?.resolveService(
+            serviceInfo,
+            object : android.net.nsd.NsdManager.ResolveListener {
+                override fun onResolveFailed(serviceInfo: android.net.nsd.NsdServiceInfo, errorCode: Int) {
+                    Log.e("WifiManager", "mDNS Resolve Failed: $errorCode")
+                }
+                override fun onServiceResolved(serviceInfo: android.net.nsd.NsdServiceInfo) {
+                    val ip = serviceInfo.host.hostAddress
+                    val port = serviceInfo.port
+                    val name = serviceInfo.serviceName
+                    Log.d("WifiManager", "mDNS Resolved: $name @ $ip:$port")
+                    onLog("mDNS Resolved: $name @ $ip:$port")
+                    if (ip != null) {
+                        addDevice(name, ip, port)
+                    }
                 }
             }
-        })
+        )
     }
 
     // Internal for test visibility
@@ -355,15 +362,13 @@ class WifiManager(
     }
 
     // Internal for test visibility
-    internal fun verifySignature(nonce: String, sig: String, key: ByteArray): Boolean {
-        return try {
-            val nonceBytes = Base64.decode(nonce, Base64.NO_WRAP)
-            val sigBytes = Base64.decode(sig, Base64.NO_WRAP)
-            val expected = hmac(nonceBytes, key)
-            sigBytes.contentEquals(expected)
-        } catch (e: Exception) {
-            false
-        }
+    internal fun verifySignature(nonce: String, sig: String, key: ByteArray): Boolean = try {
+        val nonceBytes = Base64.decode(nonce, Base64.NO_WRAP)
+        val sigBytes = Base64.decode(sig, Base64.NO_WRAP)
+        val expected = hmac(nonceBytes, key)
+        sigBytes.contentEquals(expected)
+    } catch (e: Exception) {
+        false
     }
 
     private fun hmac(data: ByteArray, key: ByteArray): ByteArray {
@@ -385,7 +390,7 @@ class WifiManager(
                     onPacketReceived() // Update RTT measurement
                 } catch (e: Exception) {
                     if (isActive && isConnected.get()) {
-                         Log.e("WifiManager", "Receive error", e)
+                        Log.e("WifiManager", "Receive error", e)
                     }
                 }
             }
@@ -395,7 +400,9 @@ class WifiManager(
     // Monitor WiFi signal strength from system
     private fun startRssiMonitor() {
         scope.launch {
-            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+            val wifiManager = context.applicationContext.getSystemService(
+                Context.WIFI_SERVICE
+            ) as android.net.wifi.WifiManager
             while (isActive && isConnected.get()) {
                 try {
                     val info = wifiManager.connectionInfo
@@ -410,12 +417,12 @@ class WifiManager(
             }
         }
     }
-    
+
     // Simple Ping for RTT - sends a packet and measures response time
     private var lastPingTime = 0L
     private var lastRxTime = 0L
     private var pingSequence = 0
-    
+
     private fun startPing() {
         scope.launch {
             while (isActive && isConnected.get()) {
@@ -426,7 +433,7 @@ class WifiManager(
                     val address = InetAddress.getByName(targetIp)
                     val packet = DatagramPacket(pingData, pingData.size, address, targetPort)
                     socket?.send(packet)
-                    
+
                     delay(2000) // Heartbeat interval
                 } catch (e: Exception) {
                     Log.e("WifiManager", "Ping failed", e)
@@ -441,13 +448,13 @@ class WifiManager(
                 delay(1000)
                 // Timeout if no data received for 10 seconds
                 if (System.currentTimeMillis() - lastRxTime > 10000L) {
-                     onLog("Connection timed out (no data for 10s)")
-                     disconnect()
+                    onLog("Connection timed out (no data for 10s)")
+                    disconnect()
                 }
             }
         }
     }
-    
+
     // Called from receive loop when PONG or any data is received
     internal fun onPacketReceived() {
         lastRxTime = System.currentTimeMillis()
@@ -459,7 +466,7 @@ class WifiManager(
             lastPingTime = 0L
         }
     }
-    
+
     // For manual RTT update from ProtocolManager
     fun updateRtt(newRtt: Long) {
         _rtt.value = newRtt
@@ -482,12 +489,10 @@ class WifiManager(
 }
 
 enum class WifiConnectionState {
-    DISCONNECTED, CONNECTING, CONNECTED, ERROR
+    DISCONNECTED,
+    CONNECTING,
+    CONNECTED,
+    ERROR
 }
 
-data class WifiDevice(
-    val name: String,
-    val ip: String,
-    val port: Int,
-    val trusted: Boolean = false
-)
+data class WifiDevice(val name: String, val ip: String, val port: Int, val trusted: Boolean = false)

@@ -1,9 +1,14 @@
 package com.metelci.ardunakon.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,12 +19,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.foundation.clickable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,25 +38,25 @@ fun WifiConfigDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),  // Reduced from 16.dp
-            shape = RoundedCornerShape(12.dp),  // Slightly smaller
+                .padding(8.dp), // Reduced from 16.dp
+            shape = RoundedCornerShape(12.dp), // Slightly smaller
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A2E))
         ) {
             Column(
                 modifier = Modifier
-                    .padding(12.dp)  // Reduced from 16.dp
-                    .verticalScroll(rememberScrollState()),  // Make scrollable
+                    .padding(12.dp) // Reduced from 16.dp
+                    .verticalScroll(rememberScrollState()), // Make scrollable
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "WiFi Configuration",
-                    fontSize = 16.sp,  // Reduced from 18.sp
+                    fontSize = 16.sp, // Reduced from 18.sp
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-                
-                Spacer(modifier = Modifier.height(8.dp))  // Reduced from 16.dp
-                
+
+                Spacer(modifier = Modifier.height(8.dp)) // Reduced from 16.dp
+
                 // IP Address and Port in same row for landscape
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -78,7 +77,7 @@ fun WifiConfigDialog(
                         textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
-                    
+
                     OutlinedTextField(
                         value = port,
                         onValueChange = { port = it.filter { char -> char.isDigit() } },
@@ -95,8 +94,8 @@ fun WifiConfigDialog(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
                 }
-                
-                Spacer(modifier = Modifier.height(8.dp))  // Reduced from 16.dp
+
+                Spacer(modifier = Modifier.height(8.dp)) // Reduced from 16.dp
 
                 // Scanning Section - more compact
                 Row(
@@ -106,52 +105,52 @@ fun WifiConfigDialog(
                 ) {
                     Text(
                         "Devices",
-                        style = MaterialTheme.typography.labelMedium,  // Smaller
+                        style = MaterialTheme.typography.labelMedium, // Smaller
                         color = Color(0xFFB0BEC5)
                     )
-                    
+
                     if (isScanning) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),  // Smaller
+                            modifier = Modifier.size(16.dp), // Smaller
                             color = Color(0xFF00FF00),
                             strokeWidth = 2.dp
                         )
                     } else {
                         OutlinedButton(
-                            onClick = { 
+                            onClick = {
                                 isScanning = true
                                 onScan()
                                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                                     isScanning = false
                                 }, 5000)
                             },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),  // Compact
-                            modifier = Modifier.height(32.dp)  // Fixed compact height
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp), // Compact
+                            modifier = Modifier.height(32.dp) // Fixed compact height
                         ) {
-                            Text("Scan", fontSize = 12.sp)  // Shorter text
+                            Text("Scan", fontSize = 12.sp) // Shorter text
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(4.dp))  // Reduced from 8.dp
+
+                Spacer(modifier = Modifier.height(4.dp)) // Reduced from 8.dp
 
                 // Device List - Compact
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 36.dp, max = 80.dp)  // Reduced max height
+                        .heightIn(min = 36.dp, max = 80.dp) // Reduced max height
                         .background(Color(0xFF232338), RoundedCornerShape(6.dp))
-                        .padding(6.dp)  // Reduced padding
+                        .padding(6.dp) // Reduced padding
                 ) {
                     if (scannedDevices.isEmpty()) {
                         Box(
-                            modifier = Modifier.fillMaxWidth().height(24.dp),  // Smaller
+                            modifier = Modifier.fillMaxWidth().height(24.dp), // Smaller
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 if (isScanning) "Scanning..." else "No devices",
                                 color = Color.Gray,
-                                fontSize = 11.sp  // Smaller
+                                fontSize = 11.sp // Smaller
                             )
                         }
                     } else {
@@ -160,31 +159,36 @@ fun WifiConfigDialog(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { 
+                                    .clickable {
                                         ipAddress = device.ip
                                         port = device.port.toString()
                                     }
-                                    .padding(vertical = 2.dp),  // Reduced
+                                    .padding(vertical = 2.dp), // Reduced
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text(device.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)  // Smaller
-                                    Text(device.ip, color = Color(0xFFB0BEC5), fontSize = 10.sp)  // Smaller
+                                    Text(
+                                        device.name,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    ) // Smaller
+                                    Text(device.ip, color = Color(0xFFB0BEC5), fontSize = 10.sp) // Smaller
                                 }
                                 Icon(
                                     imageVector = Icons.Default.Wifi,
                                     contentDescription = null,
                                     tint = Color(0xFF00FF00),
-                                    modifier = Modifier.size(14.dp)  // Smaller
+                                    modifier = Modifier.size(14.dp) // Smaller
                                 )
                             }
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(12.dp))  // Reduced from 24.dp
-                
+
+                Spacer(modifier = Modifier.height(12.dp)) // Reduced from 24.dp
+
                 // Buttons Row - Compact
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -205,7 +209,7 @@ fun WifiConfigDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                     ) {
-                        Text("Connect", fontSize = 13.sp)  // Shorter: "Connect" instead of "Save & Connect"
+                        Text("Connect", fontSize = 13.sp) // Shorter: "Connect" instead of "Save & Connect"
                     }
                 }
             }

@@ -15,7 +15,7 @@ class TelemetryHistoryManagerTest {
         private val rssiHistory = mutableListOf<Pair<Long, Int>>()
         private val rttHistory = mutableListOf<Pair<Long, Long>>()
         private val batteryHistory = mutableListOf<Pair<Long, Float>>()
-        
+
         private val maxPoints = 100
         private val retentionMs = 300_000L // 5 minutes
 
@@ -46,7 +46,7 @@ class TelemetryHistoryManagerTest {
         fun getRssiHistory(): List<Pair<Long, Int>> = rssiHistory.toList()
         fun getRttHistory(): List<Pair<Long, Long>> = rttHistory.toList()
         fun getBatteryHistory(): List<Pair<Long, Float>> = batteryHistory.toList()
-        
+
         fun clear() {
             rssiHistory.clear()
             rttHistory.clear()
@@ -108,7 +108,7 @@ class TelemetryHistoryManagerTest {
     @Test
     fun `caps at max 100 points`() {
         val baseTime = System.currentTimeMillis()
-        
+
         // Add 150 points - all recent so they won't be trimmed by time
         for (i in 1..150) {
             history.recordRssi(-50 - (i % 30), baseTime + i)
@@ -148,7 +148,7 @@ class TelemetryHistoryManagerTest {
     @Test
     fun `handles zero RSSI value`() {
         history.recordRssi(0, 1000L)
-        
+
         val rssiData = history.getRssiHistory()
         assertEquals(1, rssiData.size)
         assertEquals(0, rssiData[0].second)
@@ -157,7 +157,7 @@ class TelemetryHistoryManagerTest {
     @Test
     fun `handles very high RTT values`() {
         history.recordRtt(999999L, 1000L)
-        
+
         val rttData = history.getRttHistory()
         assertEquals(1, rttData.size)
         assertEquals(999999L, rttData[0].second)

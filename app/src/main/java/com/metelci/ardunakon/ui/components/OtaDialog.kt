@@ -1,4 +1,5 @@
 @file:Suppress("DEPRECATION")
+
 package com.metelci.ardunakon.ui.components
 
 import android.net.Uri
@@ -13,8 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,10 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.metelci.ardunakon.ota.*
-import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.launch
 
 /**
  * Enhanced OTA Firmware Update Dialog
@@ -47,24 +48,24 @@ fun OtaDialog(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val progress by otaManager.progress.collectAsState()
-    
+
     // State
     var selectedTab by remember { mutableStateOf(0) } // 0=Local, 1=History
     var selectedMethod by remember { mutableStateOf(OtaMethod.WIFI) }
     var selectedFile by remember { mutableStateOf<File?>(null) }
     var selectedFileName by remember { mutableStateOf<String?>(null) }
     var fileCrc by remember { mutableStateOf<Long?>(null) }
-    
+
     // Managers
     val historyManager = remember { OtaHistoryManager(context) }
     val history = remember { mutableStateListOf<OtaHistoryManager.HistoryEntry>() }
-    
+
     // Load history on first composition
     LaunchedEffect(Unit) {
         history.clear()
         history.addAll(historyManager.getHistory())
     }
-    
+
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -84,9 +85,12 @@ fun OtaDialog(
             }
         }
     }
-    
-    Dialog(onDismissRequest = { 
-        if (progress.state == OtaState.IDLE || progress.state == OtaState.COMPLETE || progress.state == OtaState.ERROR) {
+
+    Dialog(onDismissRequest = {
+        if (progress.state == OtaState.IDLE ||
+            progress.state == OtaState.COMPLETE ||
+            progress.state == OtaState.ERROR
+        ) {
             // Save to history on success
             selectedFile?.let { file ->
                 if (progress.state == OtaState.COMPLETE) {
@@ -115,9 +119,9 @@ fun OtaDialog(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
+
                 // Tabs: Local / History
                 if (progress.state == OtaState.IDLE) {
                     TabRow(
@@ -138,10 +142,10 @@ fun OtaDialog(
                             text = { Text("Recent", fontSize = 11.sp) }
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(12.dp))
                 }
-                
+
                 // Tab Content
                 when {
                     progress.state != OtaState.IDLE -> {
@@ -174,9 +178,9 @@ fun OtaDialog(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
+
                 // Transfer Method (only show when idle and file selected)
                 if (progress.state == OtaState.IDLE && selectedFile != null) {
                     Text(
@@ -208,9 +212,9 @@ fun OtaDialog(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
+
                 // Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -232,7 +236,7 @@ fun OtaDialog(
                             color = Color(0xFFFF5252)
                         )
                     }
-                    
+
                     Button(
                         onClick = {
                             selectedFile?.let { file ->
@@ -259,12 +263,7 @@ fun OtaDialog(
 }
 
 @Composable
-private fun LocalFileContent(
-    selectedFileName: String?,
-    selectedFile: File?,
-    fileCrc: Long?,
-    onSelectFile: () -> Unit
-) {
+private fun LocalFileContent(selectedFileName: String?, selectedFile: File?, fileCrc: Long?, onSelectFile: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedButton(
             onClick = onSelectFile,
@@ -274,7 +273,7 @@ private fun LocalFileContent(
         ) {
             Text(selectedFileName ?: "Select .bin file", maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        
+
         // File info
         if (selectedFile != null && fileCrc != null) {
             Spacer(modifier = Modifier.height(8.dp))
@@ -291,8 +290,6 @@ private fun LocalFileContent(
         }
     }
 }
-
-
 
 @Composable
 private fun HistoryContent(
@@ -361,7 +358,8 @@ private fun ProgressContent(progress: OtaProgress) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "${progress.percent}% (${progress.bytesTransferred / 1024}/${progress.totalBytes / 1024} KB)",
-                    color = Color(0xFFB0BEC5), fontSize = 12.sp
+                    color = Color(0xFFB0BEC5),
+                    fontSize = 12.sp
                 )
                 if (progress.state == OtaState.VERIFYING) {
                     Text("Verifying CRC...", color = Color(0xFFFFD54F), fontSize = 12.sp)
@@ -400,7 +398,7 @@ private fun MethodOption(
         selected -> Color(0xFF00FF00)
         else -> Color(0xFF455A64)
     }
-    
+
     Box(
         modifier = modifier
             .background(backgroundColor, RoundedCornerShape(8.dp))
@@ -410,7 +408,12 @@ private fun MethodOption(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, color = if (enabled) Color.White else Color(0xFF757575), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(
+                label,
+                color = if (enabled) Color.White else Color(0xFF757575),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
             Text(subtitle, color = if (enabled) Color(0xFFB0BEC5) else Color(0xFF555555), fontSize = 9.sp)
         }
     }

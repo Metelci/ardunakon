@@ -9,7 +9,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
-import com.metelci.ardunakon.bluetooth.BluetoothDeviceModel
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.ota.BleOtaTransport
 import com.metelci.ardunakon.ota.OtaManager
@@ -39,7 +38,7 @@ fun ControlScreenDialogs(
     val telemetry by bluetoothManager.telemetry.collectAsState()
     val scannedDevices by bluetoothManager.scannedDevices.collectAsState()
     val wifiScannedDevices by wifiManager.scannedDevices.collectAsState()
-    
+
     // OTA components
     val otaManager = remember { OtaManager(context) }
     val wifiOtaTransport = remember { WifiOtaTransport(context) }

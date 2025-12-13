@@ -1,20 +1,18 @@
 package com.metelci.ardunakon.ui
 
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
 
 class UxLogicTest {
 
     // Replicating logic from SignalStrengthIcon.kt
-    private fun getBarsForRssi(rssi: Int): Int {
-        return when {
-            rssi == 0 -> 0
-            rssi > -50 -> 4
-            rssi > -65 -> 3
-            rssi > -80 -> 2
-            rssi > -95 -> 1
-            else -> 0
-        }
+    private fun getBarsForRssi(rssi: Int): Int = when {
+        rssi == 0 -> 0
+        rssi > -50 -> 4
+        rssi > -65 -> 3
+        rssi > -80 -> 2
+        rssi > -95 -> 1
+        else -> 0
     }
 
     @Test
@@ -37,7 +35,14 @@ class UxLogicTest {
             null
         }
 
-        if (decodedText != null && decodedText.isNotEmpty() && decodedText.all { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r" }) {
+        if (decodedText != null &&
+            decodedText.isNotEmpty() &&
+            decodedText.all {
+                it.isLetterOrDigit() ||
+                    it.isWhitespace() ||
+                    it in ".,;:!?-_()[]{}@#$%^&*+=<>/\\|~`'\"\n\r"
+            }
+        ) {
             return decodedText
         } else {
             return data.joinToString(" ") { "%02X".format(it) }

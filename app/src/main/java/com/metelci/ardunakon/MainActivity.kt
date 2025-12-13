@@ -6,21 +6,20 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import android.content.pm.PackageManager
-import android.provider.Settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,10 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.metelci.ardunakon.service.BluetoothService
 import com.metelci.ardunakon.ui.screens.ControlScreen
-
-import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
 
@@ -74,6 +72,7 @@ class MainActivity : ComponentActivity() {
             // Check if any permission was permanently denied
             @Suppress("UNUSED_VARIABLE")
             val deniedPermissions = permissions.filterValues { !it }.keys
+
             @Suppress("UNUSED_VARIABLE")
             val permanentlyDenied = deniedPermissions.any { permission ->
                 !ActivityCompat.shouldShowRequestPermissionRationale(this, permission)
@@ -106,10 +105,9 @@ class MainActivity : ComponentActivity() {
 
         // Configure status bar for dark theme - use light (white) icons
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false  // false = light icons for dark background
+            isAppearanceLightStatusBars = false // false = light icons for dark background
             isAppearanceLightNavigationBars = false
         }
-
 
         // Start and Bind Service
         setContent {
@@ -227,21 +225,21 @@ class MainActivity : ComponentActivity() {
         permissionLauncher.launch(permissions)
     }
 
-    private fun hasBluetoothPermissions(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-        } else {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        }
+    private fun hasBluetoothPermissions(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) ==
+            PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
+            PackageManager.PERMISSION_GRANTED
+    } else {
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
     }
 
-    private fun hasNotificationPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
+    private fun hasNotificationPermission(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+    } else {
+        true
     }
 
     private fun requestNotificationPermission() {
@@ -255,7 +253,7 @@ class MainActivity : ComponentActivity() {
     private fun startAndBindServiceIfPermitted(forceStart: Boolean = false) {
         if (serviceStarted) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasBluetoothPermissions()) return
-        
+
         // Request notification permission but don't block app startup
         if (!hasNotificationPermission() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !forceStart) {
             requestNotificationPermission()
@@ -306,10 +304,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun BluetoothOffDialog(
-    onDismiss: () -> Unit,
-    onTurnOn: () -> Unit
-) {
+fun BluetoothOffDialog(onDismiss: () -> Unit, onTurnOn: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Turn on Bluetooth") },
@@ -329,11 +324,7 @@ fun BluetoothOffDialog(
 }
 
 @Composable
-fun NotificationPermissionDialog(
-    onDismiss: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onRetry: () -> Unit
-) {
+fun NotificationPermissionDialog(onDismiss: () -> Unit, onOpenSettings: () -> Unit, onRetry: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Notification Permission Needed") },
@@ -356,11 +347,7 @@ fun NotificationPermissionDialog(
 }
 
 @Composable
-fun PermissionDeniedDialog(
-    onDismiss: () -> Unit,
-    onRetry: () -> Unit,
-    onOpenSettings: () -> Unit
-) {
+fun PermissionDeniedDialog(onDismiss: () -> Unit, onRetry: () -> Unit, onOpenSettings: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Bluetooth Permissions Required") },
@@ -381,9 +368,18 @@ fun PermissionDeniedDialog(
                     style = MaterialTheme.typography.labelMedium
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("- Bluetooth: required to scan, pair, and stream control data to your boards.", style = MaterialTheme.typography.labelSmall)
-                Text("- Location (pre-Android 12): Android mandates location permission for BLE scans.", style = MaterialTheme.typography.labelSmall)
-                Text("- Data stays on-device; profiles are encrypted with the system keystore.", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    "- Bluetooth: required to scan, pair, and stream control data to your boards.",
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Text(
+                    "- Location (pre-Android 12): Android mandates location permission for BLE scans.",
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Text(
+                    "- Data stays on-device; profiles are encrypted with the system keystore.",
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
         },
         confirmButton = {

@@ -8,7 +8,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Connection Health Monitor - Tracks connection liveness and manages reconnection
- * 
+ *
  * Responsibilities:
  * - Heartbeat timeout detection
  * - Exponential backoff for reconnection
@@ -61,7 +61,7 @@ class ConnectionHealthMonitor(
      */
     fun start() {
         stop() // Cancel any existing monitor
-        
+
         monitorJob = scope.launch {
             while (isActive) {
                 delay(config.monitorIntervalMs)
@@ -119,16 +119,12 @@ class ConnectionHealthMonitor(
     /**
      * Check if reconnect is currently allowed
      */
-    fun canReconnectNow(): Boolean {
-        return System.currentTimeMillis() >= nextReconnectAt
-    }
+    fun canReconnectNow(): Boolean = System.currentTimeMillis() >= nextReconnectAt
 
     /**
      * Check if circuit breaker has tripped (too many failed attempts)
      */
-    fun isCircuitBreakerTripped(): Boolean {
-        return reconnectAttempts >= config.maxReconnectAttempts
-    }
+    fun isCircuitBreakerTripped(): Boolean = reconnectAttempts >= config.maxReconnectAttempts
 
     /**
      * Get current reconnect attempt count
@@ -138,18 +134,16 @@ class ConnectionHealthMonitor(
     /**
      * Get last recorded RTT (round-trip time) in milliseconds
      */
-    fun getLastRttMs(): Long {
-        return if (lastHeartbeatSentAt > 0 && lastPacketReceivedAt > lastHeartbeatSentAt) {
-            lastPacketReceivedAt - lastHeartbeatSentAt
-        } else {
-            0L
-        }
+    fun getLastRttMs(): Long = if (lastHeartbeatSentAt > 0 && lastPacketReceivedAt > lastHeartbeatSentAt) {
+        lastPacketReceivedAt - lastHeartbeatSentAt
+    } else {
+        0L
     }
 
     private fun checkHealth() {
         val state = callbacks.getConnectionState()
         val connectionType = callbacks.getConnectionType()
-        
+
         when (state) {
             ConnectionState.CONNECTED -> checkConnectedHealth(connectionType)
             ConnectionState.DISCONNECTED -> checkDisconnectedHealth()

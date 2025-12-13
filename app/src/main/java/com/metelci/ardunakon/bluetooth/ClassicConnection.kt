@@ -6,13 +6,13 @@ import android.bluetooth.BluetoothSocket
 import android.os.Build
 import android.util.Log
 import com.metelci.ardunakon.model.LogType
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 
 /**
  * Handles Classic Bluetooth SPP connection lifecycle.
@@ -28,7 +28,8 @@ class ClassicConnection(
     private val forceReflectionFirst: Boolean = false,
     private val scope: CoroutineScope,
     private val connectionMutex: Mutex
-) : Thread(), BluetoothConnection {
+) : Thread(),
+    BluetoothConnection {
 
     interface Callbacks {
         fun onConnected(connection: ClassicConnection)
@@ -44,7 +45,7 @@ class ClassicConnection(
     // Standard SPP UUID
     companion object {
         val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-        
+
         // Manufacturer-specific UUIDs for HC-06 clones and variants
         val MANUFACTURER_UUIDS: List<UUID> = listOf(
             UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"), // Standard SPP
@@ -59,14 +60,16 @@ class ClassicConnection(
             UUID.fromString("00001103-0000-1000-8000-00805f9b34fb"), // Dial-up Networking
             UUID.fromString("00001102-0000-1000-8000-00805f9b34fb"), // LAN Access
             UUID.fromString("00000003-0000-1000-8000-00805f9b34fb"), // RFCOMM
-            UUID.fromString("00000000-0000-1000-8000-00805f9b34fb")  // Base UUID
+            UUID.fromString("00000000-0000-1000-8000-00805f9b34fb") // Base UUID
         )
     }
 
     private var socket: BluetoothSocket? = null
     private var outputStream: OutputStream? = null
     private var inputStream: InputStream? = null
+
     @Volatile private var cancelled = false
+
     @Volatile private var isConnected = false
 
     @SuppressLint("MissingPermission")
@@ -79,7 +82,10 @@ class ClassicConnection(
             }
 
             callbacks.log("Starting connection to ${device.name} (${device.address})", LogType.INFO)
-            callbacks.log("Device: ${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})", LogType.INFO)
+            callbacks.log(
+                "Device: ${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})",
+                LogType.INFO
+            )
 
             // Pre-flight: Cancel discovery
             try {
@@ -141,10 +147,10 @@ class ClassicConnection(
                     outputStream = validSocket.outputStream
                     inputStream = validSocket.inputStream
                     isConnected = true
-                    
+
                     callbacks.onStateChanged(ConnectionState.CONNECTED)
                     callbacks.onConnected(this)
-                    
+
                     // Start reading loop
                     readLoop()
                 } catch (e: IOException) {
@@ -203,7 +209,7 @@ class ClassicConnection(
         if (!cancelled) {
             for ((index, uuid) in MANUFACTURER_UUIDS.withIndex()) {
                 if (cancelled) break
-                
+
                 val uuidDesc = when (index) {
                     0 -> "Nordic nRF51822 variant (Chinese clones)"
                     1 -> "Nordic UART Service (nRF51/52)"
@@ -310,7 +316,10 @@ class ClassicConnection(
                                 val packet = packetBuffer.copyOf(10)
                                 val result = TelemetryParser.parse(packet)
                                 if (result != null) {
-                                    callbacks.log("Telemetry: Bat=${result.batteryVoltage}V, Status=${result.status}", LogType.SUCCESS)
+                                    callbacks.log(
+                                        "Telemetry: Bat=${result.batteryVoltage}V, Status=${result.status}",
+                                        LogType.SUCCESS
+                                    )
                                 }
                             }
                             bufferIndex = 0

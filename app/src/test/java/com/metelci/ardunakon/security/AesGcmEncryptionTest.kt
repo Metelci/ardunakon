@@ -1,13 +1,13 @@
 package com.metelci.ardunakon.security
 
-import org.junit.Assert.*
-import org.junit.Test
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import org.junit.Assert.*
+import org.junit.Test
 
 /**
  * Security tests for AES-256-GCM encryption used in WiFi communication.
@@ -81,8 +81,10 @@ class AesGcmEncryptionTest {
         cipher2.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(gcmTagLength, iv2))
         val ciphertext2 = cipher2.doFinal(plaintext)
 
-        assertFalse("Same plaintext with different IVs should produce different ciphertext",
-            ciphertext1.contentEquals(ciphertext2))
+        assertFalse(
+            "Same plaintext with different IVs should produce different ciphertext",
+            ciphertext1.contentEquals(ciphertext2)
+        )
     }
 
     @Test

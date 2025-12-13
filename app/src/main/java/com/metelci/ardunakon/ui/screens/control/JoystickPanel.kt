@@ -11,7 +11,7 @@ import com.metelci.ardunakon.ui.components.JoystickControl
 /**
  * Wrapper component for JoystickControl that handles latency calculation for connection quality ring.
  * Reduces duplication between portrait and landscape layouts.
- * 
+ *
  * @param onMoved Callback with (x, y) values -1 to 1, already multiplied by sensitivity
  * @param size Size of the joystick
  * @param isThrottle Whether Y-axis should stay at last position (throttle mode)

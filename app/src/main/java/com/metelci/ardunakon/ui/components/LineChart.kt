@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -23,11 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.telemetry.TelemetryDataPoint
 import kotlin.math.abs
 
-data class LineChartSeries(
-    val label: String,
-    val data: List<TelemetryDataPoint>,
-    val color: Color
-)
+data class LineChartSeries(val label: String, val data: List<TelemetryDataPoint>, val color: Color)
 
 @Composable
 fun LineChart(
@@ -265,12 +261,7 @@ private fun DrawScope.drawYLabels(
     }
 }
 
-private fun DrawScope.drawTimeLabels(
-    width: Float,
-    height: Float,
-    timeRangeMs: Long,
-    isDarkTheme: Boolean
-) {
+private fun DrawScope.drawTimeLabels(width: Float, height: Float, timeRangeMs: Long, isDarkTheme: Boolean) {
     val paint = android.graphics.Paint().apply {
         color = if (isDarkTheme) android.graphics.Color.WHITE else android.graphics.Color.BLACK
         textSize = 12.sp.toPx()
@@ -299,10 +290,8 @@ private fun DrawScope.drawTimeLabels(
     }
 }
 
-private fun formatValue(value: Float): String {
-    return if (abs(value) >= 100f) {
-        value.toInt().toString()
-    } else {
-        String.format("%.1f", value)
-    }
+private fun formatValue(value: Float): String = if (abs(value) >= 100f) {
+    value.toInt().toString()
+} else {
+    String.format("%.1f", value)
 }

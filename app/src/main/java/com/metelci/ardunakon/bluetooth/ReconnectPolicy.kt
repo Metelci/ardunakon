@@ -1,19 +1,16 @@
 package com.metelci.ardunakon.bluetooth
 
+import com.metelci.ardunakon.protocol.ProtocolManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.metelci.ardunakon.protocol.ProtocolManager
 
 /**
  * Manages automatic reconnection with exponential backoff and heartbeat monitoring.
  * Implements circuit breaker pattern to prevent infinite reconnect loops.
  */
-class ReconnectPolicy(
-    private val scope: CoroutineScope,
-    private val config: BluetoothConfig = BluetoothConfig
-) {
+class ReconnectPolicy(private val scope: CoroutineScope, private val config: BluetoothConfig = BluetoothConfig) {
     private var reconnectAttempts = 0
     private var nextReconnectAt = 0L
     private var heartbeatSeq = 0
@@ -56,12 +53,18 @@ class ReconnectPolicy(
                         ) {
                             // Check circuit breaker
                             if (reconnectAttempts >= BluetoothConfig.MAX_RECONNECT_ATTEMPTS) {
-                                onLog("Circuit breaker: Too many failed attempts", com.metelci.ardunakon.model.LogType.ERROR)
+                                onLog(
+                                    "Circuit breaker: Too many failed attempts",
+                                    com.metelci.ardunakon.model.LogType.ERROR
+                                )
                                 _shouldReconnect.value = false
                                 onCircuitBreakerTripped()
                             } else {
                                 val backoffDelay = calculateBackoffDelay(reconnectAttempts)
-                                onLog("Auto-reconnecting (attempt ${reconnectAttempts + 1}, backoff ${backoffDelay}ms)", com.metelci.ardunakon.model.LogType.WARNING)
+                                onLog(
+                                    "Auto-reconnecting (attempt ${reconnectAttempts + 1}, backoff ${backoffDelay}ms)",
+                                    com.metelci.ardunakon.model.LogType.WARNING
+                                )
 
                                 reconnectAttempts++
                                 nextReconnectAt = now + backoffDelay
@@ -108,7 +111,10 @@ class ReconnectPolicy(
                     val ackThreshold = if (isBle) BluetoothConfig.MISSED_ACK_THRESHOLD_BLE else BluetoothConfig.MISSED_ACK_THRESHOLD_CLASSIC
 
                     if (missedHeartbeatAcks >= ackThreshold && lastPacketAt > 0 && sinceLastPacket > timeoutMs) {
-                        onLog("Heartbeat timeout after ${sinceLastPacket}ms (missed $missedHeartbeatAcks acks)", com.metelci.ardunakon.model.LogType.ERROR)
+                        onLog(
+                            "Heartbeat timeout after ${sinceLastPacket}ms (missed $missedHeartbeatAcks acks)",
+                            com.metelci.ardunakon.model.LogType.ERROR
+                        )
                         missedHeartbeatAcks = 0
                         onTimeout("Heartbeat timeout")
                     }

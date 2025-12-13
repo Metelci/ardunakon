@@ -62,7 +62,7 @@ fun ControlScreen(
 ) {
     val context = LocalContext.current
     val view = LocalView.current
-    
+
     // ViewModel instantiation
     val viewModel: ControlViewModel = viewModel(
         factory = ControlViewModelFactory(
@@ -81,7 +81,7 @@ fun ControlScreen(
     val autoReconnectEnabled by bluetoothManager.autoReconnectEnabled.collectAsState()
     val rttHistory by bluetoothManager.rttHistory.collectAsState()
     val isEStopActive by bluetoothManager.isEmergencyStopActive.collectAsState()
-    
+
     val wifiState by wifiManager.connectionState.collectAsState()
     val wifiRssi by wifiManager.rssi.collectAsState()
     val wifiRtt by wifiManager.rtt.collectAsState()
@@ -112,7 +112,10 @@ fun ControlScreen(
                     0x05 -> { // CMD_ANNOUNCE_CAPABILITIES
                         val caps = data[3].toInt() and 0xFF
                         val boardType = data[5].toInt() and 0xFF
-                        bluetoothManager.log("WiFi RX: Capabilities=0x${caps.toString(16)}, Board=$boardType", LogType.INFO)
+                        bluetoothManager.log(
+                            "WiFi RX: Capabilities=0x${caps.toString(16)}, Board=$boardType",
+                            LogType.INFO
+                        )
                     }
                 }
             }
@@ -429,7 +432,9 @@ private fun LandscapeControlLayout(
                         WifiConnectionState.ERROR -> ConnectionState.ERROR
                         else -> ConnectionState.DISCONNECTED
                     }
-                } else connectionState
+                } else {
+                    connectionState
+                }
 
                 val currentRssi = if (viewModel.connectionMode == ConnectionMode.WIFI) wifiRssi else rssiValue
                 val hasCrashLog = com.metelci.ardunakon.crash.CrashHandler.hasCrashLog(context)

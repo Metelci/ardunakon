@@ -16,14 +16,12 @@ object AssetReader {
      * @param fileName Name of the file in assets (e.g., "docs/setup_guide.txt")
      * @return File contents as a string, or error message if file cannot be read
      */
-    fun readAssetFile(context: Context, fileName: String): String {
-        return try {
-            context.assets.open(fileName).bufferedReader().use { it.readText() }
-        } catch (e: IOException) {
-            buildErrorMessage(fileName, e)
-        } catch (e: Exception) {
-            buildErrorMessage(fileName, e)
-        }
+    fun readAssetFile(context: Context, fileName: String): String = try {
+        context.assets.open(fileName).bufferedReader().use { it.readText() }
+    } catch (e: IOException) {
+        buildErrorMessage(fileName, e)
+    } catch (e: Exception) {
+        buildErrorMessage(fileName, e)
     }
 
     /**
@@ -33,8 +31,7 @@ object AssetReader {
      * @param exception The exception that occurred
      * @return Formatted error message with troubleshooting information
      */
-    private fun buildErrorMessage(fileName: String, exception: Exception): String {
-        return """
+    private fun buildErrorMessage(fileName: String, exception: Exception): String = """
             ====================================================================================================
             ERROR LOADING DOCUMENTATION
             ====================================================================================================
@@ -71,6 +68,5 @@ object AssetReader {
             - Compatibility: https://github.com/metelci/ardunakon/blob/main/BLUETOOTH_COMPATIBILITY.md
 
             ====================================================================================================
-        """.trimIndent()
-    }
+    """.trimIndent()
 }

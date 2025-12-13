@@ -19,31 +19,28 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Displays a warning card when packet loss exceeds thresholds.
- * 
+ *
  * Color coding:
  * - Yellow: > 1% loss
  * - Orange: > 5% loss
  * - Red: > 10% loss
  */
 @Composable
-fun PacketLossWarningCard(
-    packetsSent: Long,
-    packetsDropped: Long,
-    packetsFailed: Long,
-    modifier: Modifier = Modifier
-) {
+fun PacketLossWarningCard(packetsSent: Long, packetsDropped: Long, packetsFailed: Long, modifier: Modifier = Modifier) {
     val totalLoss = packetsDropped + packetsFailed
     val lossPercent = if (packetsSent > 0) {
         (totalLoss.toFloat() / packetsSent * 100)
-    } else 0f
+    } else {
+        0f
+    }
 
     // Only show if loss > 1%
     if (lossPercent <= 1.0f) return
 
     val containerColor = when {
         lossPercent > 10f -> Color(0xFFFF5252) // Red
-        lossPercent > 5f -> Color(0xFFFF9800)  // Orange
-        else -> Color(0xFFFFC107)               // Yellow
+        lossPercent > 5f -> Color(0xFFFF9800) // Orange
+        else -> Color(0xFFFFC107) // Yellow
     }
 
     Card(

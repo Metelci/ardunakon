@@ -1,9 +1,8 @@
 @file:Suppress("DEPRECATION")
+
 package com.metelci.ardunakon.ui.screens.control
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.BorderStroke
@@ -51,8 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,7 +63,7 @@ import com.metelci.ardunakon.wifi.WifiConnectionState
 
 /**
  * Reusable header bar for the control screen.
- * 
+ *
  * Contains signal indicator, connection button, telemetry graph button,
  * E-STOP button, debug toggle, and overflow menu.
  */
@@ -78,21 +77,21 @@ fun ControlHeaderBar(
     wifiRssi: Int,
     rttHistory: List<Long>,
     wifiRttHistory: List<Long>,
-    
+
     // E-Stop state
     isEStopActive: Boolean,
-    
+
     // Debug panel state
     isDebugPanelVisible: Boolean,
-    
+
     // Settings
     isDarkTheme: Boolean,
     allowReflection: Boolean,
-    
+
     // Button sizes
     buttonSize: Dp = 40.dp,
     eStopSize: Dp = 72.dp,
-    
+
     // Callbacks
     onScanDevices: () -> Unit,
     onReconnectDevice: () -> Unit,
@@ -109,7 +108,7 @@ fun ControlHeaderBar(
     onToggleReflection: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
     onQuitApp: () -> Unit,
-    
+
     // Context for crash log check
     context: Context,
     view: View,
@@ -121,12 +120,12 @@ fun ControlHeaderBar(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
 
-    val sectionSpacing = if (isLandscape) 16.dp else 8.dp  // Spacing between sections and E-STOP
-    val itemSpacing = if (isLandscape) 16.dp else 6.dp     // Spacing between items within sections
-    val modeSelectorWidth = if (isLandscape) 48.dp else 40.dp  // Segment width for BLE/WiFi selector
-    val statusWidgetWidth = if (isLandscape) 64.dp else 56.dp  // Connection status widget width
-    val widgetHeight = if (isLandscape) 48.dp else 40.dp       // Height for left widgets
-    val rightButtonSize = if (isLandscape) buttonSize else 36.dp  // Right button size
+    val sectionSpacing = if (isLandscape) 16.dp else 8.dp // Spacing between sections and E-STOP
+    val itemSpacing = if (isLandscape) 16.dp else 6.dp // Spacing between items within sections
+    val modeSelectorWidth = if (isLandscape) 48.dp else 40.dp // Segment width for BLE/WiFi selector
+    val statusWidgetWidth = if (isLandscape) 64.dp else 56.dp // Connection status widget width
+    val widgetHeight = if (isLandscape) 48.dp else 40.dp // Height for left widgets
+    val rightButtonSize = if (isLandscape) buttonSize else 36.dp // Right button size
 
     Row(
         modifier = modifier
@@ -180,21 +179,36 @@ fun ControlHeaderBar(
                 .size(eStopSize)
                 .shadow(2.dp, CircleShape)
                 .background(
-                    if (isEStopActive) Color(0xFFFF5252)
-                    else if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
+                    if (isEStopActive) {
+                        Color(0xFFFF5252)
+                    } else if (isDarkTheme) {
+                        Color(0xFF455A64)
+                    } else {
+                        Color(0xFFE0E0E0)
+                    },
                     CircleShape
                 )
                 .border(
                     1.dp,
-                    if (isEStopActive) Color(0xFFD32F2F)
-                    else if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF455A64),
+                    if (isEStopActive) {
+                        Color(0xFFD32F2F)
+                    } else if (isDarkTheme) {
+                        Color(0xFF90CAF9)
+                    } else {
+                        Color(0xFF455A64)
+                    },
                     CircleShape
                 )
         ) {
             Text(
                 if (isEStopActive) "RESET" else "STOP",
-                color = if (isEStopActive) Color.White
-                else if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF2D3436),
+                color = if (isEStopActive) {
+                    Color.White
+                } else if (isDarkTheme) {
+                    Color(0xFF90CAF9)
+                } else {
+                    Color(0xFF2D3436)
+                },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -270,78 +284,78 @@ fun ControlHeaderBar(
                     )
                 }
                 DropdownMenu(
-                expanded = showOverflowMenu,
-                onDismissRequest = { showOverflowMenu = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Help") },
-                    leadingIcon = { Icon(Icons.Default.Help, null) },
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onShowHelp()
-                        showOverflowMenu = false
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("About") },
-                    leadingIcon = { Icon(Icons.Outlined.Info, null) },
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onShowAbout()
-                        showOverflowMenu = false
-                    }
-                )
-                if (CrashHandler.hasCrashLog(context)) {
+                    expanded = showOverflowMenu,
+                    onDismissRequest = { showOverflowMenu = false }
+                ) {
                     DropdownMenuItem(
-                        text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
-                        leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
+                        text = { Text("Help") },
+                        leadingIcon = { Icon(Icons.Default.Help, null) },
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            onShowCrashLog()
+                            onShowHelp()
+                            showOverflowMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("About") },
+                        leadingIcon = { Icon(Icons.Outlined.Info, null) },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onShowAbout()
+                            showOverflowMenu = false
+                        }
+                    )
+                    if (CrashHandler.hasCrashLog(context)) {
+                        DropdownMenuItem(
+                            text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
+                            leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
+                            onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                onShowCrashLog()
+                                showOverflowMenu = false
+                            }
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("Legacy Reflection (HC-06): " + if (allowReflection) "On" else "Off") },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onToggleReflection()
+                            showOverflowMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("OTA Firmware Update") },
+                        leadingIcon = { Icon(Icons.Default.Settings, null) },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onShowOta()
+                            showOverflowMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Open Arduino Cloud") },
+                        leadingIcon = { Icon(Icons.Default.OpenInNew, null, tint = Color(0xFF00FF00)) },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onOpenArduinoCloud()
+                            showOverflowMenu = false
+                        }
+                    )
+                    Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
+                    DropdownMenuItem(
+                        text = { Text("Quit App", color = Color(0xFFFF5252)) },
+                        leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onQuitApp()
                             showOverflowMenu = false
                         }
                     )
                 }
-                DropdownMenuItem(
-                    text = { Text("Legacy Reflection (HC-06): " + if (allowReflection) "On" else "Off") },
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onToggleReflection()
-                        showOverflowMenu = false
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("OTA Firmware Update") },
-                    leadingIcon = { Icon(Icons.Default.Settings, null) },
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onShowOta()
-                        showOverflowMenu = false
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Open Arduino Cloud") },
-                    leadingIcon = { Icon(Icons.Default.OpenInNew, null, tint = Color(0xFF00FF00)) },
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onOpenArduinoCloud()
-                        showOverflowMenu = false
-                    }
-                )
-                Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
-                DropdownMenuItem(
-                    text = { Text("Quit App", color = Color(0xFFFF5252)) },
-                    leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onQuitApp()
-                        showOverflowMenu = false
-                    }
-                )
-            }
-            }  // Close Box
-        }  // Close Right Row
-    }  // Close Main Row
+            } // Close Box
+        } // Close Right Row
+    } // Close Main Row
 }
 
 /**
@@ -483,9 +497,11 @@ fun ConnectionModeSelector(
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 onModeSelected(ConnectionMode.BLUETOOTH)
             },
-            color = if (selectedMode == ConnectionMode.BLUETOOTH)
+            color = if (selectedMode == ConnectionMode.BLUETOOTH) {
                 Color(0xFF00FF00).copy(alpha = 0.25f)
-            else Color.Transparent,
+            } else {
+                Color.Transparent
+            },
             shape = RoundedCornerShape(topStartPercent = 50, bottomStartPercent = 50),
             modifier = Modifier
                 .width(segmentWidth)
@@ -518,9 +534,11 @@ fun ConnectionModeSelector(
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 onModeSelected(ConnectionMode.WIFI)
             },
-            color = if (selectedMode == ConnectionMode.WIFI)
+            color = if (selectedMode == ConnectionMode.WIFI) {
                 Color(0xFF00C853).copy(alpha = 0.25f)
-            else Color.Transparent,
+            } else {
+                Color.Transparent
+            },
             shape = RoundedCornerShape(topEndPercent = 50, bottomEndPercent = 50),
             modifier = Modifier
                 .width(segmentWidth)

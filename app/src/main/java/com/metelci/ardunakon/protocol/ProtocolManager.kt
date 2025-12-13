@@ -14,7 +14,7 @@ object ProtocolManager {
     const val CMD_BUTTON: Byte = 0x02
     const val CMD_HEARTBEAT: Byte = 0x03
     const val CMD_ESTOP: Byte = 0x04
-    
+
     const val DEFAULT_DEVICE_ID: Byte = 0x01
 
     // 0 = Min (-1.0), 100 = Center (0.0), 200 = Max (1.0)
@@ -24,11 +24,7 @@ object ProtocolManager {
         return mapped.toByte()
     }
 
-    fun formatJoystickData(
-        leftX: Float, leftY: Float,
-        rightX: Float, rightY: Float,
-        auxBits: Byte = 0
-    ): ByteArray {
+    fun formatJoystickData(leftX: Float, leftY: Float, rightX: Float, rightY: Float, auxBits: Byte = 0): ByteArray {
         val packet = ByteArray(PACKET_SIZE)
         packet[0] = START_BYTE
         packet[1] = DEFAULT_DEVICE_ID // Default Device ID
@@ -37,7 +33,7 @@ object ProtocolManager {
         packet[4] = mapJoystickValue(leftY)
         packet[5] = mapJoystickValue(rightX)
         packet[6] = mapJoystickValue(rightY)
-        
+
         packet[7] = auxBits
         packet[8] = calculateChecksum(packet)
         packet[9] = END_BYTE

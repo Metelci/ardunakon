@@ -1,11 +1,11 @@
 package com.metelci.ardunakon.ota
 
 import android.content.Context
+import java.io.File
+import java.util.zip.CRC32
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.io.File
-import java.util.zip.CRC32
 
 /**
  * OTA Update State
@@ -56,45 +56,50 @@ interface OtaTransport {
  * OTA Manager - Handles firmware updates via BLE or WiFi
  */
 class OtaManager(private val context: Context) {
-    
+
     private val _progress = MutableStateFlow(OtaProgress())
     val progress: StateFlow<OtaProgress> = _progress.asStateFlow()
-    
+
     private var transport: OtaTransport? = null
     private var isRunning = false
-    
+
     companion object {
         const val CHUNK_SIZE = 512 // bytes per chunk
     }
-    
+
     /**
      * Start OTA update with selected method
      */
-    suspend fun startUpdate(file: File, method: OtaMethod, bleTransport: OtaTransport? = null, wifiTransport: OtaTransport? = null): Boolean {
+    suspend fun startUpdate(
+        file: File,
+        method: OtaMethod,
+        bleTransport: OtaTransport? = null,
+        wifiTransport: OtaTransport? = null
+    ): Boolean {
         if (isRunning) return false
         isRunning = true
-        
+
         try {
             // Select transport based on method
             transport = when (method) {
                 OtaMethod.BLE -> bleTransport ?: throw IllegalArgumentException("BLE transport not provided")
                 OtaMethod.WIFI -> wifiTransport ?: throw IllegalArgumentException("WiFi transport not provided")
             }
-            
+
             val fileBytes = file.readBytes()
             val totalSize = fileBytes.size.toLong()
-            
+
             // Calculate CRC32
             val crc = CRC32()
             crc.update(fileBytes)
             val checksum = crc.value
-            
+
             _progress.value = OtaProgress(
                 state = OtaState.CONNECTING,
                 method = method,
                 totalBytes = totalSize
             )
-            
+
             // Connect
             if (!transport!!.connect()) {
                 _progress.value = _progress.value.copy(
@@ -103,15 +108,15 @@ class OtaManager(private val context: Context) {
                 )
                 return false
             }
-            
+
             _progress.value = _progress.value.copy(state = OtaState.TRANSFERRING)
-            
+
             // Transfer chunks
             var offset = 0
             while (offset < fileBytes.size) {
                 val chunkSize = minOf(CHUNK_SIZE, fileBytes.size - offset)
                 val chunk = fileBytes.copyOfRange(offset, offset + chunkSize)
-                
+
                 if (!transport!!.sendChunk(chunk, offset)) {
                     _progress.value = _progress.value.copy(
                         state = OtaState.ERROR,
@@ -119,14 +124,14 @@ class OtaManager(private val context: Context) {
                     )
                     return false
                 }
-                
+
                 offset += chunkSize
                 _progress.value = _progress.value.copy(bytesTransferred = offset.toLong())
             }
-            
+
             // Verify
             _progress.value = _progress.value.copy(state = OtaState.VERIFYING)
-            
+
             if (!transport!!.complete(checksum)) {
                 _progress.value = _progress.value.copy(
                     state = OtaState.ERROR,
@@ -134,10 +139,9 @@ class OtaManager(private val context: Context) {
                 )
                 return false
             }
-            
+
             _progress.value = _progress.value.copy(state = OtaState.COMPLETE)
             return true
-            
         } catch (e: Exception) {
             _progress.value = _progress.value.copy(
                 state = OtaState.ERROR,
@@ -149,7 +153,7 @@ class OtaManager(private val context: Context) {
             transport?.disconnect()
         }
     }
-    
+
     /**
      * Abort current update
      */
@@ -158,7 +162,7 @@ class OtaManager(private val context: Context) {
         _progress.value = OtaProgress()
         isRunning = false
     }
-    
+
     /**
      * Reset state
      */

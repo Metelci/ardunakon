@@ -4,13 +4,13 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.security.keystore.UserNotAuthenticatedException
-import java.security.KeyStore
+import android.util.Base64
 import java.security.GeneralSecurityException
+import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import android.util.Base64
 
 class AuthRequiredException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
@@ -75,14 +75,14 @@ class SecurityManager : CryptoEngine {
             cipher.init(Cipher.ENCRYPT_MODE, getKey())
             val iv = cipher.iv
             val encryptedBytes = cipher.doFinal(data.toByteArray(Charsets.UTF_8))
-            
+
             // Combine IV and Encrypted Data for storage
             // Format: IV_LENGTH (1 byte) + IV + ENCRYPTED_DATA
             val combined = ByteArray(1 + iv.size + encryptedBytes.size)
             combined[0] = iv.size.toByte()
             System.arraycopy(iv, 0, combined, 1, iv.size)
             System.arraycopy(encryptedBytes, 0, combined, 1 + iv.size, encryptedBytes.size)
-            
+
             return Base64.encodeToString(combined, Base64.DEFAULT)
         } catch (e: UserNotAuthenticatedException) {
             throw AuthRequiredException("Unlock your device to encrypt profiles.", e)

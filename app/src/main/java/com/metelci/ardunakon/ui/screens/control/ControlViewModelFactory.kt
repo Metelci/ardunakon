@@ -15,7 +15,7 @@ class ControlViewModelFactory(
     private val wifiManager: WifiManager,
     private val context: Context
 ) : ViewModelProvider.Factory {
-    
+
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ControlViewModel::class.java)) {

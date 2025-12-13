@@ -42,13 +42,10 @@ class CrashHandler private constructor(
             }
         }
 
-        fun getCrashLogFile(context: Context): File {
-            return File(context.filesDir, CRASH_LOG_FILE)
-        }
+        fun getCrashLogFile(context: Context): File = File(context.filesDir, CRASH_LOG_FILE)
 
-        fun hasCrashLog(context: Context): Boolean {
-            return getCrashLogFile(context).exists() && getCrashLogFile(context).length() > 0
-        }
+        fun hasCrashLog(context: Context): Boolean =
+            getCrashLogFile(context).exists() && getCrashLogFile(context).length() > 0
 
         fun getCrashLog(context: Context): String {
             val file = getCrashLogFile(context)
@@ -131,18 +128,16 @@ class CrashHandler private constructor(
         Log.d(TAG, "Crash log saved to ${file.absolutePath}")
     }
 
-    private fun getAppVersion(): String {
-        return try {
-            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                pInfo.longVersionCode
-            } else {
-                @Suppress("DEPRECATION")
-                pInfo.versionCode.toLong()
-            }
-            "${pInfo.versionName} ($versionCode)"
-        } catch (_: Exception) {
-            "Unknown"
+    private fun getAppVersion(): String = try {
+        val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            pInfo.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            pInfo.versionCode.toLong()
         }
+        "${pInfo.versionName} ($versionCode)"
+    } catch (_: Exception) {
+        "Unknown"
     }
 }

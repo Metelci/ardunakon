@@ -124,13 +124,11 @@ class BleConnection(
     }
 
     @SuppressLint("MissingPermission")
-    private fun getConnectionState(gatt: BluetoothGatt): Int {
-        return try {
-            val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager
-            manager.getConnectionState(gatt.device, BluetoothProfile.GATT)
-        } catch (e: Exception) {
-            BluetoothProfile.STATE_DISCONNECTED
-        }
+    private fun getConnectionState(gatt: BluetoothGatt): Int = try {
+        val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager
+        manager.getConnectionState(gatt.device, BluetoothProfile.GATT)
+    } catch (e: Exception) {
+        BluetoothProfile.STATE_DISCONNECTED
     }
 
     private fun startRssiPolling() {
@@ -221,10 +219,15 @@ class BleConnection(
                     2 -> 4000L
                     else -> 6000L
                 }
-                callbacks.log("Transient GATT error (attempt $gattRetryAttempt/$maxGattRetries). Retrying in ${delay}ms.", LogType.WARNING)
+                callbacks.log(
+                    "Transient GATT error (attempt $gattRetryAttempt/$maxGattRetries). Retrying in ${delay}ms.",
+                    LogType.WARNING
+                )
 
                 pollingJob?.cancel()
-                try { gatt.disconnect() } catch (_: Exception) {}
+                try {
+                    gatt.disconnect()
+                } catch (_: Exception) {}
                 gatt.close()
                 callbacks.onRssiRead(0)
                 callbacks.onStateChanged(ConnectionState.ERROR)
@@ -285,7 +288,7 @@ class BleConnection(
                 txCharacteristic = characteristic
                 detectedVariant = variant
                 callbacks.log("✓ BLE Module detected (variant $variant)", LogType.SUCCESS)
-                
+
                 setupNotifications(gatt)
             } else {
                 callbacks.log("BLE Service/Characteristic not found!", LogType.ERROR)
@@ -299,7 +302,9 @@ class BleConnection(
             }
         }
 
-        private fun findCompatibleService(gatt: BluetoothGatt): Triple<android.bluetooth.BluetoothGattService?, BluetoothGattCharacteristic?, Int> {
+        private fun findCompatibleService(
+            gatt: BluetoothGatt
+        ): Triple<android.bluetooth.BluetoothGattService?, BluetoothGattCharacteristic?, Int> {
             // Try all known BLE module variants
             for (variant in BleUuidRegistry.ALL_VARIANTS) {
                 val service = gatt.getService(variant.serviceUuid)
@@ -327,10 +332,14 @@ class BleConnection(
             for (service in gatt.services) {
                 for (char in service.characteristics) {
                     val props = char.properties
-                    val hasWrite = (props and (BluetoothGattCharacteristic.PROPERTY_WRITE or
-                            BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0
+                    val hasWrite = (
+                        props and (
+                            BluetoothGattCharacteristic.PROPERTY_WRITE or
+                                BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE
+                            )
+                        ) != 0
                     val hasNotify = (props and BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
-                    
+
                     if (hasWrite && hasNotify) {
                         callbacks.log("Found generic BLE module: ${char.uuid}", LogType.INFO)
                         return Triple(service, char, 99)
@@ -347,7 +356,7 @@ class BleConnection(
             val notifyChar = txService?.characteristics?.firstOrNull { char ->
                 val props = char.properties
                 (props and BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 ||
-                        (props and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                    (props and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
             } ?: txCharacteristic
 
             notifyChar?.let { char ->
@@ -382,7 +391,11 @@ class BleConnection(
             }
         }
 
-        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray
+        ) {
             if (value.isNotEmpty()) {
                 callbacks.onDataReceived(value)
             }
@@ -390,7 +403,10 @@ class BleConnection(
 
         override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                callbacks.log("✓ CCCD ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size} configured", LogType.INFO)
+                callbacks.log(
+                    "✓ CCCD ${descriptorWriteIndex + 1}/${pendingDescriptorWrites.size} configured",
+                    LogType.INFO
+                )
                 descriptorWriteIndex++
                 if (descriptorWriteIndex < pendingDescriptorWrites.size) {
                     val (g, desc, value) = pendingDescriptorWrites[descriptorWriteIndex]
@@ -473,11 +489,9 @@ class BleConnection(
     /**
      * Gets packet statistics from the write queue.
      */
-    fun getPacketStats(): Triple<Long, Long, Long> {
-        return Triple(
-            writeQueueManager.packetsSent,
-            writeQueueManager.packetsDropped,
-            writeQueueManager.packetsFailed
-        )
-    }
+    fun getPacketStats(): Triple<Long, Long, Long> = Triple(
+        writeQueueManager.packetsSent,
+        writeQueueManager.packetsDropped,
+        writeQueueManager.packetsFailed
+    )
 }

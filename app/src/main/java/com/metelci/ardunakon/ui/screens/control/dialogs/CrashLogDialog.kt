@@ -39,7 +39,7 @@ fun CrashLogDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.8f),

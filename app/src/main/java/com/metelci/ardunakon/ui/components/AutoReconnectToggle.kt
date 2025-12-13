@@ -1,5 +1,6 @@
 package com.metelci.ardunakon.ui.components
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
@@ -15,13 +16,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import android.view.HapticFeedbackConstants
 
 @Composable
-fun AutoReconnectToggle(
-    enabled: Boolean,
-    onToggle: (Boolean) -> Unit
-) {
+fun AutoReconnectToggle(enabled: Boolean, onToggle: (Boolean) -> Unit) {
     val view = LocalView.current
 
     IconButton(

@@ -4,10 +4,10 @@ import android.content.Context
 import android.util.Log
 import com.metelci.ardunakon.security.CryptoEngine
 import com.metelci.ardunakon.security.SecurityManager
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.io.File
 
 class AutoReconnectPreferences(
     private val context: Context,

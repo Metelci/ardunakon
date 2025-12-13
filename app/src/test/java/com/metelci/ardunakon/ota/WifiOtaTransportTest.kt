@@ -2,6 +2,11 @@ package com.metelci.ardunakon.ota
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.OutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -9,11 +14,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.OutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 
 @RunWith(RobolectricTestRunner::class)
 class WifiOtaTransportTest {
@@ -31,7 +31,9 @@ class WifiOtaTransportTest {
 
         override fun connect() {}
         override fun usingProxy(): Boolean = false
-        override fun disconnect() { disconnected = true }
+        override fun disconnect() {
+            disconnected = true
+        }
         override fun getOutputStream(): OutputStream = body
         override fun getInputStream() = ByteArrayInputStream(byteArrayOf())
         override fun getResponseCode(): Int = code

@@ -5,7 +5,7 @@ import kotlin.experimental.xor
 /**
  * Parses incoming telemetry packets from Arduino devices.
  * Handles battery voltage, status flags, and heartbeat/capability packets.
- * 
+ *
  * Packet Structure: [START(0xAA), DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END(0x55)]
  */
 object TelemetryParser {
@@ -19,11 +19,7 @@ object TelemetryParser {
     /**
      * Parsed telemetry result from Arduino heartbeat packet.
      */
-    data class TelemetryResult(
-        val batteryVoltage: Float,
-        val status: String,
-        val isEStop: Boolean = false
-    )
+    data class TelemetryResult(val batteryVoltage: Float, val status: String, val isEStop: Boolean = false)
 
     /**
      * Parses a telemetry packet and returns the result if valid.
@@ -33,10 +29,10 @@ object TelemetryParser {
         // Validate packet structure
         if (packet.size < 10) return null
         if (packet.first() != 0xAA.toByte() || packet.last() != 0x55.toByte()) return null
-        
+
         // Verify checksum
         if (!validateChecksum(packet)) return null
-        
+
         // Only parse heartbeat packets for telemetry
         if (packet[2] != CMD_HEARTBEAT) return null
 
@@ -45,7 +41,7 @@ object TelemetryParser {
         if (statusByte > 1) return null
 
         val battery = batteryRaw / 10f
-        
+
         // Validate battery voltage bounds
         if (battery < MIN_BATTERY_VOLTAGE || battery > MAX_BATTERY_VOLTAGE) {
             return null
@@ -63,7 +59,7 @@ object TelemetryParser {
     fun parseCapabilities(packet: ByteArray): DeviceCapabilities? {
         if (packet.size < 6) return null
         if (packet[2].toInt() and 0xFF != 0x05) return null
-        
+
         return DeviceCapabilities.fromPacket(packet, 3)
     }
 
@@ -73,7 +69,7 @@ object TelemetryParser {
      */
     fun validateChecksum(packet: ByteArray): Boolean {
         if (packet.size < 10) return false
-        
+
         var xor: Byte = 0
         for (i in 1..7) {
             xor = xor xor packet[i]
@@ -89,7 +85,7 @@ object TelemetryParser {
         if (packet.size < 10) return null
         if (packet[2] != CMD_HEARTBEAT) return null
         if (!validateChecksum(packet)) return null
-        
+
         val seqHigh = packet[3].toInt() and 0xFF
         val seqLow = packet[4].toInt() and 0xFF
         return (seqHigh shl 8) or seqLow

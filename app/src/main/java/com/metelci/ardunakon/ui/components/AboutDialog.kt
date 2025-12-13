@@ -1,6 +1,8 @@
 @file:Suppress("DEPRECATION")
+
 package com.metelci.ardunakon.ui.components
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -14,30 +16,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalView
-import android.view.HapticFeedbackConstants
 import com.metelci.ardunakon.BuildConfig
 
 /**
  * About dialog showing app information, version, and links.
  */
 @Composable
-fun AboutDialog(
-    onDismiss: () -> Unit,
-    isDarkTheme: Boolean = true
-) {
+fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
     val view = LocalView.current
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -144,18 +139,24 @@ fun AboutDialog(
                             color = if (isDarkTheme) Color.White else Color(0xFF0D47A1)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
-                        FeatureItem("Critical BLE Safety Fix: Motor no longer spins unexpectedly on reconnect (Android 15/16)", isDarkTheme)
+                        FeatureItem(
+                            "Critical BLE Safety Fix: Motor no longer spins unexpectedly on reconnect (Android 15/16)",
+                            isDarkTheme
+                        )
                         FeatureItem("Connection State Check: Transmission only when actually connected", isDarkTheme)
-                        FeatureItem("State Reset on Disconnect: Joystick/servo values auto-reset to neutral", isDarkTheme)
+                        FeatureItem(
+                            "State Reset on Disconnect: Joystick/servo values auto-reset to neutral",
+                            isDarkTheme
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // GitHub link button
                     OutlinedButton(
-                        onClick = { 
+                        onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            webUrlToOpen = "https://github.com/metelci/ardunakon" 
+                            webUrlToOpen = "https://github.com/metelci/ardunakon"
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -179,9 +180,9 @@ fun AboutDialog(
 
                     // Arduino Cloud link button
                     OutlinedButton(
-                        onClick = { 
+                        onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            webUrlToOpen = "https://cloud.arduino.cc" 
+                            webUrlToOpen = "https://cloud.arduino.cc"
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(

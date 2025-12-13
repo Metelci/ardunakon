@@ -1,13 +1,11 @@
 package com.metelci.ardunakon.telemetry
 
+import java.util.concurrent.ConcurrentLinkedDeque
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.concurrent.ConcurrentLinkedDeque
 
-class TelemetryHistoryManager(
-    private val maxHistorySize: Int = 150  // 10 minutes at 4s intervals
-) {
+class TelemetryHistoryManager(private val maxHistorySize: Int = 150 // 10 minutes at 4s intervals) {
     // Single device circular buffers
     private val batteryHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
     private val rssiHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
@@ -42,17 +40,13 @@ class TelemetryHistoryManager(
         _historyUpdated.value = System.currentTimeMillis()
     }
 
-    fun getBatteryHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> {
-        return filterByTimeRange(batteryHistory, timeRangeMs)
-    }
+    fun getBatteryHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> =
+        filterByTimeRange(batteryHistory, timeRangeMs)
 
-    fun getRssiHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> {
-        return filterByTimeRange(rssiHistory, timeRangeMs)
-    }
+    fun getRssiHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> =
+        filterByTimeRange(rssiHistory, timeRangeMs)
 
-    fun getRttHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> {
-        return filterByTimeRange(rttHistory, timeRangeMs)
-    }
+    fun getRttHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> = filterByTimeRange(rttHistory, timeRangeMs)
 
     private fun filterByTimeRange(
         buffer: ConcurrentLinkedDeque<TelemetryDataPoint>,
@@ -70,11 +64,9 @@ class TelemetryHistoryManager(
         _historyUpdated.value = System.currentTimeMillis()
     }
 
-    fun getHistorySize(): Int {
-        return maxOf(
-            batteryHistory.size,
-            rssiHistory.size,
-            rttHistory.size
-        )
-    }
+    fun getHistorySize(): Int = maxOf(
+        batteryHistory.size,
+        rssiHistory.size,
+        rttHistory.size
+    )
 }

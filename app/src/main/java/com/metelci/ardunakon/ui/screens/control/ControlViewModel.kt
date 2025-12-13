@@ -20,25 +20,26 @@ import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.security.AuthRequiredException
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiManager
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * Connection mode for the control screen.
  */
 enum class ConnectionMode {
-    BLUETOOTH, WIFI
+    BLUETOOTH,
+    WIFI
 }
 
 /**
  * ViewModel for ControlScreen - manages all control state and business logic.
- * 
+ *
  * This extracts state management from the composable to improve testability,
  * reduce recomposition, and separate concerns.
  */
@@ -140,7 +141,8 @@ class ControlViewModel(
                 val wifiConnected = wifiManager.connectionState.value == WifiConnectionState.CONNECTED
 
                 if ((connectionMode == ConnectionMode.BLUETOOTH && !btConnected) ||
-                    (connectionMode == ConnectionMode.WIFI && !wifiConnected)) {
+                    (connectionMode == ConnectionMode.WIFI && !wifiConnected)
+                ) {
                     delay(50)
                     continue
                 }
@@ -283,9 +285,7 @@ class ControlViewModel(
         bluetoothManager.log("Bluetooth mode active", LogType.SUCCESS)
     }
 
-    fun reconnectBluetoothDevice(): Boolean {
-        return bluetoothManager.reconnectSavedDevice()
-    }
+    fun reconnectBluetoothDevice(): Boolean = bluetoothManager.reconnectSavedDevice()
 
     // ========== Log Export ==========
     fun exportLogs(context: Context) {
@@ -325,7 +325,9 @@ class ControlViewModel(
                     val totalLoss = telem.packetsDropped + telem.packetsFailed
                     val lossPercent = if (telem.packetsSent > 0) {
                         (totalLoss.toFloat() / telem.packetsSent * 100)
-                    } else 0f
+                    } else {
+                        0f
+                    }
                     appendLine("  Packet Loss: ${"%.2f".format(lossPercent)}%")
                 }
             }

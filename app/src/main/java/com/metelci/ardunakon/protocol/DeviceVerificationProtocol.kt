@@ -1,6 +1,5 @@
 package com.metelci.ardunakon.protocol
 
-import com.metelci.ardunakon.security.DeviceVerificationManager
 import android.util.Base64
 import kotlin.experimental.xor
 
