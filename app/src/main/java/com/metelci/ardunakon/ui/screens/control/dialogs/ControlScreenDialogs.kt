@@ -160,11 +160,13 @@ fun ControlScreenDialogs(
         val prefs = context.getSharedPreferences("ArdunakonPrefs", Context.MODE_PRIVATE)
         val savedIp = remember { prefs.getString("last_wifi_ip", "192.168.4.1") ?: "192.168.4.1" }
         val savedPort = remember { prefs.getInt("last_wifi_port", 8888) }
+        val isEncrypted by wifiManager.isEncrypted.collectAsState()
 
         WifiConfigDialog(
             initialIp = savedIp,
             initialPort = savedPort,
             scannedDevices = wifiScannedDevices,
+            isEncrypted = isEncrypted,
             onScan = { wifiManager.startDiscovery() },
             onDismiss = { viewModel.showWifiConfig = false },
             onSave = { ip, port ->
