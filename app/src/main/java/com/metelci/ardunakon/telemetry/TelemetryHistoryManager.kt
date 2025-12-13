@@ -10,6 +10,8 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150 // 10 minute
     private val batteryHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
     private val rssiHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
     private val rttHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
+    
+    // Force recompile trigger (Telemetry Fix)
 
     // StateFlow for UI reactivity
     private val _historyUpdated = MutableStateFlow(0L)

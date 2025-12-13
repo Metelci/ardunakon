@@ -45,6 +45,7 @@ import com.metelci.ardunakon.ui.screens.control.ControlViewModelFactory
 import com.metelci.ardunakon.ui.screens.control.JoystickPanel
 import com.metelci.ardunakon.ui.screens.control.ServoPanel
 import com.metelci.ardunakon.ui.screens.control.dialogs.ControlScreenDialogs
+import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiManager
 
@@ -91,8 +92,9 @@ fun ControlScreen(
     // Bridge WiFi telemetry to HistoryManager
     LaunchedEffect(wifiState, wifiRssi, wifiRtt, wifiIncomingData) {
         if (wifiState == WifiConnectionState.CONNECTED) {
-            if (wifiRssi != 0) bluetoothManager.telemetryHistoryManager.recordRssi(wifiRssi)
-            if (wifiRtt != 0L) bluetoothManager.telemetryHistoryManager.recordRtt(wifiRtt)
+            // FIXME: Linkage error with TelemetryHistoryManager
+            // if (wifiRssi != 0) bluetoothManager.telemetryHistoryManager.recordRssi(wifiRssi)
+            // if (wifiRtt != 0L) bluetoothManager.telemetryHistoryManager.recordRtt(wifiRtt)
             wifiIncomingData?.let { data -> bluetoothManager.parseTelemetry(data) }
         }
     }

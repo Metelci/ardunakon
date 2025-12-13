@@ -15,6 +15,7 @@ import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.security.DeviceVerificationException
 import com.metelci.ardunakon.security.DeviceVerificationManager
+import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -80,8 +81,8 @@ class AppBluetoothManager(private val context: Context) {
     )
 
     // Telemetry History Manager for graph visualization
-    private val _telemetryHistoryManager = com.metelci.ardunakon.telemetry.TelemetryHistoryManager()
-    val telemetryHistoryManager: com.metelci.ardunakon.telemetry.TelemetryHistoryManager = _telemetryHistoryManager
+    private val _telemetryHistoryManager = TelemetryHistoryManager()
+    val telemetryHistoryManager: TelemetryHistoryManager = _telemetryHistoryManager
 
     // Scanned devices - delegated to scanner
     val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = scanner.scannedDevices
