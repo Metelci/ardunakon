@@ -1,5 +1,5 @@
 # Code Quality Workflow
-# Runs SonarCloud analysis and dependency vulnerability scanning
+# Runs SonarCloud analysis (if configured) and dependency vulnerability scanning
 
 name: Code Quality
 
@@ -13,6 +13,8 @@ jobs:
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
+    # Only run if SONAR_TOKEN is configured
+    if: ${{ secrets.SONAR_TOKEN != '' }}
     
     steps:
       - name: Checkout code
@@ -51,7 +53,7 @@ jobs:
         run: ./gradlew testDebugUnitTest jacocoTestReport
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -64,7 +66,7 @@ jobs:
             -Dsonar.java.binaries=app/build/intermediates/javac/debug/classes
             -Dsonar.kotlin.binaries=app/build/tmp/kotlin-classes/debug
             -Dsonar.coverage.jacoco.xmlReportPaths=app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
-            -Dsonar.android.lint.report=app/build/reports/lint-results-debug.xml
+            -Dsonar.host.url=https://sonarcloud.io
 
   dependency-check:
     name: Dependency Vulnerability Scan
@@ -84,8 +86,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Run OWASP Dependency Check
-        run: ./gradlew dependencyCheckAnalyze
+        run: ./gradlew dependencyCheckAnalyze --info
         continue-on-error: true  # Don't fail build on vulnerabilities, just report
 
       - name: Upload dependency check report
@@ -93,5 +105,8 @@ jobs:
         if: always()
         with:
           name: dependency-check-report
-          path: app/build/reports/dependency-check-report.html
+          path: |
+            app/build/reports/dependency-check-report.html
+            build/reports/dependency-check-report.html
+          if-no-files-found: warn
           retention-days: 30
