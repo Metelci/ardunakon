@@ -23,12 +23,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.ui.screens.control.ControlViewModel
-import com.metelci.ardunakon.ui.screens.control.ControlViewModelFactory
 import com.metelci.ardunakon.ui.screens.control.LandscapeControlLayout
 import com.metelci.ardunakon.ui.screens.control.PortraitControlLayout
 import com.metelci.ardunakon.ui.screens.control.dialogs.ControlScreenDialogs
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiManager
+
+import androidx.hilt.navigation.compose.hiltViewModel
 
 /**
  * Main control screen for the Ardunakon application.
@@ -37,23 +38,17 @@ import com.metelci.ardunakon.wifi.WifiManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ControlScreen(
-    bluetoothManager: AppBluetoothManager,
-    wifiManager: WifiManager,
     isDarkTheme: Boolean = true,
-    onQuitApp: () -> Unit = {}
+    onQuitApp: () -> Unit = {},
+    viewModel: ControlViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
-
-    // ViewModel instantiation
-    val viewModel: ControlViewModel = viewModel(
-        factory = ControlViewModelFactory(
-            bluetoothManager = bluetoothManager,
-            wifiManager = wifiManager,
-            context = context
-        )
-    )
+    
+    // Access managers from ViewModel
+    val bluetoothManager = viewModel.bluetoothManager
+    val wifiManager = viewModel.wifiManager
 
     // State collections - Bluetooth
     val connectionState by bluetoothManager.connectionState.collectAsState()

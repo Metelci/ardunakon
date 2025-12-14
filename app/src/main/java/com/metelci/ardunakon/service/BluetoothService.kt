@@ -20,11 +20,20 @@ import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.wifi.WifiManager
 import kotlinx.coroutines.*
 
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+
+@AndroidEntryPoint
 class BluetoothService : Service() {
 
     private val binder = LocalBinder()
+
+    @Inject
     lateinit var bluetoothManager: AppBluetoothManager
+
+    @Inject
     lateinit var wifiManager: WifiManager
+
     private var wakeLock: PowerManager.WakeLock? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var wakeLockTimeoutJob: Job? = null
@@ -35,15 +44,7 @@ class BluetoothService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        bluetoothManager = AppBluetoothManager(this)
-
-        // Initialize WifiManager for persistence
-        wifiManager = WifiManager(
-            context = this,
-            onLog = { msg ->
-                bluetoothManager.log(msg, LogType.INFO)
-            }
-        )
+        // Hilt injects managers automatically
 
         // Setup WakeLock
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager

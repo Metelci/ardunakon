@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.bluetooth.TroubleshootHints
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
@@ -36,7 +36,7 @@ import com.metelci.ardunakon.model.LogType
 @Composable
 fun EmbeddedTerminal(
     logs: List<LogEntry>,
-    telemetry: AppBluetoothManager.Telemetry?,
+    telemetry: Telemetry?,
     onSendCommand: (String) -> Unit,
     onClearLogs: () -> Unit,
     onMaximize: () -> Unit,

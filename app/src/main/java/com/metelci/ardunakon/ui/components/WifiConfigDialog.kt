@@ -35,8 +35,8 @@ fun WifiConfigDialog(
     onDismiss: () -> Unit,
     onSave: (String, Int) -> Unit
 ) {
-    var ipAddress by remember { mutableStateOf("") }
-    var port by remember { mutableStateOf(initialPort.toString()) }
+    var ipAddress by remember(initialIp) { mutableStateOf(initialIp) }
+    var port by remember(initialPort) { mutableStateOf(initialPort.toString()) }
     var isScanning by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -258,4 +258,3 @@ fun WifiConfigDialog(
         }
     }
 }
-

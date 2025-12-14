@@ -456,13 +456,28 @@ class BleConnection(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 gatt.writeDescriptor(descriptor, value)
             } else {
-                @Suppress("DEPRECATION")
-                descriptor.value = value
-                @Suppress("DEPRECATION")
-                gatt.writeDescriptor(descriptor)
+                writeDescriptorLegacy(gatt, descriptor, value)
             }
         } catch (e: SecurityException) {
             callbacks.log("Descriptor write failed: Permission revoked", LogType.ERROR)
+        }
+    }
+
+    private fun writeDescriptorLegacy(
+        gatt: BluetoothGatt,
+        descriptor: BluetoothGattDescriptor,
+        value: ByteArray
+    ) {
+        try {
+            val setValue = BluetoothGattDescriptor::class.java.getMethod("setValue", ByteArray::class.java)
+            setValue.invoke(descriptor, value)
+            val write = BluetoothGatt::class.java.getMethod("writeDescriptor", BluetoothGattDescriptor::class.java)
+            val enqueued = write.invoke(gatt, descriptor) as? Boolean ?: false
+            if (!enqueued) {
+                callbacks.log("Descriptor write failed to enqueue on legacy stack", LogType.WARNING)
+            }
+        } catch (e: Exception) {
+            callbacks.log("Descriptor write failed on legacy stack: ${e.message}", LogType.ERROR)
         }
     }
 

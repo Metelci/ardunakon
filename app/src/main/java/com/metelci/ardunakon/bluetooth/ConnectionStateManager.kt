@@ -97,15 +97,13 @@ class ConnectionStateManager(private val context: Context, private val config: B
 
     private fun vibrate(durationMs: Long) {
         try {
+            val effect = VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                val vibrator = vibratorManager.defaultVibrator
-                vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
+                vibratorManager.defaultVibrator.vibrate(effect)
             } else {
-                @Suppress("DEPRECATION")
                 val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(durationMs)
+                vibrator.vibrate(effect)
             }
         } catch (e: Exception) {
             // Ignore vibration errors (no permission, no vibrator, etc.)

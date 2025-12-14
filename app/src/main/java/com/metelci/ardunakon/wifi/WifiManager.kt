@@ -8,6 +8,11 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Base64
 import android.util.Log
+import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import com.metelci.ardunakon.bluetooth.Telemetry
+import com.metelci.ardunakon.bluetooth.TelemetryParser
+import com.metelci.ardunakon.data.WifiEncryptionPreferences
+import com.metelci.ardunakon.security.EncryptionException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -21,16 +26,19 @@ import javax.crypto.spec.SecretKeySpec
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.metelci.ardunakon.bluetooth.TelemetryParser
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
-import com.metelci.ardunakon.security.EncryptionException
 
 
 class WifiManager(
     private val context: Context,
     private val onLog: (String) -> Unit = {},
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val encryptionPreferences: WifiEncryptionPreferences = WifiEncryptionPreferences(context)
 ) {
+    companion object {
+        private val DEFAULT_R4_WIFI_PSK: ByteArray =
+            "ArdunakonSecretKey1234567890ABCD".toByteArray(Charsets.UTF_8)
+    }
+
     private val scope = CoroutineScope(ioDispatcher + SupervisorJob())
     private var socket: DatagramSocket? = null
     private var receiveJob: Job? = null
@@ -40,7 +48,7 @@ class WifiManager(
     private val sessionKey = AtomicReference<ByteArray?>(null)
     private val discoveryNonce = AtomicReference<String?>(null)
     private val secureRandom = SecureRandom()
-    private val requireEncryption = AtomicBoolean(false)
+    private val requireEncryption = AtomicBoolean(true)
 
     // Connection State
     private val _connectionState = MutableStateFlow(WifiConnectionState.DISCONNECTED)
@@ -66,8 +74,12 @@ class WifiManager(
     val scannedDevices = _scannedDevices.asStateFlow()
     private var isScanning = AtomicBoolean(false)
 
+    // DoS Protection: Rate limit discovery responses per IP
+    private val discoveryRateLimiter = mutableMapOf<String, Long>()
+    private val discoveryRateLimitMs = 1000L // Limit to 1 response per second per IP
+
     // Telemetry State (Matches BluetoothManager for consistency)
-    private val _telemetry = MutableStateFlow<AppBluetoothManager.Telemetry?>(null)
+    private val _telemetry = MutableStateFlow<Telemetry?>(null)
     val telemetry = _telemetry.asStateFlow()
 
     // Encryption Error State - exposed for UI to show blocking dialogs
@@ -226,11 +238,21 @@ class WifiManager(
 
                         val response = String(receivePacket.data, 0, receivePacket.length).trim()
                         if (response.startsWith("ARDUNAKON_DEVICE:")) {
+                            val senderIp = receivePacket.address.hostAddress ?: "Unknown"
+                            
+                            // DoS Protection: Rate limit responses from same IP
+                            val now = System.currentTimeMillis()
+                            val lastResponse = discoveryRateLimiter[senderIp] ?: 0L
+                            if (now - lastResponse < discoveryRateLimitMs) {
+                                onLog("Rate-limiting discovery from $senderIp (flood protection)")
+                                continue
+                            }
+                            discoveryRateLimiter[senderIp] = now
+                            
                             val payload = response.substringAfter("ARDUNAKON_DEVICE:")
                             val parts = payload.split("|")
                             val name = parts.firstOrNull().orEmpty()
-                            val ip = receivePacket.address.hostAddress ?: "Unknown"
-                            onLog("Found Device: $name ($ip)")
+                            onLog("Found Device: $name ($senderIp)")
                             val key = sessionKey.get()
                             val trusted = when {
                                 key != null && parts.size >= 3 -> {
@@ -242,7 +264,7 @@ class WifiManager(
                                 key != null -> false // expected signature missing
                                 else -> true // legacy un-authenticated response
                             }
-                            addDevice(name, ip, 8888, trusted)
+                            addDevice(name, senderIp, 8888, trusted)
                         }
                     } catch (e: java.net.SocketTimeoutException) {
                         // continue
@@ -314,6 +336,9 @@ class WifiManager(
             if (it.isHeld) it.release()
         }
         multicastLock = null
+        
+        // Clear rate limiter to prevent memory leak
+        discoveryRateLimiter.clear()
     }
 
     private fun stopDiscoveryListener() {
@@ -376,9 +401,13 @@ class WifiManager(
             try {
                 socket = DatagramSocket()
                 isConnected.set(true)
-                _connectionState.value = WifiConnectionState.CONNECTED
-                onLog("WiFi: Connected to $ip:$port (UDP)")
                 lastRxTime = System.currentTimeMillis() // Initialize to prevent immediate timeout
+
+                val encryptionReady = establishEncryptionIfRequired()
+                if (!encryptionReady) return@launch
+
+                _connectionState.value = WifiConnectionState.CONNECTED
+                onLog("WiFi: Connected to $ip:$port (UDP${if (_isEncrypted.value) ", encrypted" else ""})")
                 startReceiving()
                 startRssiMonitor()
                 startPing()
@@ -406,6 +435,52 @@ class WifiManager(
         if (wasConnected) {
             onLog("WiFi: Disconnected")
         }
+    }
+
+    private suspend fun establishEncryptionIfRequired(): Boolean {
+        if (!requireEncryption.get()) return true
+
+        return try {
+            val storedPsk = encryptionPreferences.loadPsk(targetIp)
+            val candidates = listOfNotNull(storedPsk, DEFAULT_R4_WIFI_PSK)
+                .distinctBy { it.contentHashCode() }
+
+            for (psk in candidates) {
+                val success = performEncryptionHandshake(psk)
+                if (success) {
+                    if (storedPsk == null || !storedPsk.contentEquals(psk)) {
+                        try {
+                            encryptionPreferences.savePsk(targetIp, psk)
+                        } catch (e: Exception) {
+                            onLog("WiFi: Encryption established but PSK could not be saved: ${e.message}")
+                        }
+                    }
+                    return true
+                }
+            }
+
+            onLog("WiFi: Encryption handshake failed (required)")
+            _connectionState.value = WifiConnectionState.ERROR
+            cleanupAfterHandshakeFailure()
+            false
+        } catch (e: Exception) {
+            Log.e("WifiManager", "Encryption negotiation failed", e)
+            _encryptionError.value = EncryptionException.HandshakeFailedException(
+                "Encryption negotiation failed: ${e.message}"
+            )
+            _connectionState.value = WifiConnectionState.ERROR
+            cleanupAfterHandshakeFailure()
+            false
+        }
+    }
+
+    private fun cleanupAfterHandshakeFailure() {
+        isConnected.set(false)
+        receiveJob?.cancel()
+        socket?.close()
+        socket = null
+        _isEncrypted.value = false
+        sessionKey.set(null)
     }
 
     /**
@@ -543,6 +618,30 @@ class WifiManager(
     }
 
     // Internal for test visibility
+    @Throws(EncryptionException::class)
+    internal fun decryptIfNeeded(payload: ByteArray): ByteArray {
+        val key = sessionKey.get() ?: return payload
+        if (payload.size <= 12) {
+            throw EncryptionException.EncryptionFailedException(
+                "Encrypted packet too short to decrypt",
+                IllegalArgumentException("payload length=${payload.size}")
+            )
+        }
+        return try {
+            val iv = payload.copyOfRange(0, 12)
+            val cipherText = payload.copyOfRange(12, payload.size)
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, iv))
+            cipher.doFinal(cipherText)
+        } catch (e: Exception) {
+            Log.e("WifiManager", "Decryption failed", e)
+            throw EncryptionException.EncryptionFailedException(
+                "Failed to decrypt packet: ${e.message}", e
+            )
+        }
+    }
+
+    // Internal for test visibility
     internal fun verifySignature(nonce: String, sig: String, key: ByteArray): Boolean = try {
         val nonceBytes = Base64.decode(nonce, Base64.NO_WRAP)
         val sigBytes = Base64.decode(sig, Base64.NO_WRAP)
@@ -566,13 +665,25 @@ class WifiManager(
                     val packet = DatagramPacket(buffer, buffer.size)
                     delay(1) // Yield to avoid tight loop
                     socket?.receive(packet)
-                    val data = packet.data.copyOf(packet.length)
+                    val rawData = packet.data.copyOf(packet.length)
+                    val data = try {
+                        decryptIfNeeded(rawData)
+                    } catch (e: EncryptionException) {
+                        _encryptionError.value = e
+                        onLog("Encryption Error: ${e.message}")
+                        if (requireEncryption.get()) {
+                            disconnect()
+                            return@launch
+                        } else {
+                            rawData
+                        }
+                    }
                     _incomingData.value = data
                     
                     // Parse Telemetry using centralized parser
                     val result = TelemetryParser.parse(data)
                     if (result != null) {
-                        _telemetry.value = AppBluetoothManager.Telemetry(
+                        _telemetry.value = Telemetry(
                             batteryVoltage = result.batteryVoltage,
                             status = result.status,
                             packetsSent = packetsSent,
@@ -631,10 +742,18 @@ class WifiManager(
                     pingSequence++
                     val pingData = com.metelci.ardunakon.protocol.ProtocolManager.formatHeartbeatData(pingSequence)
                     val address = InetAddress.getByName(targetIp)
-                    val packet = DatagramPacket(pingData, pingData.size, address, targetPort)
+                    val payload = encryptIfNeeded(pingData)
+                    val packet = DatagramPacket(payload, payload.size, address, targetPort)
                     socket?.send(packet)
 
                     delay(2000) // Heartbeat interval
+                } catch (e: EncryptionException) {
+                    _encryptionError.value = e
+                    onLog("Encryption Error: ${e.message}")
+                    if (requireEncryption.get()) {
+                        disconnect()
+                        return@launch
+                    }
                 } catch (e: Exception) {
                     Log.e("WifiManager", "Ping failed", e)
                 }

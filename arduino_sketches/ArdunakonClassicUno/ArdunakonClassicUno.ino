@@ -7,30 +7,18 @@
  * Board: Arduino UNO (ATmega328P)
  * Connectivity: HC-05, HC-06, HM-10, AT-09, BT05 via SoftwareSerial
  *
- * Protocol: 10-byte binary packets @ 20Hz
- * [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
+ * Protocol: Uses shared ArdunakonProtocol library
  *
- * v2.0 - Arcade Drive + Servo Support
+ * v2.1 - Refactored to use ArdunakonProtocol library
  */
 
 #include <SoftwareSerial.h>
 #include <Servo.h>
+#include <ArdunakonProtocol.h>
 
 // Bluetooth Serial Pins
 #define BT_RX 10  // Connect to Module TX
 #define BT_TX 11  // Connect to Module RX
-
-// Protocol Constants
-#define START_BYTE 0xAA
-#define END_BYTE   0x55
-#define PACKET_SIZE 10
-
-// Commands
-#define CMD_JOYSTICK  0x01
-#define CMD_BUTTON    0x02
-#define CMD_HEARTBEAT 0x03
-#define CMD_ESTOP     0x04
-#define CMD_ANNOUNCE_CAPABILITIES 0x05
 
 // Board Type
 #define BOARD_TYPE_UNO 0x01
@@ -61,9 +49,10 @@
 SoftwareSerial BTSerial(BT_RX, BT_TX);
 Servo servoX;
 Servo servoY;
+ArdunakonProtocol protocol;
 
 // Packet buffer
-uint8_t packetBuffer[PACKET_SIZE];
+uint8_t packetBuffer[ArdunakonProtocol::PACKET_SIZE];
 uint8_t bufferIndex = 0;
 unsigned long lastPacketTime = 0;
 unsigned long lastHeartbeatTime = 0;
@@ -76,6 +65,7 @@ bool emergencyStop = false;
 
 // Telemetry
 float batteryVoltage = 0.0;
+uint32_t packetsReceived = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -97,7 +87,7 @@ void setup() {
   servoX.write(90); // Center
   servoY.write(90); // Center
 
-  Serial.println("Arduino UNO - Ardunakon Controller v2.0");
+  Serial.println("Arduino UNO - Ardunakon Controller v2.1");
   Serial.println("Waiting for Bluetooth connection...");
   digitalWrite(LED_STATUS, LOW);
 
@@ -130,35 +120,29 @@ void loop() {
 }
 
 void processIncomingByte(uint8_t byte) {
-  if (bufferIndex == 0 && byte != START_BYTE) return;
+  if (bufferIndex == 0 && byte != ArdunakonProtocol::START_BYTE) return;
   packetBuffer[bufferIndex++] = byte;
 
-  if (bufferIndex >= PACKET_SIZE) {
-    if (packetBuffer[9] == END_BYTE && validateChecksum()) {
-      handlePacket();
+  if (bufferIndex >= ArdunakonProtocol::PACKET_SIZE) {
+    if (packetBuffer[9] == ArdunakonProtocol::END_BYTE && protocol.validateChecksum(packetBuffer)) {
+        ArdunakonProtocol::ControlPacket packet = protocol.parsePacket(packetBuffer);
+        handlePacket(packet);
+        packetsReceived++;
     }
     bufferIndex = 0;
   }
 }
 
-bool validateChecksum() {
-  uint8_t xor_check = 0;
-  for (int i = 1; i <= 7; i++) xor_check ^= packetBuffer[i];
-  return (xor_check == packetBuffer[8]);
-}
-
-void handlePacket() {
+void handlePacket(ArdunakonProtocol::ControlPacket packet) {
   lastPacketTime = millis();
-  uint8_t cmd = packetBuffer[2];
-
-  switch (cmd) {
-    case CMD_JOYSTICK:
-      // Map inputs (-100 to 100)
-      leftX = map(packetBuffer[3], 0, 200, -100, 100); // Steering
-      leftY = map(packetBuffer[4], 0, 200, -100, 100); // Throttle
-      rightX = map(packetBuffer[5], 0, 200, -100, 100); // Servo X
-      rightY = map(packetBuffer[6], 0, 200, -100, 100); // Servo Y
-      auxBits = packetBuffer[7];
+  
+  switch (packet.cmd) {
+    case ArdunakonProtocol::CMD_JOYSTICK:
+      leftX = packet.leftX;
+      leftY = packet.leftY;
+      rightX = packet.rightX;
+      rightY = packet.rightY;
+      auxBits = packet.auxBits;
 
       if (!emergencyStop) {
         updateDrive();
@@ -166,18 +150,23 @@ void handlePacket() {
       }
       break;
 
-    case CMD_BUTTON:
-      handleButton(packetBuffer[3], packetBuffer[4]);
+    case ArdunakonProtocol::CMD_BUTTON:
+      handleButton(packet.leftX, packet.leftY); // leftX=ID, leftY=State overloaded
       break;
 
-    case CMD_HEARTBEAT:
-      sendHeartbeatAck(packetBuffer[3], packetBuffer[4]);
+    case ArdunakonProtocol::CMD_HEARTBEAT:
+      sendHeartbeatAck(packet.leftX, packet.leftY); // leftX=SeqHigh, leftY=SeqLow overloaded
       break;
 
-    case CMD_ESTOP:
+    case ArdunakonProtocol::CMD_ESTOP:
       emergencyStop = true;
       safetyStop();
       tone(BUZZER_PIN, 2000, 500);
+      break;
+      
+    case ArdunakonProtocol::CMD_ANNOUNCE_CAPABILITIES:
+      // Typically we SEND this, but if requested we can reply
+      sendCapabilities();
       break;
   }
 }
@@ -241,56 +230,47 @@ void sendTelemetry() {
   int rawValue = analogRead(A0);
   batteryVoltage = (rawValue / 1023.0) * 5.0 * 3.0; // 3x voltage divider
 
-  uint8_t telemetry[PACKET_SIZE];
-  telemetry[0] = START_BYTE;
-  telemetry[1] = 0x01;
-  telemetry[2] = CMD_HEARTBEAT;
-  telemetry[3] = (uint8_t)(batteryVoltage * 10);
-  telemetry[4] = emergencyStop ? 1 : 0;
-  for(int i=5; i<=7; i++) telemetry[i] = 0;
-
-  uint8_t xor_check = 0;
-  for (int i = 1; i <= 7; i++) xor_check ^= telemetry[i];
-  telemetry[8] = xor_check;
-  telemetry[9] = END_BYTE;
-
-  BTSerial.write(telemetry, PACKET_SIZE);
+  uint8_t telemetry[ArdunakonProtocol::PACKET_SIZE];
+  uint8_t status = emergencyStop ? 0x01 : 0x00;
+  
+  // Use standardized telemetry format
+  protocol.formatTelemetry(telemetry, 0x01, batteryVoltage, status, packetsReceived);
+  
+  BTSerial.write(telemetry, ArdunakonProtocol::PACKET_SIZE);
 }
 
 void sendHeartbeatAck(uint8_t seqHigh, uint8_t seqLow) {
-  uint8_t ack[PACKET_SIZE];
-  ack[0] = START_BYTE; ack[1] = 0x01; ack[2] = CMD_HEARTBEAT;
-  ack[3] = seqHigh; ack[4] = seqLow;
+  uint8_t ack[ArdunakonProtocol::PACKET_SIZE];
+  ack[0] = ArdunakonProtocol::START_BYTE; 
+  ack[1] = 0x01; 
+  ack[2] = ArdunakonProtocol::CMD_HEARTBEAT;
+  ack[3] = seqHigh; 
+  ack[4] = seqLow;
   for(int i=5; i<=7; i++) ack[i] = 0;
 
-  uint8_t xor_check = 0;
-  for (int i = 1; i <= 7; i++) xor_check ^= ack[i];
-  ack[8] = xor_check;
-  ack[9] = END_BYTE;
+  protocol.createChecksum(ack);
+  ack[9] = ArdunakonProtocol::END_BYTE;
 
-  BTSerial.write(ack, PACKET_SIZE);
+  BTSerial.write(ack, ArdunakonProtocol::PACKET_SIZE);
 }
 
 /**
  * Send device capabilities announcement packet
  */
 void sendCapabilities() {
-  uint8_t packet[PACKET_SIZE];
-  packet[0] = START_BYTE;
+  uint8_t packet[ArdunakonProtocol::PACKET_SIZE];
+  packet[0] = ArdunakonProtocol::START_BYTE;
   packet[1] = 0x01;
-  packet[2] = CMD_ANNOUNCE_CAPABILITIES;
+  packet[2] = ArdunakonProtocol::CMD_ANNOUNCE_CAPABILITIES;
   packet[3] = CAP1_SERVO_X | CAP1_SERVO_Y | CAP1_MOTOR | CAP1_BUZZER; // Core hardware
   packet[4] = 0x00; // No Modulino
   packet[5] = BOARD_TYPE_UNO;
   packet[6] = 0x00;
   packet[7] = 0x00;
   
-  uint8_t xor_check = 0;
-  for (int i = 1; i <= 7; i++) xor_check ^= packet[i];
-  packet[8] = xor_check;
-  packet[9] = END_BYTE;
+  protocol.createChecksum(packet);
+  packet[9] = ArdunakonProtocol::END_BYTE;
   
-  BTSerial.write(packet, PACKET_SIZE);
+  BTSerial.write(packet, ArdunakonProtocol::PACKET_SIZE);
   Serial.println("Capabilities sent");
 }
-

@@ -2,6 +2,8 @@ package com.metelci.ardunakon.wifi
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.metelci.ardunakon.data.WifiEncryptionPreferences
+import com.metelci.ardunakon.security.CryptoEngine
 import com.metelci.ardunakon.security.EncryptionException
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.crypto.Cipher
@@ -32,13 +34,15 @@ class EncryptedWifiTest {
 
     private lateinit var context: Context
     private lateinit var manager: WifiManager
+    private lateinit var prefs: WifiEncryptionPreferences
     private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         context = ApplicationProvider.getApplicationContext()
-        manager = WifiManager(context, ioDispatcher = testDispatcher)
+        prefs = WifiEncryptionPreferences(context, FakeCryptoEngine())
+        manager = WifiManager(context, ioDispatcher = testDispatcher, encryptionPreferences = prefs)
     }
 
     @After
@@ -181,7 +185,7 @@ class EncryptedWifiTest {
 
     @Test
     fun `require encryption flag persists`() {
-        assertFalse("Default should be false", manager.isEncryptionRequired())
+        assertTrue("Default should be true", manager.isEncryptionRequired())
 
         manager.setRequireEncryption(true)
         assertTrue("Should be true after set", manager.isEncryptionRequired())
@@ -310,5 +314,12 @@ class EncryptedWifiTest {
         val decrypted = cipher.doFinal(ciphertext)
 
         assertArrayEquals("Large payload should round-trip", largePayload, decrypted)
+    }
+
+    // ============== Fake Crypto Engine ==============
+
+    private class FakeCryptoEngine : CryptoEngine {
+        override fun encrypt(data: String): String = "ENCRYPTED:$data"
+        override fun decrypt(encryptedData: String): String = encryptedData.removePrefix("ENCRYPTED:")
     }
 }

@@ -36,7 +36,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.metelci.ardunakon.service.BluetoothService
 import com.metelci.ardunakon.ui.screens.ControlScreen
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private var bluetoothService: BluetoothService? = null
@@ -118,8 +120,6 @@ class MainActivity : ComponentActivity() {
                 ) {
                     if (isBound && bluetoothService != null) {
                         ControlScreen(
-                            bluetoothManager = bluetoothService!!.bluetoothManager,
-                            wifiManager = bluetoothService!!.wifiManager,
                             isDarkTheme = true,
                             onQuitApp = {
                                 quitApp()

@@ -99,7 +99,7 @@ object ProtocolManager {
 
     /**
      * Format handshake request packet with app nonce.
-     * Payload: [NONCE_0..NONCE_15] in extended packet format (26 bytes total)
+     * Payload: NONCE_0..NONCE_15 in extended packet format (21 bytes total)
      */
     fun formatHandshakeRequest(nonce: ByteArray): ByteArray {
         require(nonce.size == 16) { "Nonce must be 16 bytes" }

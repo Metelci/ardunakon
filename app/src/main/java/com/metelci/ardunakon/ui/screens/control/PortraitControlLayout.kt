@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.screens.control.ConnectionMode
@@ -39,7 +40,7 @@ fun PortraitControlLayout(
     wifiRttHistory: List<Long>,
     health: com.metelci.ardunakon.bluetooth.ConnectionHealth?,
     debugLogs: List<com.metelci.ardunakon.model.LogEntry>,
-    telemetry: AppBluetoothManager.Telemetry?,
+    telemetry: Telemetry?,
     autoReconnectEnabled: Boolean,
     isEStopActive: Boolean,
     isWifiEncrypted: Boolean = false,

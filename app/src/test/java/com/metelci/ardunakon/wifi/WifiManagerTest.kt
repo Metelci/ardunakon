@@ -27,6 +27,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import com.metelci.ardunakon.security.EncryptionException
+import com.metelci.ardunakon.security.CryptoEngine
+import com.metelci.ardunakon.data.WifiEncryptionPreferences
 
 @RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -34,13 +36,15 @@ class WifiManagerTest {
 
     private lateinit var context: Context
     private lateinit var manager: WifiManager
+    private lateinit var prefs: WifiEncryptionPreferences
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     @Before
     fun setUp() {
         Dispatchers.setMain(mainDispatcher)
         context = ApplicationProvider.getApplicationContext()
-        manager = WifiManager(context, ioDispatcher = mainDispatcher)
+        prefs = WifiEncryptionPreferences(context, FakeCryptoEngine())
+        manager = WifiManager(context, ioDispatcher = mainDispatcher, encryptionPreferences = prefs)
     }
 
     @After
@@ -59,6 +63,7 @@ class WifiManagerTest {
     fun encryptIfNeededPassesThroughWithoutKey() {
         val payload = "hello".toByteArray()
 
+        manager.setRequireEncryption(false)
         val encrypted = manager.encryptIfNeeded(payload)
 
         assertArrayEquals(payload, encrypted)
@@ -195,6 +200,7 @@ class WifiManagerTest {
         }
 
         val payload = "ping".toByteArray()
+        manager.setRequireEncryption(false)
         manager.sendData(payload)
 
         val buffer = ByteArray(32)
@@ -210,7 +216,8 @@ class WifiManagerTest {
     @Test
     fun timeoutMonitorDisconnectsAfterIdlePeriod() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
-        val localManager = WifiManager(context, ioDispatcher = dispatcher)
+        val localPrefs = WifiEncryptionPreferences(context, FakeCryptoEngine())
+        val localManager = WifiManager(context, ioDispatcher = dispatcher, encryptionPreferences = localPrefs)
         getPrivateField<AtomicBoolean>(localManager, "isConnected").set(true)
         WifiManager::class.java.getDeclaredField("lastRxTime").apply {
             isAccessible = true
@@ -285,7 +292,7 @@ class WifiManagerTest {
 
     @Test
     fun setRequireEncryptionUpdatesState() {
-        assertFalse("Default should be false", manager.isEncryptionRequired())
+        assertTrue("Default should be true", manager.isEncryptionRequired())
 
         manager.setRequireEncryption(true)
         assertTrue(manager.isEncryptionRequired())
@@ -309,5 +316,26 @@ class WifiManagerTest {
         manager.clearEncryptionError()
 
         assertNull(manager.encryptionError.value)
+    }
+    @Test
+    fun stopDiscoveryClearsRateLimiter() {
+        val limiterField = WifiManager::class.java.getDeclaredField("discoveryRateLimiter").apply {
+            isAccessible = true
+        }
+        @Suppress("UNCHECKED_CAST")
+        val limiter = limiterField.get(manager) as MutableMap<String, Long>
+        limiter["1.2.3.4"] = 123456789L
+
+        WifiManager::class.java.getDeclaredMethod("stopDiscovery").apply {
+            isAccessible = true
+            invoke(manager)
+        }
+
+        assertTrue("Rate limiter map should be empty after stopping discovery", limiter.isEmpty())
+    }
+
+    private class FakeCryptoEngine : CryptoEngine {
+        override fun encrypt(data: String): String = "ENCRYPTED:$data"
+        override fun decrypt(encryptedData: String): String = encryptedData.removePrefix("ENCRYPTED:")
     }
 }

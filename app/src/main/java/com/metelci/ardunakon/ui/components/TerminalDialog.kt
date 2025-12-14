@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 
@@ -34,7 +34,7 @@ import com.metelci.ardunakon.model.LogType
 @Composable
 fun TerminalDialog(
     logs: List<LogEntry>,
-    telemetry: AppBluetoothManager.Telemetry?,
+    telemetry: Telemetry?,
     onDismiss: () -> Unit,
     onSendCommand: (String) -> Unit,
     onClearLogs: () -> Unit,

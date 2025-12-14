@@ -76,7 +76,7 @@ class ControlViewModel(
 
     // ========== Encryption State ==========
     var encryptionError by mutableStateOf<EncryptionException?>(null)
-    var requireEncryption by mutableStateOf(false)
+    var requireEncryption by mutableStateOf(true)
 
     val currentProfile: Profile
         get() = if (profiles.isNotEmpty() && currentProfileIndex in profiles.indices) {
@@ -101,6 +101,7 @@ class ControlViewModel(
     private var isForegroundActive = true
 
     init {
+        wifiManager.setRequireEncryption(requireEncryption)
         loadProfiles()
         startTransmissionLoop()
         syncReflectionSetting()
