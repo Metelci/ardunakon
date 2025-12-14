@@ -74,7 +74,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Upload ProGuard mapping
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: proguard-mapping-${{ steps.version.outputs.VERSION }}
           path: app/build/outputs/mapping/release/mapping.txt
