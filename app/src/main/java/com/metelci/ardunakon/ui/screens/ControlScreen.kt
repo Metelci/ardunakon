@@ -68,13 +68,30 @@ fun ControlScreen(
 
     // Bridge WiFi telemetry to HistoryManager
     LaunchedEffect(wifiState, wifiRssi, wifiRtt, wifiTelemetry) {
+        android.util.Log.d("WiFiTelemetry", "Effect triggered - State: $wifiState, RSSI: $wifiRssi, RTT: $wifiRtt")
         if (wifiState == WifiConnectionState.CONNECTED) {
-            if (wifiRssi != 0) bluetoothManager.telemetryHistoryManager.recordRssi(wifiRssi)
-            if (wifiRtt != 0L) bluetoothManager.telemetryHistoryManager.recordRtt(wifiRtt)
+            android.util.Log.d("WiFiTelemetry", "WiFi Connected - Recording telemetry")
+            if (wifiRssi != 0) {
+                android.util.Log.d("WiFiTelemetry", "Recording RSSI: $wifiRssi")
+                bluetoothManager.telemetryHistoryManager.recordRssi(wifiRssi)
+            }
+            if (wifiRtt != 0L) {
+                android.util.Log.d("WiFiTelemetry", "Recording RTT: $wifiRtt")
+                bluetoothManager.telemetryHistoryManager.recordRtt(wifiRtt)
+            }
 
             wifiTelemetry?.let { t ->
+                android.util.Log.d("WiFiTelemetry", "Recording Battery: ${t.batteryVoltage}V")
                 bluetoothManager.telemetryHistoryManager.recordBattery(t.batteryVoltage)
-            }
+                
+                // Record packet loss statistics
+                bluetoothManager.telemetryHistoryManager.recordPacketLoss(
+                    packetsSent = t.packetsSent,
+                    packetsReceived = t.packetsSent - t.packetsDropped - t.packetsFailed,
+                    packetsDropped = t.packetsDropped,
+                    packetsFailed = t.packetsFailed
+                )
+            } ?: android.util.Log.d("WiFiTelemetry", "wifiTelemetry is NULL")
         }
     }
 

@@ -15,7 +15,8 @@ object TelemetryParser {
         for (i in 1..7) xor = xor xor packet[i]
         if (xor != packet[8]) return null
 
-        if (packet[2] != ProtocolManager.CMD_HEARTBEAT) return null
+        // Accept CMD_TELEMETRY (0x10) - Arduino sends telemetry with this command byte
+        if (packet[2] != 0x10.toByte()) return null
 
         val batteryRaw = packet[3].toInt() and 0xFF
         val statusByte = packet[4].toInt() and 0xFF

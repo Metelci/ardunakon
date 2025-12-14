@@ -42,9 +42,15 @@ class WifiManager(
     }
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        Log.e("WifiManager", "Uncaught exception in scope", throwable)
-        onLog("Critical Error: ${throwable.message}")
-        com.metelci.ardunakon.crash.CrashHandler.logException(context, throwable, "Uncaught WiFi Exception")
+        // Filter out expected socket exceptions (timeouts and socket closed during disconnect)
+        val isExpectedException = throwable is java.net.SocketTimeoutException || 
+                                   throwable is java.net.SocketException
+        
+        if (!isExpectedException) {
+            Log.e("WifiManager", "Uncaught exception in scope", throwable)
+            onLog("Critical Error: ${throwable.message}")
+            com.metelci.ardunakon.crash.CrashHandler.logException(context, throwable, "Uncaught WiFi Exception")
+        }
     }
 
     private val scope = CoroutineScope(ioDispatcher + SupervisorJob() + exceptionHandler)
@@ -805,8 +811,10 @@ class WifiManager(
                     _incomingData.value = data
                     
                     // Parse Telemetry using centralized parser
+                    android.util.Log.d("WifiTelemetry", "Received packet, size: ${data.size}")
                     val result = TelemetryParser.parse(data)
                     if (result != null) {
+                        android.util.Log.d("WifiTelemetry", "Telemetry parsed: Battery=${result.batteryVoltage}V, Status=${result.status}")
                         _telemetry.value = Telemetry(
                             batteryVoltage = result.batteryVoltage,
                             status = result.status,
@@ -814,6 +822,8 @@ class WifiManager(
                             packetsDropped = 0, // Not applicable for UDP (fire and forget)
                             packetsFailed = packetsFailed
                         )
+                    } else {
+                        android.util.Log.d("WifiTelemetry", "TelemetryParser returned NULL - not a telemetry packet")
                     }
 
                     onPacketReceived() // Update RTT measurement
@@ -864,6 +874,7 @@ class WifiManager(
                 try {
                     // Send standard Heartbeat packet
                     pingSequence++
+                    lastPingTime = System.currentTimeMillis() // Capture time before sending
                     val pingData = com.metelci.ardunakon.protocol.ProtocolManager.formatHeartbeatData(pingSequence)
                     val address = InetAddress.getByName(targetIp)
                     val payload = encryptIfNeeded(pingData)
