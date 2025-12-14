@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import com.metelci.ardunakon.crash.CrashHandler
 
 /**
@@ -42,7 +43,8 @@ fun CrashLogDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.8f),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.98f).fillMaxHeight(0.9f),
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),

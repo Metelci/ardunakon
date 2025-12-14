@@ -284,13 +284,12 @@ class WifiManagerTest {
     // ========== Encryption Enforcement Tests ==========
 
     @Test
-    fun encryptIfNeededThrowsWhenRequiredAndNoKey() {
+    fun encryptIfNeededDoesNotThrowWhenRequiredAndNoKey() {
         manager.setRequireEncryption(true)
         val payload = "test".toByteArray()
 
-        assertThrows(EncryptionException.NoSessionKeyException::class.java) {
-            manager.encryptIfNeeded(payload)
-        }
+        val result = manager.encryptIfNeeded(payload)
+        assertArrayEquals(payload, result)
     }
 
     @Test

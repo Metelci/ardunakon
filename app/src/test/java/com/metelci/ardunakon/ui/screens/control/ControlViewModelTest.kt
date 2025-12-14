@@ -155,8 +155,9 @@ class ControlViewModelTest {
         assertTrue(vm.requireEncryption)
         assertNull(vm.encryptionError)
         verify(exactly = 1) { wifiManager.clearEncryptionError() }
-        // Called once in init, and once in retryWithEncryption().
-        verify(exactly = 2) { wifiManager.setRequireEncryption(true) }
+        // Called once in init (false), and once in retryWithEncryption() (true).
+        verify(exactly = 1) { wifiManager.setRequireEncryption(false) }
+        verify(exactly = 1) { wifiManager.setRequireEncryption(true) }
     }
 
     @Test
@@ -182,7 +183,8 @@ class ControlViewModelTest {
         assertTrue(!vm.requireEncryption)
         assertNull(vm.encryptionError)
         verify(exactly = 1) { wifiManager.clearEncryptionError() }
-        verify(exactly = 1) { wifiManager.setRequireEncryption(false) }
+        // Called once in init, and once in continueWithoutEncryption().
+        verify(exactly = 2) { wifiManager.setRequireEncryption(false) }
     }
 
     @Test

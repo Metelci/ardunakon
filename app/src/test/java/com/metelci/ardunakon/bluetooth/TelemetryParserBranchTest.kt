@@ -10,7 +10,7 @@ import org.junit.Test
 class TelemetryParserBranchTest {
 
     private fun buildPacket(
-        cmd: Byte = ProtocolManager.CMD_HEARTBEAT,
+        cmd: Byte = 0x10,
         batteryTenths: Int = 120,
         status: Int = 0,
         corruptChecksum: Boolean = false,
@@ -51,7 +51,7 @@ class TelemetryParserBranchTest {
     }
 
     @Test
-    fun parse_returns_null_for_non_heartbeat_cmd() {
+    fun parse_returns_null_for_non_telemetry_cmd() {
         assertNull(TelemetryParser.parse(buildPacket(cmd = 0x42)))
     }
 
