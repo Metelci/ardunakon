@@ -95,7 +95,7 @@ class ControlViewModel @javax.inject.Inject constructor(
 
     // ========== Encryption State ==========
     var encryptionError by mutableStateOf<EncryptionException?>(null)
-    var requireEncryption by mutableStateOf(true)
+    var requireEncryption by mutableStateOf(false)
 
     val currentProfile: Profile
         get() = if (profiles.isNotEmpty() && currentProfileIndex in profiles.indices) {

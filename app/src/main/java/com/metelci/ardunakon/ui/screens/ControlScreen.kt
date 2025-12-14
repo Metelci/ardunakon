@@ -88,8 +88,8 @@ fun ControlScreen(
                 bluetoothManager.telemetryHistoryManager.recordPacketLoss(
                     packetsSent = t.packetsSent.toInt(),
                     packetsReceived = (t.packetsSent - t.packetsDropped - t.packetsFailed).toInt(),
-                    packetsDropped = t.packetsDropped,
-                    packetsFailed = t.packetsFailed
+                    packetsDropped = t.packetsDropped.toInt(),
+                    packetsFailed = t.packetsFailed.toInt()
                 )
             } ?: android.util.Log.d("WiFiTelemetry", "wifiTelemetry is NULL")
         }

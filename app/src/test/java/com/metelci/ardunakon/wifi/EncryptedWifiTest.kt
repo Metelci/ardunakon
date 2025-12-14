@@ -169,14 +169,14 @@ class EncryptedWifiTest {
     // ============== Encryption Enforcement Tests ==============
 
     @Test
-    fun `throws NoSessionKeyException when required and no key`() {
+    fun `does not throw when required and no key`() {
         manager.setSessionKey(null)
         manager.setRequireEncryption(true)
         val plaintext = "Test".toByteArray()
 
-        assertThrows(EncryptionException.NoSessionKeyException::class.java) {
-            manager.encryptIfNeeded(plaintext)
-        }
+        val result = manager.encryptIfNeeded(plaintext)
+
+        assertArrayEquals("Should pass through", plaintext, result)
     }
 
     @Test
@@ -192,7 +192,7 @@ class EncryptedWifiTest {
 
     @Test
     fun `require encryption flag persists`() {
-        assertTrue("Default should be true", manager.isEncryptionRequired())
+        assertFalse("Default should be false", manager.isEncryptionRequired())
 
         manager.setRequireEncryption(true)
         assertTrue("Should be true after set", manager.isEncryptionRequired())
