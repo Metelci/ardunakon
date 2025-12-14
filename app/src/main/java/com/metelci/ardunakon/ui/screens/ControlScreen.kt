@@ -84,10 +84,10 @@ fun ControlScreen(
                 android.util.Log.d("WiFiTelemetry", "Recording Battery: ${t.batteryVoltage}V")
                 bluetoothManager.telemetryHistoryManager.recordBattery(t.batteryVoltage)
                 
-                // Record packet loss statistics
+                // Record packet loss statistics (convert Long to Int)
                 bluetoothManager.telemetryHistoryManager.recordPacketLoss(
-                    packetsSent = t.packetsSent,
-                    packetsReceived = t.packetsSent - t.packetsDropped - t.packetsFailed,
+                    packetsSent = t.packetsSent.toInt(),
+                    packetsReceived = (t.packetsSent - t.packetsDropped - t.packetsFailed).toInt(),
                     packetsDropped = t.packetsDropped,
                     packetsFailed = t.packetsFailed
                 )
