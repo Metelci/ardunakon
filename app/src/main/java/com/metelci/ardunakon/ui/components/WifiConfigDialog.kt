@@ -171,17 +171,18 @@ fun WifiConfigDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Device List - Compact
+                // Device List - Scrollable and larger
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 36.dp, max = 80.dp)
+                        .heightIn(min = 60.dp, max = 200.dp)
                         .background(Color(0xFF232338), RoundedCornerShape(6.dp))
                         .padding(6.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
                     if (scannedDevices.isEmpty()) {
                         Box(
-                            modifier = Modifier.fillMaxWidth().height(24.dp),
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -191,8 +192,8 @@ fun WifiConfigDialog(
                             )
                         }
                     } else {
-                        // Show up to 2 devices for compactness
-                        scannedDevices.take(2).forEach { device ->
+                        // Show all devices with scrolling
+                        scannedDevices.forEach { device ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -203,7 +204,7 @@ fun WifiConfigDialog(
                                     .semantics {
                                         contentDescription = "Select ${device.name} at ${device.ip}"
                                     }
-                                    .padding(vertical = 2.dp),
+                                    .padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {

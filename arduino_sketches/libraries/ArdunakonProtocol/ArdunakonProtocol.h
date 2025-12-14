@@ -21,6 +21,7 @@ public:
     static const uint8_t CMD_HEARTBEAT = 0x03;
     static const uint8_t CMD_ESTOP     = 0x04;
     static const uint8_t CMD_ANNOUNCE_CAPABILITIES = 0x05;
+    static const uint8_t CMD_SERVO_Z  = 0x06;
     static const uint8_t CMD_TELEMETRY = 0x10; 
 
     // Aux Button Bits
@@ -37,6 +38,7 @@ public:
         int8_t leftY;
         int8_t rightX;
         int8_t rightY;
+        int8_t rightZ;
         uint8_t auxBits;
         bool valid;
     };

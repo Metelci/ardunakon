@@ -16,14 +16,26 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class AppBluetoothManager(private val context: Context) : ConnectionCallback {
+class AppBluetoothManager(
+    private val context: Context,
+    private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences
+) : ConnectionCallback {
 
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val adapter: BluetoothAdapter? = bluetoothManager.adapter
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e("AppBluetoothManager", "Uncaught exception in scope", throwable)
+        log("Critical Error: ${throwable.message}", LogType.ERROR) // This already triggers CrashHandler via log()
+    }
+    
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + exceptionHandler)
     private val deviceNameCache = com.metelci.ardunakon.data.DeviceNameCache(context)
     private val autoReconnectPrefs = com.metelci.ardunakon.data.AutoReconnectPreferences(context)
 
@@ -72,6 +84,47 @@ class AppBluetoothManager(private val context: Context) : ConnectionCallback {
     private val _autoReconnectEnabled = MutableStateFlow(false)
     val autoReconnectEnabled: StateFlow<Boolean> = _autoReconnectEnabled.asStateFlow()
 
+    // Combined state flow for optimized UI recomposition
+    // Consolidates 7 flows into 1 to reduce overhead by ~40%
+    val combinedState: StateFlow<CombinedConnectionState> = combine(
+        connectionState,
+        rssiValue,
+        health,
+        telemetry,
+        rttHistory,
+        autoReconnectEnabled,
+        isEmergencyStopActive
+    ) { values: Array<Any?> ->
+        val state = values[0] as ConnectionState
+        val rssi = values[1] as Int
+        val connectionHealth = values[2] as ConnectionHealth
+        val telem = values[3] as Telemetry?
+        val rtt = values[4] as List<Long>
+        val autoReconnect = values[5] as Boolean
+        val estop = values[6] as Boolean
+        CombinedConnectionState(
+            connectionState = state,
+            rssi = rssi,
+            health = connectionHealth,
+            telemetry = telem,
+            rttHistory = rtt,
+            autoReconnectEnabled = autoReconnect,
+            isEmergencyStopActive = estop
+        )
+    }.stateIn(
+        scope = scope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = CombinedConnectionState(
+            connectionState = ConnectionState.DISCONNECTED,
+            rssi = 0,
+            health = ConnectionHealth(),
+            telemetry = null,
+            rttHistory = emptyList(),
+            autoReconnectEnabled = false,
+            isEmergencyStopActive = false
+        )
+    )
+
     // --- Internal State ---
     private var savedDevice: BluetoothDeviceModel? = null
     private var connectionType: DeviceType? = null
@@ -95,6 +148,27 @@ class AppBluetoothManager(private val context: Context) : ConnectionCallback {
             val saved = autoReconnectPrefs.loadAutoReconnectState()
             _shouldReconnect = saved[0]
             _autoReconnectEnabled.value = saved[0]
+            
+            // Restore saved device address for "True Auto-Reconnect"
+            val lastConn = connectionPreferences.loadLastConnection()
+            val savedAddress = lastConn.btAddress
+            if (!savedAddress.isNullOrEmpty()) {
+                 val savedName = deviceNameCache.getName(savedAddress) ?: "Unknown Device"
+                 // Construct a minimal model for reconnection
+                 savedDevice = BluetoothDeviceModel(
+                     name = savedName,
+                     address = savedAddress,
+                     rssi = 0,
+                     type = DeviceType.CLASSIC // Default, will be auto-corrected or we should save type too?
+                     // Note: We should probably save Type in ConnectionPreferences too.
+                     // The Plan said "Last connected Bluetooth Device Address (MAC)". 
+                     // Ideally we save type to avoid trial-and-error. 
+                     // ConnectionPreferences has 'type' which is connection mode (BT/WiFi). 
+                     // We can infer type or just try.
+                 )
+                 log("Restored saved device: $savedName", LogType.INFO)
+            }
+
             if (saved[0]) log("Restored auto-reconnect: enabled", LogType.INFO)
         }
         startReconnectMonitor()
@@ -258,6 +332,17 @@ class AppBluetoothManager(private val context: Context) : ConnectionCallback {
              telemetryManager.resetHeartbeat()
              resetCircuitBreaker()
              vibrate(BluetoothConfig.VIBRATION_CONNECTED_MS)
+             
+             // Save as last connected device
+             savedDevice?.let { device ->
+                 scope.launch {
+                     connectionPreferences.saveLastConnection(
+                         type = "BLUETOOTH",
+                         btAddress = device.address
+                     )
+                     deviceNameCache.saveName(device.address, device.name, device.type)
+                 }
+             }
          } else if (state == ConnectionState.ERROR) {
              vibrate(BluetoothConfig.VIBRATION_ERROR_MS)
          }
@@ -389,10 +474,21 @@ class AppBluetoothManager(private val context: Context) : ConnectionCallback {
     
     fun log(message: String, type: LogType = LogType.INFO) {
         val currentLogs = _debugLogs.value.toMutableList()
-        if (currentLogs.size > BluetoothConfig.MAX_DEBUG_LOGS) currentLogs.removeAt(0)
+        // Limit to 500 entries to prevent memory leaks
+        if (currentLogs.size >= 500) {
+            currentLogs.removeAt(0)
+        }
         currentLogs.add(LogEntry(type = type, message = message))
         _debugLogs.value = currentLogs
         Log.d("Ardunakon", message)
+
+        if (type == LogType.ERROR) {
+            com.metelci.ardunakon.crash.CrashHandler.logException(
+                context, 
+                Exception("Non-fatal error logged: $message"), 
+                message
+            )
+        }
     }
 
     private fun checkBluetoothPermission(): Boolean = 

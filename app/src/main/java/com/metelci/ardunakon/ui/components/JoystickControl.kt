@@ -67,6 +67,9 @@ fun JoystickControl(
     // Initialize position at center
     val initialPosition = remember(center) { center }
     var knobPosition by remember(initialPosition) { mutableStateOf(initialPosition) }
+    
+    // Throttle position updates to 20Hz (50ms) to match transmission rate
+    var lastEmitTime by remember { mutableStateOf(0L) }
 
     val positionDescription by remember {
         derivedStateOf {
@@ -154,14 +157,17 @@ fun JoystickControl(
                                 )
                             }
 
-                            // Normalize output
-                            val normalizedX = (knobPosition.x - center.x) / radius
-                            val normalizedY = -(knobPosition.y - center.y) / radius // -1 (bottom) to 1 (top)
-
-                            onMoved(JoystickState(normalizedX.coerceIn(-1f, 1f), normalizedY.coerceIn(-1f, 1f)))
+                            // Normalize output and apply 20Hz throttling
+                            val now = System.currentTimeMillis()
+                            if (now - lastEmitTime >= 50) {  // 20Hz = 50ms interval
+                                val normalizedX = (knobPosition.x - center.x) / radius
+                                val normalizedY = -(knobPosition.y - center.y) / radius // -1 (bottom) to 1 (top)
+                                onMoved(JoystickState(normalizedX.coerceIn(-1f, 1f), normalizedY.coerceIn(-1f, 1f)))
+                                lastEmitTime = now
+                            }
                         }
 
-                        // Handle initial touch
+                        // Handle initial touch (immediate, not throttled)
                         updatePosition(down.position)
                         down.consume()
 

@@ -204,7 +204,8 @@ fun LandscapeControlLayout(
                 ServoPanel(
                     servoX = viewModel.servoX,
                     servoY = viewModel.servoY,
-                    onServoMove = { x, y -> viewModel.updateServo(x, y) },
+                    servoZ = viewModel.servoZ,
+                    onServoMove = { x, y, z -> viewModel.updateServo(x, y, z) },
                     onLog = { message -> bluetoothManager.log(message, LogType.INFO) },
                     buttonSize = 60.dp,
                     modifier = Modifier.weight(1f).fillMaxHeight()

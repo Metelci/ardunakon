@@ -64,9 +64,21 @@ jobs:
             -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$KEY_PASSWORD
 
+      - name: Verify ProGuard rules
+        run: |
+          chmod +x scripts/verify-proguard.sh
+          ./scripts/verify-proguard.sh
+
       - name: Extract version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Upload ProGuard mapping
+        uses: actions/upload-artifact@v3
+        with:
+          name: proguard-mapping-${{ steps.version.outputs.VERSION }}
+          path: app/build/outputs/mapping/release/mapping.txt
+          retention-days: 90
 
       - name: Extract changelog for version
         id: changelog

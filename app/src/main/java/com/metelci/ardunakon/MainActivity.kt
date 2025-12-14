@@ -185,9 +185,12 @@ class MainActivity : ComponentActivity() {
         }
         checkBluetoothEnabled()
         requestNotificationPermission()
+        
+        com.metelci.ardunakon.crash.BreadcrumbManager.leave("Lifecycle", "MainActivity Created")
     }
 
     override fun onDestroy() {
+        com.metelci.ardunakon.crash.BreadcrumbManager.leave("Lifecycle", "MainActivity Destroyed")
         super.onDestroy()
         if (isBound) {
             unbindService(connection)
@@ -197,10 +200,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        com.metelci.ardunakon.crash.BreadcrumbManager.leave("Lifecycle", "MainActivity Resumed")
         checkBluetoothEnabled()
         if (hasBluetoothPermissions()) {
             startAndBindServiceIfPermitted()
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        com.metelci.ardunakon.crash.BreadcrumbManager.leave("Lifecycle", "MainActivity Paused")
     }
 
     private fun checkAndRequestPermissions() {

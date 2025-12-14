@@ -5,6 +5,7 @@ import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.bluetooth.TelemetryManager
 import com.metelci.ardunakon.bluetooth.BluetoothScanner
 import com.metelci.ardunakon.bluetooth.ConnectionHealth
+import com.metelci.ardunakon.bluetooth.BluetoothDeviceModel
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
@@ -38,6 +39,8 @@ object FakeBluetoothModule {
         val autoReconnectFlow = MutableStateFlow(true)
         val isEmergencyStopFlow = MutableStateFlow(false)
         val rttHistoryFlow = MutableStateFlow(emptyList<Long>())
+        val scannedDevicesFlow = MutableStateFlow(emptyList<BluetoothDeviceModel>())
+        val incomingDataFlow = MutableStateFlow<ByteArray?>(null)
 
         // Mock StateFlows accessed by ControlScreen
         every { mock.connectionState } returns connectionStateFlow
@@ -48,6 +51,8 @@ object FakeBluetoothModule {
         every { mock.autoReconnectEnabled } returns autoReconnectFlow
         every { mock.isEmergencyStopActive } returns isEmergencyStopFlow
         every { mock.rttHistory } returns rttHistoryFlow
+        every { mock.scannedDevices } returns scannedDevicesFlow
+        every { mock.incomingData } returns incomingDataFlow
 
         // Mock History Manager
         val historyMock = mockk<TelemetryHistoryManager>(relaxed = true)

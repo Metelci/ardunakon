@@ -68,6 +68,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <activity
+            android:name=".crash.CrashReportActivity"
+            android:process=":crash_handler"
+            android:theme="@style/Theme.Ardunakon"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true" />
+
     </application>
 
 </manifest>

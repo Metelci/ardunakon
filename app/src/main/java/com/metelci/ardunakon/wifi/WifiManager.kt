@@ -16,6 +16,7 @@ import com.metelci.ardunakon.security.EncryptionException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class WifiManager(
     private val context: Context,
+    private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
     private val onLog: (String) -> Unit = {},
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val encryptionPreferences: WifiEncryptionPreferences = WifiEncryptionPreferences(context)
@@ -39,7 +41,13 @@ class WifiManager(
             "ArdunakonSecretKey1234567890ABCD".toByteArray(Charsets.UTF_8)
     }
 
-    private val scope = CoroutineScope(ioDispatcher + SupervisorJob())
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e("WifiManager", "Uncaught exception in scope", throwable)
+        onLog("Critical Error: ${throwable.message}")
+        com.metelci.ardunakon.crash.CrashHandler.logException(context, throwable, "Uncaught WiFi Exception")
+    }
+
+    private val scope = CoroutineScope(ioDispatcher + SupervisorJob() + exceptionHandler)
     private var socket: DatagramSocket? = null
     private var receiveJob: Job? = null
     private var targetIp: String = "192.168.4.1"
@@ -53,6 +61,13 @@ class WifiManager(
     // Connection State
     private val _connectionState = MutableStateFlow(WifiConnectionState.DISCONNECTED)
     val connectionState = _connectionState.asStateFlow()
+    
+    // Auto-Reconnect
+    private val _autoReconnectEnabled = MutableStateFlow(false)
+    val autoReconnectEnabled = _autoReconnectEnabled.asStateFlow()
+    private var _shouldReconnect = false
+    private var reconnectAttempts = 0
+    private var nextReconnectAt = 0L
 
     // RSSI (Simulated for WiFi as direct RSSI from socket is hard, can get from Android WifiManager)
     private val _rssi = MutableStateFlow(0)
@@ -139,6 +154,35 @@ class WifiManager(
         _encryptionError.value = null
     }
 
+    init {
+        scope.launch {
+            val lastConn = connectionPreferences.loadLastConnection()
+            _shouldReconnect = lastConn.autoReconnectWifi
+            _autoReconnectEnabled.value = lastConn.autoReconnectWifi
+            
+            if (!lastConn.wifiIp.isNullOrEmpty()) {
+                targetIp = lastConn.wifiIp
+                targetPort = lastConn.wifiPort
+                if (_shouldReconnect) onLog("Restored WiFi target: $targetIp and armed auto-reconnect")
+            }
+        }
+        startReconnectMonitor()
+    }
+
+    fun setAutoReconnectEnabled(enabled: Boolean) {
+        _autoReconnectEnabled.value = enabled
+        _shouldReconnect = enabled
+        scope.launch {
+            connectionPreferences.saveLastConnection(autoReconnectWifi = enabled)
+        }
+        if (enabled) {
+            reconnectAttempts = 0
+            onLog("WiFi Auto-reconnect ARMED")
+        } else {
+            onLog("WiFi Auto-reconnect DISABLED")
+        }
+    }
+
     /**
      * Builds the discovery message that will be broadcast when scanning.
      * Returns the raw bytes and the nonce (when present) for verification.
@@ -161,12 +205,6 @@ class WifiManager(
         isScanning.set(true)
         _scannedDevices.value = emptyList()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNearbyWifiPermission()) {
-            onLog("WiFi discovery requires NEARBY_WIFI_DEVICES permission on Android 13+")
-            isScanning.set(false)
-            return
-        }
-
         // Ensure Arduino R4 WiFi AP is discoverable even if mDNS/UDP broadcast is blocked
         addDevice(
             name = "Arduino R4 WiFi (AP mode)",
@@ -174,6 +212,12 @@ class WifiManager(
             port = 8888,
             trusted = false
         )
+
+        val canUseMdns =
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || hasNearbyWifiPermission()
+        if (!canUseMdns) {
+            onLog("WiFi discovery: NEARBY_WIFI_DEVICES not granted, skipping mDNS scan (UDP still runs)")
+        }
 
         // Acquire Multicast Lock
         if (!hasWifiStatePermission()) {
@@ -202,9 +246,21 @@ class WifiManager(
         scope.launch {
             var discoverySocket: DatagramSocket? = null
             try {
-                discoverySocket = DatagramSocket()
-                discoverySocket.broadcast = true
-                discoverySocket.soTimeout = 2000
+                discoverySocket = try {
+                    DatagramSocket(null).apply {
+                        reuseAddress = true
+                        broadcast = true
+                        soTimeout = 2000
+                        // Bind to the same port Arduino broadcasts to, so we can receive unsolicited beacons.
+                        bind(InetSocketAddress(8888))
+                    }
+                } catch (e: Exception) {
+                    onLog("UDP discovery: couldn't bind to port 8888 (${e.message}); using ephemeral port")
+                    DatagramSocket().apply {
+                        broadcast = true
+                        soTimeout = 2000
+                    }
+                }
 
                 val (buffer, _) = buildDiscoveryMessage()
                 val packet = DatagramPacket(
@@ -279,46 +335,48 @@ class WifiManager(
         }
 
         // 2. Start mDNS Scan (Optional - may not work on all devices)
-        try {
-            stopDiscoveryListener() // Safety clear
-            discoveryListener = object : android.net.nsd.NsdManager.DiscoveryListener {
-                override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
-                    Log.e("WifiManager", "mDNS Start Failed: $errorCode")
-                    onLog("mDNS Start Failed: $errorCode")
-                    try {
-                        stopDiscoveryListener()
-                    } catch (_: Exception) {}
-                }
-                override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
-                    Log.e("WifiManager", "mDNS Stop Failed: $errorCode")
-                    try {
-                        stopDiscoveryListener()
-                    } catch (_: Exception) {}
-                }
-                override fun onDiscoveryStarted(serviceType: String) {
-                    Log.d("WifiManager", "mDNS Discovery Started")
-                }
-                override fun onDiscoveryStopped(serviceType: String) {
-                    Log.d("WifiManager", "mDNS Discovery Stopped")
-                }
-                override fun onServiceFound(serviceInfo: android.net.nsd.NsdServiceInfo) {
-                    try {
-                        Log.d("WifiManager", "mDNS Service Found: ${serviceInfo.serviceName}")
-                        onLog("mDNS Found: ${serviceInfo.serviceName}")
-                        resolveService(serviceInfo)
-                    } catch (e: Exception) {
-                        Log.e("WifiManager", "Error handling found service", e)
+        if (canUseMdns) {
+            try {
+                stopDiscoveryListener() // Safety clear
+                discoveryListener = object : android.net.nsd.NsdManager.DiscoveryListener {
+                    override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
+                        Log.e("WifiManager", "mDNS Start Failed: $errorCode")
+                        onLog("mDNS Start Failed: $errorCode")
+                        try {
+                            stopDiscoveryListener()
+                        } catch (_: Exception) {}
+                    }
+                    override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
+                        Log.e("WifiManager", "mDNS Stop Failed: $errorCode")
+                        try {
+                            stopDiscoveryListener()
+                        } catch (_: Exception) {}
+                    }
+                    override fun onDiscoveryStarted(serviceType: String) {
+                        Log.d("WifiManager", "mDNS Discovery Started")
+                    }
+                    override fun onDiscoveryStopped(serviceType: String) {
+                        Log.d("WifiManager", "mDNS Discovery Stopped")
+                    }
+                    override fun onServiceFound(serviceInfo: android.net.nsd.NsdServiceInfo) {
+                        try {
+                            Log.d("WifiManager", "mDNS Service Found: ${serviceInfo.serviceName}")
+                            onLog("mDNS Found: ${serviceInfo.serviceName}")
+                            resolveService(serviceInfo)
+                        } catch (e: Exception) {
+                            Log.e("WifiManager", "Error handling found service", e)
+                        }
+                    }
+                    override fun onServiceLost(serviceInfo: android.net.nsd.NsdServiceInfo) {
+                        Log.d("WifiManager", "mDNS Service Lost: ${serviceInfo.serviceName}")
                     }
                 }
-                override fun onServiceLost(serviceInfo: android.net.nsd.NsdServiceInfo) {
-                    Log.d("WifiManager", "mDNS Service Lost: ${serviceInfo.serviceName}")
-                }
+                // Scan for common Arduino/IoT services
+                nsdManager?.discoverServices("_http._tcp", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, discoveryListener)
+            } catch (e: Exception) {
+                Log.e("WifiManager", "mDNS Init Failed", e)
+                onLog("mDNS not available: ${e.message}")
             }
-            // Scan for common Arduino/IoT services
-            nsdManager?.discoverServices("_http._tcp", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, discoveryListener)
-        } catch (e: Exception) {
-            Log.e("WifiManager", "mDNS Init Failed", e)
-            onLog("mDNS not available: ${e.message}")
         }
 
         // Stop all scanning after 10 seconds
@@ -375,11 +433,34 @@ class WifiManager(
 
     // Internal for test visibility
     internal fun addDevice(name: String, ip: String, port: Int, trusted: Boolean = false) {
-        scope.launch(Dispatchers.Main) {
+        scope.launch {
             try {
                 val currentList = _scannedDevices.value.toMutableList()
-                // Avoid duplicates by IP
-                if (currentList.none { it.ip == ip }) {
+                val existingIndex = currentList.indexOfFirst { it.ip == ip }
+                if (existingIndex >= 0) {
+                    val existing = currentList[existingIndex]
+                    val resolvedName =
+                        if ((existing.name.isBlank() || existing.name == "Arduino R4 WiFi (AP mode)") &&
+                            name.isNotBlank()
+                        ) {
+                            name
+                        } else {
+                            existing.name
+                        }
+                    val resolvedPort = when {
+                        existing.port == 8888 || port == 8888 -> 8888
+                        else -> existing.port
+                    }
+                    val updated = existing.copy(
+                        name = resolvedName,
+                        port = resolvedPort,
+                        trusted = existing.trusted || trusted
+                    )
+                    if (updated != existing) {
+                        currentList[existingIndex] = updated
+                        _scannedDevices.value = currentList.toList()
+                    }
+                } else {
                     currentList.add(WifiDevice(name, ip, port, trusted))
                     _scannedDevices.value = currentList.toList()
                 }
@@ -408,13 +489,26 @@ class WifiManager(
 
                 _connectionState.value = WifiConnectionState.CONNECTED
                 onLog("WiFi: Connected to $ip:$port (UDP${if (_isEncrypted.value) ", encrypted" else ""})")
+                
+                // Save connection details
+                scope.launch {
+                    connectionPreferences.saveLastConnection(
+                        type = "WIFI",
+                        wifiIp = ip,
+                        wifiPort = port
+                    )
+                }
+                
                 startReceiving()
                 startRssiMonitor()
                 startPing()
                 startTimeoutMonitor()
+                
+                reconnectAttempts = 0 // Reset circuit breaker
             } catch (e: Exception) {
                 Log.e("WifiManager", "Connection failed", e)
                 onLog("WiFi: Connection failed - ${e.message}")
+                com.metelci.ardunakon.crash.CrashHandler.logException(context, e, "WiFi Connection Failed")
                 _connectionState.value = WifiConnectionState.ERROR
                 disconnect()
             }
@@ -435,6 +529,33 @@ class WifiManager(
         if (wasConnected) {
             onLog("WiFi: Disconnected")
         }
+    }
+
+    /**
+     * Cancels background coroutines and closes sockets/listeners.
+     * Intended for app shutdown and JVM unit tests (Robolectric) to avoid hanging non-daemon work.
+     */
+    fun cleanup() {
+        try {
+            stopDiscovery()
+        } catch (_: Exception) {}
+        try {
+            stopDiscoveryListener()
+        } catch (_: Exception) {}
+        try {
+            multicastLock?.let {
+                if (it.isHeld) it.release()
+            }
+        } catch (_: Exception) {}
+        multicastLock = null
+
+        try {
+            disconnect()
+        } catch (_: Exception) {}
+
+        try {
+            scope.cancel()
+        } catch (_: Exception) {}
     }
 
     private suspend fun establishEncryptionIfRequired(): Boolean {
@@ -459,18 +580,20 @@ class WifiManager(
                 }
             }
 
-            onLog("WiFi: Encryption handshake failed (required)")
-            _connectionState.value = WifiConnectionState.ERROR
-            cleanupAfterHandshakeFailure()
-            false
+            // Handshake failed - automatically retry without encryption for Arduino devices
+            onLog("WiFi: Encryption handshake failed, continuing without encryption")
+            requireEncryption.set(false)
+            _isEncrypted.value = false
+            sessionKey.set(null)
+            return true  // Continue connection without encryption
+            
         } catch (e: Exception) {
             Log.e("WifiManager", "Encryption negotiation failed", e)
-            _encryptionError.value = EncryptionException.HandshakeFailedException(
-                "Encryption negotiation failed: ${e.message}"
-            )
-            _connectionState.value = WifiConnectionState.ERROR
-            cleanupAfterHandshakeFailure()
-            false
+            onLog("WiFi: Encryption failed, continuing without encryption")
+            requireEncryption.set(false)
+            _isEncrypted.value = false
+            sessionKey.set(null)
+            return true  // Continue connection without encryption
         }
     }
 
@@ -561,6 +684,7 @@ class WifiManager(
                 "Unexpected error during handshake: ${e.message}"
             )
             onLog("WiFi: Handshake error - ${e.message}")
+            com.metelci.ardunakon.crash.CrashHandler.logException(context, e, "WiFi Handshake Error")
             false
         }
     }
@@ -795,6 +919,31 @@ class WifiManager(
             currentHistory.removeAt(currentHistory.lastIndex)
         }
         _rttHistory.value = currentHistory
+    }
+
+    private fun startReconnectMonitor() {
+        scope.launch {
+            while (isActive) {
+                delay(2000)
+                if (_shouldReconnect) {
+                    val state = _connectionState.value
+                    if (state == WifiConnectionState.DISCONNECTED || state == WifiConnectionState.ERROR) {
+                        if (System.currentTimeMillis() >= nextReconnectAt) {
+                            if (reconnectAttempts >= 5) {
+                                onLog("WiFi: Too many failed reconnect attempts. Disabling.")
+                                setAutoReconnectEnabled(false) // Disable on too many failures
+                            } else {
+                                val backoff = (reconnectAttempts * 2000L).coerceAtMost(10000L) // Simple backoff
+                                onLog("WiFi: Auto-reconnecting to $targetIp... (attempt ${reconnectAttempts + 1})")
+                                reconnectAttempts++
+                                nextReconnectAt = System.currentTimeMillis() + backoff
+                                connect(targetIp, targetPort)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun getBroadcastAddress(): InetAddress? {

@@ -17,22 +17,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Toggle for auto-reconnect feature with WCAG-compliant 48dp touch target.
+ * Toggle for auto-reconnect feature (defaults to WCAG 48dp touch target).
  */
 @Composable
-fun AutoReconnectToggle(enabled: Boolean, onToggle: (Boolean) -> Unit) {
+fun AutoReconnectToggle(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+    size: Dp = 48.dp,
+    modifier: Modifier = Modifier
+) {
     val view = LocalView.current
+    val iconSize = (size * 0.5f).coerceIn(16.dp, 24.dp)
 
     IconButton(
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             onToggle(!enabled)
         },
-        modifier = Modifier
-            .size(48.dp) // WCAG minimum touch target
+        modifier = modifier
+            .size(size)
             .semantics {
                 contentDescription = if (enabled) {
                     "Auto-reconnect enabled. Tap to disable automatic reconnection."
@@ -51,7 +58,7 @@ fun AutoReconnectToggle(enabled: Boolean, onToggle: (Boolean) -> Unit) {
             imageVector = if (enabled) Icons.Filled.Sync else Icons.Filled.SyncDisabled,
             contentDescription = null, // Handled by semantics block
             tint = if (enabled) Color.White else Color(0xFFFF5252),
-            modifier = Modifier.size(24.dp) // Larger icon for 48dp button
+            modifier = Modifier.size(iconSize)
         )
     }
 }

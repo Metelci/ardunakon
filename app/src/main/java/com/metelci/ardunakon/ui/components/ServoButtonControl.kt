@@ -1,7 +1,11 @@
 package com.metelci.ardunakon.ui.components
 
 import android.view.HapticFeedbackConstants
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -27,47 +31,79 @@ fun ServoButtonControl(
     buttonSize: Dp = 72.dp,
     servoX: Float = 0f,
     servoY: Float = 0f,
-    onMove: (x: Float, y: Float) -> Unit,
+    servoZ: Float = 0f,
+    onMove: (x: Float, y: Float, z: Float) -> Unit,
     onLog: ((String) -> Unit)? = null
 ) {
     val view = LocalView.current
     var lastMoveTime by remember { mutableStateOf(0L) }
     val debounceDelay = 100L
+    val step = 0.1f
 
-    // All buttons use uniform sizing for consistent appearance
+    fun canMove(currentTime: Long): Boolean = currentTime - lastMoveTime >= debounceDelay
+
+    fun commitMove(currentTime: Long) {
+        lastMoveTime = currentTime
+    }
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Top Row: W (Up/Forward) - Incremental movement
-        Button(
-            onClick = {
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastMoveTime >= debounceDelay) {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-
-                    // Incremental: each press adds +0.1f (≈10°), max 1.0f (180°)
-                    val newY = (servoY + 0.1f).coerceIn(-1f, 1f)
-                    val angle = ((newY + 1f) / 2f * 180f).toInt()
-                    onLog?.invoke("Servo Y: $angle° (W)")
-                    onMove(servoX, newY)
-                    lastMoveTime = currentTime
-                }
-            },
-            modifier = Modifier
-                .size(buttonSize)
-                .semantics { contentDescription = "Move servo forward" },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (servoY == 1f) Color(0xFF00C853) else Color(0xFF2D3436),
-                contentColor = Color(0xFF00FF00)
-            ),
-            contentPadding = PaddingValues(4.dp)
+        // Top Row: A, W, Z
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            Button(
+                onClick = {
+                    val currentTime = System.currentTimeMillis()
+                    if (canMove(currentTime)) {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        val newZ = (servoZ - step).coerceIn(-1f, 1f)
+                        val angle = ((newZ + 1f) / 2f * 180f).toInt()
+                        onLog?.invoke("Servo Z: $angle° (A)")
+                        onMove(servoX, servoY, newZ)
+                        commitMove(currentTime)
+                    }
+                },
+                modifier = Modifier
+                    .size(buttonSize)
+                    .semantics { contentDescription = "Move third servo negative" },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (servoZ == -1f) Color(0xFF00C853) else Color(0xFF2D3436),
+                    contentColor = Color(0xFF00FF00)
+                ),
+                contentPadding = PaddingValues(4.dp)
+            ) {
+                Text(
+                    "A",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Button(
+                onClick = {
+                    val currentTime = System.currentTimeMillis()
+                    if (canMove(currentTime)) {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        val newY = (servoY + step).coerceIn(-1f, 1f)
+                        val angle = ((newY + 1f) / 2f * 180f).toInt()
+                        onLog?.invoke("Servo Y: $angle° (W)")
+                        onMove(servoX, newY, servoZ)
+                        commitMove(currentTime)
+                    }
+                },
+                modifier = Modifier
+                    .size(buttonSize)
+                    .semantics { contentDescription = "Move servo forward" },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (servoY == 1f) Color(0xFF00C853) else Color(0xFF2D3436),
+                    contentColor = Color(0xFF00FF00)
+                ),
+                contentPadding = PaddingValues(4.dp)
             ) {
                 Text(
                     "W",
@@ -75,26 +111,51 @@ fun ServoButtonControl(
                     fontWeight = FontWeight.Bold
                 )
             }
+
+            Button(
+                onClick = {
+                    val currentTime = System.currentTimeMillis()
+                    if (canMove(currentTime)) {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        val newZ = (servoZ + step).coerceIn(-1f, 1f)
+                        val angle = ((newZ + 1f) / 2f * 180f).toInt()
+                        onLog?.invoke("Servo Z: $angle° (Z)")
+                        onMove(servoX, servoY, newZ)
+                        commitMove(currentTime)
+                    }
+                },
+                modifier = Modifier
+                    .size(buttonSize)
+                    .semantics { contentDescription = "Move third servo positive" },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (servoZ == 1f) Color(0xFF00C853) else Color(0xFF2D3436),
+                    contentColor = Color(0xFF00FF00)
+                ),
+                contentPadding = PaddingValues(4.dp)
+            ) {
+                Text(
+                    "Z",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
-        // Middle Row: L (Left), B (Backward), R (Right)
+        // Bottom Row: L, B, R
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // L (Left) - Incremental movement
             Button(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
-                    if (currentTime - lastMoveTime >= debounceDelay) {
+                    if (canMove(currentTime)) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-
-                        // Incremental: each press subtracts -0.1f (≈10°), min -1.0f (0°)
-                        val newX = (servoX - 0.1f).coerceIn(-1f, 1f)
+                        val newX = (servoX - step).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
                         onLog?.invoke("Servo X: $angle° (L)")
-                        onMove(newX, servoY)
-                        lastMoveTime = currentTime
+                        onMove(newX, servoY, servoZ)
+                        commitMove(currentTime)
                     }
                 },
                 modifier = Modifier
@@ -106,31 +167,23 @@ fun ServoButtonControl(
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "L",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    "L",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            // B (Backward/Reverse) - Incremental movement
             Button(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
-                    if (currentTime - lastMoveTime >= debounceDelay) {
+                    if (canMove(currentTime)) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-
-                        // Incremental: each press subtracts -0.1f (≈10°), min -1.0f (0°)
-                        val newY = (servoY - 0.1f).coerceIn(-1f, 1f)
+                        val newY = (servoY - step).coerceIn(-1f, 1f)
                         val angle = ((newY + 1f) / 2f * 180f).toInt()
                         onLog?.invoke("Servo Y: $angle° (B)")
-                        onMove(servoX, newY)
-                        lastMoveTime = currentTime
+                        onMove(servoX, newY, servoZ)
+                        commitMove(currentTime)
                     }
                 },
                 modifier = Modifier
@@ -142,31 +195,23 @@ fun ServoButtonControl(
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "B",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    "B",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            // R (Right) - Incremental movement
             Button(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
-                    if (currentTime - lastMoveTime >= debounceDelay) {
+                    if (canMove(currentTime)) {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-
-                        // Incremental: each press adds +0.1f (≈10°), max 1.0f (180°)
-                        val newX = (servoX + 0.1f).coerceIn(-1f, 1f)
+                        val newX = (servoX + step).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
                         onLog?.invoke("Servo X: $angle° (R)")
-                        onMove(newX, servoY)
-                        lastMoveTime = currentTime
+                        onMove(newX, servoY, servoZ)
+                        commitMove(currentTime)
                     }
                 },
                 modifier = Modifier
@@ -178,16 +223,11 @@ fun ServoButtonControl(
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "R",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    "R",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

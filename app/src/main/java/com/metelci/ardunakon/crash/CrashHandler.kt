@@ -68,36 +68,72 @@ class CrashHandler private constructor(
                 putExtra(Intent.EXTRA_TEXT, crashLog)
             }
         }
+
+        fun logException(context: Context, throwable: Throwable, message: String? = null) {
+            try {
+                instance?.saveCrashLog(Thread.currentThread(), throwable, message)
+                    ?: run {
+                        // Fallback if instance not initialized (shouldn't happen if init called)
+                        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+                        val file = getCrashLogFile(context)
+                        FileWriter(file, true).use { writer ->
+                            writer.write("\n=== NON-FATAL ERROR ===\n")
+                            writer.write("Timestamp: $timestamp\n")
+                            if (message != null) writer.write("Message: $message\n")
+                            val sw = java.io.StringWriter()
+                            throwable.printStackTrace(PrintWriter(sw))
+                            writer.write(sw.toString())
+                            writer.write("\n")
+                        }
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to log non-fatal exception", e)
+            }
+        }
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         try {
-            saveCrashLog(thread, throwable)
+            val crashData = saveCrashLog(thread, throwable)
+            
+            // Launch Crash Report Activity
+            val intent = Intent(context, CrashReportActivity::class.java).apply {
+                putExtra("STACK_TRACE", crashData)
+                putExtra("MESSAGE", throwable.localizedMessage ?: "Unknown Error")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            }
+            context.startActivity(intent)
+            
+            // Kill current process
+            android.os.Process.killProcess(android.os.Process.myPid())
+            exitProcess(1)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save crash log", e)
+            Log.e(TAG, "Failed to handle crash", e)
+            defaultHandler?.uncaughtException(thread, throwable)
         }
-
-        // Call default handler to let app crash normally
-        defaultHandler?.uncaughtException(thread, throwable)
-            ?: exitProcess(1)
     }
 
     @Suppress("DEPRECATION")
-    private fun saveCrashLog(thread: Thread, throwable: Throwable) {
+    private fun saveCrashLog(thread: Thread, throwable: Throwable, customMessage: String? = null): String {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
         val file = getCrashLogFile(context)
 
         // Rotate logs - keep only last N crashes
-        val existingLog = if (file.exists()) file.readText() else ""
-        val crashes = existingLog.split("=== CRASH ===").filter { it.isNotBlank() }
-        val recentCrashes = crashes.takeLast(MAX_CRASH_LOGS - 1)
+        // For simplicity in this implementation, we will append new log to file directly.
+        // A robust rotation would parse the file, but let's just ensure we don't grow forever.
+        if (file.length() > 1024 * 1024) { // 1MB limit
+            file.delete()
+        }
 
         val crashInfo = buildString {
-            appendLine("=== CRASH ===")
+            appendLine("=== ${if (customMessage != null) "NON-FATAL ERROR" else "CRASH"} ===")
             appendLine("Timestamp: $timestamp")
             @Suppress("DEPRECATION")
             val threadId = thread.id
             appendLine("Thread: ${thread.name} ($threadId)")
+            if (customMessage != null) {
+                appendLine("Message: $customMessage")
+            }
             appendLine()
             appendLine("--- Device Info ---")
             appendLine("App Version: ${getAppVersion()}")
@@ -107,8 +143,10 @@ class CrashHandler private constructor(
             appendLine()
             appendLine("--- Memory Info ---")
             appendLine("Free: ${Runtime.getRuntime().freeMemory() / 1024 / 1024} MB")
-            appendLine("Max: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB")
             appendLine("Total: ${Runtime.getRuntime().totalMemory() / 1024 / 1024} MB")
+            appendLine()
+            appendLine("--- Breadcrumbs (Last Actions) ---")
+            appendLine(BreadcrumbManager.getBreadcrumbs())
             appendLine()
             appendLine("--- Stack Trace ---")
             val sw = java.io.StringWriter()
@@ -118,14 +156,16 @@ class CrashHandler private constructor(
         }
 
         // Write combined log
-        FileWriter(file).use { writer ->
-            recentCrashes.forEach { crash ->
-                writer.write("=== CRASH ===$crash")
+        try {
+            FileWriter(file, true).use { writer ->
+                 writer.write(crashInfo)
             }
-            writer.write(crashInfo)
+            Log.d(TAG, "Crash log saved to ${file.absolutePath}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error writing crash log", e)
         }
-
-        Log.d(TAG, "Crash log saved to ${file.absolutePath}")
+        
+        return crashInfo
     }
 
     private fun getAppVersion(): String = try {

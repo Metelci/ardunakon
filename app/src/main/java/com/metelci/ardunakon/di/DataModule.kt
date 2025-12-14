@@ -32,4 +32,10 @@ object DataModule {
     fun provideAutoReconnectPreferences(@ApplicationContext context: Context): AutoReconnectPreferences {
         return AutoReconnectPreferences(context)
     }
+
+    @Provides
+    @Singleton
+    fun provideConnectionPreferences(@ApplicationContext context: Context): com.metelci.ardunakon.data.ConnectionPreferences {
+        return com.metelci.ardunakon.data.ConnectionPreferences(context)
+    }
 }

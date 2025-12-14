@@ -35,10 +35,15 @@ void ArdunakonProtocol::createChecksum(uint8_t* buffer) {
 ArdunakonProtocol::ControlPacket ArdunakonProtocol::parsePacket(const uint8_t* buffer) {
     ControlPacket packet;
     packet.valid = validateChecksum(buffer);
+    packet.cmd = 0;
+    packet.leftX = 0;
+    packet.leftY = 0;
+    packet.rightX = 0;
+    packet.rightY = 0;
+    packet.rightZ = 0;
+    packet.auxBits = 0;
     
     if (!packet.valid) {
-        // Return mostly empty packet if invalid
-        packet.cmd = 0;
         return packet;
     }
 
@@ -62,6 +67,8 @@ ArdunakonProtocol::ControlPacket ArdunakonProtocol::parsePacket(const uint8_t* b
         packet.leftX = buffer[3]; // Overloaded use
         packet.leftY = buffer[4]; // Overloaded use
         packet.auxBits = buffer[3]; // Commonly used for button bits too
+    } else if (packet.cmd == CMD_SERVO_Z) {
+        packet.rightZ = mapJoystickValue(buffer[3]);
     }
     
     return packet;

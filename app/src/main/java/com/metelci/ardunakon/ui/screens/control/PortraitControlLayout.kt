@@ -136,7 +136,8 @@ fun PortraitControlLayout(
         ServoPanel(
             servoX = viewModel.servoX,
             servoY = viewModel.servoY,
-            onServoMove = { x, y -> viewModel.updateServo(x, y) },
+            servoZ = viewModel.servoZ,
+            onServoMove = { x, y, z -> viewModel.updateServo(x, y, z) },
             onLog = { message -> bluetoothManager.log(message, LogType.INFO) },
             buttonSize = 56.dp,
             modifier = Modifier.weight(if (viewModel.isDebugPanelVisible) 0.25f else 0.4f).fillMaxWidth()

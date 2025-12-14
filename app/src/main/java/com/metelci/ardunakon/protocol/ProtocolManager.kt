@@ -15,6 +15,7 @@ object ProtocolManager {
     const val CMD_HEARTBEAT: Byte = 0x03
     const val CMD_ESTOP: Byte = 0x04
     const val CMD_ANNOUNCE_CAPABILITIES: Byte = 0x05
+    const val CMD_SERVO_Z: Byte = 0x06
 
     // Encryption Handshake Commands
     const val CMD_HANDSHAKE_REQUEST: Byte = 0x10
@@ -42,6 +43,21 @@ object ProtocolManager {
         packet[6] = mapJoystickValue(rightY)
 
         packet[7] = auxBits
+        packet[8] = calculateChecksum(packet)
+        packet[9] = END_BYTE
+        return packet
+    }
+
+    fun formatServoZData(servoZ: Float): ByteArray {
+        val packet = ByteArray(PACKET_SIZE)
+        packet[0] = START_BYTE
+        packet[1] = DEFAULT_DEVICE_ID
+        packet[2] = CMD_SERVO_Z
+        packet[3] = mapJoystickValue(servoZ)
+        packet[4] = 0
+        packet[5] = 0
+        packet[6] = 0
+        packet[7] = 0
         packet[8] = calculateChecksum(packet)
         packet[9] = END_BYTE
         return packet

@@ -42,8 +42,9 @@
 #define MOTOR_RIGHT_DIR2  4
 
 // Servos
-#define SERVO_X_PIN       2  // Controlled by A/L keys
-#define SERVO_Y_PIN       12 // Controlled by W/R keys
+#define SERVO_X_PIN       2  // Controlled by L/R keys
+#define SERVO_Y_PIN       12 // Controlled by W/B keys
+#define SERVO_Z_PIN       A1 // Controlled by A/Z keys
 
 #define LED_STATUS        LED_BUILTIN
 #define BUZZER_PIN        3
@@ -51,6 +52,7 @@
 // Objects
 Servo servoX;
 Servo servoY;
+Servo servoZ;
 ArdunakonProtocol protocol;
 
 // BLE Objects
@@ -66,7 +68,7 @@ unsigned long lastHeartbeatTime = 0;
 
 // Control state
 int8_t leftX = 0, leftY = 0; // Drive (Steering, Throttle)
-int8_t rightX = 0, rightY = 0; // Servos
+int8_t rightX = 0, rightY = 0, rightZ = 0; // Servos
 uint8_t auxBits = 0;
 bool emergencyStop = false;
 
@@ -105,6 +107,8 @@ void setup() {
   servoY.attach(SERVO_Y_PIN);
   servoX.write(90); // Center
   servoY.write(90); // Center
+  servoZ.attach(SERVO_Z_PIN);
+  servoZ.write(90); // Center
 
   // Initialize BLE
   if (!BLE.begin()) {
@@ -204,6 +208,13 @@ void handlePacket(const ArdunakonProtocol::ControlPacket& packet) {
       handleButton(packet.leftX, packet.leftY); // overloaded mapped fields
       break;
 
+    case ArdunakonProtocol::CMD_SERVO_Z:
+      rightZ = packet.rightZ;
+      if (!emergencyStop) {
+        updateServos();
+      }
+      break;
+
     case ArdunakonProtocol::CMD_HEARTBEAT:
       sendHeartbeatAck(packet.leftX, packet.leftY);
       break;
@@ -241,9 +252,11 @@ void updateServos() {
   // Map -100..100 to 0..180 degrees
   int angleX = map(rightX, -100, 100, 0, 180);
   int angleY = map(rightY, -100, 100, 0, 180);
+  int angleZ = map(rightZ, -100, 100, 0, 180);
   
   servoX.write(angleX);
   servoY.write(angleY);
+  servoZ.write(angleZ);
 }
 
 void setMotor(int pwmPin, int dir1Pin, int dir2Pin, int8_t speed) {

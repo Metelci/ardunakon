@@ -10,9 +10,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -125,24 +125,81 @@ fun ControlHeaderBar(
 ) {
     var showOverflowMenu by remember { mutableStateOf(false) }
 
-    // Responsive spacing based on orientation
+    // Responsive sizing based on orientation + available width.
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
 
-    val sectionSpacing = if (isLandscape) 12.dp else 8.dp // Spacing between sections and E-STOP
-    val itemSpacing = if (isLandscape) 12.dp else 6.dp // Spacing between items within sections
-    val modeSelectorWidth = if (isLandscape) 48.dp else 40.dp // Segment width for BLE/WiFi selector
-    val statusWidgetWidth = if (isLandscape) 64.dp else 56.dp // Connection status widget width
-    val widgetHeight = if (isLandscape) 48.dp else 40.dp // Height for left widgets
-    val rightButtonSize = if (isLandscape) buttonSize else 36.dp // Right button size
-    val spacerWidth = (sectionSpacing - itemSpacing).coerceAtLeast(0.dp)
-    val showSecondLineActions = !isLandscape
-
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = if (isLandscape) 8.dp else 4.dp, vertical = 4.dp)
     ) {
+        val actionsCount = if (connectionMode == ConnectionMode.BLUETOOTH) 4 else 3
+
+        var itemSpacing = if (isLandscape) 12.dp else 6.dp
+        var modeSelectorWidth = if (isLandscape) 48.dp else 40.dp
+        var statusWidgetWidth = if (isLandscape) 64.dp else 56.dp
+        var widgetHeight = if (isLandscape) 48.dp else 40.dp
+        var rightButtonSize = buttonSize
+        var eStopButtonSize = eStopSize
+
+        if (!isLandscape) {
+            val itemSpacingOptions = listOf(6.dp, 4.dp, 2.dp, 0.dp)
+            val modeSelectorOptions = listOf(40.dp, 36.dp, 32.dp, 28.dp)
+            val statusWidgetOptions = listOf(56.dp, 52.dp, 48.dp, 44.dp)
+            val rightButtonOptions = listOf(buttonSize, 32.dp, 30.dp, 28.dp)
+                .distinct()
+                .filter { it <= buttonSize }
+                .sortedDescending()
+            val eStopOptions = listOf(eStopSize, 52.dp, 48.dp)
+                .distinct()
+                .filter { it <= eStopSize }
+                .sortedDescending()
+
+            var found = false
+            for (candidateEStop in eStopOptions) {
+                val sideWidth = ((maxWidth - candidateEStop) * 0.5f).coerceAtLeast(0.dp)
+                for (candidateItemSpacing in itemSpacingOptions) {
+                    for (candidateRightButtonSize in rightButtonOptions) {
+                        for (candidateModeSelectorWidth in modeSelectorOptions) {
+                            for (candidateStatusWidgetWidth in statusWidgetOptions) {
+                                val leftSectionWidth =
+                                    (candidateModeSelectorWidth * 2f) + 1.dp + candidateStatusWidgetWidth + candidateItemSpacing
+                                val rightSectionWidth =
+                                    (candidateRightButtonSize * actionsCount.toFloat()) +
+                                        (candidateItemSpacing * (actionsCount - 1).toFloat())
+
+                                if (leftSectionWidth <= sideWidth && rightSectionWidth <= sideWidth) {
+                                    itemSpacing = candidateItemSpacing
+                                    modeSelectorWidth = candidateModeSelectorWidth
+                                    statusWidgetWidth = candidateStatusWidgetWidth
+                                    rightButtonSize = candidateRightButtonSize
+                                    eStopButtonSize = candidateEStop
+                                    widgetHeight =
+                                        if (candidateModeSelectorWidth <= 32.dp || candidateRightButtonSize <= 32.dp) 36.dp else 40.dp
+                                    found = true
+                                    break
+                                }
+                            }
+                            if (found) break
+                        }
+                        if (found) break
+                    }
+                    if (found) break
+                }
+                if (found) break
+            }
+
+            if (!found) {
+                itemSpacing = itemSpacingOptions.last()
+                modeSelectorWidth = modeSelectorOptions.last()
+                statusWidgetWidth = statusWidgetOptions.last()
+                rightButtonSize = rightButtonOptions.lastOrNull() ?: rightButtonSize
+                eStopButtonSize = eStopOptions.last()
+                widgetHeight = 36.dp
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -181,13 +238,12 @@ fun ControlHeaderBar(
                         view = view,
                         modifier = Modifier.width(statusWidgetWidth).height(widgetHeight)
                     )
-                    Spacer(modifier = Modifier.width(spacerWidth))
                 }
             }
 
             // Center section: [STOP]
             Box(
-                modifier = Modifier.width(eStopSize),
+                modifier = Modifier.width(eStopButtonSize),
                 contentAlignment = Alignment.Center
             ) {
                 IconButton(
@@ -196,7 +252,7 @@ fun ControlHeaderBar(
                         onToggleEStop()
                     },
                     modifier = Modifier
-                        .size(eStopSize)
+                        .size(eStopButtonSize)
                         .semantics {
                             contentDescription = if (isEStopActive) {
                                 "Emergency stop active. Tap to release and resume control."
@@ -242,47 +298,10 @@ fun ControlHeaderBar(
                 }
             }
 
-            // Right section (landscape): [Auto Reconnect] [Graph] [Debug] [Menu]
+            // Right section: [Auto Reconnect] [Graph] [Debug] [Menu]
             Box(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.CenterEnd
-            ) {
-                if (isLandscape) {
-                    HeaderActionsRow(
-                        connectionMode = connectionMode,
-                        autoReconnectEnabled = autoReconnectEnabled,
-                        onToggleAutoReconnect = onToggleAutoReconnect,
-                        isDebugPanelVisible = isDebugPanelVisible,
-                        isDarkTheme = isDarkTheme,
-                        rightButtonSize = rightButtonSize,
-                        itemSpacing = itemSpacing,
-                        view = view,
-                        onTelemetryGraph = onTelemetryGraph,
-                        onToggleDebugPanel = onToggleDebugPanel,
-                        showOverflowMenu = showOverflowMenu,
-                        onToggleOverflowMenu = { showOverflowMenu = !showOverflowMenu },
-                        onDismissOverflowMenu = { showOverflowMenu = false },
-                        allowReflection = allowReflection,
-                        context = context,
-                        onShowHelp = onShowHelp,
-                        onShowAbout = onShowAbout,
-                        onShowCrashLog = onShowCrashLog,
-                        onToggleReflection = onToggleReflection,
-                        onShowOta = onShowOta,
-                        onOpenArduinoCloud = onOpenArduinoCloud,
-                        onQuitApp = onQuitApp
-                    )
-                }
-            }
-        }
-
-        // Second line actions (portrait): keep buttons visible, avoid overlap.
-        if (showSecondLineActions) {
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
             ) {
                 HeaderActionsRow(
                     connectionMode = connectionMode,
@@ -338,6 +357,9 @@ private fun HeaderActionsRow(
     onOpenArduinoCloud: () -> Unit,
     onQuitApp: () -> Unit
 ) {
+    val actionIconSize = (rightButtonSize * 0.5f).coerceIn(14.dp, 18.dp)
+    val menuIconSize = (rightButtonSize * 0.45f).coerceIn(14.dp, 16.dp)
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(itemSpacing)
@@ -345,7 +367,8 @@ private fun HeaderActionsRow(
         if (connectionMode == ConnectionMode.BLUETOOTH) {
             AutoReconnectToggle(
                 enabled = autoReconnectEnabled,
-                onToggle = onToggleAutoReconnect
+                onToggle = onToggleAutoReconnect,
+                size = rightButtonSize
             )
         }
 
@@ -364,7 +387,7 @@ private fun HeaderActionsRow(
                 imageVector = Icons.Default.ShowChart,
                 contentDescription = "Telemetry Graphs",
                 tint = Color(0xFF00FF00),
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(actionIconSize)
             )
         }
 
@@ -386,7 +409,7 @@ private fun HeaderActionsRow(
                 imageVector = Icons.Default.Info,
                 contentDescription = "Toggle Debug",
                 tint = if (isDebugPanelVisible) Color.White else Color(0xFF00FF00),
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(actionIconSize)
             )
         }
 
@@ -406,7 +429,7 @@ private fun HeaderActionsRow(
                     imageVector = Icons.Default.Help,
                     contentDescription = "Menu",
                     tint = Color(0xFF00FF00),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(menuIconSize)
                 )
             }
             DropdownMenu(
@@ -565,7 +588,7 @@ fun ConnectionStatusWidget(
                 }
                 LatencySparkline(
                     rttValues = rttHistory,
-                    modifier = Modifier.width(40.dp).height(8.dp)
+                    modifier = Modifier.fillMaxWidth().height(8.dp)
                 )
             }
         }
@@ -618,7 +641,7 @@ fun ConnectionModeSelector(
     modifier: Modifier = Modifier
 ) {
     // Scale icon size based on segment width
-    val iconSize = if (segmentWidth >= 48.dp) 24.dp else 20.dp
+    val iconSize = (segmentWidth * 0.6f).coerceIn(16.dp, 24.dp)
 
     Row(
         modifier = modifier

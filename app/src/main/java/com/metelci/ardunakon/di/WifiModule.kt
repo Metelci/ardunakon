@@ -20,12 +20,20 @@ object WifiModule {
     @Singleton
     fun provideWifiManager(
         @ApplicationContext context: Context,
-        bluetoothManager: AppBluetoothManager
+        bluetoothManager: AppBluetoothManager,
+        connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences
     ): WifiManager {
         return WifiManager(
             context = context,
+            connectionPreferences = connectionPreferences,
             onLog = { msg ->
-                bluetoothManager.log(msg, LogType.INFO)
+                val logType = when {
+                    msg.contains("Connected", ignoreCase = true) || msg.startsWith("✓") -> LogType.SUCCESS
+                    msg.contains("Error", ignoreCase = true) || msg.contains("Failed", ignoreCase = true) -> LogType.ERROR
+                    msg.contains("Warning", ignoreCase = true) -> LogType.WARNING
+                    else -> LogType.INFO
+                }
+                bluetoothManager.log(msg, logType)
             }
         )
     }

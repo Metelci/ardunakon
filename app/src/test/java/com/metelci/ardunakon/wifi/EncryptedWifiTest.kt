@@ -2,6 +2,8 @@ package com.metelci.ardunakon.wifi
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.metelci.ardunakon.TestCryptoEngine
+import com.metelci.ardunakon.data.ConnectionPreferences
 import com.metelci.ardunakon.data.WifiEncryptionPreferences
 import com.metelci.ardunakon.security.CryptoEngine
 import com.metelci.ardunakon.security.EncryptionException
@@ -15,7 +17,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.*
@@ -42,11 +43,17 @@ class EncryptedWifiTest {
         Dispatchers.setMain(testDispatcher)
         context = ApplicationProvider.getApplicationContext()
         prefs = WifiEncryptionPreferences(context, FakeCryptoEngine())
-        manager = WifiManager(context, ioDispatcher = testDispatcher, encryptionPreferences = prefs)
+        manager = WifiManager(
+            context = context,
+            connectionPreferences = ConnectionPreferences(context, TestCryptoEngine()),
+            ioDispatcher = testDispatcher,
+            encryptionPreferences = prefs
+        )
     }
 
     @After
     fun tearDown() {
+        manager.cleanup()
         Dispatchers.resetMain()
     }
 
@@ -197,7 +204,7 @@ class EncryptedWifiTest {
     // ============== Encryption Error Flow Tests ==============
 
     @Test
-    fun `encryption error is exposed via StateFlow`() = runTest {
+    fun `encryption error is exposed via StateFlow`() {
         // Manually trigger error via reflection (since we can't easily cause cipher failure)
         val errorField = WifiManager::class.java.getDeclaredField("_encryptionError").apply {
             isAccessible = true
@@ -212,7 +219,7 @@ class EncryptedWifiTest {
     }
 
     @Test
-    fun `clearEncryptionError clears the error state`() = runTest {
+    fun `clearEncryptionError clears the error state`() {
         val errorField = WifiManager::class.java.getDeclaredField("_encryptionError").apply {
             isAccessible = true
         }

@@ -1,8 +1,12 @@
 package com.metelci.ardunakon.ui.screens.control.dialogs
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,7 +51,9 @@ fun EncryptionErrorDialog(
         onDismissRequest = { /* Blocking dialog - user must choose an option */ },
         title = { Text(title) },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
                 Text(error.message ?: "Unknown encryption error")
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
@@ -64,19 +70,21 @@ fun EncryptionErrorDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onRetry) {
-                Text("Retry Connection")
+            Row {
+                TextButton(onClick = onDisableEncryption) {
+                    Text("Continue")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                TextButton(onClick = onRetry) {
+                    Text("Retry")
+                }
             }
         },
         dismissButton = {
-            Column {
-                TextButton(onClick = onDisableEncryption) {
-                    Text("Continue Without Encryption")
-                }
-                TextButton(onClick = onDismiss) {
-                    Text("Disconnect")
-                }
+            TextButton(onClick = onDismiss) {
+                Text("Disconnect")
             }
         }
     )
 }
+

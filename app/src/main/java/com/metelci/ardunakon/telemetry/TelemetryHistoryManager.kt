@@ -10,6 +10,7 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
     private val batteryHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
     private val rssiHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
     private val rttHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
+    private val packetLossHistory = ConcurrentLinkedDeque<PacketLossDataPoint>()
     
     // Force recompile trigger (Telemetry Fix)
 
@@ -27,6 +28,31 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
 
     fun recordRtt(rtt: Long) {
         addDataPoint(rttHistory, rtt.toFloat())
+    }
+
+    fun recordPacketLoss(packetsSent: Int, packetsReceived: Int, packetsDropped: Int, packetsFailed: Int) {
+        val totalLoss = packetsDropped + packetsFailed
+        val lossPercent = if (packetsSent > 0) {
+            (totalLoss.toFloat() / packetsSent * 100f)
+        } else {
+            0f
+        }
+        
+        val point = PacketLossDataPoint(
+            timestamp = System.currentTimeMillis(),
+            packetsSent = packetsSent,
+            packetsReceived = packetsReceived,
+            packetsDropped = packetsDropped,
+            packetsFailed = packetsFailed,
+            lossPercent = lossPercent
+        )
+        
+        packetLossHistory.addLast(point)
+        while (packetLossHistory.size > maxHistorySize) {
+            packetLossHistory.removeFirst()
+        }
+        
+        _historyUpdated.value = System.currentTimeMillis()
     }
 
     private fun addDataPoint(buffer: ConcurrentLinkedDeque<TelemetryDataPoint>, value: Float) {
@@ -50,6 +76,64 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
 
     fun getRttHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> = filterByTimeRange(rttHistory, timeRangeMs)
 
+    fun getPacketLossHistory(timeRangeMs: Long? = null): List<PacketLossDataPoint> {
+        if (timeRangeMs == null) return packetLossHistory.toList()
+        val cutoff = System.currentTimeMillis() - timeRangeMs
+        return packetLossHistory.filter { it.timestamp >= cutoff }
+    }
+
+    /**
+     * Calculate connection quality score (0-100%) based on RSSI, RTT, and packet loss.
+     * - RSSI weight: 40% (signal strength)
+     * - RTT weight: 30% (latency)
+     * - Packet loss weight: 30% (reliability)
+     */
+    fun getConnectionQualityHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> {
+        val rssiData = getRssiHistory(timeRangeMs)
+        val rttData = getRttHistory(timeRangeMs)
+        val lossData = getPacketLossHistory(timeRangeMs)
+        
+        if (rssiData.isEmpty() && rttData.isEmpty() && lossData.isEmpty()) {
+            return emptyList()
+        }
+        
+        // Merge time series by finding closest timestamps
+        val allTimestamps = (rssiData.map { it.timestamp } + 
+                            rttData.map { it.timestamp } + 
+                            lossData.map { it.timestamp }).distinct().sorted()
+        
+        return allTimestamps.mapNotNull { timestamp ->
+            val rssi = rssiData.findClosest(timestamp)?.value?.toInt() ?: -70  // Default: moderate signal
+            val rtt = rttData.findClosest(timestamp)?.value?.toLong() ?: 100L  // Default: 100ms
+            val loss = lossData.findClosest(timestamp)?.lossPercent ?: 0f       // Default: no loss
+            
+            val quality = calculateQualityScore(rssi, rtt, loss)
+            TelemetryDataPoint(timestamp, quality)
+        }
+    }
+
+    private fun List<TelemetryDataPoint>.findClosest(timestamp: Long): TelemetryDataPoint? {
+        return minByOrNull { kotlin.math.abs(it.timestamp - timestamp) }
+    }
+
+    private fun List<PacketLossDataPoint>.findClosest(timestamp: Long): PacketLossDataPoint? {
+        return minByOrNull { kotlin.math.abs(it.timestamp - timestamp) }
+    }
+
+    private fun calculateQualityScore(rssi: Int, rtt: Long, packetLoss: Float): Float {
+        // RSSI score: -100dBm = 0%, 0dBm = 100%
+        val rssiScore = ((rssi + 100) / 100f).coerceIn(0f, 1f)
+        
+        // RTT score: 0ms = 100%, 1000ms = 0%
+        val rttScore = (1f - (rtt / 1000f)).coerceIn(0f, 1f)
+        
+        // Loss score: 0% = 100%, 100% = 0%
+        val lossScore = (1f - (packetLoss / 100f)).coerceIn(0f, 1f)
+        
+        // Weighted average
+        return (rssiScore * 0.4f + rttScore * 0.3f + lossScore * 0.3f) * 100f
+    }
+
     private fun filterByTimeRange(
         buffer: ConcurrentLinkedDeque<TelemetryDataPoint>,
         timeRangeMs: Long?
@@ -63,12 +147,26 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
         batteryHistory.clear()
         rssiHistory.clear()
         rttHistory.clear()
+        packetLossHistory.clear()
         _historyUpdated.value = System.currentTimeMillis()
     }
 
     fun getHistorySize(): Int = maxOf(
         batteryHistory.size,
         rssiHistory.size,
-        rttHistory.size
+        rttHistory.size,
+        packetLossHistory.size
     )
 }
+
+/**
+ * Data point for packet loss tracking.
+ */
+data class PacketLossDataPoint(
+    val timestamp: Long,
+    val packetsSent: Int,
+    val packetsReceived: Int,
+    val packetsDropped: Int,
+    val packetsFailed: Int,
+    val lossPercent: Float
+)

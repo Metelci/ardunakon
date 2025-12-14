@@ -22,6 +22,7 @@ class BleConnectionManager(
 
     private var bluetoothGatt: BluetoothGatt? = null
     private var txCharacteristic: BluetoothGattCharacteristic? = null
+    private var currentDevice: BluetoothDevice? = null
     
     // Connection Management
     private var connectionJob: Job? = null
@@ -42,6 +43,11 @@ class BleConnectionManager(
     private var detectedVariant = 0
     private var resolvedDeviceName = "Unknown"
 
+    // Retry handling for transient GATT errors (e.g., status 8/129 on flaky stacks)
+    private var gattRetryAttempt = 0
+    private val maxGattRetries = 3
+    private val isRetrying = java.util.concurrent.atomic.AtomicBoolean(false)
+
     // Pending descriptor writes for notification enablement
     private val pendingDescriptorWrites = java.util.concurrent.ConcurrentLinkedQueue<Triple<BluetoothGatt, BluetoothGattDescriptor, ByteArray>>()
     private var descriptorWriteIndex = 0
@@ -50,16 +56,18 @@ class BleConnectionManager(
     override fun connect(device: BluetoothDevice) {
         if (!checkBluetoothPermission()) {
             callback.onError("BLE connect failed: Missing permissions", LogType.ERROR)
-            callback.onStateChanged(ConnectionState.ERROR)
+            cleanupGatt(ConnectionState.ERROR)
             return
         }
 
         if (adapter == null || !adapter.isEnabled) {
             callback.onError("BLE connect failed: Bluetooth is off", LogType.ERROR)
-            callback.onStateChanged(ConnectionState.ERROR)
+            cleanupGatt(ConnectionState.ERROR)
             return
         }
 
+        currentDevice = device
+        gattRetryAttempt = 0
         resolvedDeviceName = device.name ?: "Unknown"
         callback.onError("Connecting to BLE device $resolvedDeviceName...", LogType.INFO) // Info via generic log
 
@@ -76,6 +84,7 @@ class BleConnectionManager(
             isConnected.set(false)
             isGattConnected.set(false)
             txCharacteristic = null
+            currentDevice = device
 
             // Cleanup existing
             bluetoothGatt?.let { gatt ->
@@ -85,6 +94,7 @@ class BleConnectionManager(
                 } catch (_: Exception) {}
             }
             bluetoothGatt = null
+            delay(250) // Give the BLE stack a moment to settle after close()
 
             // Connection attempt
             val gattCallback = BleGattCallback()
@@ -101,36 +111,14 @@ class BleConnectionManager(
             delay(15000)
             if (!isGattConnected.get()) {
                 callback.onError("BLE Connection timed out", LogType.ERROR)
-                disconnect()
-                callback.onStateChanged(ConnectionState.ERROR)
+                cleanupGatt(ConnectionState.ERROR)
             }
         }
     }
 
     @SuppressLint("MissingPermission")
     override fun disconnect() {
-        connectionJob?.cancel()
-        timeoutJob?.cancel()
-        pollingJob?.cancel()
-        writeJob?.cancel()
-        writeQueue.clear()
-
-        val gatt = bluetoothGatt
-        bluetoothGatt = null
-        
-        if (gatt != null) {
-            try {
-                gatt.disconnect()
-                Thread.sleep(100) // Pragmatic delay
-                gatt.close()
-            } catch (e: Exception) {
-                Log.w("BT", "Gatt close failed", e)
-            }
-        }
-        
-        isConnected.set(false)
-        isGattConnected.set(false)
-        callback.onStateChanged(ConnectionState.DISCONNECTED)
+        cleanupGatt(ConnectionState.DISCONNECTED)
     }
 
     override fun send(data: ByteArray) {
@@ -165,17 +153,51 @@ class BleConnectionManager(
         return true
     }
 
+    @SuppressLint("MissingPermission")
+    private fun cleanupGatt(finalState: ConnectionState? = null) {
+        connectionJob?.cancel()
+        timeoutJob?.cancel()
+        pollingJob?.cancel()
+        writeJob?.cancel()
+        writeQueue.clear()
+
+        val gatt = bluetoothGatt
+        bluetoothGatt = null
+
+        if (gatt != null) {
+            try {
+                try {
+                    // Best-effort cache clear; helps after transient errors on some Android stacks.
+                    val refresh = BluetoothGatt::class.java.getMethod("refresh")
+                    refresh.invoke(gatt)
+                } catch (_: Exception) {}
+
+                gatt.disconnect()
+                Thread.sleep(100) // Pragmatic delay
+                gatt.close()
+            } catch (e: Exception) {
+                Log.w("BT", "Gatt close failed", e)
+            }
+        }
+
+        isConnected.set(false)
+        isGattConnected.set(false)
+        if (finalState != null) {
+            callback.onStateChanged(finalState)
+        }
+    }
+
     // --- GATT Callback ---
     @SuppressLint("MissingPermission")
     private inner class BleGattCallback : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
-                callback.onError("BLE GATT Error: $status", LogType.ERROR)
-                disconnect() // Will trigger state change
+                handleGattError(gatt, status)
                 return
             }
 
             if (newState == BluetoothProfile.STATE_CONNECTED) {
+                isRetrying.set(false)
                 isGattConnected.set(true)
                 timeoutJob?.cancel()
                 callback.onError("BLE Connected - Negotiating...", LogType.INFO)
@@ -190,6 +212,7 @@ class BleConnectionManager(
                 startRssiPolling()
                 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                if (isRetrying.get()) return
                 callback.onError("BLE Disconnected", LogType.INFO)
                 isConnected.set(false)
                 isGattConnected.set(false)
@@ -198,15 +221,18 @@ class BleConnectionManager(
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-            if (status != BluetoothGatt.GATT_SUCCESS) return
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                callback.onError("BLE service discovery failed: ${GattStatus.getErrorDescription(status)}", LogType.ERROR)
+                cleanupGatt(ConnectionState.ERROR)
+                return
+            }
             val resolved = resolveGattProfile(gatt)
             if (resolved == null) {
                 callback.onError("BLE Service/Characteristic not found", LogType.ERROR)
                 gatt.services?.forEach { svc ->
                     callback.onError("Available service: ${svc.uuid}", LogType.INFO)
                 }
-                disconnect()
-                callback.onStateChanged(ConnectionState.ERROR)
+                cleanupGatt(ConnectionState.ERROR)
                 return
             }
 
@@ -268,6 +294,7 @@ class BleConnectionManager(
         }
         
         // Legacy callback
+        @Deprecated("Deprecated in Java")
         @Suppress("DEPRECATION")
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
              processIncoming(characteristic.value)
@@ -290,6 +317,51 @@ class BleConnectionManager(
             isConnected.set(true)
             callback.onStateChanged(ConnectionState.CONNECTED)
             startWriteQueue()
+        }
+
+        private fun handleGattError(gatt: BluetoothGatt, status: Int) {
+            timeoutJob?.cancel()
+
+            val desc = GattStatus.getErrorDescription(status)
+            val shouldRetry = GattStatus.isTransientError(status) && gattRetryAttempt < maxGattRetries
+            val permanent = GattStatus.isPermanentError(status)
+
+            if (permanent) {
+                isRetrying.set(false)
+                callback.onError("BLE GATT $desc (permanent)", LogType.ERROR)
+                cleanupGatt(ConnectionState.ERROR)
+                return
+            }
+
+            if (shouldRetry) {
+                isRetrying.set(true)
+                gattRetryAttempt++
+                val delayMs = when (gattRetryAttempt) {
+                    1 -> 1200L
+                    2 -> 2500L
+                    else -> 4000L
+                }
+                callback.onError(
+                    "BLE GATT $desc (retry $gattRetryAttempt/$maxGattRetries in ${delayMs}ms)",
+                    LogType.WARNING
+                )
+
+                // Close the broken GATT but keep the overall connection state as "connecting".
+                cleanupGatt(finalState = null)
+
+                val device = currentDevice ?: gatt.device
+                scope.launch(Dispatchers.IO) {
+                    delay(delayMs)
+                    if (isConnected.get() || isGattConnected.get()) return@launch
+                    callback.onError("Retrying BLE connect...", LogType.WARNING)
+                    connectGattWithTimeout(device)
+                }
+                return
+            }
+
+            isRetrying.set(false)
+            callback.onError("BLE GATT $desc", LogType.ERROR)
+            cleanupGatt(ConnectionState.ERROR)
         }
 
         private fun resolveGattProfile(gatt: BluetoothGatt): ResolvedGattProfile? {

@@ -39,8 +39,9 @@
 #define MOTOR_RIGHT_DIR2  4
 
 // Servos
-#define SERVO_X_PIN       2  // Controlled by A/L keys
-#define SERVO_Y_PIN       12 // Controlled by W/R keys
+#define SERVO_X_PIN       2  // Controlled by L/R keys
+#define SERVO_Y_PIN       12 // Controlled by W/B keys
+#define SERVO_Z_PIN       A1 // Controlled by A/Z keys
 
 #define LED_STATUS        13
 #define BUZZER_PIN        3
@@ -49,6 +50,7 @@
 SoftwareSerial BTSerial(BT_RX, BT_TX);
 Servo servoX;
 Servo servoY;
+Servo servoZ;
 ArdunakonProtocol protocol;
 
 // Packet buffer
@@ -59,7 +61,7 @@ unsigned long lastHeartbeatTime = 0;
 
 // Control state
 int8_t leftX = 0, leftY = 0; // Drive (Steering, Throttle)
-int8_t rightX = 0, rightY = 0; // Servos
+int8_t rightX = 0, rightY = 0, rightZ = 0; // Servos
 uint8_t auxBits = 0;
 bool emergencyStop = false;
 
@@ -84,8 +86,10 @@ void setup() {
   // Initialize Servos
   servoX.attach(SERVO_X_PIN);
   servoY.attach(SERVO_Y_PIN);
+  servoZ.attach(SERVO_Z_PIN);
   servoX.write(90); // Center
   servoY.write(90); // Center
+  servoZ.write(90); // Center
 
   Serial.println("Arduino UNO - Ardunakon Controller v2.1");
   Serial.println("Waiting for Bluetooth connection...");
@@ -154,6 +158,13 @@ void handlePacket(ArdunakonProtocol::ControlPacket packet) {
       handleButton(packet.leftX, packet.leftY); // leftX=ID, leftY=State overloaded
       break;
 
+    case ArdunakonProtocol::CMD_SERVO_Z:
+      rightZ = packet.rightZ;
+      if (!emergencyStop) {
+        updateServos();
+      }
+      break;
+
     case ArdunakonProtocol::CMD_HEARTBEAT:
       sendHeartbeatAck(packet.leftX, packet.leftY); // leftX=SeqHigh, leftY=SeqLow overloaded
       break;
@@ -190,14 +201,17 @@ void updateDrive() {
 
 void updateServos() {
   // Map -100..100 to 0..180 degrees
-  // rightX covers A/L keys
-  // rightY covers W/R keys
+  // rightX covers L/R keys
+  // rightY covers W/B keys
+  // rightZ covers A/Z keys
   
   int angleX = map(rightX, -100, 100, 0, 180);
   int angleY = map(rightY, -100, 100, 0, 180);
+  int angleZ = map(rightZ, -100, 100, 0, 180);
   
   servoX.write(angleX);
   servoY.write(angleY);
+  servoZ.write(angleZ);
 }
 
 void setMotor(int pwmPin, int dir1Pin, int dir2Pin, int speed) {

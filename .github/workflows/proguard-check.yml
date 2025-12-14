@@ -1,0 +1,62 @@
+name: ProGuard Verification
+
+on:
+  pull_request:
+    paths:
+      - 'app/proguard-rules.pro'
+      - 'app/build.gradle'
+      - '.github/workflows/proguard-check.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/proguard-rules.pro'
+      - 'app/build.gradle'
+
+jobs:
+  verify-proguard:
+    name: Verify ProGuard Rules
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+      
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      
+      - name: Build release APK
+        run: ./gradlew assembleRelease --stacktrace
+      
+      - name: Verify ProGuard rules
+        run: |
+          chmod +x scripts/verify-proguard.sh
+          ./scripts/verify-proguard.sh
+      
+      - name: Upload ProGuard mapping
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: proguard-mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          retention-days: 30
+      
+      - name: Comment on PR
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **ProGuard verification failed!**\n\nOne or more critical classes are missing from the release build. Please review the ProGuard rules in `app/proguard-rules.pro`.\n\nSee the workflow logs for details on which classes are missing.'
+            })

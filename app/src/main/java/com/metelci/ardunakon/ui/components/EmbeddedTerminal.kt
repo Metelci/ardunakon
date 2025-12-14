@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,9 +50,23 @@ fun EmbeddedTerminal(
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
-    LaunchedEffect(logs.size) {
-        if (logs.isNotEmpty()) {
-            listState.animateScrollToItem(logs.size - 1)
+    // Search and Filter State
+    var searchQuery by remember { mutableStateOf("") }
+    var showSearch by remember { mutableStateOf(false) }
+    var selectedFilters by remember { mutableStateOf(setOf(LogType.INFO, LogType.SUCCESS, LogType.WARNING, LogType.ERROR)) }
+
+    // Filtered logs
+    val filteredLogs = remember(logs, searchQuery, selectedFilters) {
+        logs.filter { log ->
+            val matchesSearch = searchQuery.isEmpty() || log.message.contains(searchQuery, ignoreCase = true)
+            val matchesType = log.type in selectedFilters
+            matchesSearch && matchesType
+        }
+    }
+
+    LaunchedEffect(filteredLogs.size) {
+        if (filteredLogs.isNotEmpty() && searchQuery.isEmpty()) { // Only auto-scroll if not searching to avoid jumping
+            listState.animateScrollToItem(filteredLogs.size - 1)
         }
     }
 
@@ -79,10 +94,27 @@ fun EmbeddedTerminal(
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             onExportLogs()
+                            // Also clear logs via long press ideally, but let's keep simple
                         },
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(Icons.Default.Share, "Export", tint = Color(0xFF00C853), modifier = Modifier.size(16.dp))
+                    }
+                    // Search toggle
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            showSearch = !showSearch
+                            if (!showSearch) searchQuery = ""
+                        },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (showSearch) Icons.Default.Close else Icons.Default.Search, // Need Search Icon
+                            contentDescription = "Search",
+                            tint = if (showSearch) Color(0xFFFFD54F) else Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                     // Clear button
                     IconButton(
@@ -131,6 +163,73 @@ fun EmbeddedTerminal(
                 )
             }
 
+            // Search and Filter Controls
+            if (showSearch) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Column {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        placeholder = { Text("Search logs...", fontSize = 12.sp) },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Close, "Clear search", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF74B9FF),
+                            unfocusedBorderColor = Color(0xFF555555),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color(0xFFAAAAAA)
+                        )
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        LogType.values().forEach { type ->
+                            val isSelected = type in selectedFilters
+                            val color = when (type) {
+                                LogType.INFO -> Color(0xFF90CAF9)
+                                LogType.SUCCESS -> Color(0xFF00C853)
+                                LogType.WARNING -> Color(0xFFFFD54F)
+                                LogType.ERROR -> Color(0xFFFF7675)
+                            }
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    selectedFilters = if (isSelected) {
+                                        if (selectedFilters.size > 1) selectedFilters - type else selectedFilters
+                                    } else {
+                                        selectedFilters + type
+                                    }
+                                },
+                                label = { Text(type.name.first().toString(), fontSize = 10.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = color.copy(alpha = 0.2f),
+                                    selectedLabelColor = color,
+                                    disabledLabelColor = Color.Gray
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    selectedBorderColor = color,
+                                    borderColor = Color.Gray,
+                                    borderWidth = 1.dp,
+                                    selectedBorderWidth = 1.dp
+                                ),
+                                modifier = Modifier.height(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(2.dp))
 
             // Log Output Area
@@ -148,7 +247,7 @@ fun EmbeddedTerminal(
                     verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
                     itemsIndexed(
-                        items = logs,
+                        items = filteredLogs,
                         key = { index, log -> "${index}_${log.timestamp}_${log.message.hashCode()}" }
                     ) { _, log ->
                         val color = when (log.type) {
@@ -158,7 +257,16 @@ fun EmbeddedTerminal(
                             LogType.ERROR -> Color(0xFFFF7675)
                         }
 
-                        Column {
+                        Column(
+                            modifier = if (log.type == LogType.SUCCESS) {
+                                Modifier.background(
+                                    Color(0xFF00C853).copy(alpha = 0.15f),
+                                    RoundedCornerShape(2.dp)
+                                ).padding(horizontal = 2.dp)
+                            } else {
+                                Modifier
+                            }
+                        ) {
                             Text(
                                 text = "> ${log.message}",
                                 color = color,

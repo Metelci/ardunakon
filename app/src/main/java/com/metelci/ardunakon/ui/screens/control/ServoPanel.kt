@@ -24,7 +24,8 @@ import com.metelci.ardunakon.ui.components.ServoButtonControl
 fun ServoPanel(
     servoX: Float,
     servoY: Float,
-    onServoMove: (x: Float, y: Float) -> Unit,
+    servoZ: Float,
+    onServoMove: (x: Float, y: Float, z: Float) -> Unit,
     onLog: (String) -> Unit = {},
     buttonSize: Dp = 56.dp,
     modifier: Modifier = Modifier,
@@ -37,6 +38,7 @@ fun ServoPanel(
         ServoButtonControl(
             servoX = servoX,
             servoY = servoY,
+            servoZ = servoZ,
             onMove = onServoMove,
             buttonSize = buttonSize,
             onLog = onLog

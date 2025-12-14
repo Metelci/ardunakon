@@ -1,146 +1,106 @@
 package com.metelci.ardunakon.service
 
-import android.Manifest
-import android.app.Application
-import android.content.pm.PackageManager
-import android.os.Build
+import android.app.NotificationManager
+import android.content.Intent
+import android.os.Looper
+import android.os.PowerManager
 import androidx.test.core.app.ApplicationProvider
-import org.junit.Assert.*
+import com.metelci.ardunakon.di.TestBluetoothState
+import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.wifi.WifiManager
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import io.mockk.verify
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowApplication
+import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
+import dagger.hilt.android.testing.HiltTestApplication
+import org.junit.Rule
 
 /**
- * Tests for BluetoothService foreground service and permission handling.
- * Uses Robolectric to simulate Android context.
+ * Robolectric tests for {@link BluetoothService}.
+ *
+ * These tests instantiate the real Service and inject fake managers, to ensure JaCoCo
+ * captures coverage for the `com.metelci.ardunakon.service` package.
  */
+@HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33]) // Android 13 for notification permission tests
+@Config(application = HiltTestApplication::class, sdk = [33])
 class BluetoothServiceTest {
 
-    private lateinit var application: Application
-    private lateinit var shadowApp: ShadowApplication
+    private val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+
+    @get:Rule
+    val hiltRule = HiltAndroidRule(this)
+
+    @javax.inject.Inject lateinit var bluetoothManager: AppBluetoothManager
+    @javax.inject.Inject lateinit var wifiManager: WifiManager
 
     @Before
     fun setUp() {
-        application = ApplicationProvider.getApplicationContext()
-        shadowApp = shadowOf(application)
+        hiltRule.inject()
+        TestBluetoothState.connectionState.value = ConnectionState.DISCONNECTED
     }
 
-    // ============== Permission Denial Tests ==============
-
-    @Test
-    fun `missing POST_NOTIFICATIONS permission is detected on Android 13+`() {
-        // Revoke notification permission
-        shadowApp.denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
-
-        val hasPermission = application.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
-
-        assertFalse("Should not have notification permission", hasPermission)
+    private fun getWakeLock(service: BluetoothService): PowerManager.WakeLock? {
+        val field = BluetoothService::class.java.getDeclaredField("wakeLock")
+        field.isAccessible = true
+        return field.get(service) as? PowerManager.WakeLock
     }
 
     @Test
-    fun `BLUETOOTH_CONNECT permission check works`() {
-        // Grant permission
-        shadowApp.grantPermissions(Manifest.permission.BLUETOOTH_CONNECT)
+    fun `onBind returns LocalBinder that exposes service`() {
+        val controller = Robolectric.buildService(BluetoothService::class.java)
+        val service = controller.create().get()
 
-        val hasPermission = application.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
-            PackageManager.PERMISSION_GRANTED
-
-        assertTrue("Should have Bluetooth connect permission", hasPermission)
+        val binder = service.onBind(Intent(context, BluetoothService::class.java))
+        assertTrue(binder is BluetoothService.LocalBinder)
+        assertSame(service, (binder as BluetoothService.LocalBinder).getService())
     }
 
     @Test
-    fun `missing BLUETOOTH_CONNECT permission is detected`() {
-        shadowApp.denyPermissions(Manifest.permission.BLUETOOTH_CONNECT)
+    fun `onCreate creates notification channel`() {
+        val service = Robolectric.buildService(BluetoothService::class.java).create().get()
 
-        val hasPermission = application.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
-            PackageManager.PERMISSION_GRANTED
-
-        assertFalse("Should not have Bluetooth connect permission", hasPermission)
+        val notificationManager = service.getSystemService(NotificationManager::class.java)
+        val channel = notificationManager.getNotificationChannel("ArdunakonConnection")
+        assertNotNull(channel)
+        assertEquals("Bluetooth Connection", channel?.name)
     }
 
     @Test
-    fun `BLUETOOTH_SCAN permission check works`() {
-        shadowApp.grantPermissions(Manifest.permission.BLUETOOTH_SCAN)
+    fun `onDestroy cancels scope and cleans up managers`() {
+        val controller = Robolectric.buildService(BluetoothService::class.java)
+        controller.create()
+        controller.destroy()
 
-        val hasPermission = application.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) ==
-            PackageManager.PERMISSION_GRANTED
-
-        assertTrue("Should have Bluetooth scan permission", hasPermission)
+        verify { bluetoothManager.cleanup() }
     }
 
     @Test
-    fun `ACCESS_FINE_LOCATION permission check works`() {
-        shadowApp.grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+    fun `wake lock is held when connecting and released when disconnected`() {
+        val controller = Robolectric.buildService(BluetoothService::class.java)
+        val service = controller.create().get()
 
-        val hasPermission = application.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
+        val wakeLock = getWakeLock(service)
+        assertNotNull(wakeLock)
+        assertTrue(wakeLock?.isHeld?.not() == true)
 
-        assertTrue("Should have fine location permission", hasPermission)
-    }
+        TestBluetoothState.connectionState.value = ConnectionState.CONNECTING
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(wakeLock?.isHeld == true)
 
-    // ============== startForeground Failure Simulation ==============
-
-    @Test
-    fun `startForeground SecurityException is catchable`() {
-        // Simulate the behavior where startForeground throws SecurityException
-        var exceptionCaught = false
-
-        try {
-            // This simulates what happens in BluetoothService when permission is missing
-            throw SecurityException("Missing POST_NOTIFICATIONS permission")
-        } catch (se: SecurityException) {
-            exceptionCaught = true
-        }
-
-        assertTrue("SecurityException should be caught", exceptionCaught)
-    }
-
-    @Test
-    fun `service stops self when foreground fails`() {
-        // Verify the expected behavior is to call stopSelf()
-        var stopSelfCalled = false
-
-        // Simulate the logic from BluetoothService.startForegroundService()
-        try {
-            throw SecurityException("Test exception")
-        } catch (se: SecurityException) {
-            // Missing POST_NOTIFICATIONS will prevent foreground start on Android 13+
-            stopSelfCalled = true // represents stopSelf()
-        }
-
-        assertTrue("Should stop self when foreground fails", stopSelfCalled)
-    }
-
-    @Test
-    fun `notification channel ID is correct`() {
-        val expectedChannelId = "ArdunakonConnection"
-        assertEquals("Channel ID should match", "ArdunakonConnection", expectedChannelId)
-    }
-
-    @Test
-    fun `notification channel name is correct`() {
-        val expectedChannelName = "Bluetooth Connection"
-        assertEquals("Channel name should match", "Bluetooth Connection", expectedChannelName)
-    }
-
-    // ============== Wake Lock Logic Tests ==============
-
-    @Test
-    fun `wake lock timeout is 1 hour`() {
-        val wakeLockTimeoutMs = 60 * 60 * 1000L
-        assertEquals(3600000L, wakeLockTimeoutMs)
-    }
-
-    @Test
-    fun `wake lock tag is correctly formatted`() {
-        val expectedTag = "Ardunakon::BluetoothService"
-        assertTrue("Wake lock tag should contain app name", expectedTag.contains("Ardunakon"))
+        TestBluetoothState.connectionState.value = ConnectionState.DISCONNECTED
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(wakeLock?.isHeld?.not() == true)
     }
 }

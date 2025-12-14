@@ -4,6 +4,7 @@ import com.metelci.ardunakon.wifi.WifiManager
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.security.EncryptionException
+import com.metelci.ardunakon.wifi.WifiDevice
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
@@ -33,6 +34,8 @@ object FakeWifiModule {
         val telemetryFlow = MutableStateFlow<Telemetry?>(null)
         val isEncryptedFlow = MutableStateFlow(false)
         val encryptionErrorFlow = MutableStateFlow<EncryptionException?>(null)
+        val scannedDevicesFlow = MutableStateFlow(emptyList<WifiDevice>())
+        val incomingDataFlow = MutableStateFlow<ByteArray?>(null)
 
         // Mock StateFlows accessed by ControlScreen
         every { mock.connectionState } returns connectionStateFlow
@@ -42,6 +45,8 @@ object FakeWifiModule {
         every { mock.telemetry } returns telemetryFlow
         every { mock.isEncrypted } returns isEncryptedFlow
         every { mock.encryptionError } returns encryptionErrorFlow
+        every { mock.scannedDevices } returns scannedDevicesFlow
+        every { mock.incomingData } returns incomingDataFlow
 
         return mock
     }

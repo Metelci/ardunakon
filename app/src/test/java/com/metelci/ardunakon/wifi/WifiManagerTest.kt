@@ -3,6 +3,8 @@ package com.metelci.ardunakon.wifi
 import android.content.Context
 import android.util.Base64
 import androidx.test.core.app.ApplicationProvider
+import com.metelci.ardunakon.TestCryptoEngine
+import com.metelci.ardunakon.data.ConnectionPreferences
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.util.concurrent.atomic.AtomicBoolean
@@ -14,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
@@ -44,11 +47,17 @@ class WifiManagerTest {
         Dispatchers.setMain(mainDispatcher)
         context = ApplicationProvider.getApplicationContext()
         prefs = WifiEncryptionPreferences(context, FakeCryptoEngine())
-        manager = WifiManager(context, ioDispatcher = mainDispatcher, encryptionPreferences = prefs)
+        manager = WifiManager(
+            context = context,
+            connectionPreferences = ConnectionPreferences(context, TestCryptoEngine()),
+            ioDispatcher = mainDispatcher,
+            encryptionPreferences = prefs
+        )
     }
 
     @After
     fun tearDown() {
+        manager.cleanup()
         Dispatchers.resetMain()
     }
 
@@ -140,7 +149,7 @@ class WifiManagerTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun disconnectResetsStateAndMetrics() = runTest {
+    fun disconnectResetsStateAndMetrics() {
         // Set internal flags to simulate active connection
         getPrivateField<AtomicBoolean>(manager, "isConnected").set(true)
         getPrivateField<MutableStateFlow<Int>>(manager, "_rssi").value = -42
@@ -154,7 +163,7 @@ class WifiManagerTest {
     }
 
     @Test
-    fun addDeviceAvoidsDuplicatesAndPreservesTrustFlag() = runTest {
+    fun addDeviceAvoidsDuplicatesAndPreservesTrustFlag() {
         manager.addDevice("First", "10.0.0.1", 8888, trusted = true)
         manager.addDevice("Second", "10.0.0.1", 8888, trusted = false) // duplicate IP ignored
         manager.addDevice("Third", "10.0.0.2", 8888, trusted = false)
@@ -214,10 +223,16 @@ class WifiManagerTest {
     }
 
     @Test
-    fun timeoutMonitorDisconnectsAfterIdlePeriod() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
+    fun timeoutMonitorDisconnectsAfterIdlePeriod() {
+        val scheduler = TestCoroutineScheduler()
+        val dispatcher = StandardTestDispatcher(scheduler)
         val localPrefs = WifiEncryptionPreferences(context, FakeCryptoEngine())
-        val localManager = WifiManager(context, ioDispatcher = dispatcher, encryptionPreferences = localPrefs)
+        val localManager = WifiManager(
+            context = context,
+            connectionPreferences = ConnectionPreferences(context, TestCryptoEngine()),
+            ioDispatcher = dispatcher,
+            encryptionPreferences = localPrefs
+        )
         getPrivateField<AtomicBoolean>(localManager, "isConnected").set(true)
         WifiManager::class.java.getDeclaredField("lastRxTime").apply {
             isAccessible = true
@@ -229,10 +244,11 @@ class WifiManagerTest {
             invoke(localManager)
         }
 
-        advanceTimeBy(11_000)
-        runCurrent()
+        scheduler.advanceTimeBy(11_000)
+        scheduler.runCurrent()
 
         assertEquals(WifiConnectionState.DISCONNECTED, localManager.connectionState.value)
+        localManager.cleanup()
     }
 
     @Test
@@ -302,7 +318,7 @@ class WifiManagerTest {
     }
 
     @Test
-    fun clearEncryptionErrorResetsState() = runTest {
+    fun clearEncryptionErrorResetsState() {
         // Manually set an error
         val errorField = WifiManager::class.java.getDeclaredField("_encryptionError").apply {
             isAccessible = true

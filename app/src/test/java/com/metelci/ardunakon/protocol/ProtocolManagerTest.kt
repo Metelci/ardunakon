@@ -69,6 +69,23 @@ class ProtocolManagerTest {
         assertEquals(calculateChecksum(packet), packet[8])
     }
 
+    @Test
+    fun testServoZFormat() {
+        val packet = ProtocolManager.formatServoZData(servoZ = -1f)
+
+        assertEquals(10, packet.size)
+        assertEquals(0xAA.toByte(), packet[0]) // START
+        assertEquals(0x01.toByte(), packet[1]) // DEV_ID
+        assertEquals(ProtocolManager.CMD_SERVO_Z, packet[2]) // CMD
+        assertEquals(0.toByte(), packet[3]) // -1.0 -> 0
+        assertEquals(0.toByte(), packet[4])
+        assertEquals(0.toByte(), packet[5])
+        assertEquals(0.toByte(), packet[6])
+        assertEquals(0.toByte(), packet[7])
+        assertEquals(calculateChecksum(packet), packet[8])
+        assertEquals(0x55.toByte(), packet[9]) // END
+    }
+
     private fun calculateChecksum(packet: ByteArray): Byte {
         var xor: Byte = 0
         for (i in 1..7) {

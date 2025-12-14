@@ -23,7 +23,9 @@ import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 enum class GraphTab {
     BATTERY,
     RSSI,
-    RTT
+    RTT,
+    PACKET_LOSS,
+    QUALITY
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,27 +109,42 @@ fun TelemetryGraphDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Tab Row
-                TabRow(
+                ScrollableTabRow(
                     selectedTabIndex = selectedTab.ordinal,
-                    containerColor = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0)
+                    containerColor = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
+                    edgePadding = 0.dp
                 ) {
                     Tab(
                         selected = selectedTab == GraphTab.BATTERY,
                         onClick = { selectedTab = GraphTab.BATTERY },
                         text = {
-                            Text("Battery", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 13.sp)
+                            Text("Battery", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp)
                         }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.RSSI,
                         onClick = { selectedTab = GraphTab.RSSI },
-                        text = { Text("RSSI", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 13.sp) }
+                        text = { Text("RSSI", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp) }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.RTT,
                         onClick = { selectedTab = GraphTab.RTT },
                         text = {
-                            Text("Latency", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 13.sp)
+                            Text("Latency", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp)
+                        }
+                    )
+                    Tab(
+                        selected = selectedTab == GraphTab.PACKET_LOSS,
+                        onClick = { selectedTab = GraphTab.PACKET_LOSS },
+                        text = {
+                            Text("Loss", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp)
+                        }
+                    )
+                    Tab(
+                        selected = selectedTab == GraphTab.QUALITY,
+                        onClick = { selectedTab = GraphTab.QUALITY },
+                        text = {
+                            Text("Quality", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp)
                         }
                     )
                 }
@@ -136,6 +153,8 @@ fun TelemetryGraphDialog(
                     GraphTab.BATTERY -> "Units: Volts (V)"
                     GraphTab.RSSI -> "Units: Signal strength (dBm)"
                     GraphTab.RTT -> "Units: Latency (ms)"
+                    GraphTab.PACKET_LOSS -> "Units: Packet loss (%)"
+                    GraphTab.QUALITY -> "Units: Connection quality (%)"
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
@@ -242,6 +261,42 @@ fun TelemetryGraphDialog(
                                     series = series,
                                     yAxisLabel = "Round-Trip Time (ms)",
                                     yAxisMin = 0f,
+                                    isDarkTheme = isDarkTheme
+                                )
+                            }
+                        }
+                        GraphTab.PACKET_LOSS -> {
+                            PacketLossHeatmap(
+                                lossHistory = telemetryHistoryManager.getPacketLossHistory(900_000L),
+                                isDarkTheme = isDarkTheme,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        GraphTab.QUALITY -> {
+                            val series = listOf(
+                                LineChartSeries(
+                                    label = "Connection Quality",
+                                    data = telemetryHistoryManager.getConnectionQualityHistory(120_000L),
+                                    color = Color(0xFF00E5FF)
+                                )
+                            )
+                            if (series.all { it.data.isEmpty() }) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "No quality data available",
+                                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Gray,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            } else {
+                                LineChart(
+                                    series = series,
+                                    yAxisLabel = "Connection Quality (%)",
+                                    yAxisMin = 0f,
+                                    yAxisMax = 100f,
                                     isDarkTheme = isDarkTheme
                                 )
                             }

@@ -19,7 +19,11 @@ import androidx.compose.ui.unit.dp
  * @param maxValues Maximum number of values to display (default 20)
  */
 @Composable
-fun LatencySparkline(rttValues: List<Long>, modifier: Modifier = Modifier, maxValues: Int = 20) {
+fun LatencySparkline(
+    rttValues: List<Long>,
+    modifier: Modifier = Modifier.width(60.dp).height(16.dp),
+    maxValues: Int = 20
+) {
     // Take last N values
     val values = rttValues.takeLast(maxValues)
 
@@ -33,8 +37,6 @@ fun LatencySparkline(rttValues: List<Long>, modifier: Modifier = Modifier, maxVa
 
     Canvas(
         modifier = modifier
-            .width(60.dp)
-            .height(16.dp)
     ) {
         if (values.isEmpty()) {
             // Draw placeholder line when no data

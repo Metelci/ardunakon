@@ -31,6 +31,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlin.math.abs
 
 /**
  * Connection mode for the control screen.
@@ -46,12 +49,15 @@ enum class ConnectionMode {
  * This extracts state management from the composable to improve testability,
  * reduce recomposition, and separate concerns.
  */
-class ControlViewModel(
+@dagger.hilt.android.lifecycle.HiltViewModel
+class ControlViewModel @javax.inject.Inject constructor(
     val bluetoothManager: AppBluetoothManager,
     val wifiManager: WifiManager,
     private val profileManager: ProfileManager,
-    private val transmissionDispatcher: CoroutineDispatcher = Dispatchers.Default
+    private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences
 ) : ViewModel() {
+
+    private val transmissionDispatcher: CoroutineDispatcher = Dispatchers.Default
 
     var showDeviceList by mutableStateOf(false)
     var showDebugConsole by mutableStateOf(false)
@@ -66,9 +72,22 @@ class ControlViewModel(
     var showCrashLog by mutableStateOf(false)
     var showHeaderMenu by mutableStateOf(false)
 
+    // User Feedback (Snackbars)
+    private val _userMessage = Channel<String>(Channel.CONFLATED)
+    val userMessage = _userMessage.receiveAsFlow()
+
+    fun showMessage(message: String) {
+        viewModelScope.launch {
+            _userMessage.trySend(message)
+        }
+    }
+
     // ========== Connection State ==========
     var connectionMode by mutableStateOf(ConnectionMode.BLUETOOTH)
     var allowReflection by mutableStateOf(false)
+
+    // WiFi Auto-Reconnect State (Delegated to Manager)
+    val wifiAutoReconnectEnabled = wifiManager.autoReconnectEnabled
 
     val profiles = mutableStateListOf<Profile>()
     var currentProfileIndex by mutableStateOf(0)
@@ -95,12 +114,24 @@ class ControlViewModel(
     var leftJoystick by mutableStateOf(Pair(0f, 0f))
     var servoX by mutableStateOf(0f)
     var servoY by mutableStateOf(0f)
+    var servoZ by mutableStateOf(0f)
 
     // ========== Transmission ==========
     private var transmissionJob: Job? = null
     private var isForegroundActive = true
 
     init {
+        // Restore Connection Mode
+        viewModelScope.launch {
+            val lastConn = connectionPreferences.loadLastConnection()
+            if (lastConn.type == "WIFI") {
+                connectionMode = ConnectionMode.WIFI
+                bluetoothManager.log("Restored Connection Mode: WiFi", LogType.INFO)
+            } else {
+                connectionMode = ConnectionMode.BLUETOOTH // Default
+            }
+        }
+    
         wifiManager.setRequireEncryption(requireEncryption)
         loadProfiles()
         startTransmissionLoop()
@@ -118,9 +149,11 @@ class ControlViewModel(
                 profiles.addAll(profileManager.createDefaultProfiles())
             } catch (e: java.io.IOException) {
                 bluetoothManager.log("Failed to load profiles: ${e.message}", LogType.ERROR)
+                showMessage("Failed to load profiles: ${e.localizedMessage}")
                 profiles.addAll(profileManager.createDefaultProfiles())
             } catch (e: Exception) {
                 bluetoothManager.log("Unexpected error loading profiles: ${e.message}", LogType.ERROR)
+                showMessage("Profile error: ${e.localizedMessage}")
                 profiles.addAll(profileManager.createDefaultProfiles())
             }
         }
@@ -151,6 +184,9 @@ class ControlViewModel(
     private fun startTransmissionLoop() {
         transmissionJob?.cancel()
         transmissionJob = viewModelScope.launch(transmissionDispatcher) {
+            var lastSentServoZ: Float? = null
+            var wasConnected = false
+
             while (isActive) {
                 if (!isForegroundActive) {
                     delay(200)
@@ -166,12 +202,19 @@ class ControlViewModel(
                 val btConnected = bluetoothManager.connectionState.value == ConnectionState.CONNECTED
                 val wifiConnected = wifiManager.connectionState.value == WifiConnectionState.CONNECTED
 
-                if ((connectionMode == ConnectionMode.BLUETOOTH && !btConnected) ||
-                    (connectionMode == ConnectionMode.WIFI && !wifiConnected)
-                ) {
+                val connected = when (connectionMode) {
+                    ConnectionMode.BLUETOOTH -> btConnected
+                    ConnectionMode.WIFI -> wifiConnected
+                }
+
+                if (!connected) {
+                    wasConnected = false
                     delay(50)
                     continue
                 }
+
+                val justConnected = !wasConnected
+                wasConnected = true
 
                 val packet = ProtocolManager.formatJoystickData(
                     leftX = leftJoystick.first,
@@ -185,6 +228,17 @@ class ControlViewModel(
                     wifiManager.sendData(packet)
                 } else {
                     bluetoothManager.sendDataToAll(packet)
+                }
+
+                val shouldSendServoZ = justConnected || lastSentServoZ == null || abs(servoZ - lastSentServoZ!!) > 0.0001f
+                if (shouldSendServoZ) {
+                    val servoZPacket = ProtocolManager.formatServoZData(servoZ)
+                    if (connectionMode == ConnectionMode.WIFI) {
+                        wifiManager.sendData(servoZPacket)
+                    } else {
+                        bluetoothManager.sendDataToAll(servoZPacket)
+                    }
+                    lastSentServoZ = servoZ
                 }
                 delay(50) // 20Hz
             }
@@ -205,6 +259,7 @@ class ControlViewModel(
                     leftJoystick = Pair(0f, 0f)
                     servoX = 0f
                     servoY = 0f
+                    servoZ = 0f
                 }
             }
         }
@@ -284,9 +339,10 @@ class ControlViewModel(
         )
     }
 
-    fun updateServo(x: Float, y: Float) {
+    fun updateServo(x: Float, y: Float, z: Float) {
         servoX = x
         servoY = y
+        servoZ = z
     }
 
     // ========== Servo Command Handler (from debug terminal) ==========
@@ -300,13 +356,25 @@ class ControlViewModel(
                 servoY = if (servoY == -1f) 0f else -1f
                 bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
             }
-            "L", "A" -> {
+            "L" -> {
                 servoX = if (servoX == -1f) 0f else -1f
                 bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
             }
             "R" -> {
                 servoX = if (servoX == 1f) 0f else 1f
                 bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
+            }
+            "A" -> {
+                servoZ = if (servoZ == -1f) 0f else -1f
+                bluetoothManager.log("Servo Z: ${if (servoZ == -1f) "MIN" else "CENTER"} (A)", LogType.INFO)
+            }
+            "Z" -> {
+                servoZ = if (servoZ == 1f) 0f else 1f
+                bluetoothManager.log("Servo Z: ${if (servoZ == 1f) "MAX" else "CENTER"} (Z)", LogType.INFO)
+            }
+            "CRASH" -> {
+                bluetoothManager.log("Executing Test Crash...", LogType.ERROR)
+                throw RuntimeException("Test Crash triggered by user command")
             }
             else -> {
                 // Send raw command to connection
@@ -349,6 +417,7 @@ class ControlViewModel(
             bluetoothManager.log("Bluetooth disconnected", LogType.WARNING)
         }
         connectionMode = ConnectionMode.WIFI
+        viewModelScope.launch { connectionPreferences.saveLastConnection(type = "WIFI") }
         bluetoothManager.log("WiFi mode active", LogType.SUCCESS)
     }
 
@@ -359,7 +428,12 @@ class ControlViewModel(
             bluetoothManager.log("WiFi disconnected", LogType.WARNING)
         }
         connectionMode = ConnectionMode.BLUETOOTH
+        viewModelScope.launch { connectionPreferences.saveLastConnection(type = "BLUETOOTH") }
         bluetoothManager.log("Bluetooth mode active", LogType.SUCCESS)
+    }
+
+    fun toggleWifiAutoReconnect(enabled: Boolean) {
+        wifiManager.setAutoReconnectEnabled(enabled)
     }
 
     fun reconnectBluetoothDevice(): Boolean = bluetoothManager.reconnectSavedDevice()
@@ -429,6 +503,7 @@ class ControlViewModel(
             context.startActivity(Intent.createChooser(shareIntent, "Export Logs"))
         } catch (e: Exception) {
             bluetoothManager.log("Export failed: ${e.message}", LogType.ERROR)
+            showMessage("Export failed: ${e.localizedMessage}")
         }
     }
 
