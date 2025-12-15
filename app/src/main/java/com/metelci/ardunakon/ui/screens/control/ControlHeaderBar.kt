@@ -116,6 +116,7 @@ fun ControlHeaderBar(
     onShowOta: () -> Unit,
     onToggleReflection: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
+    onResetTutorial: () -> Unit,
     onQuitApp: () -> Unit,
 
     // Context for crash log check
@@ -325,6 +326,7 @@ fun ControlHeaderBar(
                     onToggleReflection = onToggleReflection,
                     onShowOta = onShowOta,
                     onOpenArduinoCloud = onOpenArduinoCloud,
+                    onResetTutorial = onResetTutorial,
                     onQuitApp = onQuitApp
                 )
             }
@@ -355,6 +357,7 @@ private fun HeaderActionsRow(
     onToggleReflection: () -> Unit,
     onShowOta: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
+    onResetTutorial: () -> Unit,
     onQuitApp: () -> Unit
 ) {
     val actionIconSize = (rightButtonSize * 0.5f).coerceIn(14.dp, 18.dp)
@@ -488,6 +491,15 @@ private fun HeaderActionsRow(
                     onClick = {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         onOpenArduinoCloud()
+                        onDismissOverflowMenu()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Reset Tutorial") },
+                    leadingIcon = { Icon(Icons.Default.Settings, null) },
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onResetTutorial()
                         onDismissOverflowMenu()
                     }
                 )

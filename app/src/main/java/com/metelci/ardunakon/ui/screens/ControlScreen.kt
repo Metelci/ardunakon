@@ -41,6 +41,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun ControlScreen(
     isDarkTheme: Boolean = true,
     onQuitApp: () -> Unit = {},
+    onTakeTutorial: (() -> Unit)? = null,
     viewModel: ControlViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -62,6 +63,14 @@ fun ControlScreen(
     val wifiRttHistory by wifiManager.rttHistory.collectAsState()
     val wifiTelemetry by wifiManager.telemetry.collectAsState()
     val isWifiEncrypted by wifiManager.isEncrypted.collectAsState()
+    val btConnectedDeviceInfo by bluetoothManager.connectedDeviceInfo.collectAsState()
+    
+    // Compute connected device info (WiFi or BT)
+    val connectedDeviceInfo = if (wifiState == WifiConnectionState.CONNECTED) {
+        "WiFi Device" // WiFi doesn't have a device name exposed currently
+    } else {
+        btConnectedDeviceInfo
+    }
 
     // Active Telemetry (Bluetooth or WiFi based on connection)
     val telemetry = if (wifiState == WifiConnectionState.CONNECTED) wifiTelemetry else btCombined.telemetry
@@ -158,6 +167,7 @@ fun ControlScreen(
                     autoReconnectEnabled = btCombined.autoReconnectEnabled,
                     isEStopActive = btCombined.isEmergencyStopActive,
                     isWifiEncrypted = isWifiEncrypted,
+                    connectedDeviceInfo = connectedDeviceInfo,
                     isDarkTheme = isDarkTheme,
                     safeDrawingPadding = safeDrawingPadding,
                     orientationConfig = orientationConfig,
@@ -183,6 +193,7 @@ fun ControlScreen(
                     autoReconnectEnabled = btCombined.autoReconnectEnabled,
                     isEStopActive = btCombined.isEmergencyStopActive,
                     isWifiEncrypted = isWifiEncrypted,
+                    connectedDeviceInfo = connectedDeviceInfo,
                     isDarkTheme = isDarkTheme,
                     safeDrawingPadding = safeDrawingPadding,
                     orientationConfig = orientationConfig,
@@ -202,6 +213,7 @@ fun ControlScreen(
         wifiManager = wifiManager,
         isDarkTheme = isDarkTheme,
         view = view,
-        onExportLogs = exportLogs
+        onExportLogs = exportLogs,
+        onTakeTutorial = onTakeTutorial
     )
 }

@@ -13,8 +13,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
-import com.metelci.ardunakon.data.Profile
-import com.metelci.ardunakon.data.ProfileManager
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.security.AuthRequiredException
@@ -53,8 +51,8 @@ enum class ConnectionMode {
 class ControlViewModel @javax.inject.Inject constructor(
     val bluetoothManager: AppBluetoothManager,
     val wifiManager: WifiManager,
-    private val profileManager: ProfileManager,
-    private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences
+    private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
+    private val onboardingManager: com.metelci.ardunakon.data.OnboardingManager
 ) : ViewModel() {
 
     private val transmissionDispatcher: CoroutineDispatcher = Dispatchers.Default
@@ -82,6 +80,17 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
+    /**
+     * Resets the onboarding tutorial so it appears on next launch.
+     */
+    fun resetTutorial() {
+        viewModelScope.launch {
+            onboardingManager.resetOnboarding()
+            bluetoothManager.log("Tutorial reset - will show on next launch", LogType.INFO)
+            showMessage("Tutorial reset! Restart app to see it.")
+        }
+    }
+
     // ========== Connection State ==========
     var connectionMode by mutableStateOf(ConnectionMode.BLUETOOTH)
     var allowReflection by mutableStateOf(false)
@@ -89,26 +98,14 @@ class ControlViewModel @javax.inject.Inject constructor(
     // WiFi Auto-Reconnect State (Delegated to Manager)
     val wifiAutoReconnectEnabled = wifiManager.autoReconnectEnabled
 
-    val profiles = mutableStateListOf<Profile>()
-    var currentProfileIndex by mutableStateOf(0)
     var securityErrorMessage by mutableStateOf<String?>(null)
 
     // ========== Encryption State ==========
     var encryptionError by mutableStateOf<EncryptionException?>(null)
     var requireEncryption by mutableStateOf(false)
 
-    val currentProfile: Profile
-        get() = if (profiles.isNotEmpty() && currentProfileIndex in profiles.indices) {
-            profiles[currentProfileIndex]
-        } else {
-            if (profiles.isEmpty()) {
-                val defaults = profileManager.createDefaultProfiles()
-                profiles.addAll(defaults)
-                defaults[0]
-            } else {
-                profiles[0]
-            }
-        }
+    // Sensitivity constant (was previously from profiles)
+    private val joystickSensitivity = 1.0f
 
     // ========== Control State ==========
     var leftJoystick by mutableStateOf(Pair(0f, 0f))
@@ -133,31 +130,13 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     
         wifiManager.setRequireEncryption(requireEncryption)
-        loadProfiles()
         startTransmissionLoop()
         syncReflectionSetting()
         observeConnectionState()
         observeEncryptionErrors()
     }
 
-    private fun loadProfiles() {
-        viewModelScope.launch {
-            try {
-                profiles.addAll(profileManager.loadProfiles())
-            } catch (e: AuthRequiredException) {
-                securityErrorMessage = e.message ?: "Unlock your device to load encrypted profiles."
-                profiles.addAll(profileManager.createDefaultProfiles())
-            } catch (e: java.io.IOException) {
-                bluetoothManager.log("Failed to load profiles: ${e.message}", LogType.ERROR)
-                showMessage("Failed to load profiles: ${e.localizedMessage}")
-                profiles.addAll(profileManager.createDefaultProfiles())
-            } catch (e: Exception) {
-                bluetoothManager.log("Unexpected error loading profiles: ${e.message}", LogType.ERROR)
-                showMessage("Profile error: ${e.localizedMessage}")
-                profiles.addAll(profileManager.createDefaultProfiles())
-            }
-        }
-    }
+
 
     private fun syncReflectionSetting() {
         viewModelScope.launch {
@@ -334,8 +313,8 @@ class ControlViewModel @javax.inject.Inject constructor(
     // ========== Joystick/Servo Updates ==========
     fun updateJoystick(x: Float, y: Float) {
         leftJoystick = Pair(
-            x * currentProfile.sensitivity,
-            y * currentProfile.sensitivity
+            x * joystickSensitivity,
+            y * joystickSensitivity
         )
     }
 
@@ -390,16 +369,7 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
-    // ========== Profile Save (internal use) ==========
-    private fun saveProfiles() {
-        viewModelScope.launch {
-            try {
-                profileManager.saveProfiles(profiles)
-            } catch (e: AuthRequiredException) {
-                securityErrorMessage = e.message ?: "Unlock your device to save encrypted profiles."
-            }
-        }
-    }
+
 
     // ========== Connection Mode ==========
     fun toggleConnectionMode() {

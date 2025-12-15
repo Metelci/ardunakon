@@ -31,7 +31,8 @@ fun ControlScreenDialogs(
     wifiManager: WifiManager,
     isDarkTheme: Boolean,
     view: View,
-    onExportLogs: () -> Unit
+    onExportLogs: () -> Unit,
+    onTakeTutorial: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val debugLogs by bluetoothManager.debugLogs.collectAsState()
@@ -81,6 +82,7 @@ fun ControlScreenDialogs(
     if (viewModel.showHelpDialog) {
         com.metelci.ardunakon.ui.components.HelpDialog(
             onDismiss = { viewModel.showHelpDialog = false },
+            onTakeTutorial = onTakeTutorial,
             isDarkTheme = isDarkTheme
         )
     }

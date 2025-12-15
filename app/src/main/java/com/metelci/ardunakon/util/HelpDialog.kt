@@ -27,22 +27,25 @@ import com.metelci.ardunakon.util.AssetReader
 
 /**
  * Help dialog component with tabbed interface for documentation access.
- * Displays three tabs: Setup, Compatibility, and Features.
+ * Displays tabs for Setup and Compatibility.
  * Each tab has a "View Full Guide" button to open the content
  * inside an in-app WebView dialog with enhanced readability.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HelpDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
+fun HelpDialog(
+    onDismiss: () -> Unit,
+    onTakeTutorial: (() -> Unit)? = null,
+    isDarkTheme: Boolean = true
+) {
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val tabs = listOf("Setup", "Compatibility", "Features")
+    val tabs = listOf("Setup", "Compatibility")
     val contentFiles = listOf(
         "docs/setup_guide.txt",
-        "docs/compatibility.txt",
-        "docs/app_features.txt"
+        "docs/compatibility.txt"
     )
 
     // Load content for selected tab
@@ -187,6 +190,27 @@ fun HelpDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
 
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        // Take Tutorial button (if callback provided)
+                        if (onTakeTutorial != null) {
+                            Button(
+                                onClick = {
+                                    onTakeTutorial()
+                                    onDismiss()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF00C853)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    "🎓 Take Tutorial",
+                                    color = Color.White
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
 
                         // Arduino Cloud Link
                         OutlinedButton(

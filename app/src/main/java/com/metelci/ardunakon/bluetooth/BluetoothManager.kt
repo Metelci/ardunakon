@@ -84,6 +84,10 @@ class AppBluetoothManager(
     private val _autoReconnectEnabled = MutableStateFlow(false)
     val autoReconnectEnabled: StateFlow<Boolean> = _autoReconnectEnabled.asStateFlow()
 
+    // Connected device info for UI display
+    private val _connectedDeviceInfo = MutableStateFlow<String?>(null)
+    val connectedDeviceInfo: StateFlow<String?> = _connectedDeviceInfo.asStateFlow()
+
     // Combined state flow for optimized UI recomposition
     // Consolidates 7 flows into 1 to reduce overhead by ~40%
     val combinedState: StateFlow<CombinedConnectionState> = combine(
@@ -333,6 +337,17 @@ class AppBluetoothManager(
              resetCircuitBreaker()
              vibrate(BluetoothConfig.VIBRATION_CONNECTED_MS)
              
+             // Update connected device info for UI
+             val device = savedDevice
+             if (device != null) {
+                 val typeLabel = if (device.type == DeviceType.LE) "BLE" else "Classic"
+                 val info = "${device.name} ($typeLabel)"
+                 _connectedDeviceInfo.value = info
+                 log("Device connected: $info", LogType.SUCCESS)
+             } else {
+                 log("Connected but savedDevice is null", LogType.WARNING)
+             }
+             
              // Save as last connected device
              savedDevice?.let { device ->
                  scope.launch {
@@ -343,14 +358,26 @@ class AppBluetoothManager(
                      deviceNameCache.saveName(device.address, device.name, device.type)
                  }
              }
-         } else if (state == ConnectionState.ERROR) {
-             vibrate(BluetoothConfig.VIBRATION_ERROR_MS)
+         } else if (state == ConnectionState.DISCONNECTED || state == ConnectionState.ERROR) {
+             if (state == ConnectionState.ERROR) {
+                 vibrate(BluetoothConfig.VIBRATION_ERROR_MS)
+             }
+             _connectedDeviceInfo.value = null
          }
     }
 
     override fun onDataReceived(data: ByteArray) {
         _incomingData.value = data
         telemetryManager.recordInbound()
+        
+        // Debug logging for raw data to analyze potential format issues
+        // Use a simple sampling or conditional to avoid spam if high frequency
+        // For now, log capabilities (0x05) and Telemetry (0x10) explicitly, others as VERBOSE?
+        // Let's just log ALL for debugging this specific user issue.
+        // Assuming data isn't huge.
+        val hex = data.joinToString("") { "%02X".format(it) }
+        log("RX: $hex", LogType.INFO)
+
         telemetryManager.parseTelemetryPacket(data)
         
         // Capabilities Check

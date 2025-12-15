@@ -4,8 +4,7 @@ import android.view.View
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.data.ConnectionPreferences
-import com.metelci.ardunakon.data.Profile
-import com.metelci.ardunakon.data.ProfileManager
+import com.metelci.ardunakon.data.OnboardingManager
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.security.EncryptionException
 import com.metelci.ardunakon.wifi.WifiConnectionState
@@ -44,7 +43,7 @@ class ControlViewModelTest {
 
     private lateinit var bluetoothManager: AppBluetoothManager
     private lateinit var wifiManager: WifiManager
-    private lateinit var profileManager: ProfileManager
+    private lateinit var onboardingManager: OnboardingManager
     private lateinit var connectionPreferences: ConnectionPreferences
 
     private var viewModel: ControlViewModel? = null
@@ -75,7 +74,7 @@ class ControlViewModelTest {
             every { autoReconnectEnabled } returns wifiAutoReconnect
         }
 
-        profileManager = mockk(relaxed = true)
+        onboardingManager = mockk(relaxed = true)
         connectionPreferences = mockk(relaxed = true)
     }
 
@@ -94,9 +93,9 @@ class ControlViewModelTest {
             wifiPort = 8888,
             autoReconnectWifi = false
         )
-        coEvery { profileManager.loadProfiles() } returns emptyList()
 
-        val vm = ControlViewModel(bluetoothManager, wifiManager, profileManager, connectionPreferences)
+
+        val vm = ControlViewModel(bluetoothManager, wifiManager, connectionPreferences, onboardingManager)
         viewModel = vm
 
         testScheduler.advanceUntilIdle()
@@ -113,10 +112,10 @@ class ControlViewModelTest {
             wifiPort = 8888,
             autoReconnectWifi = false
         )
-        coEvery { profileManager.loadProfiles() } returns listOf(Profile(name = "p1", buttonConfigs = emptyList()))
+
 
         bluetoothConnectionState.value = ConnectionState.CONNECTED
-        val vm = ControlViewModel(bluetoothManager, wifiManager, profileManager, connectionPreferences)
+        val vm = ControlViewModel(bluetoothManager, wifiManager, connectionPreferences, onboardingManager)
         viewModel = vm
         testScheduler.advanceUntilIdle()
 
@@ -141,9 +140,9 @@ class ControlViewModelTest {
             wifiPort = 8888,
             autoReconnectWifi = false
         )
-        coEvery { profileManager.loadProfiles() } returns emptyList()
 
-        val vm = ControlViewModel(bluetoothManager, wifiManager, profileManager, connectionPreferences)
+
+        val vm = ControlViewModel(bluetoothManager, wifiManager, connectionPreferences, onboardingManager)
         viewModel = vm
         testScheduler.advanceUntilIdle()
 
@@ -169,9 +168,9 @@ class ControlViewModelTest {
             wifiPort = 8888,
             autoReconnectWifi = false
         )
-        coEvery { profileManager.loadProfiles() } returns emptyList()
 
-        val vm = ControlViewModel(bluetoothManager, wifiManager, profileManager, connectionPreferences)
+
+        val vm = ControlViewModel(bluetoothManager, wifiManager, connectionPreferences, onboardingManager)
         viewModel = vm
         testScheduler.advanceUntilIdle()
 
@@ -196,9 +195,9 @@ class ControlViewModelTest {
             wifiPort = 8888,
             autoReconnectWifi = false
         )
-        coEvery { profileManager.loadProfiles() } returns emptyList()
 
-        val vm = ControlViewModel(bluetoothManager, wifiManager, profileManager, connectionPreferences)
+
+        val vm = ControlViewModel(bluetoothManager, wifiManager, connectionPreferences, onboardingManager)
         viewModel = vm
         testScheduler.advanceUntilIdle()
 
@@ -220,10 +219,10 @@ class ControlViewModelTest {
             wifiPort = 8888,
             autoReconnectWifi = false
         )
-        coEvery { profileManager.loadProfiles() } returns emptyList()
+
 
         bluetoothEStop.value = false
-        val vm = ControlViewModel(bluetoothManager, wifiManager, profileManager, connectionPreferences)
+        val vm = ControlViewModel(bluetoothManager, wifiManager, connectionPreferences, onboardingManager)
         viewModel = vm
         testScheduler.advanceUntilIdle()
 
@@ -244,10 +243,10 @@ class ControlViewModelTest {
             wifiPort = 8888,
             autoReconnectWifi = false
         )
-        coEvery { profileManager.loadProfiles() } returns emptyList()
+
 
         bluetoothEStop.value = true
-        val vm = ControlViewModel(bluetoothManager, wifiManager, profileManager, connectionPreferences)
+        val vm = ControlViewModel(bluetoothManager, wifiManager, connectionPreferences, onboardingManager)
         viewModel = vm
         testScheduler.advanceUntilIdle()
 
@@ -267,9 +266,9 @@ class ControlViewModelTest {
             wifiPort = 8888,
             autoReconnectWifi = false
         )
-        coEvery { profileManager.loadProfiles() } returns emptyList()
 
-        val vm = ControlViewModel(bluetoothManager, wifiManager, profileManager, connectionPreferences)
+
+        val vm = ControlViewModel(bluetoothManager, wifiManager, connectionPreferences, onboardingManager)
         viewModel = vm
         testScheduler.advanceUntilIdle()
 

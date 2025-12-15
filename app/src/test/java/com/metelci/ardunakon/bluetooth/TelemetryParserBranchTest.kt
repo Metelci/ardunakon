@@ -56,8 +56,10 @@ class TelemetryParserBranchTest {
     }
 
     @Test
-    fun parse_returns_null_for_invalid_status_byte() {
-        assertNull(TelemetryParser.parse(buildPacket(status = 2)))
+    fun parse_accepts_unknown_status_byte_as_active() {
+        val parsed = TelemetryParser.parse(buildPacket(status = 2))
+        assertNotNull(parsed)
+        assertEquals("Active", parsed?.status)
     }
 
     @Test
@@ -81,5 +83,20 @@ class TelemetryParserBranchTest {
         val safe = TelemetryParser.parse(buildPacket(batteryTenths = 120, status = 1))
         assertNotNull(safe)
         assertEquals("Safe Mode", safe?.status)
+    }
+
+    @Test
+    fun parse_includes_custom_counters_when_custom_flag_set() {
+        val packet = buildPacket(status = 0x80).apply {
+            this[5] = 10
+            this[6] = 20
+            this[7] = 30
+            var checksum: Byte = 0
+            for (i in 1..7) checksum = checksum xor this[i]
+            this[8] = checksum
+        }
+        val parsed = TelemetryParser.parse(packet)
+        assertNotNull(parsed)
+        assertEquals("Active | A=10 B=20 C=30", parsed?.status)
     }
 }

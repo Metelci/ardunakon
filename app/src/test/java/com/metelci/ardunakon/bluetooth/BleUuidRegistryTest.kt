@@ -33,7 +33,7 @@ class BleUuidRegistryTest {
 
     @Test
     fun `registry contains expected number of variants`() {
-        assertEquals("Registry should have 8 variants", 8, BleUuidRegistry.ALL_VARIANTS.size)
+        assertEquals("Registry should have 9 variants", 9, BleUuidRegistry.ALL_VARIANTS.size)
     }
 
     // ============== HC-08/HM-10 Variant Tests ==============
@@ -155,7 +155,7 @@ class BleUuidRegistryTest {
 
     @Test
     fun `findByServiceUuid returns empty for unknown UUID`() {
-        val unknownUuid = UUID.fromString("12345678-1234-1234-1234-123456789ABC")
+        val unknownUuid = UUID.fromString("12345678-1234-1234-1234-123456789ABD")
         val variants = BleUuidRegistry.findByServiceUuid(unknownUuid)
         assertTrue(variants.isEmpty())
     }

@@ -38,6 +38,7 @@ import com.metelci.ardunakon.model.LogType
 fun EmbeddedTerminal(
     logs: List<LogEntry>,
     telemetry: Telemetry?,
+    connectedDeviceInfo: String? = null,
     onSendCommand: (String) -> Unit,
     onClearLogs: () -> Unit,
     onMaximize: () -> Unit,
@@ -83,11 +84,20 @@ fun EmbeddedTerminal(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Terminal",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White
-                )
+                Column {
+                    Text(
+                        "Terminal",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White
+                    )
+                    if (connectedDeviceInfo != null) {
+                        Text(
+                            connectedDeviceInfo,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF00C853) // Green for connected
+                        )
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Export button
                     IconButton(

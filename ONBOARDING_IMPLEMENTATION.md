@@ -8,8 +8,7 @@ MainActivity
 ├── OnboardingFlow (conditional)
 │   ├── WelcomeScreen
 │   ├── InterfaceTour  
-│   ├── ConnectionTutorial
-│   ├── AdvancedFeatures (optional)
+│   ├── ConnectionTutorial (Merged Setup)
 │   └── CompletionScreen
 └── ControlScreen (normal app flow)
 ```
@@ -19,8 +18,8 @@ MainActivity
 sealed class OnboardingStep {
     object Welcome : OnboardingStep()
     object InterfaceTour : OnboardingStep()
-    data class ConnectionTutorial(val step: Int) : OnboardingStep()
-    data class AdvancedFeatures(val selectedFeatures: Set<FeatureType>) : OnboardingStep()
+    data class ConnectionTutorial(val step: ConnectionTutorialStep) : OnboardingStep()
+    // Advanced Features merged into ConnectionTutorial
     object Completion : OnboardingStep()
     object Finished : OnboardingStep()
 }
@@ -310,13 +309,7 @@ fun OnboardingFlow(
                 onSkip = onSkip
             )
         }
-        is OnboardingStep.AdvancedFeatures -> {
-            AdvancedFeaturesScreen(
-                selectedFeatures = currentStep.selectedFeatures,
-                onNext = { viewModel.nextStep() },
-                onSkip = onSkip
-            )
-        }
+
         OnboardingStep.Completion -> {
             CompletionScreen(
                 onFinish = onComplete,
@@ -601,11 +594,11 @@ fun ConnectionTutorialScreen(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Show appropriate step content
+        // Show appropriate step content
         when (step.step) {
-            0 -> ChooseArduinoScreen(onNext = onNext, onSkip = onSkip)
-            1 -> ConnectionModeScreen(onNext = onNext, onSkip = onSkip)
-            2 -> DeviceScanningScreen(onNext = onNext, onSkip = onSkip)
-            3 -> ConnectionSuccessScreen(onNext = onNext, onSkip = onSkip)
+            ConnectionTutorialStep.CHOOSE_ARDUINO -> ChooseArduinoContent(...)
+            ConnectionTutorialStep.CONNECTION_MODE -> ConnectionModeContent(...)
+            ConnectionTutorialStep.SETUP_FINAL -> SetupFinalContent(...)
         }
     }
 }

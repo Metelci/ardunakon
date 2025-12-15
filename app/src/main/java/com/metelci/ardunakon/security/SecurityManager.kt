@@ -26,7 +26,7 @@ interface CryptoEngine {
 class SecurityManager : CryptoEngine {
 
     private val provider = "AndroidKeyStore"
-    private val alias = "ArdunakonProfileKey"
+    private val alias = "ArdunakonDataKey"
     private val transformation = "AES/GCM/NoPadding"
 
     init {
@@ -85,9 +85,9 @@ class SecurityManager : CryptoEngine {
 
             return Base64.encodeToString(combined, Base64.DEFAULT)
         } catch (e: UserNotAuthenticatedException) {
-            throw AuthRequiredException("Unlock your device to encrypt profiles.", e)
+            throw AuthRequiredException("Unlock your device to encrypt data.", e)
         } catch (e: GeneralSecurityException) {
-            throw AuthRequiredException("Profile encryption unavailable until device is unlocked.", e)
+            throw AuthRequiredException("Encryption unavailable until device is unlocked.", e)
         }
     }
 
@@ -133,9 +133,9 @@ class SecurityManager : CryptoEngine {
             val decoded = cipher.doFinal(encryptedBytes)
             return String(decoded, Charsets.UTF_8)
         } catch (e: UserNotAuthenticatedException) {
-            throw AuthRequiredException("Unlock your device to access saved profiles.", e)
+            throw AuthRequiredException("Unlock your device to access saved data.", e)
         } catch (e: GeneralSecurityException) {
-            throw AuthRequiredException("Profile decryption unavailable until device is unlocked.", e)
+            throw AuthRequiredException("Decryption unavailable until device is unlocked.", e)
         }
     }
 }

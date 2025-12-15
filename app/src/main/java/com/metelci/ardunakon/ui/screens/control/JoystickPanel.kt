@@ -12,13 +12,12 @@ import com.metelci.ardunakon.ui.components.JoystickControl
  * Wrapper component for JoystickControl that handles latency calculation for connection quality ring.
  * Reduces duplication between portrait and landscape layouts.
  *
- * @param onMoved Callback with (x, y) values -1 to 1, already multiplied by sensitivity
+ * @param onMoved Callback with (x, y) values -1 to 1
  * @param size Size of the joystick
  * @param isThrottle Whether Y-axis should stay at last position (throttle mode)
  * @param bluetoothRttMs Bluetooth round-trip time in milliseconds (from health.lastRttMs)
  * @param wifiRttMs WiFi round-trip time in milliseconds
  * @param isWifiMode Whether currently in WiFi mode
- * @param sensitivity Profile sensitivity multiplier (default 1.0)
  * @param modifier Optional modifier for the container Box
  * @param contentAlignment Alignment of the joystick within the container
  */
@@ -30,7 +29,6 @@ fun JoystickPanel(
     bluetoothRttMs: Long? = null,
     wifiRttMs: Long = 0L,
     isWifiMode: Boolean = false,
-    sensitivity: Float = 1.0f,
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.Center
 ) {
@@ -47,10 +45,7 @@ fun JoystickPanel(
     ) {
         JoystickControl(
             onMoved = { state ->
-                onMoved(
-                    state.x * sensitivity,
-                    state.y * sensitivity
-                )
+                onMoved(state.x, state.y)
             },
             size = size,
             isThrottle = isThrottle,
@@ -58,3 +53,4 @@ fun JoystickPanel(
         )
     }
 }
+

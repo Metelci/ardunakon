@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicInteger
 
 class BleConnectionManager(
     private val context: Context,
@@ -29,6 +30,7 @@ class BleConnectionManager(
     private var timeoutJob: Job? = null
     private var writeJob: Job? = null
     private var pollingJob: Job? = null
+    private var serviceDiscoveryJob: Job? = null
     private val writeQueue = LinkedBlockingQueue<ByteArray>()
     private val connectionMutex = Mutex()
     private val isConnected = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -47,6 +49,10 @@ class BleConnectionManager(
     private var gattRetryAttempt = 0
     private val maxGattRetries = 3
     private val isRetrying = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    // Service discovery retry (some stacks return empty services on first discovery)
+    private val serviceDiscoveryAttempts = AtomicInteger(0)
+    private val maxServiceDiscoveryAttempts = 2
 
     // Pending descriptor writes for notification enablement
     private val pendingDescriptorWrites = java.util.concurrent.ConcurrentLinkedQueue<Triple<BluetoothGatt, BluetoothGattDescriptor, ByteArray>>()
@@ -85,6 +91,8 @@ class BleConnectionManager(
             isGattConnected.set(false)
             txCharacteristic = null
             currentDevice = device
+            serviceDiscoveryAttempts.set(0)
+            serviceDiscoveryJob?.cancel()
 
             // Cleanup existing
             bluetoothGatt?.let { gatt ->
@@ -159,6 +167,7 @@ class BleConnectionManager(
         timeoutJob?.cancel()
         pollingJob?.cancel()
         writeJob?.cancel()
+        serviceDiscoveryJob?.cancel()
         writeQueue.clear()
 
         val gatt = bluetoothGatt
@@ -204,9 +213,18 @@ class BleConnectionManager(
                 
                 // Request High Priority
                 gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+
+                // Best-effort MTU; some devices behave better when requested early.
+                gatt.requestMtu(512)
                 
-                // Discover Services
-                gatt.discoverServices()
+                // Discover services after a short settle; ESP32-based peripherals can return empty services if queried immediately.
+                serviceDiscoveryJob?.cancel()
+                serviceDiscoveryJob = scope.launch(Dispatchers.IO) {
+                    delay(650)
+                    if (!isGattConnected.get()) return@launch
+                    callback.onError("Discovering BLE services...", LogType.INFO)
+                    gatt.discoverServices()
+                }
                 
                 // Start RSSI polling
                 startRssiPolling()
@@ -228,9 +246,32 @@ class BleConnectionManager(
             }
             val resolved = resolveGattProfile(gatt)
             if (resolved == null) {
+                val attempt = serviceDiscoveryAttempts.incrementAndGet()
+                if (attempt < maxServiceDiscoveryAttempts) {
+                    val serviceCount = gatt.services?.size ?: 0
+                    callback.onError(
+                        "BLE Service/Characteristic not found (attempt $attempt/$maxServiceDiscoveryAttempts, services=$serviceCount). Retrying...",
+                        LogType.WARNING
+                    )
+                    serviceDiscoveryJob?.cancel()
+                    serviceDiscoveryJob = scope.launch(Dispatchers.IO) {
+                        delay(800)
+                        if (!isGattConnected.get()) return@launch
+                        gatt.discoverServices()
+                    }
+                    return
+                }
+
                 callback.onError("BLE Service/Characteristic not found", LogType.ERROR)
-                gatt.services?.forEach { svc ->
-                    callback.onError("Available service: ${svc.uuid}", LogType.INFO)
+                gatt.services?.forEach { svc -> callback.onError("Available service: ${svc.uuid}", LogType.INFO) }
+                if ((gatt.services?.isEmpty() != false) &&
+                    (resolvedDeviceName.contains("R4", ignoreCase = true) ||
+                        resolvedDeviceName.contains("ARDUNAKON", ignoreCase = true))
+                ) {
+                    callback.onError(
+                        "Tip: If you're using the UNO R4 WiFi sketch, ensure it was uploaded in BLE mode (USE_BLE_MODE=1). Otherwise use WiFi mode in the app.",
+                        LogType.INFO
+                    )
                 }
                 cleanupGatt(ConnectionState.ERROR)
                 return
@@ -239,6 +280,12 @@ class BleConnectionManager(
             detectedVariant = resolved.variantId
             txCharacteristic = resolved.writeChar // We write to RX/write characteristic of the device
             callback.onError("BLE ready: ${resolved.variantName} (variant ${resolved.variantId})", LogType.SUCCESS)
+
+            if (resolved.notifyChar == null) {
+                callback.onError("BLE notifications not available (write-only profile).", LogType.INFO)
+                onReady()
+                return
+            }
 
             // Enable notifications/indications for inbound data.
             if (!gatt.setCharacteristicNotification(resolved.notifyChar, true)) {
@@ -270,8 +317,7 @@ class BleConnectionManager(
                 }
             }
 
-            // Request high MTU (best-effort)
-            gatt.requestMtu(512)
+            // MTU already requested on connect; keep this as no-op if stack ignores duplicates.
         }
 
         override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
@@ -372,11 +418,16 @@ class BleConnectionManager(
                 val writeChar = variant.rxCharUuid?.let(service::getCharacteristic)
                     ?: variant.legacyCharUuid?.let(service::getCharacteristic)
                     ?: variant.txCharUuid?.let(service::getCharacteristic)
-                val notifyChar = variant.txCharUuid?.let(service::getCharacteristic)
+                val notifyCandidate = variant.txCharUuid?.let(service::getCharacteristic)
                     ?: variant.legacyCharUuid?.let(service::getCharacteristic)
 
-                if (writeChar != null && notifyChar != null) {
-                    val usesIndication = (notifyChar.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0 &&
+                if (writeChar != null) {
+                    val notifyChar = notifyCandidate?.takeIf { c ->
+                        (c.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 ||
+                            (c.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                    }
+                    val usesIndication = notifyChar != null &&
+                        (notifyChar.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0 &&
                         (notifyChar.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0
                     return ResolvedGattProfile(
                         variantId = variant.id,
@@ -415,6 +466,24 @@ class BleConnectionManager(
                 }
             }
 
+            // Write-only fallback: allow connecting to simple sketches that only expose a writable characteristic.
+            for (service in gatt.services) {
+                val chars = service.characteristics.orEmpty()
+                val candidateWrite = chars.firstOrNull { c ->
+                    (c.properties and BluetoothGattCharacteristic.PROPERTY_WRITE) != 0 ||
+                        (c.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0
+                }
+                if (candidateWrite != null) {
+                    return ResolvedGattProfile(
+                        variantId = 100,
+                        variantName = "Write-only BLE",
+                        writeChar = candidateWrite,
+                        notifyChar = null,
+                        usesIndication = false
+                    )
+                }
+            }
+
             return null
         }
 
@@ -438,7 +507,7 @@ class BleConnectionManager(
         val variantId: Int,
         val variantName: String,
         val writeChar: BluetoothGattCharacteristic,
-        val notifyChar: BluetoothGattCharacteristic,
+        val notifyChar: BluetoothGattCharacteristic?,
         val usesIndication: Boolean
     )
 

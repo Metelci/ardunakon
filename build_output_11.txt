@@ -1,0 +1,37 @@
+> Task :app:clean
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig
+> Task :app:generateDebugResValues
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:checkDebugAarMetadata
+> Task :app:packageDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:parseDebugLocalResources
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
+> Task :app:mergeDebugResources
+> Task :app:processDebugResources
+> Task :app:kspDebugKotlin
+
+> Task :app:compileDebugKotlin
+w: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/BluetoothManager.kt:102:29 Unchecked cast of 'kotlin.Any?' to 'kotlin.collections.List<kotlin.Long>'.
+w: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/CombinedState.kt:46:29 Unchecked cast of 'kotlin.Any?' to 'kotlin.collections.List<kotlin.Long>'.
+w: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/bluetooth/ConnectionStateManager.kt:105:65 'static field VIBRATOR_SERVICE: String' is deprecated. Deprecated in Java.
+w: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/ui/screens/ControlScreen.kt:49:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///H:/StudioProjects/ardunakon/app/src/main/java/com/metelci/ardunakon/ui/screens/onboarding/DemoControlLayout.kt:182:38 'val Icons.Filled.ShowChart: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ShowChart.
+
+[Incubating] Problems report is available at: file:///H:/StudioProjects/ardunakon/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 12s
+17 actionable tasks: 17 executed

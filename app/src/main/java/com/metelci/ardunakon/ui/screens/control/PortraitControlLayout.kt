@@ -44,6 +44,7 @@ fun PortraitControlLayout(
     autoReconnectEnabled: Boolean,
     isEStopActive: Boolean,
     isWifiEncrypted: Boolean = false,
+    connectedDeviceInfo: String? = null,
 
     isDarkTheme: Boolean,
     safeDrawingPadding: androidx.compose.foundation.layout.PaddingValues,
@@ -99,6 +100,7 @@ fun PortraitControlLayout(
                 val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                 context.startActivity(intent)
             },
+            onResetTutorial = { viewModel.resetTutorial() },
             onQuitApp = onQuitApp,
             context = context,
             view = view
@@ -121,6 +123,7 @@ fun PortraitControlLayout(
             EmbeddedTerminal(
                 logs = debugLogs,
                 telemetry = telemetry,
+                connectedDeviceInfo = connectedDeviceInfo,
                 onSendCommand = { cmd -> viewModel.handleServoCommand(cmd) },
                 onClearLogs = { bluetoothManager.log("Logs cleared", LogType.INFO) },
                 onMaximize = { viewModel.showMaximizedDebug = true },
@@ -154,7 +157,6 @@ fun PortraitControlLayout(
             bluetoothRttMs = health?.lastRttMs,
             wifiRttMs = wifiRtt,
             isWifiMode = viewModel.connectionMode == ConnectionMode.WIFI,
-            sensitivity = viewModel.currentProfile.sensitivity,
             modifier = Modifier.weight(if (viewModel.isDebugPanelVisible) 0.35f else 0.6f).fillMaxWidth()
         )
     }

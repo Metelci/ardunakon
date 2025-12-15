@@ -172,6 +172,21 @@ object BleUuidRegistry {
     )
 
     /**
+     * Variant 10: ArduinoBLE custom UUIDs (e.g., "GameController" sketch)
+     * Service: 12345678-1234-1234-1234-123456789abc
+     * Characteristic: 87654321-4321-4321-4321-cba987654321 (read/write, often no notify)
+     */
+    val VARIANT_ARDUINO_CUSTOM_GAME_CONTROLLER = BleModuleVariant(
+        id = 10,
+        name = "ArduinoBLE (Custom UUIDs)",
+        description = "ArduinoBLE custom service/characteristic (e.g., GameController example sketch)",
+        serviceUuid = UUID.fromString("12345678-1234-1234-1234-123456789abc"),
+        txCharUuid = null,
+        rxCharUuid = UUID.fromString("87654321-4321-4321-4321-cba987654321"),
+        legacyCharUuid = UUID.fromString("87654321-4321-4321-4321-cba987654321")
+    )
+
+    /**
      * All supported variants in discovery order (most common first)
      * Note: MLT-BT05 is prioritized as it's a known working module
      */
@@ -183,7 +198,8 @@ object BleUuidRegistry {
         VARIANT_TI_HM10, // Original TI firmware (FFF0/FFF1)
         VARIANT_HC08_ALT, // Alternative HC-08
         VARIANT_AT09, // AT-09 variant
-        VARIANT_ARDUINO_BLE // Arduino library
+        VARIANT_ARDUINO_CUSTOM_GAME_CONTROLLER, // ArduinoBLE custom UUID sketch
+        VARIANT_ARDUINO_BLE // Arduino library standard example
     )
 
     /**

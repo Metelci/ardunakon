@@ -22,18 +22,21 @@ import androidx.compose.ui.unit.dp
 fun LatencySparkline(
     rttValues: List<Long>,
     modifier: Modifier = Modifier.width(60.dp).height(16.dp),
-    maxValues: Int = 20
+    maxValues: Int = 20,
+    fixedColor: Color? = null
 ) {
     // Take last N values
     val values = rttValues.takeLast(maxValues)
 
     // Determine color based on average latency
     val avgRtt = if (values.isNotEmpty()) values.average() else 0.0
-    val lineColor = when {
+    val dynamicColor = when {
         avgRtt < 50 -> Color(0xFF00C853) // Green - excellent
         avgRtt < 100 -> Color(0xFFFFD54F) // Yellow - acceptable
         else -> Color(0xFFFF5252) // Red - poor
     }
+    
+    val lineColor = fixedColor ?: dynamicColor
 
     Canvas(
         modifier = modifier

@@ -49,6 +49,7 @@ fun LandscapeControlLayout(
     autoReconnectEnabled: Boolean,
     isEStopActive: Boolean,
     isWifiEncrypted: Boolean = false,
+    connectedDeviceInfo: String? = null,
     isDarkTheme: Boolean,
     safeDrawingPadding: androidx.compose.foundation.layout.PaddingValues,
     orientationConfig: Configuration,
@@ -110,6 +111,7 @@ fun LandscapeControlLayout(
                     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                     context.startActivity(intent)
                 },
+                onResetTutorial = { viewModel.resetTutorial() },
                 onQuitApp = onQuitApp,
                 context = context,
                 view = view
@@ -197,7 +199,6 @@ fun LandscapeControlLayout(
                     bluetoothRttMs = health?.lastRttMs,
                     wifiRttMs = wifiRtt,
                     isWifiMode = viewModel.connectionMode == ConnectionMode.WIFI,
-                    sensitivity = viewModel.currentProfile.sensitivity,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
 
@@ -219,6 +220,7 @@ fun LandscapeControlLayout(
             EmbeddedTerminal(
                 logs = debugLogs,
                 telemetry = telemetry,
+                connectedDeviceInfo = connectedDeviceInfo,
                 onSendCommand = { cmd -> viewModel.handleServoCommand(cmd) },
                 onClearLogs = { bluetoothManager.log("Logs cleared", LogType.INFO) },
                 onMaximize = { viewModel.showMaximizedDebug = true },

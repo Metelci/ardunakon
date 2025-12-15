@@ -41,6 +41,9 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @javax.inject.Inject
+    lateinit var onboardingManager: com.metelci.ardunakon.data.OnboardingManager
+
     private var bluetoothService: BluetoothService? = null
     private var isBound by mutableStateOf(false)
     private var showPermissionDialog by mutableStateOf(false)
@@ -49,6 +52,7 @@ class MainActivity : ComponentActivity() {
     private var showNotificationPermissionDialog by mutableStateOf(false)
     private var notificationPermissionRequested = false
     private var serviceStarted = false
+    private var showOnboarding by mutableStateOf(false)
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -102,6 +106,9 @@ class MainActivity : ComponentActivity() {
         // Initialize crash handler first
         com.metelci.ardunakon.crash.CrashHandler.init(this)
 
+        // Check if onboarding should be shown (first run or version update)
+        showOnboarding = onboardingManager.shouldShowOnboarding()
+
         // Enable edge-to-edge display
         enableEdgeToEdge()
 
@@ -118,16 +125,38 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    if (isBound && bluetoothService != null) {
-                        ControlScreen(
-                            isDarkTheme = true,
-                            onQuitApp = {
-                                quitApp()
+                    when {
+                        // Show onboarding for first-time users
+                        showOnboarding -> {
+                            com.metelci.ardunakon.ui.screens.onboarding.OnboardingFlow(
+                                onComplete = {
+                                    showOnboarding = false
+                                    onboardingManager.completeOnboarding()
+                                },
+                                onSkip = {
+                                    showOnboarding = false
+                                    onboardingManager.skipOnboarding()
+                                }
+                            )
+                        }
+                        // Normal app flow
+                        isBound && bluetoothService != null -> {
+                            ControlScreen(
+                                isDarkTheme = true,
+                                onQuitApp = {
+                                    quitApp()
+                                },
+                                onTakeTutorial = {
+                                    onboardingManager.resetOnboarding()
+                                    showOnboarding = true
+                                }
+                            )
+                        }
+                        // Loading state
+                        else -> {
+                            Box(contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
                             }
-                        )
-                    } else {
-                        Box(contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
                         }
                     }
 
@@ -387,7 +416,7 @@ fun PermissionDeniedDialog(onDismiss: () -> Unit, onRetry: () -> Unit, onOpenSet
                     style = MaterialTheme.typography.labelSmall
                 )
                 Text(
-                    "- Data stays on-device; profiles are encrypted with the system keystore.",
+                    "- Data stays on-device; settings are encrypted with the system keystore.",
                     style = MaterialTheme.typography.labelSmall
                 )
             }
