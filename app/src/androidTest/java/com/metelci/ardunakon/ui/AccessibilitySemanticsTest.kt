@@ -1,22 +1,17 @@
 package com.metelci.ardunakon.ui
 
-import androidx.activity.ComponentActivity
-
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-
 import androidx.compose.ui.test.onNodeWithContentDescription
+import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.ui.components.JoystickControl
 import com.metelci.ardunakon.ui.components.ServoButtonControl
-import org.junit.Rule
-import org.junit.Test
-
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
-
-import com.metelci.ardunakon.MainActivity
+import org.junit.Rule
+import org.junit.Test
 
 @HiltAndroidTest
 class AccessibilitySemanticsTest {

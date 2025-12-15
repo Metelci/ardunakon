@@ -17,7 +17,7 @@ android {
         applicationId "com.metelci.ardunakon"
         minSdk 26
         targetSdk 35
-        versionCode 24
+        versionCode 23
         versionName "0.2.7-alpha"
 
         // Use custom test runner for Hilt
@@ -98,7 +98,7 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.mockk.android)
-    
+
     // Hilt Testing
     androidTestImplementation(libs.hilt.android.testing)
     kspAndroidTest(libs.hilt.compiler)
