@@ -104,7 +104,7 @@ jobs:
              app/build/outputs/apk/release/ardunakon-${{ steps.version.outputs.VERSION }}.apk
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: Ardunakon v${{ steps.version.outputs.VERSION }}
           body_path: changelog_body.txt
