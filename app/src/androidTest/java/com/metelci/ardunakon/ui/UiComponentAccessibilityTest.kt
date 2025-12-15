@@ -168,7 +168,8 @@ class UiComponentAccessibilityTest {
             ServoButtonControl(
                 servoX = 0f,
                 servoY = 0f,
-                onMove = { _, _ -> }
+                servoZ = 0f,
+                onMove = { _, _, _ -> }
             )
         }
 
@@ -181,17 +182,18 @@ class UiComponentAccessibilityTest {
     @Test
     fun servoButton_forward_click_updates_move_callback() {
         composeRule.setContent {
-            val lastMove = remember { mutableStateOf<Pair<Float, Float>?>(null) }
+            val lastMove = remember { mutableStateOf<Triple<Float, Float, Float>?>(null) }
             ServoButtonControl(
                 servoX = 0f,
                 servoY = 0f,
-                onMove = { x, y -> lastMove.value = x to y }
+                servoZ = 0f,
+                onMove = { x, y, z -> lastMove.value = Triple(x, y, z) }
             )
-            Text(lastMove.value?.let { "Move:${it.first},${it.second}" } ?: "None")
+            Text(lastMove.value?.let { "Move:${it.first},${it.second},${it.third}" } ?: "None")
         }
 
         composeRule.onNodeWithContentDescription("Move servo forward").performClick()
-        composeRule.onNodeWithText("Move:0.0,0.1").assertExists()
+        composeRule.onNodeWithText("Move:0.0,0.1,0.0").assertExists()
     }
 
     @Test

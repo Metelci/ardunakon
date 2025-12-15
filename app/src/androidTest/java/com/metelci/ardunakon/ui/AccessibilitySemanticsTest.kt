@@ -53,7 +53,8 @@ class AccessibilitySemanticsTest {
             ServoButtonControl(
                 servoX = 0f,
                 servoY = 0f,
-                onMove = { _, _ -> }
+                servoZ = 0f,
+                onMove = { _, _, _ -> }
             )
         }
 

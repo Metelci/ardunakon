@@ -173,6 +173,7 @@ class CriticalFlowsComposeTest {
                         onShowOta = {},
                         onToggleReflection = { allowReflection = !allowReflection },
                         onOpenArduinoCloud = {},
+                        onResetTutorial = {},
                         onQuitApp = {},
                         context = context,
                         view = view
@@ -233,6 +234,7 @@ class CriticalFlowsComposeTest {
                         onShowOta = {},
                         onToggleReflection = {},
                         onOpenArduinoCloud = {},
+                        onResetTutorial = {},
                         onQuitApp = {},
                         context = context,
                         view = view
