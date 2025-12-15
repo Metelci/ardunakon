@@ -145,7 +145,7 @@ fun ControlHeaderBar(
         var eStopButtonSize = eStopSize
 
         if (!isLandscape) {
-            val itemSpacingOptions = listOf(6.dp, 4.dp, 2.dp, 0.dp)
+            val itemSpacingOptions = listOf(8.dp, 6.dp, 4.dp)
             val modeSelectorOptions = listOf(40.dp, 36.dp, 32.dp, 28.dp)
             val statusWidgetOptions = listOf(56.dp, 52.dp, 48.dp, 44.dp)
             val rightButtonOptions = listOf(buttonSize, 32.dp, 30.dp, 28.dp)

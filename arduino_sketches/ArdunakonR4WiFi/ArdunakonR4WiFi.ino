@@ -2,30 +2,28 @@
  * Ardunakon - Arduino UNO R4 WiFi Sketch (Dual Mode: BLE + WiFi)
  *
  * Supports both Bluetooth BLE and WiFi connectivity
- * Designed for use with the Ardunakon Android Controller App
+ * WiFi supports AUTOMATIC mode switching:
+ *   - First tries to connect to your home WiFi (Station mode)
+ *   - If that fails, creates its own WiFi network (AP mode)
  *
  * Board: Arduino UNO R4 WiFi (Renesas RA4M1 + ESP32-S3)
- * Connectivity: BLE OR WiFi (compile-time selection)
- *
- * IMPORTANT: Set connection mode below before uploading!
  *
  * Pin Configuration:
  * - Motors: Pins 4-9 (L298N/BTS7960 compatible)
- * - Servos: Pin 2 (X-axis), Pin 12 (Y-axis)
+ * - Servos: Pin 2 (X-axis), Pin 12 (Y-axis), A1 (Z-axis)
  * - Battery Monitor: A0 (requires voltage divider for >5V batteries)
  * - Status LED: Pin 13 (built-in)
  * - Buzzer (optional): Pin 3
  *
- * v3.1 - Dual-mode support (BLE + WiFi)
+ * v3.3 - Automatic WiFi mode fallback (Station → AP)
  */
 
 // ============================================
 // CONNECTION MODE SELECTION
 // ============================================
-// Set to 1 for BLE mode, 0 for WiFi mode
-#define USE_BLE_MODE 0  // CHANGE THIS: 1 = BLE, 0 = WiFi
+#define USE_BLE_MODE 0  // 1 = BLE only, 0 = WiFi (with auto-fallback)
 
-// Debug Configuration (set to 0 for production builds)
+// Debug Configuration
 #define DEBUG_SERIAL 1
 
 #if DEBUG_SERIAL
@@ -37,22 +35,30 @@
 #endif
 
 // ============================================
-// INCLUDES (Mode-specific)
+// INCLUDES
 // ============================================
 #if USE_BLE_MODE
   #include <ArduinoBLE.h>
-  // BLE Service UUIDs (Nordic UART Service)
   #define SERVICE_UUID        "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
   #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
   #define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 #else
   #include <WiFiS3.h>
   #include <WiFiUdp.h>
-  // WiFi Configuration - CHANGE THESE!
-  const char* ssid = "METELCI";
-  const char* password = "hly55ne305";
+  
+  // ============================================
+  // WIFI CONFIGURATION - CHANGE THESE!
+  // ============================================
+  
+  // Your home WiFi credentials (Station mode - primary)
+  const char* sta_ssid = "METELCI";
+  const char* sta_password = "hly55ne305";
+  
+  // Fallback AP settings (if router not available)
+  const char* ap_ssid = "ArdunakonR4";
+  const char* ap_password = "";  // Open network
+  
   const unsigned int localPort = 8888;
-  const unsigned int discoveryPort = 8889;  // Discovery broadcast port
 #endif
 
 #include <Servo.h>
@@ -63,7 +69,6 @@
 // ============================================
 #define BOARD_TYPE_R4_WIFI 0x02
 
-// Capability Flags
 #define CAP1_SERVO_X    0x01
 #define CAP1_SERVO_Y    0x02
 #define CAP1_MOTOR      0x04
@@ -105,12 +110,13 @@ ArdunakonProtocol protocol;
   WiFiUDP udp;
   IPAddress clientIP;
   unsigned int clientPort = 0;
-  unsigned long lastDiscoveryBroadcast = 0;  // For WiFi discovery
+  unsigned long lastDiscoveryBroadcast = 0;
+  bool hasActiveClient = false;
+  unsigned long lastClientActivity = 0;
+  bool isAPMode = false;  // Track current WiFi mode
 #endif
 
-// ============================================
-// STATE VARIABLES
-// ============================================
+// State Variables
 uint8_t packetBuffer[ArdunakonProtocol::PACKET_SIZE];
 uint8_t bufferIndex = 0;
 unsigned long lastPacketTime = 0;
@@ -125,8 +131,7 @@ float batteryVoltage = 0.0;
 uint32_t packetsReceived = 0;
 bool isConnected = false;
 
-// Performance Optimization
-#define LOOP_INTERVAL_MS 5  // 200Hz loop rate
+#define LOOP_INTERVAL_MS 5
 unsigned long lastLoopTime = 0;
 unsigned long lastLedUpdate = 0;
 
@@ -137,23 +142,22 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  #if USE_BLE_MODE
-    Serial.println("Arduino UNO R4 WiFi - Ardunakon v3.1 (BLE Mode)");
-  #else
-    Serial.println("Arduino UNO R4 WiFi - Ardunakon v3.1 (WiFi Mode)");
-  #endif
+  Serial.println("========================================");
+  Serial.println("Arduino UNO R4 WiFi - Ardunakon v3.3");
+  Serial.println("========================================");
 
-  // Initialize hardware
   initializeHardware();
 
-  // Initialize connection (BLE or WiFi)
   #if USE_BLE_MODE
+    Serial.println("Mode: BLE");
     initializeBLE();
   #else
-    initializeWiFi();
+    Serial.println("Mode: WiFi (Auto-fallback)");
+    initializeWiFiWithFallback();
   #endif
 
-  DEBUG_PRINTLN("Ready for connections!");
+  Serial.println("Ready for connections!");
+  Serial.println("========================================");
 }
 
 // ============================================
@@ -162,20 +166,16 @@ void setup() {
 void loop() {
   unsigned long now = millis();
   
-  // Rate limit to 200Hz
-  if (now - lastLoopTime < LOOP_INTERVAL_MS) {
-    return;
-  }
+  if (now - lastLoopTime < LOOP_INTERVAL_MS) return;
   lastLoopTime = now;
 
   #if USE_BLE_MODE
     handleBLEConnection(now);
   #else
     handleWiFiConnection(now);
-    sendDiscoveryBroadcast(now);  // Broadcast presence for discovery
+    sendDiscoveryBroadcast(now);
   #endif
 
-  // Common tasks
   updateLED(now);
   sendTelemetryIfNeeded(now);
   checkSafetyTimeout(now);
@@ -185,7 +185,6 @@ void loop() {
 // HARDWARE INITIALIZATION
 // ============================================
 void initializeHardware() {
-  // Motor pins
   pinMode(MOTOR_LEFT_PWM, OUTPUT);
   pinMode(MOTOR_LEFT_DIR1, OUTPUT);
   pinMode(MOTOR_LEFT_DIR2, OUTPUT);
@@ -195,7 +194,6 @@ void initializeHardware() {
   pinMode(LED_STATUS, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 
-  // Servos
   servoX.attach(SERVO_X_PIN);
   servoY.attach(SERVO_Y_PIN);
   servoZ.attach(SERVO_Z_PIN);
@@ -212,27 +210,21 @@ void initializeHardware() {
 void initializeBLE() {
   bool bleInitialized = false;
   for (int attempt = 1; attempt <= 3; attempt++) {
-    DEBUG_PRINT("BLE initialization attempt ");
+    DEBUG_PRINT("BLE init attempt ");
     DEBUG_PRINT(attempt);
     DEBUG_PRINTLN("/3...");
-    
     delay(500 * attempt);
     
     if (BLE.begin()) {
       bleInitialized = true;
-      DEBUG_PRINTLN("BLE started successfully!");
+      DEBUG_PRINTLN("BLE started!");
       break;
     }
-    DEBUG_PRINTLN("BLE failed, retrying...");
   }
 
   if (!bleInitialized) {
-    Serial.println("ERROR: BLE initialization failed!");
-    Serial.println("Try updating Arduino R4 WiFi board package");
-    while (1) {
-      digitalWrite(LED_STATUS, !digitalRead(LED_STATUS));
-      delay(200);
-    }
+    Serial.println("ERROR: BLE failed!");
+    while (1) { digitalWrite(LED_STATUS, !digitalRead(LED_STATUS)); delay(200); }
   }
 
   BLE.setLocalName("ArdunakonR4");
@@ -242,15 +234,8 @@ void initializeBLE() {
   uartService.addCharacteristic(rxCharacteristic);
   uartService.addCharacteristic(txCharacteristic);
   BLE.addService(uartService);
-
-  BLE.setAdvertisedServiceUuid(uartService.uuid());
   BLE.setAdvertisedService(uartService);
-  
-  if (BLE.advertise()) {
-    DEBUG_PRINTLN("BLE advertising as 'ArdunakonR4'");
-  } else {
-    Serial.println("WARNING: BLE advertising failed!");
-  }
+  BLE.advertise();
 
   successBeep();
 }
@@ -263,17 +248,14 @@ void handleBLEConnection(unsigned long now) {
     if (!isConnected) {
       isConnected = true;
       bufferIndex = 0;
-      DEBUG_PRINT("BLE connected: ");
-      DEBUG_PRINTLN(central.address());
+      DEBUG_PRINTLN("BLE connected");
       sendCapabilities();
     }
 
     if (rxCharacteristic.written()) {
       int len = rxCharacteristic.valueLength();
       const uint8_t* data = rxCharacteristic.value();
-      
-      int bytesToProcess = min(len, 10);
-      for (int i = 0; i < bytesToProcess; i++) {
+      for (int i = 0; i < min(len, 10); i++) {
         processIncomingByte(data[i]);
       }
     }
@@ -289,45 +271,69 @@ void sendDataBLE(const uint8_t* data, size_t len) {
   txCharacteristic.writeValue(data, len);
 }
 
-#endif // USE_BLE_MODE
+#endif
 
 // ============================================
-// WIFI MODE FUNCTIONS
+// WIFI MODE FUNCTIONS (WITH AUTO-FALLBACK)
 // ============================================
 #if !USE_BLE_MODE
 
-void initializeWiFi() {
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(ssid);
+void initializeWiFiWithFallback() {
+  // Step 1: Try Station mode (connect to router)
+  Serial.println("\n[1] Trying Station mode...");
+  Serial.print("    SSID: ");
+  Serial.println(sta_ssid);
   
-  WiFi.begin(ssid, password);
+  WiFi.begin(sta_ssid, sta_password);
   
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+  while (WiFi.status() != WL_CONNECTED && attempts < 15) {
     delay(500);
     Serial.print(".");
     attempts++;
   }
   
   if (WiFi.status() == WL_CONNECTED) {
+    // Station mode SUCCESS
+    isAPMode = false;
     isConnected = true;
-    Serial.println("\nWiFi connected!");
-    Serial.print("IP address: ");
+    Serial.println("\n    SUCCESS! Connected to router");
+    Serial.print("    IP: ");
     Serial.println(WiFi.localIP());
-    
-    udp.begin(localPort);
-    Serial.print("UDP listening on port: ");
-    Serial.println(localPort);
-    
-    successBeep();
   } else {
-    Serial.println("\nERROR: WiFi connection failed!");
-    Serial.println("Check SSID and password in sketch");
-    while (1) {
-      digitalWrite(LED_STATUS, !digitalRead(LED_STATUS));
-      delay(500);
+    // Step 2: Fallback to AP mode
+    Serial.println("\n    Router not found. Switching to AP mode...");
+    
+    WiFi.disconnect();
+    delay(500);
+    
+    Serial.println("\n[2] Creating Access Point...");
+    Serial.print("    SSID: ");
+    Serial.println(ap_ssid);
+    
+    int status = strlen(ap_password) > 0 
+      ? WiFi.beginAP(ap_ssid, ap_password)
+      : WiFi.beginAP(ap_ssid);
+    
+    if (status != WL_AP_LISTENING) {
+      Serial.println("    ERROR: AP creation failed!");
+      while (1) { digitalWrite(LED_STATUS, !digitalRead(LED_STATUS)); delay(500); }
     }
+    
+    isAPMode = true;
+    isConnected = true;
+    Serial.println("    SUCCESS! AP created");
+    Serial.print("    IP: ");
+    Serial.println(WiFi.localIP());
+    Serial.println("    Connect your phone to 'ArdunakonR4' WiFi");
   }
+  
+  // Start UDP on both modes
+  udp.begin(localPort);
+  Serial.print("\nUDP listening on port ");
+  Serial.println(localPort);
+  
+  successBeep();
 }
 
 void handleWiFiConnection(unsigned long now) {
@@ -335,10 +341,12 @@ void handleWiFiConnection(unsigned long now) {
   if (packetSize > 0) {
     clientIP = udp.remoteIP();
     clientPort = udp.remotePort();
+    hasActiveClient = true;
+    lastClientActivity = now;
     
     int firstByte = udp.peek();
 
-    // Text-based discovery request from the Android app
+    // Text-based discovery request
     if (firstByte != ArdunakonProtocol::START_BYTE) {
       static char msgBuffer[128];
       int len = udp.read((uint8_t*)msgBuffer, min(packetSize, (int)sizeof(msgBuffer) - 1));
@@ -348,15 +356,15 @@ void handleWiFiConnection(unsigned long now) {
       String msg = String(msgBuffer);
       msg.trim();
       if (msg.startsWith("ARDUNAKON_DISCOVER")) {
-        String response = "ARDUNAKON_DEVICE:ArdunakonR4";
+        String response = isAPMode 
+          ? "ARDUNAKON_DEVICE:ArdunakonR4 (AP)"
+          : "ARDUNAKON_DEVICE:ArdunakonR4";
         udp.beginPacket(clientIP, clientPort);
         udp.print(response);
         udp.endPacket();
 
-        DEBUG_PRINT("Discovery request from ");
+        DEBUG_PRINT("Discovery from ");
         DEBUG_PRINT(clientIP);
-        DEBUG_PRINT(":");
-        DEBUG_PRINT(clientPort);
         DEBUG_PRINT(" -> ");
         DEBUG_PRINTLN(response);
       }
@@ -369,6 +377,13 @@ void handleWiFiConnection(unsigned long now) {
       processIncomingByte(packetBuffer[i]);
     }
   }
+  
+  // Client timeout
+  if (hasActiveClient && (now - lastClientActivity > 30000)) {
+    hasActiveClient = false;
+    clientPort = 0;
+    DEBUG_PRINTLN("Client timed out");
+  }
 }
 
 void sendDataWiFi(const uint8_t* data, size_t len) {
@@ -379,33 +394,32 @@ void sendDataWiFi(const uint8_t* data, size_t len) {
 }
 
 void sendDiscoveryBroadcast(unsigned long now) {
-  // Broadcast discovery packet every 2 seconds
   if (now - lastDiscoveryBroadcast < 2000) return;
   lastDiscoveryBroadcast = now;
   
-  // Create discovery response matching Android app format: "ARDUNAKON_DEVICE:name"
-  String discoveryMsg = "ARDUNAKON_DEVICE:ArdunakonR4";
+  String discoveryMsg = isAPMode 
+    ? "ARDUNAKON_DEVICE:ArdunakonR4 (AP)"
+    : "ARDUNAKON_DEVICE:ArdunakonR4";
   
-  // Broadcast to subnet on port 8888 (same port Android sends discovery to)
-  IPAddress broadcastIP = WiFi.localIP();
-  broadcastIP[3] = 255;  // Set last octet to 255 for broadcast
+  IPAddress broadcastIP = isAPMode
+    ? IPAddress(192, 168, 4, 255)
+    : IPAddress(WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], 255);
   
-  udp.beginPacket(broadcastIP, 8888);  // Changed from 8889 to 8888
+  udp.beginPacket(broadcastIP, 8888);
   udp.print(discoveryMsg);
   udp.endPacket();
   
-  DEBUG_PRINT("Discovery broadcast: ");
+  DEBUG_PRINT("Broadcast: ");
   DEBUG_PRINTLN(discoveryMsg);
 }
 
-#endif // !USE_BLE_MODE
+#endif
 
 // ============================================
 // COMMON FUNCTIONS
 // ============================================
 void processIncomingByte(uint8_t byte) {
   if (bufferIndex == 0 && byte != ArdunakonProtocol::START_BYTE) return;
-
   packetBuffer[bufferIndex++] = byte;
 
   if (bufferIndex >= ArdunakonProtocol::PACKET_SIZE) {
@@ -428,37 +442,21 @@ void handlePacket(const ArdunakonProtocol::ControlPacket& packet) {
       rightY = packet.rightY;
       auxBits = packet.auxBits;
       
-      // Control Z-axis servo with auxBits (W=forward, B=backward)
-      if (auxBits & ArdunakonProtocol::AUX_W) {
-        rightZ = 127;  // Max forward
-      } else if (auxBits & ArdunakonProtocol::AUX_B) {
-        rightZ = -127;  // Max backward
-      } else {
-        rightZ = 0;  // Center
-      }
+      if (auxBits & ArdunakonProtocol::AUX_W) rightZ = 127;
+      else if (auxBits & ArdunakonProtocol::AUX_B) rightZ = -127;
+      else rightZ = 0;
       
-      if (!emergencyStop) {
-        updateDrive();
-        updateServos();
-      }
-      break;
-
-    case ArdunakonProtocol::CMD_BUTTON:
-      // Button data would be in auxBits
+      if (!emergencyStop) { updateDrive(); updateServos(); }
       break;
 
     case ArdunakonProtocol::CMD_HEARTBEAT:
-      // Heartbeat acknowledged
+      sendHeartbeatAck();
       break;
 
     case ArdunakonProtocol::CMD_ESTOP:
-      emergencyStop = !emergencyStop;  // Toggle E-Stop
-      if (emergencyStop) {
-        safetyStop();
-        Serial.println("EMERGENCY STOP ACTIVATED");
-      } else {
-        DEBUG_PRINTLN("E-STOP CLEARED");
-      }
+      emergencyStop = !emergencyStop;
+      if (emergencyStop) { safetyStop(); Serial.println("E-STOP!"); }
+      else DEBUG_PRINTLN("E-STOP cleared");
       break;
 
     case ArdunakonProtocol::CMD_ANNOUNCE_CAPABILITIES:
@@ -468,50 +466,23 @@ void handlePacket(const ArdunakonProtocol::ControlPacket& packet) {
 }
 
 void updateDrive() {
-  int8_t throttle = leftY;
-  int8_t steering = leftX;
-
-  int leftSpeed = throttle + steering;
-  int rightSpeed = throttle - steering;
-
-  leftSpeed = constrain(leftSpeed, -127, 127);
-  rightSpeed = constrain(rightSpeed, -127, 127);
-
+  int leftSpeed = constrain(leftY + leftX, -127, 127);
+  int rightSpeed = constrain(leftY - leftX, -127, 127);
   setMotor(MOTOR_LEFT_PWM, MOTOR_LEFT_DIR1, MOTOR_LEFT_DIR2, leftSpeed);
   setMotor(MOTOR_RIGHT_PWM, MOTOR_RIGHT_DIR1, MOTOR_RIGHT_DIR2, rightSpeed);
 }
 
 void updateServos() {
-  int servoXPos = map(rightX, -127, 127, 0, 180);
-  int servoYPos = map(rightY, -127, 127, 0, 180);
-  int servoZPos = map(rightZ, -127, 127, 0, 180);
-  
-  servoX.write(servoXPos);
-  servoY.write(servoYPos);
-  servoZ.write(servoZPos);
+  servoX.write(map(rightX, -127, 127, 0, 180));
+  servoY.write(map(rightY, -127, 127, 0, 180));
+  servoZ.write(map(rightZ, -127, 127, 0, 180));
 }
 
 void setMotor(int pwmPin, int dir1Pin, int dir2Pin, int8_t speed) {
-  if (speed > 0) {
-    digitalWrite(dir1Pin, HIGH);
-    digitalWrite(dir2Pin, LOW);
-    analogWrite(pwmPin, abs(speed) * 2);
-  } else if (speed < 0) {
-    digitalWrite(dir1Pin, LOW);
-    digitalWrite(dir2Pin, HIGH);
-    analogWrite(pwmPin, abs(speed) * 2);
-  } else {
-    digitalWrite(dir1Pin, LOW);
-    digitalWrite(dir2Pin, LOW);
-    analogWrite(pwmPin, 0);
-  }
-}
-
-void handleButton(uint8_t buttonId, uint8_t pressed) {
-  if (buttonId == 1 && pressed == 1) {
-    emergencyStop = false;
-    Serial.println("E-STOP CLEARED");
-  }
+  if (speed > 0) { digitalWrite(dir1Pin, HIGH); digitalWrite(dir2Pin, LOW); }
+  else if (speed < 0) { digitalWrite(dir1Pin, LOW); digitalWrite(dir2Pin, HIGH); }
+  else { digitalWrite(dir1Pin, LOW); digitalWrite(dir2Pin, LOW); }
+  analogWrite(pwmPin, abs(speed) * 2);
 }
 
 void safetyStop() {
@@ -521,37 +492,31 @@ void safetyStop() {
 
 void updateLED(unsigned long now) {
   if (now - lastLedUpdate > 100) {
-    digitalWrite(LED_STATUS, (now - lastPacketTime < 500) ? HIGH : LOW);
+    #if !USE_BLE_MODE
+      if (hasActiveClient) digitalWrite(LED_STATUS, (now - lastPacketTime < 500) ? HIGH : LOW);
+      else digitalWrite(LED_STATUS, (now / 1000) % 2);
+    #else
+      digitalWrite(LED_STATUS, (now - lastPacketTime < 500) ? HIGH : LOW);
+    #endif
     lastLedUpdate = now;
   }
 }
 
 void sendTelemetryIfNeeded(unsigned long now) {
-  if (now - lastHeartbeatTime > 4000) {
+  if (now - lastHeartbeatTime > 2000) {
     sendTelemetry();
     lastHeartbeatTime = now;
   }
 }
 
 void checkSafetyTimeout(unsigned long now) {
-  if (now - lastPacketTime > 2000) {
-    safetyStop();
-  }
+  if (now - lastPacketTime > 2000) safetyStop();
 }
 
 void sendTelemetry() {
   batteryVoltage = analogRead(BATTERY_PIN) * (5.0 / 1023.0) * BATTERY_DIVIDER_RATIO;
-
   uint8_t response[10];
-  uint8_t statusFlags = emergencyStop ? 0x01 : 0x00;
-  protocol.formatTelemetry(
-    response,
-    BOARD_TYPE_R4_WIFI,
-    batteryVoltage,
-    statusFlags,
-    packetsReceived
-  );
-
+  protocol.formatTelemetry(response, BOARD_TYPE_R4_WIFI, batteryVoltage, emergencyStop ? 0x01 : 0x00, packetsReceived);
   #if USE_BLE_MODE
     sendDataBLE(response, 10);
   #else
@@ -560,19 +525,8 @@ void sendTelemetry() {
 }
 
 void sendHeartbeatAck() {
-  uint8_t response[10];
-  // Create heartbeat response
-  response[0] = ArdunakonProtocol::START_BYTE;
-  response[1] = BOARD_TYPE_R4_WIFI;
-  response[2] = ArdunakonProtocol::CMD_HEARTBEAT;
-  response[3] = 0;
-  response[4] = 0;
-  response[5] = 0;
-  response[6] = 0;
-  response[7] = 0;
+  uint8_t response[10] = {ArdunakonProtocol::START_BYTE, BOARD_TYPE_R4_WIFI, ArdunakonProtocol::CMD_HEARTBEAT, 0, 0, 0, 0, 0, 0, ArdunakonProtocol::END_BYTE};
   protocol.createChecksum(response);
-  response[9] = ArdunakonProtocol::END_BYTE;
-
   #if USE_BLE_MODE
     sendDataBLE(response, 10);
   #else
@@ -582,32 +536,19 @@ void sendHeartbeatAck() {
 
 void sendCapabilities() {
   uint8_t response[10];
-  
-  #if USE_BLE_MODE
-    uint8_t cap1 = CAP1_SERVO_X | CAP1_SERVO_Y | CAP1_MOTOR | CAP1_BUZZER | CAP1_BLE;
-  #else
-    uint8_t cap1 = CAP1_SERVO_X | CAP1_SERVO_Y | CAP1_MOTOR | CAP1_BUZZER | CAP1_WIFI;
-  #endif
-  
-  // Create capabilities announcement
+  uint8_t cap1 = CAP1_SERVO_X | CAP1_SERVO_Y | CAP1_MOTOR | CAP1_BUZZER | (USE_BLE_MODE ? CAP1_BLE : CAP1_WIFI);
   response[0] = ArdunakonProtocol::START_BYTE;
   response[1] = BOARD_TYPE_R4_WIFI;
   response[2] = ArdunakonProtocol::CMD_ANNOUNCE_CAPABILITIES;
   response[3] = cap1;
-  response[4] = 0;  // cap2
-  response[5] = 0;  // cap3
-  response[6] = 0;  // cap4
-  response[7] = 0;  // reserved
+  response[4] = 0; response[5] = 0; response[6] = 0; response[7] = 0;
   protocol.createChecksum(response);
   response[9] = ArdunakonProtocol::END_BYTE;
-
   #if USE_BLE_MODE
     sendDataBLE(response, 10);
   #else
     sendDataWiFi(response, 10);
   #endif
-  
-  DEBUG_PRINTLN("Capabilities sent");
 }
 
 void successBeep() {

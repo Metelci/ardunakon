@@ -15,11 +15,11 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicInteger
 
 class BleConnectionManager(
-    private val context: Context,
-    private val adapter: BluetoothAdapter?,
+    context: Context,
+    adapter: BluetoothAdapter?,
     private val scope: CoroutineScope,
-    private val callback: ConnectionCallback
-) : BluetoothConnectionManager {
+    callback: ConnectionCallback
+) : BaseConnectionManager(context, adapter, callback) {
 
     private var bluetoothGatt: BluetoothGatt? = null
     private var txCharacteristic: BluetoothGattCharacteristic? = null
@@ -36,10 +36,7 @@ class BleConnectionManager(
     private val isConnected = java.util.concurrent.atomic.AtomicBoolean(false)
     private val isGattConnected = java.util.concurrent.atomic.AtomicBoolean(false)
 
-    // Stats
-    private val packetsSent = AtomicLong(0)
-    private val packetsDropped = AtomicLong(0)
-    private val packetsFailed = AtomicLong(0)
+    // Stats - inherited from BaseConnectionManager: packetsSent, packetsDropped, packetsFailed
 
     // UUID Handling
     private var detectedVariant = 0
@@ -66,8 +63,7 @@ class BleConnectionManager(
             return
         }
 
-        if (adapter == null || !adapter.isEnabled) {
-            callback.onError("BLE connect failed: Bluetooth is off", LogType.ERROR)
+        if (!isBluetoothReady()) {
             cleanupGatt(ConnectionState.ERROR)
             return
         }
@@ -146,20 +142,9 @@ class BleConnectionManager(
         bluetoothGatt?.readRemoteRssi()
     }
 
-    override fun cleanup() {
-        disconnect()
-    }
+    // getPacketStats() - inherited from BaseConnectionManager
 
-    override fun getPacketStats(): NetworkStats {
-        return NetworkStats(packetsSent.get(), packetsDropped.get(), packetsFailed.get())
-    }
-
-    private fun checkBluetoothPermission(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            return context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-        }
-        return true
-    }
+    // checkBluetoothPermission() - inherited from BaseConnectionManager
 
     @SuppressLint("MissingPermission")
     private fun cleanupGatt(finalState: ConnectionState? = null) {

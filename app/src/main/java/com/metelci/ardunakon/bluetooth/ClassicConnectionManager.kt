@@ -16,10 +16,10 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 class ClassicConnectionManager(
-    private val context: Context,
-    private val adapter: BluetoothAdapter?,
-    private val callback: ConnectionCallback
-) : BluetoothConnectionManager {
+    context: Context,
+    adapter: BluetoothAdapter?,
+    callback: ConnectionCallback
+) : BaseConnectionManager(context, adapter, callback) {
 
     private var connectThread: ConnectThread? = null
     private var connectedThread: ConnectedThread? = null
@@ -30,6 +30,11 @@ class ClassicConnectionManager(
 
     @SuppressLint("MissingPermission")
     override fun connect(device: BluetoothDevice) {
+        if (!isBluetoothReady()) {
+            callback.onStateChanged(ConnectionState.ERROR)
+            return
+        }
+        
         if (isConnecting.getAndSet(true)) {
             callback.onError("Connection already in progress", LogType.WARNING)
             return
@@ -51,29 +56,23 @@ class ClassicConnectionManager(
     }
 
     override fun send(data: ByteArray) {
-        connectedThread?.write(data)
+        if (connectedThread != null) {
+            connectedThread?.write(data)
+            packetsSent.incrementAndGet()
+        } else {
+            packetsDropped.incrementAndGet()
+        }
     }
 
     override fun requestRssi() {
         // Not supported on Classic
     }
 
-    override fun cleanup() {
-        disconnect()
-    }
+    // cleanup() - inherited from BaseConnectionManager
 
-    override fun getPacketStats(): NetworkStats {
-        // No packet stats tracking in legacy classic threads currently, returning 0
-        return NetworkStats(0, 0, 0)
-    }
+    // getPacketStats() - inherited from BaseConnectionManager
 
-    private fun checkBluetoothPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true // Legacy inferred from manifest
-        }
-    }
+    // checkBluetoothPermission() - inherited from BaseConnectionManager
 
     @SuppressLint("MissingPermission")
     private inner class ConnectThread(private val device: BluetoothDevice) : Thread() {

@@ -85,9 +85,11 @@ class SecurityManager : CryptoEngine {
 
             return Base64.encodeToString(combined, Base64.DEFAULT)
         } catch (e: UserNotAuthenticatedException) {
-            throw AuthRequiredException("Unlock your device to encrypt data.", e)
+            // SECURITY FIX: Provide generic error message
+            throw AuthRequiredException("Device authentication required for secure storage.", e)
         } catch (e: GeneralSecurityException) {
-            throw AuthRequiredException("Encryption unavailable until device is unlocked.", e)
+            // SECURITY FIX: Provide generic error message
+            throw AuthRequiredException("Security system unavailable. Check device unlock status.", e)
         }
     }
 
@@ -95,22 +97,17 @@ class SecurityManager : CryptoEngine {
         try {
             val combined = Base64.decode(encryptedData, Base64.DEFAULT)
 
-            // Validate minimum data size (at least 1 byte for IV size + some IV + some data)
+            // SECURITY FIX: Validate input without exposing specific implementation details
             if (combined.size < 3) {
-                throw IllegalArgumentException("Encrypted data is too short to be valid")
+                throw AuthRequiredException("Corrupted secure data detected")
             }
 
             // Extract IV size - ensure it's positive and within valid range
             val ivSize = combined[0].toInt() and 0xFF // Ensure positive value (0-255)
 
-            // Validate IV size - GCM typically uses 12 bytes, but allow 8-16 as valid range
-            if (ivSize < 8 || ivSize > 16) {
-                throw IllegalArgumentException("Invalid IV size: $ivSize. Expected 8-16 bytes.")
-            }
-
-            // Validate total size - must have room for IV size byte + IV + at least some encrypted data
-            if (combined.size < 1 + ivSize + 1) {
-                throw IllegalArgumentException("Encrypted data is too short for declared IV size")
+            // SECURITY FIX: Generic validation without exposing specific crypto details
+            if (ivSize < 8 || ivSize > 16 || combined.size < 1 + ivSize + 1) {
+                throw AuthRequiredException("Invalid secure data format")
             }
 
             // Extract IV
@@ -120,7 +117,7 @@ class SecurityManager : CryptoEngine {
             // Extract Encrypted Content
             val encryptedSize = combined.size - 1 - ivSize
             if (encryptedSize < 0) {
-                throw IllegalArgumentException("Invalid encrypted data size")
+                throw AuthRequiredException("Invalid secure data structure")
             }
 
             val encryptedBytes = ByteArray(encryptedSize)
@@ -133,9 +130,11 @@ class SecurityManager : CryptoEngine {
             val decoded = cipher.doFinal(encryptedBytes)
             return String(decoded, Charsets.UTF_8)
         } catch (e: UserNotAuthenticatedException) {
-            throw AuthRequiredException("Unlock your device to access saved data.", e)
+            // SECURITY FIX: Provide generic error message
+            throw AuthRequiredException("Device authentication required to access secure data.", e)
         } catch (e: GeneralSecurityException) {
-            throw AuthRequiredException("Decryption unavailable until device is unlocked.", e)
+            // SECURITY FIX: Provide generic error message
+            throw AuthRequiredException("Security system unavailable. Check device unlock status.", e)
         }
     }
 }

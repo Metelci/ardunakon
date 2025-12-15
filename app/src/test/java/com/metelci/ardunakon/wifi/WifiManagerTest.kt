@@ -307,13 +307,13 @@ class WifiManagerTest {
 
     @Test
     fun setRequireEncryptionUpdatesState() {
-        assertFalse("Default should be false", manager.isEncryptionRequired())
-
-        manager.setRequireEncryption(true)
-        assertTrue(manager.isEncryptionRequired())
+        assertTrue("Default should be true for security", manager.isEncryptionRequired())
 
         manager.setRequireEncryption(false)
         assertFalse(manager.isEncryptionRequired())
+
+        manager.setRequireEncryption(true)
+        assertTrue(manager.isEncryptionRequired())
     }
 
     @Test

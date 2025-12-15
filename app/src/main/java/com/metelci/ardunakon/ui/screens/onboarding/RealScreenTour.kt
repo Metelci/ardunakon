@@ -96,7 +96,8 @@ fun RealScreenTour(
             // Navigation card: Position based on highlighted element to avoid overlap
             // If element is at the bottom (Joystick/Servo), move card to Top.
             // If element is at the top (Header), move card to Bottom.
-            val isBottomElement = currentElement == InterfaceElement.LEFT_JOYSTICK || currentElement == InterfaceElement.SERVO_CONTROLS
+            val isBottomElement = currentElement == InterfaceElement.LEFT_JOYSTICK ||
+                currentElement == InterfaceElement.SERVO_CONTROLS
             
             TutorialNavigationCard(
                 element = currentElement,
@@ -244,7 +245,11 @@ private fun ArrowUp(
         drawPath(
             path = path,
             color = color,
-            style = Stroke(width = 8f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
+            style = Stroke(
+                width = 8f,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                join = androidx.compose.ui.graphics.StrokeJoin.Round
+            )
         )
     }
 }
@@ -275,7 +280,11 @@ private fun ArrowDown(
         drawPath(
             path = path,
             color = color,
-            style = Stroke(width = 8f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
+            style = Stroke(
+                width = 8f,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                join = androidx.compose.ui.graphics.StrokeJoin.Round
+            )
         )
     }
 }

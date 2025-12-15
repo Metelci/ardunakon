@@ -4,18 +4,19 @@
 Ardunakon is an Android application designed to control Arduino projects (RC cars, drones, boats, robots) via Bluetooth Classic, BLE, or Wi-Fi UDP. It supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and classic Arduino UNO with HC-05/HC-06 or HM-10 modules. The app focuses on stability, clear telemetry, and a customizable interface.
 
 ## Release Info
-* Current Alpha: **0.2.6-alpha** (build 23)
+* Current Alpha: **0.2.7-alpha** (build 24)
 * Target SDK: 36, Min SDK: 26
+
+### What's New in 0.2.7-alpha
+*   **Platform Abstraction Layer**: Removed hardcoded Android dependencies for better testability
+*   **WiFi Auto-Fallback**: Arduino R4 WiFi sketch now automatically tries router connection first, falls back to AP mode
+*   **Larger Help Dialog**: Increased to 95% screen coverage in all orientations
+*   **Better Layout**: Fixed header icon spacing in portrait mode (no more overlapping)
 
 ### What's New in 0.2.6-alpha
 *   **Critical BLE Safety Fix**: Fixed motor unexpectedly spinning on BLE reconnect (Android 15/16)
 *   **Connection State Check**: Transmission loop now only sends when actually connected
 *   **State Reset on Disconnect**: Joystick/servo values reset to neutral on disconnect to prevent stale control values
-
-### What's New in 0.2.5-alpha
-*   **Code Cleanup**: Removed 4 orphaned components (~450 lines) - duplicate debug console, unused sensor dashboard, and unused security classes
-*   **Better Organization**: Relocated example Arduino sketches to `examples/` directory with dedicated README
-*   **Comprehensive Docs**: Added detailed documentation for all Arduino sketches (pin mappings, Bluetooth compatibility matrix)
 
 ## Key Features
 
@@ -103,7 +104,7 @@ Requires external Bluetooth module.
 1. Connect your phone and Arduino/ESP running the Wi-Fi sketch to the same network (UDP 8888; replies with `ARDUNAKON_DEVICE:<name>`).
 2. In the app, switch to Wi-Fi mode and open **Wi-Fi Config** to enter the target IP/port if discovery is blocked.
 3. Allow Wi-Fi/Location permissions when prompted (Android 13+ may request Nearby Wi-Fi/Location for discovery).
-4. Security: Wi-Fi control packets are currently sent in plaintext; use trusted networks until session key exchange is added.
+4. 🔒 **Security**: Wi-Fi communications now use encrypted AES-GCM by default. Devices must support security handshake or connection will be blocked.
 
 
 ## Protocol Overview
@@ -147,7 +148,7 @@ Unlock the full potential of your Arduino projects with **Ardunakon**, a stabili
 **Key Features:**
 
 *   **RC Car Control Layout**: Throttle joystick for smooth speed control + WASD buttons for precise servo positioning. Car (bidirectional) and ESC (0-100%) modes included.
-*   **Secure & Private**: Profiles/settings stay on-device and are encrypted via Android Keystore. Wi-Fi control traffic is currently unencrypted; use trusted networks until key exchange ships.
+*   **Secure & Private**: Profiles/settings stay on-device and are encrypted via Android Keystore. Wi-Fi communications use AES-GCM encryption by default with device verification.
 *   **Total Customization**: Adjust joystick sensitivity (10% - 200%) and map custom Aux buttons.
 *   **Real-Time Telemetry**: View live data from your Arduino in the built-in Debug Console.
 *   **Auto-Connect**: Seamlessly reconnects if signal is lost.

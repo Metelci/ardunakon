@@ -33,18 +33,21 @@ fun EncryptionErrorDialog(
     onDismiss: () -> Unit
 ) {
     val title = when (error) {
-        is EncryptionException.HandshakeFailedException -> "Handshake Failed"
-        is EncryptionException.EncryptionFailedException -> "Encryption Failed"
-        is EncryptionException.NoSessionKeyException -> "No Encryption Key"
+        is EncryptionException.HandshakeFailedException -> "Security Verification Failed"
+        is EncryptionException.EncryptionFailedException -> "Encryption Error"
+        is EncryptionException.NoSessionKeyException -> "Security Protocol Error"
+        is EncryptionException.SecurityException -> "Security Error"
     }
 
     val suggestion = when (error) {
         is EncryptionException.HandshakeFailedException ->
-            "The device could not be verified. This may indicate a misconfigured device or a security issue."
+            "The device could not establish a secure connection. This may indicate an incompatible device or network security policy."
         is EncryptionException.EncryptionFailedException ->
-            "A cryptographic error occurred. Try reconnecting or restarting the app."
+            "A security protocol error occurred. Check your connection and try again."
         is EncryptionException.NoSessionKeyException ->
-            "No secure session was established. The device may not support encryption."
+            "A secure session could not be established. The device may not support the required security protocol."
+        is EncryptionException.SecurityException ->
+            "A security requirement could not be satisfied. Check your device compatibility and network configuration."
     }
 
     AlertDialog(
@@ -54,7 +57,8 @@ fun EncryptionErrorDialog(
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
-                Text(error.message ?: "Unknown encryption error")
+                // SECURITY FIX: Don't expose detailed error messages to prevent information leakage
+                Text("Security protocol error occurred")
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     suggestion,
@@ -63,7 +67,7 @@ fun EncryptionErrorDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "Connection stopped to prevent unencrypted data transmission.",
+                    "Connection blocked to prevent unencrypted data transmission.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )

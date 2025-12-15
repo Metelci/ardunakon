@@ -43,9 +43,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # - name: Run ktlint check
-      #   run: ./gradlew ktlintCheck
-      #   continue-on-error: false
+      - name: Run ktlint check
+        run: ./gradlew ktlintCheck
+        continue-on-error: false
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest

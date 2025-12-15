@@ -17,10 +17,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Joystick event throttling to 20Hz
 - Debug log entry limit (500 maximum)
 
+### Added
+- Comprehensive KTLint code formatting standards implementation
+- CI/CD integration for automatic formatting enforcement
+- KTLint violation fixes for critical formatting issues
+
 ### Changed
 - Arduino R4 WiFi sketch reorganization (snake game moved to examples)
 - All Arduino comments translated to English
 - Build verification includes ProGuard mapping check
+- GitHub Actions PR workflow now enforces KTLint formatting standards
+
+## [0.2.7-alpha] - 2025-12-15
+
+### Added
+- **Platform Abstraction Layer:** Removed hardcoded Android dependencies from business logic
+  - New `PlatformInfo` interface for device/OS information
+  - New `SystemServices` interface for Bluetooth and system services
+  - Improved testability with `FakePlatformInfo` and `FakeSystemServices`
+- **WiFi Auto-Fallback:** Arduino R4 WiFi sketch now automatically switches modes
+  - Tries Station mode (connect to router) first
+  - Falls back to AP mode if router unavailable
+  - Single sketch upload works in both scenarios
+- Enhanced Help & Documentation dialog
+  - Increased to 95% screen width/height in all orientations
+  - Removed platform default width constraints for better visibility
+
+### Fixed
+- Header icon spacing in portrait mode (icons no longer overlap)
+- Minimum spacing increased from 0dp to 4dp for symmetrical layout
+
+### Changed
+- Arduino R4 WiFi sketch v3.3 with intelligent WiFi mode selection
+- Telemetry broadcast rate increased from 4s to 2s (prevents timeout issues)
+- Heartbeat ACK response added to maintain connection stability
+
 
 ## [0.2.6-alpha] - 2025-12-14
 

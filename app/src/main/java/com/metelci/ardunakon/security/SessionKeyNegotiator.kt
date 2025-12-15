@@ -53,11 +53,12 @@ class SessionKeyNegotiator(
      */
     fun completeHandshake(deviceNonce: ByteArray, deviceSignature: ByteArray): ByteArray {
         val storedNonce = appNonce
-            ?: throw EncryptionException.HandshakeFailedException("Handshake not started")
+            ?: throw EncryptionException.HandshakeFailedException("Security handshake not initialized")
 
+        // SECURITY FIX: Generic validation without exposing crypto details
         if (deviceNonce.size != NONCE_SIZE) {
             throw EncryptionException.HandshakeFailedException(
-                "Invalid device nonce size: ${deviceNonce.size}"
+                "Device security response invalid"
             )
         }
 
@@ -65,7 +66,7 @@ class SessionKeyNegotiator(
         val expectedSignature = computeHmac(storedNonce + deviceNonce, preSharedKey)
         if (!deviceSignature.contentEquals(expectedSignature)) {
             throw EncryptionException.HandshakeFailedException(
-                "Device signature verification failed"
+                "Device security verification failed"
             )
         }
 

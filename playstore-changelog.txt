@@ -1,0 +1,18 @@
+Version 0.2.7-alpha - December 15, 2025
+
+NEW FEATURES:
+• Platform Abstraction Layer - Improved code quality and testability
+• WiFi Auto-Fallback - Arduino R4 WiFi now auto-switches between router and AP mode
+• Larger Help Dialog - 95% screen coverage for better readability
+
+IMPROVEMENTS:
+• Fixed header icon overlap in portrait mode
+• Better connection stability with faster telemetry (2s intervals)
+• Arduino sketch v3.3 with intelligent WiFi mode selection
+
+TECHNICAL:
+• New PlatformInfo and SystemServices interfaces
+• Enhanced test coverage with fake implementations
+• Improved separation of concerns
+
+For full changelog, visit: https://github.com/metelci/ardunakon

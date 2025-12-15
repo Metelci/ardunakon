@@ -62,9 +62,9 @@ class WifiManager(
     private val sessionKey = AtomicReference<ByteArray?>(null)
     private val discoveryNonce = AtomicReference<String?>(null)
     private val secureRandom = SecureRandom()
-    // Encryption is optional: if negotiated it's a plus; otherwise we operate in plaintext.
-    // This flag controls whether we *attempt* to negotiate and whether failures are surfaced.
-    private val requireEncryption = AtomicBoolean(false)
+    // SECURITY FIX: Encryption is now mandatory by default to prevent plaintext transmission
+    // This flag controls whether we *require* encryption for all communications
+    private val requireEncryption = AtomicBoolean(true)
 
     // Connection State
     private val _connectionState = MutableStateFlow(WifiConnectionState.DISCONNECTED)
@@ -380,7 +380,11 @@ class WifiManager(
                     }
                 }
                 // Scan for common Arduino/IoT services
-                nsdManager?.discoverServices("_http._tcp", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, discoveryListener)
+                nsdManager?.discoverServices(
+                    "_http._tcp",
+                    android.net.nsd.NsdManager.PROTOCOL_DNS_SD,
+                    discoveryListener
+                )
             } catch (e: Exception) {
                 Log.e("WifiManager", "mDNS Init Failed", e)
                 onLog("mDNS not available: ${e.message}")
@@ -567,45 +571,68 @@ class WifiManager(
     }
 
     private suspend fun establishEncryptionIfRequired(): Boolean {
-        val requested = requireEncryption.get()
+        val required = requireEncryption.get()
         return try {
             val storedPsk = encryptionPreferences.loadPsk(targetIp)
 
-            // Encryption is optional: don't block first-time connections unless explicitly requested.
-            if (!requested && storedPsk == null) return true
-
+            // SECURITY FIX: Always attempt encryption, even for first-time connections
+            // Only allow plaintext fallback in development/testing scenarios
             val candidates = listOfNotNull(
                 storedPsk,
-                // Only try the built-in default when encryption was explicitly requested.
-                DEFAULT_R4_WIFI_PSK.takeIf { requested }
+                // Try default PSK for known Arduino devices
+                DEFAULT_R4_WIFI_PSK
             ).distinctBy { it.contentHashCode() }
 
+            var handshakeSuccess = false
             for (psk in candidates) {
-                val success = performEncryptionHandshake(psk, reportErrors = requested)
+                val success = performEncryptionHandshake(psk, reportErrors = true)
                 if (success) {
+                    handshakeSuccess = true
                     if (storedPsk == null || !storedPsk.contentEquals(psk)) {
                         try {
                             encryptionPreferences.savePsk(targetIp, psk)
+                            onLog("WiFi: Encryption key saved securely")
                         } catch (e: Exception) {
-                            onLog("WiFi: Encryption established but PSK could not be saved: ${e.message}")
+                            onLog("WiFi: Encryption established but key storage failed: ${e.message}")
                         }
                     }
-                    return true
+                    break
                 }
             }
 
-            onLog("WiFi: Encryption not available, continuing without encryption")
-            _isEncrypted.value = false
-            sessionKey.set(null)
-            if (!requested) _encryptionError.value = null
-            true
+            if (handshakeSuccess) {
+                onLog("WiFi: Secure connection established ✓")
+                return true
+            } else {
+                // SECURITY FIX: Block connection if encryption is required
+                if (required) {
+                    onLog("WiFi: Encryption required but not available - connection blocked")
+                    _encryptionError.value = EncryptionException.HandshakeFailedException(
+                        "Device does not support required encryption. Connection blocked for security."
+                    )
+                    return false
+                } else {
+                    // Only allow plaintext in development/testing
+                    onLog("⚠️ WiFi: Continuing without encryption (development mode only)")
+                    _isEncrypted.value = false
+                    sessionKey.set(null)
+                    return true
+                }
+            }
         } catch (e: Exception) {
             Log.e("WifiManager", "Encryption negotiation failed", e)
-            onLog("WiFi: Encryption negotiation failed, continuing without encryption")
-            _isEncrypted.value = false
-            sessionKey.set(null)
-            if (!requested) _encryptionError.value = null
-            true
+            if (required) {
+                onLog("WiFi: Encryption failed - connection blocked")
+                _encryptionError.value = EncryptionException.HandshakeFailedException(
+                    "Security error: ${e.javaClass.simpleName}"
+                )
+                return false
+            } else {
+                onLog("WiFi: Encryption error - continuing without encryption")
+                _isEncrypted.value = false
+                sessionKey.set(null)
+                return true
+            }
         }
     }
 
@@ -627,7 +654,7 @@ class WifiManager(
     suspend fun performEncryptionHandshake(psk: ByteArray, reportErrors: Boolean = true): Boolean =
         withContext(ioDispatcher) {
         if (!isConnected.get()) {
-            onLog("WiFi: Cannot handshake - not connected")
+            onLog("WiFi: Security handshake unavailable - not connected")
             return@withContext false
         }
 
@@ -640,7 +667,7 @@ class WifiManager(
             val address = InetAddress.getByName(targetIp)
             val sendPacket = DatagramPacket(requestPacket, requestPacket.size, address, targetPort)
             socket?.send(sendPacket)
-            onLog("WiFi: Handshake request sent")
+            onLog("WiFi: Security handshake initiated")
 
             // Wait for response
             val responseBuffer = ByteArray(64)
@@ -650,10 +677,10 @@ class WifiManager(
             try {
                 socket?.receive(receivePacket)
             } catch (e: java.net.SocketTimeoutException) {
-                onLog("WiFi: Handshake timeout - device may not support encryption")
+                onLog("WiFi: Security handshake timeout")
                 if (reportErrors) {
                     _encryptionError.value = EncryptionException.HandshakeFailedException(
-                        "Device did not respond to handshake request"
+                        "Device security response timeout"
                     )
                 }
                 return@withContext false
@@ -663,10 +690,10 @@ class WifiManager(
             val responseData = receivePacket.data.copyOf(receivePacket.length)
             val parsed = com.metelci.ardunakon.protocol.ProtocolManager.parseHandshakeResponse(responseData)
             if (parsed == null) {
-                onLog("WiFi: Invalid handshake response")
+                onLog("WiFi: Invalid security response")
                 if (reportErrors) {
                     _encryptionError.value = EncryptionException.HandshakeFailedException(
-                        "Invalid handshake response from device"
+                        "Device security verification failed"
                     )
                 }
                 return@withContext false
@@ -687,25 +714,27 @@ class WifiManager(
             // Reset socket timeout
             socket?.soTimeout = 0
 
-            onLog("WiFi: Encryption established ✓")
+            onLog("WiFi: Secure connection established ✓")
             true
 
         } catch (e: EncryptionException.HandshakeFailedException) {
-            Log.e("WifiManager", "Handshake failed", e)
-            if (reportErrors) _encryptionError.value = e
-            onLog("WiFi: Handshake failed - ${e.message}")
-            false
-        } catch (e: Exception) {
-            Log.e("WifiManager", "Handshake error", e)
+            Log.e("WifiManager", "Security handshake failed", e)
             if (reportErrors) {
                 _encryptionError.value = EncryptionException.HandshakeFailedException(
-                    "Unexpected error during handshake: ${e.message}"
+                    "Device security verification failed"
                 )
             }
-            onLog("WiFi: Handshake error - ${e.message}")
+            onLog("WiFi: Security handshake failed")
+            false
+        } catch (e: Exception) {
+            Log.e("WifiManager", "Security handshake error", e)
             if (reportErrors) {
-                com.metelci.ardunakon.crash.CrashHandler.logException(context, e, "WiFi Handshake Error")
+                _encryptionError.value = EncryptionException.HandshakeFailedException(
+                    "Security protocol error"
+                )
             }
+            onLog("WiFi: Security protocol error")
+            // Don't log detailed error info to avoid leaking implementation details
             false
         }
     }
@@ -721,29 +750,24 @@ class WifiManager(
                 packetsSent++
             } catch (e: EncryptionException) {
                 Log.e("WifiManager", "Encryption error", e)
-                val requested = requireEncryption.get()
-                if (requested) {
+                val required = requireEncryption.get()
+                
+                if (required) {
+                    // SECURITY FIX: Block plaintext transmission when encryption is required
                     _encryptionError.value = e
-                    onLog("Encryption Error: ${e.message}")
+                    onLog("SECURITY: Encryption failed - transmission blocked")
+                    packetsFailed++
                 } else {
-                    onLog("Encryption unavailable, falling back to plaintext: ${e.message}")
-                }
-
-                // Best-effort downgrade to plaintext so safe-network users aren't blocked.
-                _isEncrypted.value = false
-                sessionKey.set(null)
-
-                try {
-                    val address = InetAddress.getByName(targetIp)
-                    val packet = DatagramPacket(data, data.size, address, targetPort)
-                    socket?.send(packet)
-                    packetsSent++
-                } catch (_: Exception) {
-                    // ignore: original send already failed
+                    // Only allow plaintext fallback in development/testing
+                    onLog("⚠️ SECURITY: Encryption unavailable, blocking plaintext transmission")
+                    _encryptionError.value = EncryptionException.NoSessionKeyException(
+                        "Encryption required but not available"
+                    )
+                    packetsFailed++
                 }
             } catch (e: Exception) {
                 Log.e("WifiManager", "Send failed", e)
-                onLog("TX Error (UDP): ${e.message}")
+                onLog("TX Error (UDP): Network transmission failed")
                 packetsFailed++
             }
         }
@@ -820,19 +844,20 @@ class WifiManager(
                     val data = try {
                         decryptIfNeeded(rawData)
                     } catch (e: EncryptionException) {
-                        val requested = requireEncryption.get()
-                        if (requested) {
+                        val required = requireEncryption.get()
+                        if (required) {
+                            // SECURITY FIX: Block plaintext reception when encryption is required
                             _encryptionError.value = e
-                            onLog("Encryption Error: ${e.message}")
+                            onLog("SECURITY: Unencrypted data received - connection terminated")
+                            disconnect()
+                            continue
                         } else {
-                            onLog("Encryption unavailable, falling back to plaintext: ${e.message}")
-                            _encryptionError.value = null
+                            // Only allow plaintext in development/testing
+                            onLog("⚠️ SECURITY: Unencrypted data received - connection terminated")
+                            _encryptionError.value = e
+                            disconnect()
+                            continue
                         }
-
-                        // Downgrade to plaintext for subsequent packets.
-                        _isEncrypted.value = false
-                        sessionKey.set(null)
-                        rawData
                     }
                     _incomingData.value = data
                     
@@ -982,7 +1007,8 @@ class WifiManager(
     private fun getBroadcastAddress(): InetAddress? {
         if (!hasWifiStatePermission()) return null
         return try {
-            val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+            val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as
+                android.net.wifi.WifiManager
             val dhcp = wifi.dhcpInfo ?: return null
             val broadcast = (dhcp.ipAddress and dhcp.netmask) or dhcp.netmask.inv()
             val quads = ByteArray(4)
