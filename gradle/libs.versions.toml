@@ -2,7 +2,7 @@
 # Tooling
 agp = "8.11.1"
 kotlin = "2.0.21"
-ksp = "2.0.21-1.0.27"
+ksp = "2.3.3"
 hilt = "2.51.1"
 owaspDependencyCheck = "9.0.9"
 
