@@ -64,7 +64,6 @@ object AssetReader {
 
             QUICK LINKS:
             - Setup Guide: https://github.com/metelci/ardunakon/blob/main/arduino_sketches/SETUP_GUIDE.md
-            - Troubleshooting: https://github.com/metelci/ardunakon/blob/main/HC06_TROUBLESHOOTING.md
             - Compatibility: https://github.com/metelci/ardunakon/blob/main/BLUETOOTH_COMPATIBILITY.md
 
             ====================================================================================================

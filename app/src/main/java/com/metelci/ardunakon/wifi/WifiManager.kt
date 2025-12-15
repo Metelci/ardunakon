@@ -837,10 +837,8 @@ class WifiManager(
                     _incomingData.value = data
                     
                     // Parse Telemetry using centralized parser
-                    android.util.Log.d("WifiTelemetry", "Received packet, size: ${data.size}")
                     val result = TelemetryParser.parse(data)
                     if (result != null) {
-                        android.util.Log.d("WifiTelemetry", "Telemetry parsed: Battery=${result.batteryVoltage}V, Status=${result.status}")
                         _telemetry.value = Telemetry(
                             batteryVoltage = result.batteryVoltage,
                             status = result.status,
@@ -848,8 +846,6 @@ class WifiManager(
                             packetsDropped = 0, // Not applicable for UDP (fire and forget)
                             packetsFailed = packetsFailed
                         )
-                    } else {
-                        android.util.Log.d("WifiTelemetry", "TelemetryParser returned NULL - not a telemetry packet")
                     }
 
                     onPacketReceived() // Update RTT measurement
