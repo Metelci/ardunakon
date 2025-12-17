@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build verification includes ProGuard mapping check
 - GitHub Actions PR workflow now enforces KTLint formatting standards
 
+## [0.2.7-alpha-hotfix1] - 2025-12-17
+
+### Fixed
+- Servo Z reliability: A/Z controls are now encoded only in `CMD_JOYSTICK (0x01)` `auxBits` (no heartbeat control packets)
+
+### Changed
+- Joystick packets no longer send continuously when all inputs are neutral (one final neutral packet is sent on release)
+
 ## [0.2.7-alpha] - 2025-12-15
 
 ### Added
@@ -256,4 +264,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-**Last Updated:** December 14, 2025
+**Last Updated:** December 17, 2025

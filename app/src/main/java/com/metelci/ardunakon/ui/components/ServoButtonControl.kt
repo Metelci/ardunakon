@@ -1,6 +1,8 @@
 package com.metelci.ardunakon.ui.components
 
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,6 +12,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +43,26 @@ fun ServoButtonControl(
     val debounceDelay = 100L
     val step = 0.1f
 
+    val aInteractionSource = remember { MutableInteractionSource() }
+    val zInteractionSource = remember { MutableInteractionSource() }
+    val isAPressed by aInteractionSource.collectIsPressedAsState()
+    val isZPressed by zInteractionSource.collectIsPressedAsState()
+
+    val targetZ = when {
+        isAPressed && !isZPressed -> -1f
+        isZPressed && !isAPressed -> 1f
+        else -> 0f
+    }
+
+    LaunchedEffect(targetZ) {
+        if (targetZ != servoZ) {
+            if (targetZ != 0f) {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            }
+            onMove(servoX, servoY, targetZ)
+        }
+    }
+
     fun canMove(currentTime: Long): Boolean = currentTime - lastMoveTime >= debounceDelay
 
     fun commitMove(currentTime: Long) {
@@ -57,20 +80,11 @@ fun ServoButtonControl(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
-                onClick = {
-                    val currentTime = System.currentTimeMillis()
-                    if (canMove(currentTime)) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        val newZ = (servoZ - step).coerceIn(-1f, 1f)
-                        val angle = ((newZ + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo Z: $angle° (A)")
-                        onMove(servoX, servoY, newZ)
-                        commitMove(currentTime)
-                    }
-                },
+                onClick = {},
                 modifier = Modifier
                     .size(buttonSize)
                     .semantics { contentDescription = "Move third servo negative" },
+                interactionSource = aInteractionSource,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (servoZ == -1f) Color(0xFF00C853) else Color(0xFF2D3436),
                     contentColor = Color(0xFF00FF00)
@@ -91,7 +105,7 @@ fun ServoButtonControl(
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         val newY = (servoY + step).coerceIn(-1f, 1f)
                         val angle = ((newY + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo Y: $angle° (W)")
+                        onLog?.invoke("Servo Y: ${angle} deg (W)")
                         onMove(servoX, newY, servoZ)
                         commitMove(currentTime)
                     }
@@ -113,20 +127,11 @@ fun ServoButtonControl(
             }
 
             Button(
-                onClick = {
-                    val currentTime = System.currentTimeMillis()
-                    if (canMove(currentTime)) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        val newZ = (servoZ + step).coerceIn(-1f, 1f)
-                        val angle = ((newZ + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo Z: $angle° (Z)")
-                        onMove(servoX, servoY, newZ)
-                        commitMove(currentTime)
-                    }
-                },
+                onClick = {},
                 modifier = Modifier
                     .size(buttonSize)
                     .semantics { contentDescription = "Move third servo positive" },
+                interactionSource = zInteractionSource,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (servoZ == 1f) Color(0xFF00C853) else Color(0xFF2D3436),
                     contentColor = Color(0xFF00FF00)
@@ -153,7 +158,7 @@ fun ServoButtonControl(
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         val newX = (servoX - step).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo X: $angle° (L)")
+                        onLog?.invoke("Servo X: ${angle} deg (L)")
                         onMove(newX, servoY, servoZ)
                         commitMove(currentTime)
                     }
@@ -181,7 +186,7 @@ fun ServoButtonControl(
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         val newY = (servoY - step).coerceIn(-1f, 1f)
                         val angle = ((newY + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo Y: $angle° (B)")
+                        onLog?.invoke("Servo Y: ${angle} deg (B)")
                         onMove(servoX, newY, servoZ)
                         commitMove(currentTime)
                     }
@@ -209,7 +214,7 @@ fun ServoButtonControl(
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         val newX = (servoX + step).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo X: $angle° (R)")
+                        onLog?.invoke("Servo X: ${angle} deg (R)")
                         onMove(newX, servoY, servoZ)
                         commitMove(currentTime)
                     }

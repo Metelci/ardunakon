@@ -1,3 +1,11 @@
+What's New in v0.2.7-alpha-hotfix1:
+
+- Servo Z (A/Z): A and Z are now encoded only via `auxBits` in `CMD_JOYSTICK (0x01)`
+- Heartbeat (0x03) remains keepalive-only (no control logic)
+- Reduced idle traffic: control packets stop sending when inputs are neutral
+
+---
+
 What's New in v0.2.6-alpha:
 
 🔒 **Critical BLE Safety Fix**:

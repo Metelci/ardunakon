@@ -116,6 +116,51 @@ class ControlViewModel @javax.inject.Inject constructor(
     // ========== Transmission ==========
     private var transmissionJob: Job? = null
     private var isForegroundActive = true
+    private val inputEpsilon = 0.0001f
+
+    private fun computeAuxBits(): Byte {
+        var auxBits = 0
+        if (servoZ < -inputEpsilon) auxBits = auxBits or (ProtocolManager.AUX_W.toInt() and 0xFF)
+        if (servoZ > inputEpsilon) auxBits = auxBits or (ProtocolManager.AUX_B.toInt() and 0xFF)
+        return auxBits.toByte()
+    }
+
+    private fun sendJoystickNow(force: Boolean) {
+        if (!isForegroundActive) return
+        if (bluetoothManager.isEmergencyStopActive.value) return
+
+        val auxBits = computeAuxBits()
+        val inputActive =
+            abs(leftJoystick.first) > inputEpsilon ||
+                abs(leftJoystick.second) > inputEpsilon ||
+                abs(servoX) > inputEpsilon ||
+                abs(servoY) > inputEpsilon ||
+                auxBits.toInt() != 0
+
+        if (!force && !inputActive) return
+
+        val btConnected = bluetoothManager.connectionState.value == ConnectionState.CONNECTED
+        val wifiConnected = wifiManager.connectionState.value == WifiConnectionState.CONNECTED
+        val connected = when (connectionMode) {
+            ConnectionMode.BLUETOOTH -> btConnected
+            ConnectionMode.WIFI -> wifiConnected
+        }
+        if (!connected) return
+
+        val packet = ProtocolManager.formatJoystickData(
+            leftX = leftJoystick.first,
+            leftY = leftJoystick.second,
+            rightX = servoX,
+            rightY = servoY,
+            auxBits = auxBits
+        )
+
+        if (connectionMode == ConnectionMode.WIFI) {
+            wifiManager.sendData(packet)
+        } else {
+            bluetoothManager.sendDataToAll(packet)
+        }
+    }
 
     init {
         // Restore Connection Mode
@@ -163,8 +208,8 @@ class ControlViewModel @javax.inject.Inject constructor(
     private fun startTransmissionLoop() {
         transmissionJob?.cancel()
         transmissionJob = viewModelScope.launch(transmissionDispatcher) {
-            var lastSentServoZ: Float? = null
             var wasConnected = false
+            var wasInputActive = false
 
             while (isActive) {
                 if (!isForegroundActive) {
@@ -188,37 +233,33 @@ class ControlViewModel @javax.inject.Inject constructor(
 
                 if (!connected) {
                     wasConnected = false
+                    wasInputActive = false
                     delay(50)
                     continue
                 }
 
-                val justConnected = !wasConnected
                 wasConnected = true
 
-                val packet = ProtocolManager.formatJoystickData(
-                    leftX = leftJoystick.first,
-                    leftY = leftJoystick.second,
-                    rightX = servoX,
-                    rightY = servoY,
-                    auxBits = 0
-                )
+                val auxBits = computeAuxBits()
+                val inputActive =
+                    abs(leftJoystick.first) > inputEpsilon ||
+                        abs(leftJoystick.second) > inputEpsilon ||
+                        abs(servoX) > inputEpsilon ||
+                        abs(servoY) > inputEpsilon ||
+                        auxBits.toInt() != 0
 
-                if (connectionMode == ConnectionMode.WIFI) {
-                    wifiManager.sendData(packet)
-                } else {
-                    bluetoothManager.sendDataToAll(packet)
-                }
-
-                val shouldSendServoZ = justConnected || lastSentServoZ == null || abs(servoZ - lastSentServoZ!!) > 0.0001f
-                if (shouldSendServoZ) {
-                    val servoZPacket = ProtocolManager.formatServoZData(servoZ)
-                    if (connectionMode == ConnectionMode.WIFI) {
-                        wifiManager.sendData(servoZPacket)
-                    } else {
-                        bluetoothManager.sendDataToAll(servoZPacket)
+                if (!inputActive) {
+                    if (wasInputActive) {
+                        // Flush a final neutral packet once, then stop sending in idle.
+                        sendJoystickNow(force = true)
                     }
-                    lastSentServoZ = servoZ
+                    wasInputActive = false
+                    delay(50)
+                    continue
                 }
+
+                wasInputActive = true
+                sendJoystickNow(force = false)
                 delay(50) // 20Hz
             }
         }
@@ -319,9 +360,15 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     fun updateServo(x: Float, y: Float, z: Float) {
+        val previousZ = servoZ
         servoX = x
         servoY = y
         servoZ = z
+
+        // A/Z must be reflected immediately in CMD_JOYSTICK auxBits (no heartbeat involvement).
+        if (previousZ != z) {
+            sendJoystickNow(force = true)
+        }
     }
 
     // ========== Servo Command Handler (from debug terminal) ==========

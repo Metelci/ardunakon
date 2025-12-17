@@ -17,6 +17,13 @@ object ProtocolManager {
     const val CMD_ANNOUNCE_CAPABILITIES: Byte = 0x05
     const val CMD_SERVO_Z: Byte = 0x06
 
+    // Aux bits (mirrors Arduino ArdunakonProtocol.h)
+    const val AUX_W: Byte = 0x01 // Used for A button -> servo Z +
+    const val AUX_A: Byte = 0x02
+    const val AUX_L: Byte = 0x04
+    const val AUX_R: Byte = 0x08
+    const val AUX_B: Byte = 0x02 // Used for Z button -> servo Z -
+
     // Encryption Handshake Commands
     const val CMD_HANDSHAKE_REQUEST: Byte = 0x10
     const val CMD_HANDSHAKE_RESPONSE: Byte = 0x11

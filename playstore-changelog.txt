@@ -1,3 +1,14 @@
+Version 0.2.7-alpha-hotfix1 - December 17, 2025
+
+FIXES:
+ Servo Z (A/Z) fix: A and Z are now encoded only in AUX bits inside CMD_JOYSTICK (0x01)
+ Heartbeat (0x03) remains keepalive-only (no control logic)
+ Reduced idle traffic: control packets stop sending when all inputs are neutral
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.7-alpha - December 15, 2025
 
 NEW FEATURES:
