@@ -43,7 +43,7 @@ fun AppBluetoothManager.combinedState(scope: CoroutineScope
         val rssi = values[1] as Int
         val connectionHealth = values[2] as ConnectionHealth
         val telem = values[3] as Telemetry?
-        val rtt = values[4] as List<Long>
+        val rtt = (values[4] as? List<*>)?.filterIsInstance<Long>() ?: emptyList()
         val autoReconnect = values[5] as Boolean
         val estop = values[6] as Boolean
         CombinedConnectionState(

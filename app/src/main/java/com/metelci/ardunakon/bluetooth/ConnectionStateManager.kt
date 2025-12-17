@@ -102,8 +102,8 @@ class ConnectionStateManager(private val context: Context, private val config: B
                 val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 vibratorManager.defaultVibrator.vibrate(effect)
             } else {
-                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                vibrator.vibrate(effect)
+                val vibrator = context.getSystemService(Vibrator::class.java)
+                vibrator?.vibrate(effect)
             }
         } catch (e: Exception) {
             // Ignore vibration errors (no permission, no vibrator, etc.)
