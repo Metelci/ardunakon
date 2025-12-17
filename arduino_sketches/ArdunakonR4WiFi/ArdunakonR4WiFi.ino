@@ -45,19 +45,22 @@
 #else
   #include <WiFiS3.h>
   #include <WiFiUdp.h>
-  
+
+  // Secrets moved out of sketch:
+  #include "arduino_secrets.h"
+
   // ============================================
-  // WIFI CONFIGURATION - CHANGE THESE!
+  // WIFI CONFIGURATION - CHANGE IN arduino_secrets.h
   // ============================================
-  
+
   // Your home WiFi credentials (Station mode - primary)
-  const char* sta_ssid = "METELCI";
-  const char* sta_password = "hly55ne305";
-  
+  const char* sta_ssid = SECRET_SSID;
+  const char* sta_password = SECRET_PASS;
+
   // Fallback AP settings (if router not available)
   const char* ap_ssid = "ArdunakonR4";
   const char* ap_password = "";  // Open network
-  
+
   const unsigned int localPort = 8888;
 #endif
 
@@ -84,9 +87,10 @@
 #define MOTOR_RIGHT_DIR1  5
 #define MOTOR_RIGHT_DIR2  4
 
+// Servos UPDATED as requested:
 #define SERVO_X_PIN       2
-#define SERVO_Y_PIN       12
-#define SERVO_Z_PIN       A1
+#define SERVO_Y_PIN       11
+#define SERVO_Z_PIN       12
 
 #define BATTERY_PIN       A0
 #define LED_STATUS        13
@@ -142,6 +146,9 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
+  // UNO R4 ADC handling:
+  analogReadResolution(12); // 0..4095
+
   Serial.println("========================================");
   Serial.println("Arduino UNO R4 WiFi - Ardunakon v3.3");
   Serial.println("========================================");
@@ -165,7 +172,7 @@ void setup() {
 // ============================================
 void loop() {
   unsigned long now = millis();
-  
+
   if (now - lastLoopTime < LOOP_INTERVAL_MS) return;
   lastLoopTime = now;
 
@@ -214,7 +221,7 @@ void initializeBLE() {
     DEBUG_PRINT(attempt);
     DEBUG_PRINTLN("/3...");
     delay(500 * attempt);
-    
+
     if (BLE.begin()) {
       bleInitialized = true;
       DEBUG_PRINTLN("BLE started!");
@@ -283,16 +290,16 @@ void initializeWiFiWithFallback() {
   Serial.println("\n[1] Trying Station mode...");
   Serial.print("    SSID: ");
   Serial.println(sta_ssid);
-  
+
   WiFi.begin(sta_ssid, sta_password);
-  
+
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 15) {
     delay(500);
     Serial.print(".");
     attempts++;
   }
-  
+
   if (WiFi.status() == WL_CONNECTED) {
     // Station mode SUCCESS
     isAPMode = false;
@@ -303,23 +310,23 @@ void initializeWiFiWithFallback() {
   } else {
     // Step 2: Fallback to AP mode
     Serial.println("\n    Router not found. Switching to AP mode...");
-    
+
     WiFi.disconnect();
     delay(500);
-    
+
     Serial.println("\n[2] Creating Access Point...");
     Serial.print("    SSID: ");
     Serial.println(ap_ssid);
-    
-    int status = strlen(ap_password) > 0 
+
+    int status = strlen(ap_password) > 0
       ? WiFi.beginAP(ap_ssid, ap_password)
       : WiFi.beginAP(ap_ssid);
-    
+
     if (status != WL_AP_LISTENING) {
       Serial.println("    ERROR: AP creation failed!");
       while (1) { digitalWrite(LED_STATUS, !digitalRead(LED_STATUS)); delay(500); }
     }
-    
+
     isAPMode = true;
     isConnected = true;
     Serial.println("    SUCCESS! AP created");
@@ -327,12 +334,12 @@ void initializeWiFiWithFallback() {
     Serial.println(WiFi.localIP());
     Serial.println("    Connect your phone to 'ArdunakonR4' WiFi");
   }
-  
+
   // Start UDP on both modes
   udp.begin(localPort);
   Serial.print("\nUDP listening on port ");
   Serial.println(localPort);
-  
+
   successBeep();
 }
 
@@ -343,7 +350,7 @@ void handleWiFiConnection(unsigned long now) {
     clientPort = udp.remotePort();
     hasActiveClient = true;
     lastClientActivity = now;
-    
+
     int firstByte = udp.peek();
 
     // Text-based discovery request
@@ -356,7 +363,7 @@ void handleWiFiConnection(unsigned long now) {
       String msg = String(msgBuffer);
       msg.trim();
       if (msg.startsWith("ARDUNAKON_DISCOVER")) {
-        String response = isAPMode 
+        String response = isAPMode
           ? "ARDUNAKON_DEVICE:ArdunakonR4 (AP)"
           : "ARDUNAKON_DEVICE:ArdunakonR4";
         udp.beginPacket(clientIP, clientPort);
@@ -377,7 +384,7 @@ void handleWiFiConnection(unsigned long now) {
       processIncomingByte(packetBuffer[i]);
     }
   }
-  
+
   // Client timeout
   if (hasActiveClient && (now - lastClientActivity > 30000)) {
     hasActiveClient = false;
@@ -396,19 +403,19 @@ void sendDataWiFi(const uint8_t* data, size_t len) {
 void sendDiscoveryBroadcast(unsigned long now) {
   if (now - lastDiscoveryBroadcast < 2000) return;
   lastDiscoveryBroadcast = now;
-  
-  String discoveryMsg = isAPMode 
+
+  String discoveryMsg = isAPMode
     ? "ARDUNAKON_DEVICE:ArdunakonR4 (AP)"
     : "ARDUNAKON_DEVICE:ArdunakonR4";
-  
+
   IPAddress broadcastIP = isAPMode
     ? IPAddress(192, 168, 4, 255)
     : IPAddress(WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], 255);
-  
+
   udp.beginPacket(broadcastIP, 8888);
   udp.print(discoveryMsg);
   udp.endPacket();
-  
+
   DEBUG_PRINT("Broadcast: ");
   DEBUG_PRINTLN(discoveryMsg);
 }
@@ -441,11 +448,11 @@ void handlePacket(const ArdunakonProtocol::ControlPacket& packet) {
       rightX = packet.rightX;
       rightY = packet.rightY;
       auxBits = packet.auxBits;
-      
+
       if (auxBits & ArdunakonProtocol::AUX_W) rightZ = 127;
       else if (auxBits & ArdunakonProtocol::AUX_B) rightZ = -127;
       else rightZ = 0;
-      
+
       if (!emergencyStop) { updateDrive(); updateServos(); }
       break;
 
@@ -514,7 +521,11 @@ void checkSafetyTimeout(unsigned long now) {
 }
 
 void sendTelemetry() {
-  batteryVoltage = analogRead(BATTERY_PIN) * (5.0 / 1023.0) * BATTERY_DIVIDER_RATIO;
+  // UNO R4 ADC is set to 12-bit in setup(): 0..4095
+  int raw = analogRead(BATTERY_PIN);
+  float vA0 = raw * (5.0 / 4095.0);
+  batteryVoltage = vA0 * BATTERY_DIVIDER_RATIO;
+
   uint8_t response[10];
   protocol.formatTelemetry(response, BOARD_TYPE_R4_WIFI, batteryVoltage, emergencyStop ? 0x01 : 0x00, packetsReceived);
   #if USE_BLE_MODE

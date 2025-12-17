@@ -88,3 +88,4 @@ build_log_2.txt
 # Dependency tree snapshot (generate via `./gradlew :app:dependencies`)
 dependency_tree.txt
 .kotlin/sessions/kotlin-compiler-2034296814045620867.salive
+arduino_sketches/ArdunakonR4WiFi/arduino_secrets.h
