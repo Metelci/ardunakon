@@ -56,7 +56,7 @@ The verification runs automatically:
 - **On main:** When ProGuard configuration changes
 - **On release:** Before creating GitHub releases
 
-See `.github/workflows/proguard-check.yml` for details.
+See the `scripts/` folder for the ProGuard verification helpers.
 
 ## Troubleshooting
 

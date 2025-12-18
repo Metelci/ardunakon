@@ -78,6 +78,7 @@ fun ConnectionTutorialScreen(
                         onSelect = onArduinoSelected
                     )
                     ConnectionTutorialStep.CONNECTION_MODE -> ConnectionModeContent(
+                        selectedArduinoType = selectedArduinoType,
                         connectionMode = connectionMode,
                         onModeChanged = onConnectionModeChanged
                     )
@@ -227,6 +228,7 @@ private fun ArduinoSelectionCard(
 
 @Composable
 private fun ConnectionModeContent(
+    selectedArduinoType: ArduinoType?,
     connectionMode: com.metelci.ardunakon.ui.screens.control.ConnectionMode,
     onModeChanged: (com.metelci.ardunakon.ui.screens.control.ConnectionMode) -> Unit
 ) {
@@ -238,8 +240,9 @@ private fun ConnectionModeContent(
         )
         Spacer(modifier = Modifier.height(16.dp))
         
+        val boardHint = selectedArduinoType?.let { "Selected device: ${it.displayName} (${it.connectionType})" }
         Text(
-            text = "Ardunakon supports both Bluetooth and WiFi.",
+            text = boardHint ?: "Ardunakon supports both Bluetooth and WiFi.",
             textAlign = TextAlign.Center
         )
         
@@ -294,11 +297,12 @@ private fun ConnectionModeContent(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                val instructionText = if (connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH) {
-                    "Bluetooth mode selected. Best for HC-05/06/HM-10 modules."
-                } else {
-                    "WiFi mode selected. Best for ESP32 and Arduino R4 WiFi."
-                }
+                val instructionText =
+                    if (connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH) {
+                        "Bluetooth mode selected. Best for external Bluetooth modules (HC-05/HC-06) and common BLE serial modules (HM-10/HC-08/AT-09/MLT-BT05)."
+                    } else {
+                        "WiFi mode selected. Best for boards running a WiFi (UDP) sketch/firmware (for example Arduino UNO R4 WiFi or ESP32-based boards)."
+                    }
                 
                 Text(
                     text = instructionText,
@@ -415,5 +419,4 @@ private fun StatusColorItem(color: Color, label: String) {
         Text(text = label, style = MaterialTheme.typography.labelSmall)
     }
 }
-
 

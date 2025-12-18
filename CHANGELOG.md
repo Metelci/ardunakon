@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Ardunakon will be documented in this file.
+All notable changes in Ardunakon will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -16,17 +16,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Combined StateFlow optimization reducing recompositions by 40%
 - Joystick event throttling to 20Hz
 - Debug log entry limit (500 maximum)
-
-### Added
 - Comprehensive KTLint code formatting standards implementation
-- CI/CD integration for automatic formatting enforcement
 - KTLint violation fixes for critical formatting issues
 
 ### Changed
 - Arduino R4 WiFi sketch reorganization (snake game moved to examples)
 - All Arduino comments translated to English
 - Build verification includes ProGuard mapping check
-- GitHub Actions PR workflow now enforces KTLint formatting standards
+- KTLint formatting standards are enforced in the project
+
+## [0.2.7-alpha-hotfix3] - 2025-12-19
+
+### Added
+- Extended Arduino board support:
+  - **Arduino Mega 2560** (Hardware Serial 1)
+  - **Arduino Leonardo / Micro** (Hardware Serial 1)
+  - **Arduino Due** (3.3V Logic, Hardware Serial 1)
+  - **Arduino Zero / M0** (3.3V Logic, Hardware Serial 1)
+  - **Arduino GIGA R1 WiFi** (Dual Mode BLE/WiFi)
+
+### Fixed
+- Fixed critical corruption in `ArdunakonR4WiFi` sketch.
+- Corrected servo pin documentation in setup guides.
+
+## [0.2.7-alpha-hotfix2] - 2025-12-19
+
+### Fixed
+- Deprecated Gradle property assignments in build.gradle
+- Build stability improvements
 
 ## [0.2.7-alpha-hotfix1] - 2025-12-17
 

@@ -40,7 +40,7 @@ These sketches are the main firmware options for controlling Arduino boards via 
 **Features:**
 - Quick setup variant
 - 2-channel motor control
-- 2-axis servo control
+- 3-axis servo control (pins 2, 12, A1)
 - Simplified configuration
 
 **Use Case:** Streamlined version for quick prototyping
@@ -90,8 +90,12 @@ Located in `examples/PlugAndMake_Projects/` - these are sample projects demonstr
 ## Getting Started
 
 1. **Choose your hardware:**
-   - Arduino UNO Classic → Use `ArdunakonClassicUno`
+   - Arduino UNO Classic / Nano → Use `ArdunakonClassicUno`
    - Arduino UNO R4 WiFi → Use `ArdunakonR4WiFi`
+   - Arduino Mega 2560 → Use `ArdunakonMega`
+   - Arduino Leonardo / Micro → Use `ArdunakonLeonardo`
+   - Arduino GIGA R1 → Use `ArdunakonGiga`
+   - Arduino Due / Zero → Use `ArdunakonDue` / `ArdunakonZero`
 
 2. **Upload the sketch:**
    - Open the `.ino` file in Arduino IDE
@@ -115,9 +119,26 @@ Located in `examples/PlugAndMake_Projects/` - these are sample projects demonstr
 - **Motor A:** Pins 5 (PWM), 4 (DIR)
 - **Motor B:** Pins 6 (PWM), 7 (DIR)
 
-### Servo Control (All Sketches)
-- **Servo 1:** Pin 2
-- **Servo 2:** Pin 12
+### Servo Control
+**Classic UNO & UNO Q:**
+- **Servo X:** Pin 2
+- **Servo Y:** Pin 12
+- **Servo Z:** Pin A1
+
+**UNO R4 WiFi:**
+- **Servo X:** Pin 2
+- **Servo Y:** Pin 11
+- **Servo Z:** Pin 12
+
+**Leonardo / Micro:**
+- **Servo X:** Pin 2
+- **Servo Y:** Pin 12
+- **Servo Z:** Pin 10
+
+**Mega 2560, Due, Zero, GIGA R1:**
+- **Servo X:** Pin 2
+- **Servo Y:** Pin 12
+- **Servo Z:** Pin 11
 
 ### Battery Monitoring (Optional)
 - **Analog Input:** A0 (voltage divider recommended)

@@ -72,6 +72,15 @@ enum class ArduinoType(
 ) {
     UNO_Q("Arduino UNO Q", "Built-in Bluetooth 5.1", "BLE"),
     R4_WIFI("Arduino UNO R4 WiFi", "Built-in BLE + WiFi", "BLE/WiFi"),
-    CLASSIC_BT("Classic Arduino + HC-05/HC-06", "External Bluetooth module", "Classic BT"),
-    OTHER_BLE("Other BLE Modules", "HM-10, AT-09, MLT-BT05, etc.", "BLE")
+    UNO_OTHER("Arduino UNO (other models)", "Use an external Bluetooth module (HC-05/HC-06/HM-10)", "Classic BT/BLE"),
+
+    NANO_CLASSIC("Arduino Nano (classic/older)", "Use an external Bluetooth module (HC-05/HC-06/HM-10)", "Classic BT/BLE"),
+    NANO_R4("Arduino Nano R4", "Select if your project is based on a Nano R4 board", "BLE/WiFi"),
+    NANO_ESP32("Arduino Nano ESP32", "ESP32-based Nano (BLE/WiFi via your sketch)", "BLE/WiFi"),
+
+    MEGA_2560("Arduino Mega 2560 Rev3", "Use an external Bluetooth module (HC-05/HC-06/HM-10)", "Classic BT/BLE"),
+    GIGA_R1("Arduino GIGA R1", "Use BLE/WiFi depending on your sketch/firmware", "BLE/WiFi"),
+    DUE("Arduino Due", "Use an external Bluetooth module or custom firmware", "Classic BT/BLE"),
+
+    OTHER_BLE("Other BLE Modules", "HM-10, HC-08, AT-09, MLT-BT05, etc.", "BLE")
 }

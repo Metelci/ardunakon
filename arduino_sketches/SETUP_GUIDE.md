@@ -1,6 +1,9 @@
 # Ardunakon - Arduino Setup Guide
 
 Complete setup instructions for all supported Arduino boards.
+# Ardunakon - Arduino Setup Guide
+
+Complete setup instructions for all supported Arduino boards.
 
 ---
 
@@ -9,7 +12,12 @@ Complete setup instructions for all supported Arduino boards.
 ### ✅ Fully Supported Boards
 1. **Arduino UNO Q** (Qualcomm QRB2210 + STM32U585) - Built-in Bluetooth 5.1 BLE
 2. **Arduino UNO R4 WiFi** (Renesas RA4M1 + ESP32-S3) - Built-in BLE
-3. **Classic Arduino UNO** (ATmega328P) - Requires external HC-05/HC-06 module
+3. **Arduino GIGA R1 WiFi** (STM32H7) - Built-in BLE/WiFi
+4. **Classic Arduino UNO / Nano** (ATmega328P) - External HC-05/06
+5. **Arduino Mega 2560** - External HC-05/06 (Hardware Serial!)
+6. **Arduino Leonardo / Micro** - External HC-05/06
+7. **Arduino Due / Zero** - External HC-05/06 (3.3V Logic!)
+
 
 ### ✅ Fully Supported Bluetooth Modules
 - **Bluetooth Classic**: HC-05, HC-06 (and all clones)
@@ -20,6 +28,37 @@ Complete setup instructions for all supported Arduino boards.
 ---
 
 ## Quick Start by Board
+
+## Option 0: Arduino GIGA R1 WiFi
+
+### What You Need
+- GIGA R1 WiFi Board
+- USB-C Cable
+
+### Setup
+1. Open `arduino_sketches/ArdunakonGiga/ArdunakonGiga.ino`
+2. Select Board: **Arduino GIGA R1 WiFi** (Install mbed core if needed)
+3. Upload!
+4. Status LED: Blue = Init, Green = Ready/Connected, Red = E-Stop.
+
+### Wiring
+**Motor Driver (Example: L298N)**
+```
+GIGA R1 WiFi     →    L298N Motor Driver
+─────────────────────────────────────────
+Pin 9 (PWM)      →    ENA (Left Motor Speed)
+Pin 8            →    IN1 (Left Motor Dir 1)
+Pin 7            →    IN2 (Left Motor Dir 2)
+Pin 6 (PWM)      →    ENB (Right Motor Speed)
+Pin 5            →    IN3 (Right Motor Dir 1)
+Pin 4            →    IN4 (Right Motor Dir 2)
+GND              →    GND
+```
+
+**Servos**
+- **X:** Pin 2
+- **Y:** Pin 12
+- **Z:** Pin 11
 
 ## Option 1: Arduino UNO Q (Latest 2025 Board)
 
@@ -119,101 +158,6 @@ Pin A0           →    10kΩ → Battery+
 3. Tap **"Dev 1"**
 4. Look for **"ArdunakonR4"** in the device list
 5. Tap to connect - Status will turn **Green**
-
----
-
-## Option 2B: Arduino UNO R4 WiFi (with Encryption) 🔒
-
-For secure wireless control, use the encrypted WiFi sketch.
-
-### What You Need
-- Arduino UNO R4 WiFi board
-- USB-C cable
-- Motor driver (L298N or similar)
-- Power supply for motors
-
-### Software Setup
-1. Install **Arduino IDE 2.x**
-2. Install **UNO R4 WiFi board support**:
-   - Tools → Board → Boards Manager → Search "Arduino UNO R4" → Install
-3. Install **WiFiS3** library (included with board support)
-4. Install **Crypto** library for AES-GCM:
-   - Tools → Manage Libraries → Search "Crypto" by rweather → Install
-5. Open `arduino_sketches/ArdunakonWiFiEncrypted/ArdunakonWiFiEncrypted.ino`
-6. **Configure PSK** (Pre-Shared Key) - See "Setting Up Encryption" below
-7. Select **Board**: Tools → Board → Arduino UNO R4 WiFi
-8. Click **Upload**
-
-### Setting Up Encryption
-
-The PSK in your Arduino sketch **must match** the app's PSK for that device.
-
-**Step 1: Generate PSK in App**
-1. Open Ardunakon app
-2. Go to WiFi settings
-3. Connect to your Arduino's WiFi network (default: "Ardunakon-R4")
-4. The app auto-generates a 32-byte PSK for new devices
-
-**Step 2: Copy PSK to Arduino Sketch**
-Edit the `PSK` array in `ArdunakonWiFiEncrypted.ino`:
-```cpp
-// 32-byte Pre-Shared Key (MUST match the Android app's PSK for this device!)
-const byte PSK[32] = {
-  0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03, 0x04,
-  0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
-  0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
-  0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C
-};
-```
-
-**Or Generate Matching Key:**
-For testing, use a simple key in both app and sketch:
-```cpp
-// Simple test key (use strong random key for production!)
-const byte PSK[32] = {
-  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-  0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-  0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
-};
-```
-
-### Wiring
-Same as Option 2 (standard R4 WiFi). No additional hardware needed.
-
-### How Encryption Works
-
-1. **Handshake Phase**:
-   - App sends `CMD_HANDSHAKE_REQUEST` with 16-byte app nonce
-   - Arduino responds with device nonce + HMAC-SHA256 signature
-   - Both derive shared AES session key using HKDF
-
-2. **Data Phase**:
-   - All joystick/button packets encrypted with AES-GCM
-   - 12-byte IV + encrypted payload + 16-byte auth tag
-   - Fully authenticated encryption (tampering detected)
-
-3. **Visual Indicator**:
-   - App shows 🔒 lock icon when encrypted
-   - App shows ⚠️ warning when not encrypted
-
-### Connecting to Ardunakon App (Encrypted)
-1. Upload ArdunakonWiFiEncrypted sketch
-2. Arduino creates WiFi AP "Ardunakon-R4" (password: "ardunakon123")
-3. Connect phone to this WiFi network
-4. Open Ardunakon app → Switch to **WiFi mode**
-5. Tap **Configure WiFi** → IP: 192.168.4.1, Port: 8888
-6. Tap **Connect** → Encryption handshake occurs
-7. Lock icon 🔒 appears when encrypted!
-
----
-
-## Option 3: Classic Arduino UNO (with HC-05/HC-06)
-
-### What You Need
-- Classic Arduino UNO board
-- HC-05 or HC-06 Bluetooth module
-- USB cable (Type B)
 - Motor driver (L298N or similar)
 - Power supply for motors
 

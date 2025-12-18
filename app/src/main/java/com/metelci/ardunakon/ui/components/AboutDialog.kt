@@ -16,11 +16,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -139,15 +141,22 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                             color = if (isDarkTheme) Color.White else Color(0xFF0D47A1)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
-                        FeatureItem(
-                            "Critical BLE Safety Fix: Motor no longer spins unexpectedly on reconnect (Android 15/16)",
-                            isDarkTheme
-                        )
-                        FeatureItem("Connection State Check: Transmission only when actually connected", isDarkTheme)
-                        FeatureItem(
-                            "State Reset on Disconnect: Joystick/servo values auto-reset to neutral",
-                            isDarkTheme
-                        )
+
+                        // Dynamically load release notes from assets
+                        val context = LocalContext.current
+                        val releaseNotes = remember {
+                            try {
+                                context.assets.open("release_notes.txt").bufferedReader().use { it.readText() }
+                                    .lines()
+                                    .filter { it.isNotBlank() }
+                            } catch (e: Exception) {
+                                listOf("Check CHANGELOG.md for details.")
+                            }
+                        }
+
+                        releaseNotes.forEach { note ->
+                            FeatureItem(note, isDarkTheme)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))

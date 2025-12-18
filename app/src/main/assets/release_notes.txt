@@ -1,0 +1,9 @@
+Extended Board Support!
+- Added support for 5 new Arduino board families:
+  - Arduino Mega 2560
+  - Arduino Leonardo & Micro
+  - Arduino Due (3.3V)
+  - Arduino Zero / M0 (3.3V)
+  - Arduino GIGA R1 WiFi
+- Fixed issues with R4 WiFi sketch.
+- Updated Setup Guide with detailed wirings.
