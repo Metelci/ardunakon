@@ -10,20 +10,20 @@ plugins {
 }
 
 android {
-    namespace 'com.metelci.ardunakon'
-    compileSdk 35
+    namespace = 'com.metelci.ardunakon'
+    compileSdk = 35
 
     defaultConfig {
-        applicationId "com.metelci.ardunakon"
-        minSdk 26
-        targetSdk 35
-        versionCode 25
-        versionName "0.2.7-alpha-hotfix1"
+        applicationId = "com.metelci.ardunakon"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 26
+        versionName = "0.2.7-alpha-hotfix2"
 
         // Use custom test runner for Hilt
-        testInstrumentationRunner "com.metelci.ardunakon.ArdunakonTestRunner"
+        testInstrumentationRunner = "com.metelci.ardunakon.ArdunakonTestRunner"
         vectorDrawables {
-            useSupportLibrary true
+            useSupportLibrary = true
         }
     }
 
@@ -33,8 +33,8 @@ android {
             buildConfigField "boolean", "ENABLE_CRASH_REPORTING", "false"
         }
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "boolean", "ENABLE_ANALYTICS", "true"
             buildConfigField "boolean", "ENABLE_CRASH_REPORTING", "true"
@@ -48,8 +48,8 @@ android {
         jvmTarget = '17'
     }
     buildFeatures {
-        compose true
-        buildConfig true
+        compose = true
+        buildConfig = true
     }
     packagingOptions {
         resources {
