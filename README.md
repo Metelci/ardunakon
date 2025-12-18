@@ -141,33 +141,25 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 
 ## Play Store Listing
 
-**Title**: Ardunakon: Pro Arduino Bluetooth Controller
+**Title**: Ardunakon — Arduino Bluetooth & Wi‑Fi Controller
 
 **Short Description**:
-Control Arduino RC cars, drones & robots with precision. Customizable with live telemetry.
+Control Arduino RC cars & robots via Bluetooth Classic, BLE, or Wi‑Fi.
 
 **Full Description**:
-Unlock the full potential of your Arduino projects with **Ardunakon**, a stability-focused Bluetooth and Wi-Fi controller for makers, hobbyists, and engineers.
+Ardunakon is an Android controller app for Arduino projects. Connect over **Bluetooth Classic**, **Bluetooth LE (BLE)**, or **Wi‑Fi (UDP)** and drive with a joystick plus dedicated servo controls.
 
-**Key Features:**
-
-*   **RC Car Control Layout**: Throttle joystick for smooth speed control + WASD buttons for precise servo positioning. Car (bidirectional) and ESC (0-100%) modes included.
-*   **Secure & Private**: Profiles/settings stay on-device and are encrypted via Android Keystore. Wi-Fi communications use AES-GCM encryption by default with device verification.
-*   **Total Customization**: Adjust joystick sensitivity (10% - 200%) and map custom Aux buttons.
-*   **Real-Time Telemetry**: View live data from your Arduino in the built-in Debug Console.
-*   **Auto-Connect**: Seamlessly reconnects if signal is lost.
+**Highlights:**
+*   **Bluetooth Classic + BLE**: Works with common modules (HC‑05/HC‑06, HM‑10/HC‑08, AT‑09, MLT‑BT05, Nordic UART, ArduinoBLE).
+*   **Wi‑Fi (UDP) mode**: Device discovery and manual IP/port configuration.
+*   **Wi‑Fi encryption support**: Handshake + AES‑GCM with a lock indicator when active.
+*   **Safety**: Emergency stop (E‑STOP) blocks control transmissions until reset.
+*   **Telemetry & debugging**: Built-in debug console and real-time graphs (battery, RSSI, RTT, packet loss, quality).
+*   **Help built-in**: Offline setup guide + compatibility report, plus an in-app tutorial.
 
 **Compatible With:**
-*   **Latest Arduino Boards**: UNO Q (2025), UNO R4 WiFi (built-in BLE) - native support
-    * Official R4 WiFi and BLE-capable clones work out of the box (ArduinoBLE default profile + HM-10-compatible fallback).
-*   **Bluetooth Classic**: HC-05, HC-06 (and clones) with connection fallbacks
-*   **Bluetooth LE**: HM-10, AT-09, MLT-BT05, TI CC2541 (Generic Discovery Engine supports 99% of clones)
-*   **Classic Arduino**: UNO, Nano, Mega with external modules
-*   Any ESP32 or STM32 project!
+*   **Arduino UNO Q** (BLE)
+*   **Arduino UNO R4 WiFi** (BLE + Wi‑Fi sketches)
+*   **Classic Arduino boards** with external Bluetooth modules (HC‑05/HC‑06, HM‑10‑style BLE modules)
 
-**Get Started in Seconds:**
-1.  Connect your Bluetooth module to your Arduino (RX/TX).
-2.  Open Ardunakon and scan for devices.
-3.  Connect and start driving!
-
-*Download Ardunakon today and take control of your creations!*
+Open source: https://github.com/metelci/ardunakon
