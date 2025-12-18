@@ -56,6 +56,13 @@ fun ServoButtonControl(
 
     LaunchedEffect(targetZ) {
         if (targetZ != servoZ) {
+            onLog?.invoke(
+                when (targetZ) {
+                    -1f -> "Servo Z: MIN (A)"
+                    1f -> "Servo Z: MAX (Z)"
+                    else -> "Servo Z: CENTER"
+                }
+            )
             if (targetZ != 0f) {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             }
