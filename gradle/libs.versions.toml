@@ -9,7 +9,8 @@ owaspDependencyCheck = "9.0.9"
 # AndroidX / Compose
 androidxCore = "1.13.1"
 androidxLifecycle = "2.8.4"
-androidxActivityCompose = "1.9.3"
+# 1.10+ removes Android 15 deprecated cutout params used by older edge-to-edge helpers.
+androidxActivityCompose = "1.10.1"
 androidxComposeBom = "2024.09.02"
 androidxSecurityCrypto = "1.1.0"
 
