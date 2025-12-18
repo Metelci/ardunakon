@@ -1,3 +1,13 @@
+Version 0.2.7-alpha-hotfix2 - December 18, 2025
+
+IMPROVEMENTS:
+ Updated app/store descriptions and removed "Dev 2" references
+ A/Z servo button actions now log to the debug window
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.7-alpha-hotfix1 - December 17, 2025
 
 FIXES:

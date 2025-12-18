@@ -99,7 +99,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                     )
 
                     Text(
-                        "The Ultimate Arduino Bluetooth Controller",
+                        "Arduino Controller",
                         fontSize = 14.sp,
                         color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF757575),
                         textAlign = TextAlign.Center

@@ -65,7 +65,7 @@ Pin A0           →    10kΩ → Battery+
 ### Connecting to Ardunakon App
 1. Upload sketch to Arduino UNO Q
 2. Open Ardunakon app on Android
-3. Tap **"Dev 1"** or **"Dev 2"**
+3. Tap **"Dev 1"**
 4. Look for **"ArdunakonQ"** in the device list
 5. Tap to connect - Status will turn **Green**
 
@@ -116,7 +116,7 @@ Pin A0           →    10kΩ → Battery+
 ### Connecting to Ardunakon App
 1. Upload sketch to Arduino R4 WiFi
 2. Open Ardunakon app on Android
-3. Tap **"Dev 1"** or **"Dev 2"**
+3. Tap **"Dev 1"**
 4. Look for **"ArdunakonR4"** in the device list
 5. Tap to connect - Status will turn **Green**
 
@@ -292,7 +292,7 @@ Common AT commands:
 1. Upload sketch to Arduino UNO
 2. Power on Arduino (HC-05/06 LED should blink rapidly)
 3. Open Ardunakon app on Android
-4. Tap **"Dev 1"** or **"Dev 2"**
+4. Tap **"Dev 1"**
 5. Look for **"HC-05"**, **"HC-06"**, or custom name in the device list
 6. Tap to connect - Status will turn **Green**
 

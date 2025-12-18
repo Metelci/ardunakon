@@ -1,7 +1,7 @@
 # Ardunakon
-**Arduino Bluetooth + Wi-Fi Controller**
+**Arduino Controller**
 
-Ardunakon is an Android application designed to control Arduino projects (RC cars, drones, boats, robots) via Bluetooth Classic, BLE, or Wi-Fi UDP. It supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and classic Arduino UNO with HC-05/HC-06 or HM-10 modules. The app focuses on stability, clear telemetry, and a customizable interface.
+Ardunakon is an Android application designed to control Arduino RC cars and robots via Bluetooth Classic, BLE, or Wi-Fi UDP. It supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and classic Arduino UNO with HC-05/HC-06 or HM-10 modules. The app focuses on stability, clear telemetry, and a customizable interface.
 
 ## Release Info
 * Current Alpha: **0.2.7-alpha-hotfix1** (build 25)
@@ -100,7 +100,7 @@ Requires external Bluetooth module.
 
 ### 3. Connecting
 1.  Open Ardunakon.
-2.  Tap **"Dev 1"** (Slot 1) or **"Dev 2"** (Slot 2).
+2.  Tap **"Dev 1"**.
 3.  Select your Arduino from the device list.
 4.  The status card will turn **Green** upon connection.
 
@@ -141,25 +141,25 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 
 ## Play Store Listing
 
-**Title**: Ardunakon — Arduino Bluetooth & Wi‑Fi Controller
+**Title**: Ardunakon — Arduino Controller
 
 **Short Description**:
 Control Arduino RC cars & robots via Bluetooth Classic, BLE, or Wi‑Fi.
 
 **Full Description**:
-Ardunakon is an Android controller app for Arduino projects. Connect over **Bluetooth Classic**, **Bluetooth LE (BLE)**, or **Wi‑Fi (UDP)** and drive with a joystick plus dedicated servo controls.
+Ardunakon is an Android controller app for Arduino projects. Connect over "Bluetooth Classic, Bluetooth LE (BLE), or Wi‑Fi (UDP)" and drive with a joystick plus dedicated servo controls.
 
-**Highlights:**
-*   **Bluetooth Classic + BLE**: Works with common modules (HC‑05/HC‑06, HM‑10/HC‑08, AT‑09, MLT‑BT05, Nordic UART, ArduinoBLE).
-*   **Wi‑Fi (UDP) mode**: Device discovery and manual IP/port configuration.
-*   **Wi‑Fi encryption support**: Handshake + AES‑GCM with a lock indicator when active.
-*   **Safety**: Emergency stop (E‑STOP) blocks control transmissions until reset.
-*   **Telemetry & debugging**: Built-in debug console and real-time graphs (battery, RSSI, RTT, packet loss, quality).
-*   **Help built-in**: Offline setup guide + compatibility report, plus an in-app tutorial.
+- Highlights:
+ +Bluetooth Classic + BLE: Works with common modules (HC‑05/HC‑06, HM‑10/HC‑08, AT‑09, MLT‑BT05, Nordic UART, ArduinoBLE).
+ + Wi‑Fi (UDP) mode: Device discovery and manual IP/port configuration.
+ + Wi‑Fi encryption support: Handshake + AES‑GCM with a lock indicator when active.
+ + Safety**: Emergency stop (E‑STOP) blocks control transmissions until reset.
+ + Telemetry & debugging: Built-in debug console and real-time graphs (battery, RSSI, RTT, packet loss, quality).
+ + Help built-in: Offline setup guide + compatibility report, plus an in-app tutorial.
 
-**Compatible With:**
-*   **Arduino UNO Q** (BLE)
-*   **Arduino UNO R4 WiFi** (BLE + Wi‑Fi sketches)
-*   **Classic Arduino boards** with external Bluetooth modules (HC‑05/HC‑06, HM‑10‑style BLE modules)
+- Compatible With:
+ + Arduino UNO Q (BLE)
+ + Arduino UNO R4 WiFi (BLE + Wi‑Fi sketches)
+ + Classic Arduino boards with external Bluetooth modules (HC‑05/HC‑06, HM‑10‑style BLE modules)
 
 Open source: https://github.com/metelci/ardunakon
