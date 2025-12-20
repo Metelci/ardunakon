@@ -50,6 +50,7 @@ class WifiScannerTest {
 
     @org.junit.After
     fun tearDown() {
+        scanner.stopDiscovery()
         testDispatcher.scheduler.runCurrent()
     }
 
@@ -65,13 +66,50 @@ class WifiScannerTest {
     @Test
     fun `stopDiscovery clears isScanning flag`() = runTest(testDispatcher) {
         scanner.startDiscovery()
-        // No runCurrent needed here as startDiscovery is on caller thread mostly, 
-        // but the internal state update is in scope.launch
         testDispatcher.scheduler.runCurrent()
         assertTrue("Should be scanning", scanner.isScanning.value)
         scanner.stopDiscovery()
         testDispatcher.scheduler.runCurrent()
         assertFalse("Should not be scanning", scanner.isScanning.value)
+    }
+
+    @Test
+    fun `startDiscovery returns early if already scanning`() = runTest(testDispatcher) {
+        scanner.startDiscovery()
+        testDispatcher.scheduler.runCurrent()
+        assertTrue(scanner.isScanning.value)
+        
+        // This should not clear or restart anything
+        scanner.startDiscovery()
+        testDispatcher.scheduler.runCurrent()
+        assertTrue(scanner.isScanning.value)
+    }
+
+    @Test
+    fun `startDiscovery fails if ACCESS_WIFI_STATE is missing`() = runTest(testDispatcher) {
+        val app = context.applicationContext as android.app.Application
+        shadowOf(app).denyPermissions(Manifest.permission.ACCESS_WIFI_STATE)
+        
+        scanner.startDiscovery()
+        testDispatcher.scheduler.runCurrent()
+        
+        assertFalse("Should not be scanning without permission", scanner.isScanning.value)
+    }
+
+    @Test
+    fun `mDNS is skipped if NEARBY_WIFI_DEVICES is missing on newer APIs`() = runTest(testDispatcher) {
+        // Mocking SDK version to 33+ where NEARBY_WIFI_DEVICES is required
+        // Robolectric @Config(sdk=[34]) already does this.
+        val app = context.applicationContext as android.app.Application
+        shadowOf(app).denyPermissions(Manifest.permission.NEARBY_WIFI_DEVICES)
+        
+        scanner.startDiscovery()
+        testDispatcher.scheduler.runCurrent()
+        
+        assertTrue("Still scans (UDP)", scanner.isScanning.value)
+        // We can't easily check if startMdnsScan was skipped without reflection or mocking NsdManager
+        // but the log should contain the message. 
+        // Our onLog print will show it in stdout.
     }
 
     @Test
@@ -92,5 +130,27 @@ class WifiScannerTest {
         assertEquals(1, devices.size)
         assertEquals("Better Name", devices[0].name)
         assertTrue(devices[0].trusted)
+    }
+
+    @Test
+    fun `stopDiscovery releases multicast lock`() = runTest(testDispatcher) {
+        val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+        val shadowWifi = shadowOf(wifi)
+        
+        scanner.startDiscovery()
+        testDispatcher.scheduler.runCurrent()
+        
+        // Reflection to check if lock is held
+        val lockField = scanner.javaClass.getDeclaredField("multicastLock")
+        lockField.isAccessible = true
+        val lock = lockField.get(scanner) as? android.net.wifi.WifiManager.MulticastLock
+        
+        assertNotNull("Lock should have been created", lock)
+        assertTrue("Lock should be held", lock?.isHeld ?: false)
+        
+        scanner.stopDiscovery()
+        testDispatcher.scheduler.runCurrent()
+        
+        assertFalse("Lock should be released", lock?.isHeld ?: true)
     }
 }

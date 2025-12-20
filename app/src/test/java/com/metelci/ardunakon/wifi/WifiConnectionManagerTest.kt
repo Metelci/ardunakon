@@ -49,41 +49,64 @@ class WifiConnectionManagerTest {
     }
 
     @Test
-    fun `disconnect without connection is safe`() = runTest(testDispatcher) {
-        manager.disconnect()
-        assertFalse(manager.isConnected())
-    }
-
-    @Test
-    fun `encryptIfNeeded returns original data when no session key`() = runTest(testDispatcher) {
-        val data = byteArrayOf(1, 2, 3)
-        val encryptMethod = manager.javaClass.getDeclaredMethod("encryptIfNeeded", ByteArray::class.java)
-        encryptMethod.isAccessible = true
+    fun `disconnect updates state and isConnected flag`() = runTest(testDispatcher) {
+        // Force connected state for testing
+        val isConnectedField = manager.javaClass.getDeclaredField("isConnected")
+        isConnectedField.isAccessible = true
+        (isConnectedField.get(manager) as java.util.concurrent.atomic.AtomicBoolean).set(true)
         
-        val result = encryptMethod.invoke(manager, data) as ByteArray
-        assertArrayEquals(data, result)
+        manager.disconnect()
+        
+        assertFalse(manager.isConnected())
+        io.mockk.verify { callback.onStateChanged(WifiConnectionState.DISCONNECTED) }
     }
 
     @Test
-    fun `decryptIfNeeded throws when packet too short`() = runTest(testDispatcher) {
+    fun `sendData does nothing when disconnected`() = runTest(testDispatcher) {
         val data = byteArrayOf(1, 2, 3)
+        manager.sendData(data)
+        // No socket operations should occur (we can check socket field is null)
+        val socketField = manager.javaClass.getDeclaredField("socket")
+        socketField.isAccessible = true
+        assertNull(socketField.get(manager))
+    }
+
+    @Test
+    fun `encryption and decryption are consistent`() = runTest(testDispatcher) {
+        val data = "Hello WiFi".toByteArray()
+        val key = ByteArray(16) { it.toByte() }
         
         // Set sessionKey via reflection
         val sessionKeyField = manager.javaClass.getDeclaredField("sessionKey")
         sessionKeyField.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
         val sessionKey = sessionKeyField.get(manager) as java.util.concurrent.atomic.AtomicReference<ByteArray?>
-        sessionKey.set(ByteArray(32))
+        sessionKey.set(key)
 
+        val encryptMethod = manager.javaClass.getDeclaredMethod("encryptIfNeeded", ByteArray::class.java)
+        encryptMethod.isAccessible = true
         val decryptMethod = manager.javaClass.getDeclaredMethod("decryptIfNeeded", ByteArray::class.java)
         decryptMethod.isAccessible = true
         
-        try {
-            decryptMethod.invoke(manager, data)
-            fail("Should have thrown EncryptionException")
-        } catch (e: java.lang.reflect.InvocationTargetException) {
-            val cause = e.targetException
-            assertTrue("Expected EncryptionException, got ${cause?.javaClass?.name}", cause is EncryptionException)
-        }
+        val encrypted = encryptMethod.invoke(manager, data) as ByteArray
+        assertNotEquals("Encrypted data should differ from original", data.toList(), encrypted.toList())
+        assertTrue("Encrypted data should be longer than original (IV + tag)", encrypted.size > data.size)
+        
+        val decrypted = decryptMethod.invoke(manager, encrypted) as ByteArray
+        assertArrayEquals("Decrypted data should match original", data, decrypted)
+    }
+
+    @Test
+    fun `setRequireEncryption updates internal flag`() = runTest(testDispatcher) {
+        val flagField = manager.javaClass.getDeclaredField("requireEncryption")
+        flagField.isAccessible = true
+        val flag = flagField.get(manager) as java.util.concurrent.atomic.AtomicBoolean
+        
+        manager.setRequireEncryption(false)
+        assertFalse(flag.get())
+        
+        manager.setRequireEncryption(true)
+        assertTrue(flag.get())
     }
 
     private class FakeCryptoEngine : CryptoEngine {

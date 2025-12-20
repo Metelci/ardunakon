@@ -113,6 +113,31 @@ class WifiManagerTest {
         assertEquals(history, manager.rttHistory.value)
     }
 
+    @Test
+    fun `auto-reconnect triggers after delay`() = runTest(testDispatcher) {
+        // Create manager with monitors enabled
+        val monitorManager = WifiManager(
+            context = context,
+            connectionPreferences = ConnectionPreferences(context, TestCryptoEngine()),
+            ioDispatcher = testDispatcher,
+            encryptionPreferences = prefs,
+            scope = testScope,
+            startMonitors = true
+        )
+        
+        monitorManager.setAutoReconnectEnabled(true)
+        monitorManager.onStateChanged(WifiConnectionState.ERROR)
+        
+        testDispatcher.scheduler.advanceTimeBy(3000)
+        testDispatcher.scheduler.runCurrent()
+        
+        // State should have changed to CONNECTING via the monitor's call to connect()
+        // Note: connect() calls connectionManager.connect() which calls callback.onStateChanged(CONNECTING)
+        assertEquals(WifiConnectionState.CONNECTING, monitorManager.connectionState.value)
+        
+        monitorManager.cleanup()
+    }
+
     private class FakeCryptoEngine : CryptoEngine {
         override fun encrypt(data: String): String = "ENC:$data"
         override fun decrypt(encryptedData: String): String = encryptedData.removePrefix("ENC:")
