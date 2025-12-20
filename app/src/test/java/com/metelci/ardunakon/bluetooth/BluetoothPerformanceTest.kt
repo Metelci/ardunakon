@@ -326,6 +326,7 @@ class BluetoothPerformanceTest {
             }
         }
         
-        assertTrue("Boolean updates should be under 1ms for 1000 ops, was ${timeMs}ms", timeMs < 1)
+        // Avoid flakiness on CI/Windows where timer resolution can be ~1ms.
+        assertTrue("Boolean updates should be under 2ms for 1000 ops, was ${timeMs}ms", timeMs < 2)
     }
 }

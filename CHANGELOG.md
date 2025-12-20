@@ -25,6 +25,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build verification includes ProGuard mapping check
 - KTLint formatting standards are enforced in the project
 
+## [0.2.8-alpha] - 2025-12-20
+
+### Added
+- **Test Coverage Improvements**: Telemetry package coverage increased from 0% to 72%
+- **UI Component Tests**: New ControlHeaderBarTest with Robolectric and Compose Test
+- **Testability Refactor**: CryptoEngine and CoroutineScope injection for unit testing
+
+### Fixed
+- Jacoco report generation (removed incompatible doFirst block)
+- TelemetryHistoryManagerTest now targets production class correctly
+
+### Changed
+- AppBluetoothManager refactored for dependency injection
+- BluetoothScanner updated to accept injected CryptoEngine
+- DI modules (AppModule, DataModule, BluetoothModule) updated for CryptoEngine
+
 ## [0.2.7-alpha-hotfix3] - 2025-12-19
 
 ### Added

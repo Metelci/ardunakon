@@ -35,7 +35,8 @@ class BluetoothScanner(
     private val context: Context,
     private val adapter: BluetoothAdapter?,
     private val scope: CoroutineScope,
-    private val callbacks: ScannerCallbacks
+    private val callbacks: ScannerCallbacks,
+    private val cryptoEngine: com.metelci.ardunakon.security.CryptoEngine = com.metelci.ardunakon.security.SecurityManager()
 ) {
     /**
      * Callbacks for scanner events
@@ -51,7 +52,7 @@ class BluetoothScanner(
     val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = _scannedDevices.asStateFlow()
 
     // Device name cache for resolved names
-    private val deviceNameCache = DeviceNameCache(context)
+    private val deviceNameCache = DeviceNameCache(context, cryptoEngine)
 
     // Scan timeout job
     private var scanJob: Job? = null

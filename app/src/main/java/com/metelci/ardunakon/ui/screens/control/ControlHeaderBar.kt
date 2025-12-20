@@ -119,6 +119,10 @@ fun ControlHeaderBar(
     onResetTutorial: () -> Unit,
     onQuitApp: () -> Unit,
 
+    // Joystick Settings
+    joystickSensitivity: Float = 1.0f,
+    onJoystickSensitivityChange: (Float) -> Unit = {},
+
     // Context for crash log check
     context: Context,
     view: View,
@@ -137,69 +141,15 @@ fun ControlHeaderBar(
     ) {
         val actionsCount = if (connectionMode == ConnectionMode.BLUETOOTH) 4 else 3
 
-        var itemSpacing = if (isLandscape) 12.dp else 6.dp
-        var modeSelectorWidth = if (isLandscape) 48.dp else 40.dp
-        var statusWidgetWidth = if (isLandscape) 64.dp else 56.dp
-        var widgetHeight = if (isLandscape) 48.dp else 40.dp
-        var rightButtonSize = buttonSize
-        var eStopButtonSize = eStopSize
+        val sideSectionsMaxPossibleWidth = ((maxWidth - eStopSize) / 2f).coerceAtLeast(0.dp)
+        val isTight = sideSectionsMaxPossibleWidth < 160.dp && !isLandscape
 
-        if (!isLandscape) {
-            val itemSpacingOptions = listOf(8.dp, 6.dp, 4.dp)
-            val modeSelectorOptions = listOf(40.dp, 36.dp, 32.dp, 28.dp)
-            val statusWidgetOptions = listOf(56.dp, 52.dp, 48.dp, 44.dp)
-            val rightButtonOptions = listOf(buttonSize, 32.dp, 30.dp, 28.dp)
-                .distinct()
-                .filter { it <= buttonSize }
-                .sortedDescending()
-            val eStopOptions = listOf(eStopSize, 52.dp, 48.dp)
-                .distinct()
-                .filter { it <= eStopSize }
-                .sortedDescending()
-
-            var found = false
-            for (candidateEStop in eStopOptions) {
-                val sideWidth = ((maxWidth - candidateEStop) * 0.5f).coerceAtLeast(0.dp)
-                for (candidateItemSpacing in itemSpacingOptions) {
-                    for (candidateRightButtonSize in rightButtonOptions) {
-                        for (candidateModeSelectorWidth in modeSelectorOptions) {
-                            for (candidateStatusWidgetWidth in statusWidgetOptions) {
-                                val leftSectionWidth =
-                                    (candidateModeSelectorWidth * 2f) + 1.dp + candidateStatusWidgetWidth + candidateItemSpacing
-                                val rightSectionWidth =
-                                    (candidateRightButtonSize * actionsCount.toFloat()) +
-                                        (candidateItemSpacing * (actionsCount - 1).toFloat())
-
-                                if (leftSectionWidth <= sideWidth && rightSectionWidth <= sideWidth) {
-                                    itemSpacing = candidateItemSpacing
-                                    modeSelectorWidth = candidateModeSelectorWidth
-                                    statusWidgetWidth = candidateStatusWidgetWidth
-                                    rightButtonSize = candidateRightButtonSize
-                                    eStopButtonSize = candidateEStop
-                                    widgetHeight =
-                                        if (candidateModeSelectorWidth <= 32.dp || candidateRightButtonSize <= 32.dp) 36.dp else 40.dp
-                                    found = true
-                                    break
-                                }
-                            }
-                            if (found) break
-                        }
-                        if (found) break
-                    }
-                    if (found) break
-                }
-                if (found) break
-            }
-
-            if (!found) {
-                itemSpacing = itemSpacingOptions.last()
-                modeSelectorWidth = modeSelectorOptions.last()
-                statusWidgetWidth = statusWidgetOptions.last()
-                rightButtonSize = rightButtonOptions.lastOrNull() ?: rightButtonSize
-                eStopButtonSize = eStopOptions.last()
-                widgetHeight = 36.dp
-            }
-        }
+        var itemSpacing = if (isTight) 4.dp else if (isLandscape) 12.dp else 8.dp
+        var modeSelectorWidth = if (isTight) 32.dp else if (isLandscape) 48.dp else 40.dp
+        var statusWidgetWidth = if (isTight) 48.dp else if (isLandscape) 64.dp else 56.dp
+        var rightButtonSize = if (isTight) 32.dp else buttonSize
+        var eStopButtonSize = if (isTight) 52.dp else eStopSize
+        var widgetHeight = if (isTight) 36.dp else 40.dp
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -327,7 +277,9 @@ fun ControlHeaderBar(
                     onShowOta = onShowOta,
                     onOpenArduinoCloud = onOpenArduinoCloud,
                     onResetTutorial = onResetTutorial,
-                    onQuitApp = onQuitApp
+                    onQuitApp = onQuitApp,
+                    joystickSensitivity = joystickSensitivity,
+                    onJoystickSensitivityChange = onJoystickSensitivityChange
                 )
             }
         }
@@ -358,7 +310,9 @@ private fun HeaderActionsRow(
     onShowOta: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
     onResetTutorial: () -> Unit,
-    onQuitApp: () -> Unit
+    onQuitApp: () -> Unit,
+    joystickSensitivity: Float,
+    onJoystickSensitivityChange: (Float) -> Unit
 ) {
     val actionIconSize = (rightButtonSize * 0.5f).coerceIn(14.dp, 18.dp)
     val menuIconSize = (rightButtonSize * 0.45f).coerceIn(14.dp, 16.dp)
@@ -439,6 +393,25 @@ private fun HeaderActionsRow(
                 expanded = showOverflowMenu,
                 onDismissRequest = onDismissOverflowMenu
             ) {
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text("Joystick Sensitivity: ${"%.1f".format(joystickSensitivity)}", style = MaterialTheme.typography.labelSmall)
+                            androidx.compose.material3.Slider(
+                                value = joystickSensitivity,
+                                onValueChange = onJoystickSensitivityChange,
+                                valueRange = 0.5f..2.0f,
+                                steps = 14,
+                                colors = androidx.compose.material3.SliderDefaults.colors(
+                                    thumbColor = Color(0xFF00FF00),
+                                    activeTrackColor = Color(0xFF00FF00)
+                                )
+                            )
+                        }
+                    },
+                    onClick = {}
+                )
+                Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
                 DropdownMenuItem(
                     text = { Text("Help") },
                     leadingIcon = { Icon(Icons.Default.Help, null) },

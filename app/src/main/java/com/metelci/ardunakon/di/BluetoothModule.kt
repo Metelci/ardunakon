@@ -18,9 +18,10 @@ object BluetoothModule {
     @Singleton
     fun provideAppBluetoothManager(
         @ApplicationContext context: Context,
-        connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences
+        connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
+        cryptoEngine: com.metelci.ardunakon.security.CryptoEngine
     ): AppBluetoothManager {
-        return AppBluetoothManager(context, connectionPreferences)
+        return AppBluetoothManager(context, connectionPreferences, cryptoEngine)
     }
 
     // TelemetryHistoryManager is exposed via AppBluetoothManager, but if needed directly:

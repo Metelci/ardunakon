@@ -383,13 +383,13 @@ class WifiManagerEnhancedTest {
     @Test
     fun `broadcast address calculation handles edge cases`() {
         val testCases = listOf(
-            Triple(0xC0A80101, 0xFFFFFF00, 0xC0A801FF), // 192.168.1.1/24
-            Triple(0x0A000001, 0xFF000000, 0x0A0000FF), // 10.0.0.1/8
-            Triple(0xAC100001, 0xFFFF0000, 0xAC1000FF)  // 172.16.0.1/16
+            Triple(0xC0A80101L, 0xFFFFFF00L, 0xC0A801FFL), // 192.168.1.1/24
+            Triple(0x0A000001L, 0xFF000000L, 0x0AFFFFFFL), // 10.0.0.1/8
+            Triple(0xAC100001L, 0xFFFF0000L, 0xAC10FFFFL)  // 172.16.0.1/16
         )
         
         for ((ip, mask, expectedBroadcast) in testCases) {
-            val calculatedBroadcast = ((ip.toLong() and mask.toLong()) or mask.inv().toLong()).toInt()
+            val calculatedBroadcast = (ip and mask) or (mask.inv() and 0xFFFFFFFFL)
             assertEquals("Broadcast calculation should be correct for subnet",
                         expectedBroadcast, calculatedBroadcast)
         }

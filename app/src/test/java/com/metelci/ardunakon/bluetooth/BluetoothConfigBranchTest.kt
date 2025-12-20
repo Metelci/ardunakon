@@ -9,6 +9,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.util.ReflectionHelpers
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34]) // SDK 34 is compatible with Java 17 (SDK 35+ requires Java 21)
 class BluetoothConfigBranchTest {
 
     @Test
@@ -38,7 +40,7 @@ class BluetoothConfigBranchTest {
 }
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34]) // SDK 34 is compatible with Java 17 (SDK 35+ requires Java 21)
 class BluetoothConfigManufacturerBranchTest {
 
     @Test
@@ -55,4 +57,3 @@ class BluetoothConfigManufacturerBranchTest {
         }
     }
 }
-

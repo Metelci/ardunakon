@@ -24,20 +24,19 @@ import kotlinx.coroutines.sync.withLock
 
 class AppBluetoothManager(
     private val context: Context,
-    private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences
+    private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
+    private val cryptoEngine: com.metelci.ardunakon.security.CryptoEngine = com.metelci.ardunakon.security.SecurityManager(),
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, t -> 
+        Log.e("AppBluetoothManager", "Uncaught exception", t)
+    })
 ) : ConnectionCallback {
 
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val adapter: BluetoothAdapter? = bluetoothManager.adapter
     
-    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        Log.e("AppBluetoothManager", "Uncaught exception in scope", throwable)
-        log("Critical Error: ${throwable.message}", LogType.ERROR) // This already triggers CrashHandler via log()
-    }
-    
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + exceptionHandler)
-    private val deviceNameCache = com.metelci.ardunakon.data.DeviceNameCache(context)
-    private val autoReconnectPrefs = com.metelci.ardunakon.data.AutoReconnectPreferences(context)
+    /* scope already passed in constructor */
+    private val deviceNameCache = com.metelci.ardunakon.data.DeviceNameCache(context, cryptoEngine)
+    private val autoReconnectPrefs = com.metelci.ardunakon.data.AutoReconnectPreferences(context, cryptoEngine)
 
     // --- Sub-Managers ---
     private val scanner: BluetoothScanner = BluetoothScanner(
@@ -48,7 +47,8 @@ class AppBluetoothManager(
             override fun onDeviceFound(device: BluetoothDeviceModel) { /* UI updates via StateFlow */ }
             override fun onDeviceUpdated(device: BluetoothDeviceModel) { /* Device type upgrade */ }
             override fun onScanLog(message: String, type: LogType) { log(message, type) }
-        }
+        },
+        cryptoEngine = cryptoEngine
     )
 
     private val telemetryManager = TelemetryManager(scope) { msg, type -> log(msg, type) }
@@ -157,21 +157,19 @@ class AppBluetoothManager(
             // Restore saved device address for "True Auto-Reconnect"
             val lastConn = connectionPreferences.loadLastConnection()
             val savedAddress = lastConn.btAddress
+            val savedType = lastConn.btType
             if (!savedAddress.isNullOrEmpty()) {
                  val savedName = deviceNameCache.getName(savedAddress) ?: "Unknown Device"
+                 val type = if (savedType == "LE") DeviceType.LE else DeviceType.CLASSIC
+                 
                  // Construct a minimal model for reconnection
                  savedDevice = BluetoothDeviceModel(
                      name = savedName,
                      address = savedAddress,
                      rssi = 0,
-                     type = DeviceType.CLASSIC // Default, will be auto-corrected or we should save type too?
-                     // Note: We should probably save Type in ConnectionPreferences too.
-                     // The Plan said "Last connected Bluetooth Device Address (MAC)". 
-                     // Ideally we save type to avoid trial-and-error. 
-                     // ConnectionPreferences has 'type' which is connection mode (BT/WiFi). 
-                     // We can infer type or just try.
+                     type = type
                  )
-                 log("Restored saved device: $savedName", LogType.INFO)
+                 log("Restored saved device: $savedName (${type.name})", LogType.INFO)
             }
 
             if (saved[0]) log("Restored auto-reconnect: enabled", LogType.INFO)
@@ -354,7 +352,8 @@ class AppBluetoothManager(
                  scope.launch {
                      connectionPreferences.saveLastConnection(
                          type = "BLUETOOTH",
-                         btAddress = device.address
+                         btAddress = device.address,
+                         btType = device.type.name
                      )
                      deviceNameCache.saveName(device.address, device.name, device.type)
                  }

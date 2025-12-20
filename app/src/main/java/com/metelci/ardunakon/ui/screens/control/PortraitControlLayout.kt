@@ -102,6 +102,8 @@ fun PortraitControlLayout(
             },
             onResetTutorial = { viewModel.resetTutorial() },
             onQuitApp = onQuitApp,
+            joystickSensitivity = viewModel.joystickSensitivity,
+            onJoystickSensitivityChange = { viewModel.updateJoystickSensitivity(it) },
             context = context,
             view = view
         )

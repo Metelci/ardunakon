@@ -80,6 +80,13 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
+    init {
+        viewModelScope.launch {
+            val lastConn = connectionPreferences.loadLastConnection()
+            joystickSensitivity = lastConn.joystickSensitivity
+        }
+    }
+
     /**
      * Resets the onboarding tutorial so it appears on next launch.
      */
@@ -104,8 +111,16 @@ class ControlViewModel @javax.inject.Inject constructor(
     var encryptionError by mutableStateOf<EncryptionException?>(null)
     var requireEncryption by mutableStateOf(false)
 
-    // Sensitivity constant (was previously from profiles)
-    private val joystickSensitivity = 1.0f
+    // Sensitivity state
+    var joystickSensitivity by mutableStateOf(1.0f)
+        private set
+
+    fun updateJoystickSensitivity(sensitivity: Float) {
+        joystickSensitivity = sensitivity
+        viewModelScope.launch {
+            connectionPreferences.saveLastConnection(joystickSensitivity = sensitivity)
+        }
+    }
 
     // ========== Control State ==========
     var leftJoystick by mutableStateOf(Pair(0f, 0f))

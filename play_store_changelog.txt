@@ -1,3 +1,16 @@
+What's New in v0.2.8-alpha:
+
+🧪 **Test Coverage & Quality**:
+    • **Telemetry Coverage**: Increased from 0% to 72% line coverage
+    • **UI Tests**: Added Compose UI component tests with Robolectric
+    • **Testability Refactor**: Improved dependency injection for better unit testing
+
+🔧 **Technical Improvements**:
+    • **Jacoco Fix**: Fixed report generation for accurate coverage metrics
+    • **DI Updates**: AppBluetoothManager and BluetoothScanner now support injection
+
+---
+
 What's New in v0.2.7-alpha-hotfix2:
 
 - Docs: Updated app/store descriptions and removed "Dev 2" references

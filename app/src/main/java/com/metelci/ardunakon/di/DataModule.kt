@@ -16,19 +16,28 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideDeviceNameCache(@ApplicationContext context: Context): DeviceNameCache {
-        return DeviceNameCache(context)
+    fun provideDeviceNameCache(
+        @ApplicationContext context: Context,
+        cryptoEngine: com.metelci.ardunakon.security.CryptoEngine
+    ): DeviceNameCache {
+        return DeviceNameCache(context, cryptoEngine)
     }
 
     @Provides
     @Singleton
-    fun provideAutoReconnectPreferences(@ApplicationContext context: Context): AutoReconnectPreferences {
-        return AutoReconnectPreferences(context)
+    fun provideAutoReconnectPreferences(
+        @ApplicationContext context: Context,
+        cryptoEngine: com.metelci.ardunakon.security.CryptoEngine
+    ): AutoReconnectPreferences {
+        return AutoReconnectPreferences(context, cryptoEngine)
     }
 
     @Provides
     @Singleton
-    fun provideConnectionPreferences(@ApplicationContext context: Context): com.metelci.ardunakon.data.ConnectionPreferences {
-        return com.metelci.ardunakon.data.ConnectionPreferences(context)
+    fun provideConnectionPreferences(
+        @ApplicationContext context: Context,
+        cryptoEngine: com.metelci.ardunakon.security.CryptoEngine
+    ): com.metelci.ardunakon.data.ConnectionPreferences {
+        return com.metelci.ardunakon.data.ConnectionPreferences(context, cryptoEngine)
     }
 }

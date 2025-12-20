@@ -25,4 +25,10 @@ object AppModule {
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
         return context.getSharedPreferences("ardunakon_prefs", Context.MODE_PRIVATE)
     }
+
+    @Provides
+    @Singleton
+    fun provideCryptoEngine(): com.metelci.ardunakon.security.CryptoEngine {
+        return com.metelci.ardunakon.security.SecurityManager()
+    }
 }
