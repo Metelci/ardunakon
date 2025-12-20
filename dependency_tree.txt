@@ -1,8 +1,0 @@
-# Generated file
-#
-# This file is generated and can become stale.
-# Regenerate it locally with:
-#   PowerShell:  .\scripts\update_dependency_tree.ps1
-#   Bash:        ./scripts/update_dependency_tree.sh
-#
-# (Output comes from `:app:dependencies`)

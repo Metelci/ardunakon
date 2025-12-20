@@ -23,10 +23,10 @@ class WifiManager(
     private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
     private val onLog: (String) -> Unit = {},
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val encryptionPreferences: WifiEncryptionPreferences = WifiEncryptionPreferences(context)
+    private val encryptionPreferences: WifiEncryptionPreferences = WifiEncryptionPreferences(context),
+    private val scope: CoroutineScope = CoroutineScope(ioDispatcher + SupervisorJob()),
+    private val startMonitors: Boolean = true
 ) : WifiConnectionCallback {
-
-    private val scope = CoroutineScope(ioDispatcher + SupervisorJob())
     private val secureRandom = SecureRandom()
     private val sessionKey = AtomicReference<ByteArray?>(null)
     private val discoveryNonce = AtomicReference<String?>(null)
@@ -90,7 +90,9 @@ class WifiManager(
                 if (_shouldReconnect) onLog("Restored WiFi target: $targetIp and armed auto-reconnect")
             }
         }
-        startReconnectMonitor()
+        if (startMonitors) {
+            startReconnectMonitor()
+        }
     }
 
     fun setAutoReconnectEnabled(enabled: Boolean) {

@@ -240,15 +240,35 @@ class BluetoothScanner(
             return false
         }
 
-        // Resolve name using multi-layer strategy
+        // Determine initial name for immediate feedback
+        val initialName = if (!rawName.isNullOrBlank()) {
+            "$rawName ($address)"
+        } else {
+            "Unknown Device ($address)"
+        }
+
+        // Add to list immediately to ensure deduplication and test correctness
+        val newDevice = BluetoothDeviceModel(initialName, address, resolvedType, rssi)
+        list.add(newDevice)
+        _scannedDevices.value = list
+        callbacks.onDeviceFound(newDevice)
+
+        // Resolve more permanent/cached name in background
         scope.launch {
-            val resolvedName = resolveDeviceName(device, address, resolvedType)
-            val updatedList = _scannedDevices.value.toMutableList()
-            if (updatedList.none { it.address == address }) {
-                val newDevice = BluetoothDeviceModel(resolvedName, address, resolvedType, rssi)
-                updatedList.add(newDevice)
-                _scannedDevices.value = updatedList
-                callbacks.onDeviceFound(newDevice)
+            try {
+                val resolvedName = resolveDeviceName(device, address, resolvedType)
+                if (resolvedName != initialName) {
+                    val currentList = _scannedDevices.value.toMutableList()
+                    val index = currentList.indexOfFirst { it.address == address }
+                    if (index >= 0) {
+                        val updatedDevice = currentList[index].copy(name = resolvedName)
+                        currentList[index] = updatedDevice
+                        _scannedDevices.value = currentList
+                        callbacks.onDeviceUpdated(updatedDevice)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("BluetoothScanner", "Failed to resolve name for $address", e)
             }
         }
         return true

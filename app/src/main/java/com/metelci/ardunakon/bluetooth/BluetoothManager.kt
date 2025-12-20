@@ -28,7 +28,8 @@ class AppBluetoothManager(
     private val cryptoEngine: com.metelci.ardunakon.security.CryptoEngine = com.metelci.ardunakon.security.SecurityManager(),
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, t -> 
         Log.e("AppBluetoothManager", "Uncaught exception", t)
-    })
+    }),
+    private val startMonitors: Boolean = true
 ) : ConnectionCallback {
 
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -174,8 +175,10 @@ class AppBluetoothManager(
 
             if (saved[0]) log("Restored auto-reconnect: enabled", LogType.INFO)
         }
-        startReconnectMonitor()
-        startKeepAlivePings()
+        if (startMonitors) {
+            startReconnectMonitor()
+            startKeepAlivePings()
+        }
     }
 
     // --- Public Actions ---
