@@ -89,3 +89,4 @@ build_log_2.txt
 dependency_tree.txt
 .kotlin/sessions/kotlin-compiler-2034296814045620867.salive
 arduino_sketches/ArdunakonR4WiFi/arduino_secrets.h
+wifi_tests_all_output_v2.txt
