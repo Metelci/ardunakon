@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.2.8-alpha] - 2025-12-20
 
 ### Added
 - Formal protocol specification document (PROTOCOL_SPEC.md)
@@ -24,8 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All Arduino comments translated to English
 - Build verification includes ProGuard mapping check
 - KTLint formatting standards are enforced in the project
-
-## [0.2.8-alpha] - 2025-12-20
 
 ### Added
 - **Test Coverage Improvements**: Telemetry package coverage increased from 0% to 72%
