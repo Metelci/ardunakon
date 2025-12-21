@@ -1,8 +1,10 @@
-Version 0.2.10-alpha - December 21, 2025
+Version 0.2.10-alpha - December 22, 2025
 
 IMPROVEMENTS:
-• Custom Commands: Create and send up to 16 user-defined protocol commands (0x20-0x3F) from Settings
-• Quality: Expanded Compose UI test coverage for connection status widgets and dialogs
+• Custom Command Extensions: Full framework to define, save, and send custom 10-byte protocol commands (0x20-0x3F)
+• Joystick Sensitivity: Added real-time descriptive help text in Settings explaining the curve's impact on precision
+• UI Clarity: Improved encryption status transparency for WiFi connections (accurate padlock icons)
+• Stability: Resolved project-wide Compose UI test compilation failures on Kotlin 2.0
 
 For full changelog, visit: https://github.com/metelci/ardunakon
 

@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.2.10-alpha] - 2025-12-21
+## [0.2.10-alpha] - 2025-12-22
 
 ### Added
-- Custom Commands: create and send up to 16 user-defined protocol commands (0x20-0x3F) from Settings
-- Expanded Compose UI test coverage for connection status widgets and dialogs
+- **Custom Command Extensions**: Full framework for defining, saving, and sending custom 10-byte protocol commands (IDs 0x20-0x3F).
+  - Includes hex payload editor, color picker, icon selector, and persistence via encrypted JSON.
+- **Joystick Sensitivity Improvements**: Added real-time descriptive help text in Settings explaining the impact of the curve on control precision.
+- **WiFi Encryption Transparency**: Added UI verification to ensure correctly omitted security icons for unencrypted connections.
+
+### Fixed
+- **Test Stability**: Resolved a project-wide unresolved reference bug for `assertDoesNotExist()` in Compose UI tests by implementing an `assertCountEquals(0)` workaround and explicitly adding `ui-test-core`.
+- **Hilt Testing**: Fixed compilation errors in `ControlViewModelTest` by correctly mocking the new `CustomCommandRegistry`.
 
 ## [0.2.9-alpha] - 2025-12-21
 

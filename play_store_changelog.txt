@@ -1,10 +1,17 @@
 What's New in v0.2.10-alpha:
 
 🧩 **Custom Commands**:
-    • Create and send up to 16 user-defined protocol commands (0x20-0x3F) from Settings
+    • Full framework to define, save, and send custom 10-byte protocol commands (0x20-0x3F)
+    • Integrated hex editor for custom payloads, plus color and icon selectors
+    • Secure persistence using encrypted JSON storage
 
-🧪 **Quality**:
-    • Expanded Compose UI test coverage for connection status widgets and dialogs
+🎮 **UI & UX Improvements**:
+    • Added dynamic help text in Settings to explain joystick sensitivity impact
+    • Improved WiFi connection status transparency for unencrypted networks
+
+🧪 **Quality & Stability**:
+    • Resolved project-wide UI test compilation issues on Kotlin 2.0 / Compose 1.7
+    • Improved unit test coverage and fixed Hilt injection in test environments
 
 ---
 

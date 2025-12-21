@@ -8,8 +8,9 @@ Ardunakon is an Android application designed to control Arduino RC cars and robo
 * Target SDK: 35, Min SDK: 26
 
 ### What's New in 0.2.10-alpha
-*   **Custom Commands**: Create and send up to 16 user-defined protocol commands (0x20-0x3F) from Settings.
-*   **Quality**: Expanded Compose UI test coverage for connection status widgets and dialogs.
+*   **Custom Commands**: Create, save, and send up to 16 user-defined 10-byte protocol commands (0x20-0x3F) with a built-in hex editor and custom icons.
+*   **Joystick Sensitivity Help**: Added dynamic help text in Settings to clarify how sensitivity curves impact control responsiveness.
+*   **Quality**: Resolved complex Compose UI test compilation issues and added verification for unencrypted WiFi status icons.
 
 ### What's New in 0.2.9-alpha
 *   **BLE Throughput**: 2M PHY + 517 MTU negotiation (when supported), balanced connection priority, and a 150-packet bounded write queue.
@@ -40,7 +41,7 @@ Ardunakon is an Android application designed to control Arduino RC cars and robo
 *   **Throttle Joystick**: Vertical-only, non-centering for smooth speed changes.
 *   **W/L/R/B Servo Buttons**: Tap to move, tap again to center (W forward, B backward, L left, R right).
 *   **Smart Throttle Modes**: Car mode (-100% to +100%) and Drone/Boat mode (0% to 100%).
-*   **Custom Sensitivity**: 10% to 200% response curve.
+*   **Custom Sensitivity**: 10% to 200% response curve with real-time descriptive help text.
 
 ### Powerful Customization
 *   **Aux Buttons**: 4 buttons with configurable labels, commands, and colors.
