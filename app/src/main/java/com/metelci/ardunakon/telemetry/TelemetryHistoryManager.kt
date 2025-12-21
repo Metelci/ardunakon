@@ -12,7 +12,8 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
     private val rttHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
     private val packetLossHistory = ConcurrentLinkedDeque<PacketLossDataPoint>()
     
-    // Force recompile trigger (Telemetry Fix)
+    // Time-based cleanup: remove data older than 10 minutes
+    private val maxHistoryAgeMs = 10 * 60 * 1000L
 
     // StateFlow for UI reactivity
     private val _historyUpdated = MutableStateFlow(0L)
@@ -48,9 +49,14 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
         )
         
         packetLossHistory.addLast(point)
+        
+        // Size-based cleanup
         while (packetLossHistory.size > maxHistorySize) {
             packetLossHistory.removeFirst()
         }
+        
+        // Time-based cleanup
+        cleanupStalePacketLossData()
         
         _historyUpdated.value = System.currentTimeMillis()
     }
@@ -59,12 +65,47 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
         val point = TelemetryDataPoint(System.currentTimeMillis(), value)
         buffer.addLast(point)
 
-        // Auto-evict oldest entries when buffer exceeds max size
+        // Size-based cleanup: evict oldest entries when buffer exceeds max size
         while (buffer.size > maxHistorySize) {
             buffer.removeFirst()
         }
+        
+        // Time-based cleanup: remove data older than maxHistoryAgeMs
+        cleanupStaleData(buffer)
 
         // Notify UI of update
+        _historyUpdated.value = System.currentTimeMillis()
+    }
+    
+    /**
+     * Remove entries older than maxHistoryAgeMs from a TelemetryDataPoint buffer.
+     */
+    private fun cleanupStaleData(buffer: ConcurrentLinkedDeque<TelemetryDataPoint>) {
+        val cutoff = System.currentTimeMillis() - maxHistoryAgeMs
+        while (buffer.isNotEmpty() && buffer.first.timestamp < cutoff) {
+            buffer.pollFirst()
+        }
+    }
+    
+    /**
+     * Remove entries older than maxHistoryAgeMs from packet loss buffer.
+     */
+    private fun cleanupStalePacketLossData() {
+        val cutoff = System.currentTimeMillis() - maxHistoryAgeMs
+        while (packetLossHistory.isNotEmpty() && packetLossHistory.first.timestamp < cutoff) {
+            packetLossHistory.pollFirst()
+        }
+    }
+    
+    /**
+     * Manually trigger cleanup of all stale data across all buffers.
+     * Useful when reconnecting or on session start.
+     */
+    fun cleanupAllStaleData() {
+        cleanupStaleData(batteryHistory)
+        cleanupStaleData(rssiHistory)
+        cleanupStaleData(rttHistory)
+        cleanupStalePacketLossData()
         _historyUpdated.value = System.currentTimeMillis()
     }
 

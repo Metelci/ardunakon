@@ -377,17 +377,25 @@ class AppBluetoothManager(
          }
     }
 
+    // Throttling for debug RX logging to reduce performance impact
+    private var lastRxLogTime = 0L
+    private val RX_LOG_THROTTLE_MS = 500L
+
     override fun onDataReceived(data: ByteArray) {
         _incomingData.value = data
         telemetryManager.recordInbound()
         
-        // Debug logging for raw data to analyze potential format issues
-        // Use a simple sampling or conditional to avoid spam if high frequency
-        // For now, log capabilities (0x05) and Telemetry (0x10) explicitly, others as VERBOSE?
-        // Let's just log ALL for debugging this specific user issue.
-        // Assuming data isn't huge.
-        val hex = data.joinToString("") { "%02X".format(it) }
-        log("RX: $hex", LogType.INFO)
+        // Throttled debug logging on background thread to avoid blocking
+        val now = System.currentTimeMillis()
+        if (now - lastRxLogTime >= RX_LOG_THROTTLE_MS) {
+            lastRxLogTime = now
+            scope.launch(Dispatchers.Default) {
+                val hex = data.joinToString("") { "%02X".format(it) }
+                withContext(Dispatchers.Main) {
+                    log("RX: $hex", LogType.INFO)
+                }
+            }
+        }
 
         telemetryManager.parseTelemetryPacket(data)
         

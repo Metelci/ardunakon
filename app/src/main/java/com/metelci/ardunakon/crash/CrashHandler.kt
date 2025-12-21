@@ -113,7 +113,6 @@ class CrashHandler private constructor(
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun saveCrashLog(thread: Thread, throwable: Throwable, customMessage: String? = null): String {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
         val file = getCrashLogFile(context)
@@ -128,7 +127,6 @@ class CrashHandler private constructor(
         val crashInfo = buildString {
             appendLine("=== ${if (customMessage != null) "NON-FATAL ERROR" else "CRASH"} ===")
             appendLine("Timestamp: $timestamp")
-            @Suppress("DEPRECATION")
             val threadId = thread.id
             appendLine("Thread: ${thread.name} ($threadId)")
             if (customMessage != null) {
