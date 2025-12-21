@@ -155,6 +155,7 @@ fun ControlScreenDialogs(
 
     // Settings Dialog
     if (viewModel.showSettingsDialog) {
+        val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
         SettingsDialog(
             onDismiss = { viewModel.showSettingsDialog = false },
             view = view,
@@ -168,7 +169,46 @@ fun ControlScreenDialogs(
                 viewModel.showSettingsDialog = false
                 viewModel.showOtaDialog = true
             },
+            customCommandCount = customCommands.size,
+            onShowCustomCommands = {
+                viewModel.showSettingsDialog = false
+                viewModel.showCustomCommandsDialog = true
+            },
             onResetTutorial = { viewModel.resetTutorial() }
+        )
+    }
+
+    // Custom Commands List Dialog
+    if (viewModel.showCustomCommandsDialog) {
+        val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
+        com.metelci.ardunakon.ui.components.CustomCommandListDialog(
+            commands = customCommands,
+            view = view,
+            onAddCommand = {
+                viewModel.editingCommand = null
+                viewModel.showCustomCommandEditor = true
+            },
+            onEditCommand = { cmd ->
+                viewModel.editingCommand = cmd
+                viewModel.showCustomCommandEditor = true
+            },
+            onDeleteCommand = { viewModel.deleteCustomCommand(it) },
+            onSendCommand = { viewModel.sendCustomCommand(it) },
+            onDismiss = { viewModel.showCustomCommandsDialog = false }
+        )
+    }
+
+    // Custom Command Editor Dialog
+    if (viewModel.showCustomCommandEditor) {
+        com.metelci.ardunakon.ui.components.CustomCommandDialog(
+            command = viewModel.editingCommand,
+            availableCommandIds = viewModel.getAvailableCommandIds(),
+            view = view,
+            onSave = { viewModel.saveCustomCommand(it) },
+            onDismiss = {
+                viewModel.editingCommand = null
+                viewModel.showCustomCommandEditor = false
+            }
         )
     }
 

@@ -90,11 +90,15 @@ class ControlViewModelTest {
         every { wifiManager.disconnect() } just runs
         every { wifiManager.setAutoReconnectEnabled(any()) } just runs
 
+        val customCommandRegistry = mockk<com.metelci.ardunakon.protocol.CustomCommandRegistry>(relaxed = true)
+        every { customCommandRegistry.commands } returns MutableStateFlow(emptyList())
+
         return ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
             connectionPreferences = connectionPreferences,
-            onboardingManager = onboardingManager
+            onboardingManager = onboardingManager,
+            customCommandRegistry = customCommandRegistry
         ).also { it.setForegroundActive(false) }
     }
 
@@ -200,11 +204,15 @@ class ControlViewModelTest {
         every { wifiManager.clearEncryptionError() } just runs
         every { wifiManager.disconnect() } just runs
 
+        val customCommandRegistry = mockk<com.metelci.ardunakon.protocol.CustomCommandRegistry>(relaxed = true)
+        every { customCommandRegistry.commands } returns MutableStateFlow(emptyList())
+
         val viewModel = ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
             connectionPreferences = connectionPreferences,
-            onboardingManager = onboardingManagerMock
+            onboardingManager = onboardingManagerMock,
+            customCommandRegistry = customCommandRegistry
         ).also { it.setForegroundActive(false) }
 
         viewModel.resetTutorial()

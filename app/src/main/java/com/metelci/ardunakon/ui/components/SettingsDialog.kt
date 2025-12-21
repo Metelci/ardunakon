@@ -24,7 +24,7 @@ import androidx.compose.ui.window.DialogProperties
 
 /**
  * Settings dialog for app configuration.
- * Contains: Debug toggle, Joystick sensitivity, Legacy reflection, OTA firmware, Reset tutorial.
+ * Contains: Debug toggle, Joystick sensitivity, Legacy reflection, OTA firmware, Custom commands, Reset tutorial.
  */
 @Suppress("FunctionName")
 @Composable
@@ -46,6 +46,10 @@ fun SettingsDialog(
 
     // OTA Firmware
     onShowOta: () -> Unit,
+
+    // Custom commands
+    customCommandCount: Int = 0,
+    onShowCustomCommands: () -> Unit = {},
 
     // Reset tutorial
     onResetTutorial: () -> Unit
@@ -190,6 +194,18 @@ fun SettingsDialog(
                             Text("0.5x", fontSize = 10.sp, color = Color.Gray)
                             Text("2.0x", fontSize = 10.sp, color = Color.Gray)
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = when {
+                                joystickSensitivity < 0.95f -> "Provides more precision for fine movements."
+                                joystickSensitivity > 1.05f -> "Reaches full power with less stick movement."
+                                else -> "Standard linear response."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray.copy(alpha = 0.8f),
+                            fontSize = 11.sp
+                        )
                     }
 
                     Divider(color = Color(0xFF333333))
@@ -224,6 +240,20 @@ fun SettingsDialog(
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             onShowOta()
+                            onDismiss()
+                        }
+                    )
+
+                    Divider(color = Color(0xFF333333))
+
+                    // Custom Commands
+                    SettingsSection(
+                        icon = Icons.Default.Extension,
+                        title = "Custom Commands",
+                        subtitle = if (customCommandCount > 0) "$customCommandCount configured" else "Create custom device commands",
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onShowCustomCommands()
                             onDismiss()
                         }
                     )

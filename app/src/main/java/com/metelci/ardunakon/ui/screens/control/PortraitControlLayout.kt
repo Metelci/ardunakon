@@ -74,16 +74,16 @@ fun PortraitControlLayout(
             buttonSize = 32.dp,
             eStopSize = 56.dp,
             onScanDevices = { viewModel.showDeviceList = true },
-            onReconnectDevice = {
-                val reconnected = bluetoothManager.reconnectSavedDevice()
-                if (!reconnected) viewModel.showDeviceList = true
-            },
-            onSwitchToWifi = { viewModel.connectionMode = ConnectionMode.WIFI },
-            onSwitchToBluetooth = { viewModel.connectionMode = ConnectionMode.BLUETOOTH },
-            onConfigureWifi = { viewModel.showWifiConfig = true },
-            onTelemetryGraph = { viewModel.showTelemetryGraph = true },
-            onToggleEStop = { viewModel.toggleEStop(view) },
-            onShowSettings = { viewModel.showSettingsDialog = true },
+                onReconnectDevice = {
+                    val reconnected = bluetoothManager.reconnectSavedDevice()
+                    if (!reconnected) viewModel.showDeviceList = true
+                },
+                onSwitchToWifi = { viewModel.switchToWifi() },
+                onSwitchToBluetooth = { viewModel.switchToBluetooth() },
+                onConfigureWifi = { viewModel.showWifiConfig = true },
+                onTelemetryGraph = { viewModel.showTelemetryGraph = true },
+                onToggleEStop = { viewModel.toggleEStop(view) },
+                onShowSettings = { viewModel.showSettingsDialog = true },
             onShowHelp = { viewModel.showHelpDialog = true },
             onShowAbout = { viewModel.showAboutDialog = true },
             onShowCrashLog = { viewModel.showCrashLog = true },

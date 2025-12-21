@@ -51,7 +51,8 @@ class ControlViewModel @javax.inject.Inject constructor(
     val bluetoothManager: AppBluetoothManager,
     val wifiManager: WifiManager,
     private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
-    private val onboardingManager: com.metelci.ardunakon.data.OnboardingManager
+    private val onboardingManager: com.metelci.ardunakon.data.OnboardingManager,
+    val customCommandRegistry: com.metelci.ardunakon.protocol.CustomCommandRegistry
 ) : ViewModel() {
 
     private val transmissionDispatcher: CoroutineDispatcher = Dispatchers.Default
@@ -69,6 +70,11 @@ class ControlViewModel @javax.inject.Inject constructor(
     var showCrashLog by mutableStateOf(false)
     var showSettingsDialog by mutableStateOf(false)
     var showHeaderMenu by mutableStateOf(false)
+
+    // Custom Commands
+    var showCustomCommandsDialog by mutableStateOf(false)
+    var showCustomCommandEditor by mutableStateOf(false)
+    var editingCommand by mutableStateOf<com.metelci.ardunakon.model.CustomCommand?>(null)
 
     // User Feedback (Snackbars)
     private val _userMessage = Channel<String>(Channel.CONFLATED)
@@ -190,6 +196,9 @@ class ControlViewModel @javax.inject.Inject constructor(
         syncReflectionSetting()
         observeConnectionState()
         observeEncryptionErrors()
+
+        // Initialize custom commands registry
+        customCommandRegistry.initialize()
     }
 
     private fun syncReflectionSetting() {
@@ -466,6 +475,43 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     fun reconnectBluetoothDevice(): Boolean = bluetoothManager.reconnectSavedDevice()
+
+    // ========== Custom Commands ==========
+    fun sendCustomCommand(command: com.metelci.ardunakon.model.CustomCommand) {
+        val packet = ProtocolManager.formatCustomCommandData(
+            command.commandId,
+            command.payload
+        )
+        when (connectionMode) {
+            ConnectionMode.WIFI -> wifiManager.sendData(packet)
+            ConnectionMode.BLUETOOTH -> bluetoothManager.sendDataToAll(packet)
+        }
+        bluetoothManager.log("Sent custom command: ${command.name}", LogType.INFO)
+    }
+
+    fun saveCustomCommand(command: com.metelci.ardunakon.model.CustomCommand) {
+        viewModelScope.launch {
+            if (editingCommand != null) {
+                customCommandRegistry.updateCommand(command)
+                bluetoothManager.log("Updated command: ${command.name}", LogType.SUCCESS)
+            } else {
+                customCommandRegistry.registerCommand(command)
+                bluetoothManager.log("Created command: ${command.name}", LogType.SUCCESS)
+            }
+            editingCommand = null
+            showCustomCommandEditor = false
+        }
+    }
+
+    fun deleteCustomCommand(id: String) {
+        viewModelScope.launch {
+            val command = customCommandRegistry.getCommand(id)
+            customCommandRegistry.unregisterCommand(id)
+            bluetoothManager.log("Deleted command: ${command?.name ?: id}", LogType.WARNING)
+        }
+    }
+
+    fun getAvailableCommandIds(): List<Byte> = customCommandRegistry.getAvailableCommandIds()
 
     // ========== Log Export ==========
     fun exportLogs(context: Context) {

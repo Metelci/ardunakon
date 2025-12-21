@@ -40,4 +40,21 @@ object DataModule {
     ): com.metelci.ardunakon.data.ConnectionPreferences {
         return com.metelci.ardunakon.data.ConnectionPreferences(context, cryptoEngine)
     }
+
+    @Provides
+    @Singleton
+    fun provideCustomCommandPreferences(
+        @ApplicationContext context: Context,
+        cryptoEngine: com.metelci.ardunakon.security.CryptoEngine
+    ): com.metelci.ardunakon.data.CustomCommandPreferences {
+        return com.metelci.ardunakon.data.CustomCommandPreferences(context, cryptoEngine)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCustomCommandRegistry(
+        preferences: com.metelci.ardunakon.data.CustomCommandPreferences
+    ): com.metelci.ardunakon.protocol.CustomCommandRegistry {
+        return com.metelci.ardunakon.protocol.CustomCommandRegistry(preferences)
+    }
 }

@@ -91,8 +91,8 @@ fun LandscapeControlLayout(
                     val reconnected = bluetoothManager.reconnectSavedDevice()
                     if (!reconnected) viewModel.showDeviceList = true
                 },
-                onSwitchToWifi = { viewModel.connectionMode = ConnectionMode.WIFI },
-                onSwitchToBluetooth = { viewModel.connectionMode = ConnectionMode.BLUETOOTH },
+                onSwitchToWifi = { viewModel.switchToWifi() },
+                onSwitchToBluetooth = { viewModel.switchToBluetooth() },
                 onConfigureWifi = { viewModel.showWifiConfig = true },
                 onTelemetryGraph = { viewModel.showTelemetryGraph = true },
                 onToggleEStop = { viewModel.toggleEStop(view) },

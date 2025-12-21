@@ -93,4 +93,56 @@ class ProtocolManagerTest {
         }
         return xor
     }
+
+    // ========== Custom Command Tests ==========
+
+    @Test
+    fun testCustomCommandFormat() {
+        val payload = byteArrayOf(0x01, 0x02, 0x03, 0x04, 0x05)
+        val packet = ProtocolManager.formatCustomCommandData(
+            commandId = 0x20.toByte(),
+            payload = payload
+        )
+
+        assertEquals(10, packet.size)
+        assertEquals(0xAA.toByte(), packet[0]) // START
+        assertEquals(0x01.toByte(), packet[1]) // DEV_ID
+        assertEquals(0x20.toByte(), packet[2]) // CMD
+        assertEquals(0x01.toByte(), packet[3]) // Payload[0]
+        assertEquals(0x02.toByte(), packet[4]) // Payload[1]
+        assertEquals(0x03.toByte(), packet[5]) // Payload[2]
+        assertEquals(0x04.toByte(), packet[6]) // Payload[3]
+        assertEquals(0x05.toByte(), packet[7]) // Payload[4]
+        assertEquals(calculateChecksum(packet), packet[8])
+        assertEquals(0x55.toByte(), packet[9]) // END
+    }
+
+    @Test
+    fun testCustomCommandRangeBoundaries() {
+        // Test minimum range (0x20)
+        val minPacket = ProtocolManager.formatCustomCommandData(0x20.toByte(), ByteArray(5))
+        assertEquals(0x20.toByte(), minPacket[2])
+
+        // Test maximum range (0x3F)
+        val maxPacket = ProtocolManager.formatCustomCommandData(0x3F.toByte(), ByteArray(5))
+        assertEquals(0x3F.toByte(), maxPacket[2])
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testCustomCommandInvalidRangeLow() {
+        // 0x1F is below custom range
+        ProtocolManager.formatCustomCommandData(0x1F.toByte(), ByteArray(5))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testCustomCommandInvalidRangeHigh() {
+        // 0x40 is above custom range
+        ProtocolManager.formatCustomCommandData(0x40.toByte(), ByteArray(5))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testCustomCommandInvalidPayloadSize() {
+        // Payload must be exactly 5 bytes
+        ProtocolManager.formatCustomCommandData(0x20.toByte(), ByteArray(3))
+    }
 }

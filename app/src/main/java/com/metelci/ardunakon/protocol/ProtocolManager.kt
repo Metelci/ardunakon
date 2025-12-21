@@ -17,6 +17,10 @@ object ProtocolManager {
     const val CMD_ANNOUNCE_CAPABILITIES: Byte = 0x05
     const val CMD_SERVO_Z: Byte = 0x06
 
+    // Custom command range (user-defined commands)
+    const val CMD_CUSTOM_RANGE_START: Byte = 0x20
+    const val CMD_CUSTOM_RANGE_END: Byte = 0x3F
+
     // Aux bits (mirrors Arduino ArdunakonProtocol.h)
     const val AUX_W: Byte = 0x01 // Used for A button -> servo Z +
     const val AUX_A: Byte = 0x02
@@ -222,6 +226,32 @@ object ProtocolManager {
         packet[1] = DEFAULT_DEVICE_ID
         packet[2] = CMD_HANDSHAKE_COMPLETE
         for (i in 3..7) packet[i] = 0
+        packet[8] = calculateChecksum(packet)
+        packet[9] = END_BYTE
+        return packet
+    }
+
+    /**
+     * Format a custom command packet.
+     *
+     * @param commandId Command ID in range 0x20-0x3F
+     * @param payload 5-byte payload data
+     * @return 10-byte protocol packet
+     * @throws IllegalArgumentException if commandId is out of range or payload size is wrong
+     */
+    fun formatCustomCommandData(commandId: Byte, payload: ByteArray): ByteArray {
+        require(commandId in CMD_CUSTOM_RANGE_START..CMD_CUSTOM_RANGE_END) {
+            "Command ID must be in custom range 0x20-0x3F, got: 0x${commandId.toInt().and(0xFF).toString(16)}"
+        }
+        require(payload.size == 5) {
+            "Payload must be exactly 5 bytes, got: ${payload.size}"
+        }
+
+        val packet = ByteArray(PACKET_SIZE)
+        packet[0] = START_BYTE
+        packet[1] = DEFAULT_DEVICE_ID
+        packet[2] = commandId
+        System.arraycopy(payload, 0, packet, 3, 5)
         packet[8] = calculateChecksum(packet)
         packet[9] = END_BYTE
         return packet

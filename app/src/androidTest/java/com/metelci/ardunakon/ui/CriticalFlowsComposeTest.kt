@@ -132,12 +132,11 @@ class CriticalFlowsComposeTest {
     }
 
     @Test
-    fun header_overflowMenu_triggers_help_and_reflection_toggle() {
+    fun header_overflowMenu_triggers_help_dialog() {
         composeRule.setContent {
             val context = LocalContext.current
             val view = LocalView.current
             var helpOpened by remember { mutableStateOf(false) }
-            var allowReflection by remember { mutableStateOf(false) }
 
             MaterialTheme {
                 Column {
@@ -171,7 +170,6 @@ class CriticalFlowsComposeTest {
                         view = view
                     )
                     Text("helpOpened=$helpOpened")
-                    Text("allowReflection=$allowReflection")
                 }
             }
         }
@@ -179,13 +177,6 @@ class CriticalFlowsComposeTest {
         composeRule.onNodeWithContentDescription("Menu").performClick()
         composeRule.onNodeWithText("Help").performClick()
         composeRule.onNodeWithText("helpOpened=true").assertIsDisplayed()
-
-        composeRule.onNodeWithContentDescription("Menu").performClick()
-        composeRule.onNodeWithText("Legacy Reflection (HC-06): Off").performClick()
-        composeRule.onNodeWithText("allowReflection=true").assertIsDisplayed()
-
-        composeRule.onNodeWithContentDescription("Menu").performClick()
-        composeRule.onNodeWithText("Legacy Reflection (HC-06): On").assertIsDisplayed()
     }
 
     @Test
@@ -236,6 +227,86 @@ class CriticalFlowsComposeTest {
         composeRule.onNodeWithContentDescription(
             "Emergency stop active. Tap to release and resume control."
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun connectionStatusWidget_wifi_encrypted_shows_lock_icon() {
+        composeRule.setContent {
+            var lastAction by remember { mutableStateOf("none") }
+            MaterialTheme {
+                Column {
+                    ConnectionStatusWidget(
+                        connectionMode = ConnectionMode.WIFI,
+                        btState = ConnectionState.DISCONNECTED,
+                        wifiState = WifiConnectionState.CONNECTED,
+                        rssi = -45,
+                        rttHistory = listOf(12L),
+                        isEncrypted = true,
+                        onReconnect = { lastAction = "reconnect" },
+                        onConfigure = { lastAction = "configure" },
+                        onScanDevices = { lastAction = "scan" },
+                        view = LocalView.current,
+                        modifier = Modifier.semantics { contentDescription = "Connection Status" }
+                    )
+                    Text("action=$lastAction")
+                }
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Encrypted connection").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Connection Status").performClick()
+        composeRule.onNodeWithText("Configure WiFi").performClick()
+        composeRule.onNodeWithText("action=configure").assertIsDisplayed()
+    }
+
+    @Test
+    fun controlHeaderBar_mode_switch_invokes_callbacks() {
+        composeRule.setContent {
+            val context = LocalContext.current
+            val view = LocalView.current
+            var switches by remember { mutableStateOf(0) }
+
+            MaterialTheme {
+                Column {
+                    ControlHeaderBar(
+                        connectionMode = ConnectionMode.BLUETOOTH,
+                        bluetoothConnectionState = ConnectionState.DISCONNECTED,
+                        wifiConnectionState = WifiConnectionState.DISCONNECTED,
+                        rssiValue = -60,
+                        wifiRssi = -45,
+                        rttHistory = listOf(10L),
+                        wifiRttHistory = listOf(12L),
+                        isEStopActive = false,
+                        autoReconnectEnabled = false,
+                        onToggleAutoReconnect = {},
+                        isWifiEncrypted = false,
+                        onScanDevices = {},
+                        onReconnectDevice = {},
+                        onSwitchToWifi = { switches++ },
+                        onSwitchToBluetooth = { switches++ },
+                        onConfigureWifi = {},
+                        onTelemetryGraph = {},
+                        onToggleEStop = {},
+                        onShowSettings = {},
+                        onShowHelp = {},
+                        onShowAbout = {},
+                        onShowCrashLog = {},
+                        onShowOta = {},
+                        onOpenArduinoCloud = {},
+                        onQuitApp = {},
+                        context = context,
+                        view = view
+                    )
+                    Text("switches=$switches")
+                }
+            }
+        }
+
+        composeRule.onNodeWithText("switches=0").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("WiFi").performClick()
+        composeRule.onNodeWithText("switches=1").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Bluetooth").performClick()
+        composeRule.onNodeWithText("switches=2").assertIsDisplayed()
     }
 
     @Test
