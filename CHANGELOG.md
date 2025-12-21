@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.10-alpha] - 2025-12-21
+
+### Added
+- Custom Commands: create and send up to 16 user-defined protocol commands (0x20-0x3F) from Settings
+- Expanded Compose UI test coverage for connection status widgets and dialogs
+
 ## [0.2.9-alpha] - 2025-12-21
 
 ### Added

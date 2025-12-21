@@ -8,8 +8,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -63,7 +65,7 @@ class TelemetryGraphDialogComposeTest {
         // Populate and verify empty state disappears.
         composeRule.runOnUiThread { history.recordBattery(12.4f) }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("No battery data available").assertDoesNotExist()
+        composeRule.onAllNodesWithText("No battery data available").assertCountEquals(0)
 
         // Switch to RTT tab and confirm empty state.
         composeRule.onNodeWithText("RTT").performClick()

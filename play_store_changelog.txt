@@ -1,3 +1,13 @@
+What's New in v0.2.10-alpha:
+
+🧩 **Custom Commands**:
+    • Create and send up to 16 user-defined protocol commands (0x20-0x3F) from Settings
+
+🧪 **Quality**:
+    • Expanded Compose UI test coverage for connection status widgets and dialogs
+
+---
+
 What's New in v0.2.9-alpha:
 
 ⚡ **Performance & Battery**:

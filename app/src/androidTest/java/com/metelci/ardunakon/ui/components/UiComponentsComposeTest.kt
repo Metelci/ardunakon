@@ -6,8 +6,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -54,7 +56,7 @@ class UiComponentsComposeTest {
             }
         }
 
-        composeRule.onNodeWithText("Packet Loss Detected", substring = true).assertDoesNotExist()
+        composeRule.onAllNodesWithText("Packet Loss Detected", substring = true).assertCountEquals(0)
     }
 
     @Test

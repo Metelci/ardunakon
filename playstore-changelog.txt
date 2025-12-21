@@ -1,3 +1,13 @@
+Version 0.2.10-alpha - December 21, 2025
+
+IMPROVEMENTS:
+• Custom Commands: Create and send up to 16 user-defined protocol commands (0x20-0x3F) from Settings
+• Quality: Expanded Compose UI test coverage for connection status widgets and dialogs
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.9-alpha - December 21, 2025
 
 IMPROVEMENTS:

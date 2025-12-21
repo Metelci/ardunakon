@@ -13,8 +13,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -257,6 +259,29 @@ class CriticalFlowsComposeTest {
         composeRule.onNodeWithContentDescription("Connection Status").performClick()
         composeRule.onNodeWithText("Configure WiFi").performClick()
         composeRule.onNodeWithText("action=configure").assertIsDisplayed()
+    }
+
+    @Test
+    fun connectionStatusWidget_wifi_not_encrypted_does_not_show_lock_icon() {
+        composeRule.setContent {
+            MaterialTheme {
+                ConnectionStatusWidget(
+                    connectionMode = ConnectionMode.WIFI,
+                    btState = ConnectionState.DISCONNECTED,
+                    wifiState = WifiConnectionState.CONNECTED,
+                    rssi = -45,
+                    rttHistory = listOf(12L),
+                    isEncrypted = false,
+                    onReconnect = {},
+                    onConfigure = {},
+                    onScanDevices = {},
+                    view = LocalView.current,
+                    modifier = Modifier.semantics { contentDescription = "Connection Status" }
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithContentDescription("Encrypted connection").assertCountEquals(0)
     }
 
     @Test

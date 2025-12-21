@@ -8,8 +8,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.metelci.ardunakon.security.EncryptionException
@@ -43,7 +45,7 @@ class EncryptionErrorDialogComposeTest {
 
         composeRule.onNodeWithText("Security Verification Failed").assertIsDisplayed()
         composeRule.onNodeWithText("Security protocol error occurred").assertIsDisplayed()
-        composeRule.onNodeWithText("Wrong PSK", substring = true).assertDoesNotExist()
+        composeRule.onAllNodesWithText("Wrong PSK", substring = true).assertCountEquals(0)
 
         composeRule.onNodeWithText("Continue").performClick()
         composeRule.onNodeWithText("retry=0 continue=1 disconnect=0").assertIsDisplayed()
