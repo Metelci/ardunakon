@@ -121,7 +121,7 @@ After implementing fixes:
   - Timestamp per log entry
   - Log type (INFO/SUCCESS/WARNING/ERROR)
   - Telemetry data (battery, packet stats)
-  - ⚠️ Missing: Device model/OS version (optional enhancement)
+  - ✅ Device model, Android version, App version added
 
 ---
 
@@ -135,4 +135,4 @@ The debug system is now fully verified and enhanced:
 **Priority Order:**
 1. ~~Fix TroubleshootHints (Turkish → English)~~ ✅ DONE
 2. ~~Expand BreadcrumbManager usage~~ ✅ DONE
-3. Optional: Add device info header to log export
+3. ~~Add device info header to log export~~ ✅ DONE

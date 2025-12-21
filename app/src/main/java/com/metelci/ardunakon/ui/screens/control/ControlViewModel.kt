@@ -489,6 +489,16 @@ class ControlViewModel @javax.inject.Inject constructor(
                 appendLine("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
                 appendLine("=".repeat(50))
                 appendLine()
+                
+                // Device Info Header
+                appendLine("Device Info:")
+                appendLine("  App Version: ${getAppVersion(context)}")
+                appendLine("  Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+                appendLine("  Android: ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})")
+                appendLine("  Connection Mode: ${connectionMode.name}")
+                appendLine()
+                appendLine("=".repeat(50))
+                appendLine()
 
                 if (debugLogs.isEmpty()) {
                     appendLine("No logs available")
@@ -545,5 +555,18 @@ class ControlViewModel @javax.inject.Inject constructor(
     override fun onCleared() {
         super.onCleared()
         transmissionJob?.cancel()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun getAppVersion(context: Context): String = try {
+        val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            pInfo.longVersionCode
+        } else {
+            pInfo.versionCode.toLong()
+        }
+        "${pInfo.versionName} ($versionCode)"
+    } catch (_: Exception) {
+        "Unknown"
     }
 }
