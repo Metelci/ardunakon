@@ -1,0 +1,10 @@
+## Example Android SDK configuration (DO NOT COMMIT local.properties)
+#
+# Copy this file to `local.properties` and set the SDK path for your machine.
+#
+# Windows (recommended to use forward slashes):
+# sdk.dir=C:/Users/<YOU>/AppData/Local/Android/Sdk
+#
+# WSL/Linux:
+# sdk.dir=/home/<you>/.local/android-sdk
+
