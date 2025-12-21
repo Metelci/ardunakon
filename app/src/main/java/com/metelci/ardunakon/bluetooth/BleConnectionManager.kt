@@ -196,8 +196,8 @@ class BleConnectionManager(
                 timeoutJob?.cancel()
                 callback.onError("BLE Connected - Negotiating...", LogType.INFO)
                 
-                // Request High Priority connection parameters
-                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                // Request Balanced connection parameters (30ms-50ms interval) for better battery life
+                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
                 
                 // BLE 5.0 PHY Optimization: Use 2M PHY for faster data transfer
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

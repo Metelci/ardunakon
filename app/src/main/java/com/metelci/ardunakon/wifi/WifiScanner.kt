@@ -87,7 +87,7 @@ class WifiScanner(
                     DatagramSocket(null).apply {
                         reuseAddress = true
                         broadcast = true
-                        soTimeout = 2000
+                        soTimeout = 4000
                         bind(InetSocketAddress(8888))
                     }
                 } catch (e: Exception) {

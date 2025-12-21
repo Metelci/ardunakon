@@ -65,7 +65,7 @@ object BluetoothConfig {
     val BLE_ONLY_NAME_MARKERS: List<String> = listOf(
         "HM-10", "HM10", "AT-09", "AT09", "MLT-BT05", "BT05", "BT-05",
         "HC-08", "HC08", "CC41", "CC41-A", "BLE", "ARDUNAKON",
-        "ARDUINO", "R4", "UNO R4"
+        "ARDUINO", "R4", "UNO R4", "NANO R4", "ESP32"
     )
 
     /**
@@ -227,9 +227,9 @@ object BluetoothConfig {
     const val MAX_RTT_HISTORY = 20
 
     /**
-     * Maximum write queue size
+     * Maximum write queue size (increased to 150 for high-throughput bursts)
      */
-    const val MAX_WRITE_QUEUE_SIZE = 100
+    const val MAX_WRITE_QUEUE_SIZE = 150
 
     /**
      * Read buffer size (bytes)

@@ -211,7 +211,7 @@ class WifiManager(
                 delay(2000)
                 if (_shouldReconnect && (_connectionState.value == WifiConnectionState.DISCONNECTED || _connectionState.value == WifiConnectionState.ERROR)) {
                     if (System.currentTimeMillis() >= nextReconnectAt) {
-                        if (reconnectAttempts >= 5) {
+                        if (reconnectAttempts >= 3) {
                             setAutoReconnectEnabled(false)
                         } else {
                             val backoff = (reconnectAttempts * 2000L).coerceAtMost(10000L)

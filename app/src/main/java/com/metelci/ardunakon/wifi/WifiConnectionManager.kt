@@ -253,9 +253,9 @@ class WifiConnectionManager(
     private fun getOptimalHeartbeatInterval(): Long {
         val lastRtt = rttHistory.firstOrNull() ?: 100L
         return when {
-            lastRtt < 50 -> 5000L    // Good connection: 5s
-            lastRtt < 200 -> 3000L   // Moderate: 3s
-            else -> 1500L            // Poor or high latency: 1.5s
+            lastRtt < 50 -> 6000L    // Good connection: 6s
+            lastRtt < 200 -> 4000L   // Moderate: 4s
+            else -> 3000L            // Poor or high latency: 3s (Base)
         }
     }
 
