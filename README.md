@@ -144,29 +144,4 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 *   **In-App Help** - Tap Menu > Help for offline documentation with 4 detailed guides
 
 ---
-*Built for Makers, by Makers.*
-
-## Play Store Listing
-
-**Title**: Ardunakon — Arduino Controller
-
-**Short Description**:
-Control Arduino RC cars & robots via Bluetooth Classic, BLE, or Wi‑Fi.
-
-**Full Description**:
-Ardunakon is an Android controller app for Arduino projects. Connect over "Bluetooth Classic, Bluetooth LE (BLE), or Wi‑Fi (UDP)" and drive with a joystick plus dedicated servo controls.
-
-- Highlights:
- +Bluetooth Classic + BLE: Works with common modules (HC‑05/HC‑06, HM‑10/HC‑08, AT‑09, MLT‑BT05, Nordic UART, ArduinoBLE).
- + Wi‑Fi (UDP) mode: Device discovery and manual IP/port configuration.
- + Wi‑Fi encryption support: Handshake + AES‑GCM with a lock indicator when active.
- + Safety**: Emergency stop (E‑STOP) blocks control transmissions until reset.
- + Telemetry & debugging: Built-in debug console and real-time graphs (battery, RSSI, RTT, packet loss, quality).
- + Help built-in: Offline setup guide + compatibility report, plus an in-app tutorial.
-
-- Compatible With:
- + Arduino UNO Q (BLE)
- + Arduino UNO R4 WiFi (BLE + Wi‑Fi sketches)
- + Classic Arduino boards with external Bluetooth modules (HC‑05/HC‑06, HM‑10‑style BLE modules)
-
 Open source: https://github.com/metelci/ardunakon
