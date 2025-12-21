@@ -1,3 +1,5 @@
+// HapticFeedbackConstants.KEYBOARD_TAP deprecated in API 33, using CONFIRM would require SDK checks.
+// Suppression kept for backward compatibility with pre-API 33 devices.
 @file:Suppress("DEPRECATION")
 
 package com.metelci.ardunakon.ui.components

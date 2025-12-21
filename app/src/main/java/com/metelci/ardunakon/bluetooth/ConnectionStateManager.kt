@@ -78,12 +78,13 @@ class ConnectionStateManager(private val context: Context, private val config: B
      * Adds an RTT sample to the history for sparkline visualization.
      */
     fun addRttToHistory(rtt: Long) {
-        val current = _rttHistory.value.toMutableList()
-        current.add(rtt)
-        while (current.size > BluetoothConfig.MAX_RTT_HISTORY) {
-            current.removeAt(0)
+        // Use ArrayDeque for O(1) head removal instead of O(n) list.removeAt(0)
+        val deque = java.util.ArrayDeque(_rttHistory.value)
+        deque.addLast(rtt)
+        while (deque.size > BluetoothConfig.MAX_RTT_HISTORY) {
+            deque.removeFirst()
         }
-        _rttHistory.value = current
+        _rttHistory.value = deque.toList()
     }
 
     /**

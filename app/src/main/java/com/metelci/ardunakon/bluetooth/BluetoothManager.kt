@@ -519,13 +519,14 @@ class AppBluetoothManager(
     }
     
     fun log(message: String, type: LogType = LogType.INFO) {
-        val currentLogs = _debugLogs.value.toMutableList()
+        // Use ArrayDeque for O(1) head removal instead of O(n) list.removeAt(0)
+        val deque = java.util.ArrayDeque(_debugLogs.value)
         // Limit to 500 entries to prevent memory leaks
-        if (currentLogs.size >= 500) {
-            currentLogs.removeAt(0)
+        if (deque.size >= 500) {
+            deque.removeFirst()
         }
-        currentLogs.add(LogEntry(type = type, message = message))
-        _debugLogs.value = currentLogs
+        deque.addLast(LogEntry(type = type, message = message))
+        _debugLogs.value = deque.toList()
         Log.d("Ardunakon", message)
 
         if (type == LogType.ERROR) {
