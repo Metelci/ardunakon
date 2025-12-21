@@ -93,6 +93,42 @@ fun ControlScreen(
         }
     }
 
+    // Bridge Bluetooth telemetry to HistoryManager (explicit bridge for BLE data)
+    val btConnectionState = btCombined.connectionState
+    val btTelemetry = btCombined.telemetry
+    val btRssi = btCombined.rssi
+    val btHealth = btCombined.health
+    
+    LaunchedEffect(btConnectionState, btTelemetry, btRssi, btHealth) {
+        if (btConnectionState == com.metelci.ardunakon.bluetooth.ConnectionState.CONNECTED) {
+            // Record RSSI if available and not zero
+            if (btRssi != 0) {
+                bluetoothManager.telemetryHistoryManager.recordRssi(btRssi)
+            }
+            
+            // Record RTT from health if available
+            if (btHealth.lastRttMs > 0) {
+                bluetoothManager.telemetryHistoryManager.recordRtt(btHealth.lastRttMs)
+            }
+            
+            // Record battery from telemetry if available
+            btTelemetry?.let { t ->
+                if (t.batteryVoltage > 0) {
+                    bluetoothManager.telemetryHistoryManager.recordBattery(t.batteryVoltage)
+                }
+                // Record packet loss if tracking
+                if (t.packetsSent > 0) {
+                    bluetoothManager.telemetryHistoryManager.recordPacketLoss(
+                        packetsSent = t.packetsSent.toInt(),
+                        packetsReceived = (t.packetsSent - t.packetsDropped - t.packetsFailed).toInt(),
+                        packetsDropped = t.packetsDropped.toInt(),
+                        packetsFailed = t.packetsFailed.toInt()
+                    )
+                }
+            }
+        }
+    }
+
     // Export logs function
     val exportLogs: () -> Unit = { viewModel.exportLogs(context) }
 

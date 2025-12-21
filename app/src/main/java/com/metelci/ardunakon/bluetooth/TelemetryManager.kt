@@ -119,6 +119,16 @@ class TelemetryManager(
         packetsDropped.set(0, dropped)
         packetsFailed.set(0, failed)
         
+        // Record packet loss to history for graphs
+        if (sent > 0) {
+            _telemetryHistoryManager.recordPacketLoss(
+                packetsSent = sent.toInt(),
+                packetsReceived = (sent - dropped - failed).toInt(),
+                packetsDropped = dropped.toInt(),
+                packetsFailed = failed.toInt()
+            )
+        }
+        
         // Update telemetry object if exists
         val current = _telemetry.value
         if (current != null) {
