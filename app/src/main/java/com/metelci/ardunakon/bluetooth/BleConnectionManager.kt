@@ -196,11 +196,20 @@ class BleConnectionManager(
                 timeoutJob?.cancel()
                 callback.onError("BLE Connected - Negotiating...", LogType.INFO)
                 
-                // Request High Priority
+                // Request High Priority connection parameters
                 gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                
+                // BLE 5.0 PHY Optimization: Use 2M PHY for faster data transfer
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    gatt.setPreferredPhy(
+                        BluetoothDevice.PHY_LE_2M_MASK,  // TX: 2M for speed
+                        BluetoothDevice.PHY_LE_2M_MASK,  // RX: 2M for speed
+                        BluetoothDevice.PHY_OPTION_NO_PREFERRED
+                    )
+                }
 
-                // Best-effort MTU; some devices behave better when requested early.
-                gatt.requestMtu(512)
+                // Request maximum MTU for better throughput (BLE 5.0 supports up to 517)
+                gatt.requestMtu(517)
                 
                 // Discover services after a short settle; ESP32-based peripherals can return empty services if queried immediately.
                 serviceDiscoveryJob?.cancel()

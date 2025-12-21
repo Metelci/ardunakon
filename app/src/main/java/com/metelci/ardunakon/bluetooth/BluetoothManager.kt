@@ -79,6 +79,27 @@ class AppBluetoothManager(
 
     private val _isEmergencyStopActive = MutableStateFlow(false)
     val isEmergencyStopActive: StateFlow<Boolean> = _isEmergencyStopActive.asStateFlow()
+    
+    // Battery optimization: foreground/background mode
+    private var isForeground = true
+    private val foregroundMonitorInterval = 1000L
+    private val backgroundMonitorInterval = 5000L
+
+    /**
+     * Set foreground/background mode for battery optimization.
+     * When in background, monitoring intervals are increased.
+     */
+    fun setForegroundMode(foreground: Boolean) {
+        if (isForeground == foreground) return
+        isForeground = foreground
+        log("App moved to ${if (foreground) "foreground" else "background"} - adjusting monitors", LogType.INFO)
+        
+        // Restart monitors with new intervals
+        if (connectionState.value == ConnectionState.CONNECTED) {
+            startKeepAlivePings()
+            // In a real app, we might also tell connectionManager to adjust its polling
+        }
+    }
 
     private val _deviceCapability = MutableStateFlow(DeviceCapabilities.DEFAULT)
     val deviceCapability: StateFlow<DeviceCapabilities> = _deviceCapability.asStateFlow()
@@ -455,10 +476,9 @@ class AppBluetoothManager(
         keepAliveJob?.cancel()
         keepAliveJob = scope.launch {
             while (isActive) {
-                delay(BluetoothConfig.HEARTBEAT_INTERVAL_MS)
-                if (_connectionState.value == ConnectionState.CONNECTED) {
-                    var seq = 0 // Needs to be persistent? Yes. TelemetryManager has seq?
-                    // TelemetryManager tracks seq for health update, but doesn't store 'last sent seq' to increment it?
+                val interval = if (isForeground) foregroundMonitorInterval else backgroundMonitorInterval
+                delay(interval)
+                if (connectionState.value == ConnectionState.CONNECTED) {
                     // We need to keep seq here or in TM.
                     // Let's keep a simple counter here.
                     // But TelemetryManager needs it to correlate?

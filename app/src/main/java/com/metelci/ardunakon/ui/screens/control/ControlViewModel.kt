@@ -171,6 +171,8 @@ class ControlViewModel @javax.inject.Inject constructor(
             auxBits = auxBits
         )
 
+        if (!force && !ProtocolManager.shouldSendJoystickPacket(packet)) return
+
         if (connectionMode == ConnectionMode.WIFI) {
             wifiManager.sendData(packet)
         } else {
@@ -208,6 +210,7 @@ class ControlViewModel @javax.inject.Inject constructor(
     fun setForegroundActive(active: Boolean) {
         if (isForegroundActive == active) return
         isForegroundActive = active
+        bluetoothManager.setForegroundMode(active)
         if (active) {
             startTransmissionLoop()
         } else {
@@ -449,6 +452,7 @@ class ControlViewModel @javax.inject.Inject constructor(
             bluetoothManager.disconnect()
             bluetoothManager.log("Bluetooth disconnected", LogType.WARNING)
         }
+        ProtocolManager.resetPacketCache()
         connectionMode = ConnectionMode.WIFI
         viewModelScope.launch { connectionPreferences.saveLastConnection(type = "WIFI") }
         bluetoothManager.log("WiFi mode active", LogType.SUCCESS)
@@ -461,6 +465,7 @@ class ControlViewModel @javax.inject.Inject constructor(
             wifiManager.disconnect()
             bluetoothManager.log("WiFi disconnected", LogType.WARNING)
         }
+        ProtocolManager.resetPacketCache()
         connectionMode = ConnectionMode.BLUETOOTH
         viewModelScope.launch { connectionPreferences.saveLastConnection(type = "BLUETOOTH") }
         bluetoothManager.log("Bluetooth mode active", LogType.SUCCESS)

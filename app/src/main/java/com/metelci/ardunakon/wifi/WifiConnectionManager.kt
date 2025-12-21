@@ -250,6 +250,15 @@ class WifiConnectionManager(
         }
     }
 
+    private fun getOptimalHeartbeatInterval(): Long {
+        val lastRtt = rttHistory.firstOrNull() ?: 100L
+        return when {
+            lastRtt < 50 -> 5000L    // Good connection: 5s
+            lastRtt < 200 -> 3000L   // Moderate: 3s
+            else -> 1500L            // Poor or high latency: 1.5s
+        }
+    }
+
     private fun startPing() {
         scope.launch(ioDispatcher) {
             while (isActive && isConnected.get()) {
@@ -258,8 +267,12 @@ class WifiConnectionManager(
                     lastPingTime = System.currentTimeMillis()
                     val pingData = ProtocolManager.formatHeartbeatData(pingSequence)
                     sendData(pingData)
-                    delay(2000)
-                } catch (e: Exception) { delay(2000) }
+                    
+                    val delayMs = getOptimalHeartbeatInterval()
+                    delay(delayMs)
+                } catch (e: Exception) { 
+                    delay(2000) 
+                }
             }
         }
     }

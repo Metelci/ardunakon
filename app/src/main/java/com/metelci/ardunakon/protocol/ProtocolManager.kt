@@ -31,7 +31,57 @@ object ProtocolManager {
     const val CMD_HANDSHAKE_FAILED: Byte = 0x13
 
     const val DEFAULT_DEVICE_ID: Byte = 0x01
-
+    
+    // ========== Network Efficiency: Duplicate Suppression & Rate Limiting ==========
+    
+    // Last sent joystick packet for duplicate suppression
+    @Volatile private var lastJoystickPacket: ByteArray? = null
+    
+    // Rate limiting: cap at ~60 packets per second (16ms minimum interval)
+    private const val MIN_SEND_INTERVAL_MS = 16L
+    @Volatile private var lastSendTime = 0L
+    
+    /**
+     * Check if a joystick packet should be sent.
+     * Returns false if:
+     * 1. Packet is identical to last sent packet (duplicate suppression)
+     * 2. Packet sent too recently (rate limiting - 60fps cap)
+     */
+    fun shouldSendJoystickPacket(packet: ByteArray): Boolean {
+        val now = System.currentTimeMillis()
+        
+        // Rate limiting: ensure minimum interval between sends
+        if (now - lastSendTime < MIN_SEND_INTERVAL_MS) {
+            return false
+        }
+        
+        // Duplicate suppression: skip if packet is identical (except checksum position 8)
+        val last = lastJoystickPacket
+        if (last != null && last.size == packet.size) {
+            // Compare data bytes (skip checksum at position 8)
+            var identical = true
+            for (i in 0 until packet.size) {
+                if (i != 8 && last[i] != packet[i]) {
+                    identical = false
+                    break
+                }
+            }
+            if (identical) return false
+        }
+        
+        // Packet is new - update cache
+        lastJoystickPacket = packet.copyOf()
+        lastSendTime = now
+        return true
+    }
+    
+    /**
+     * Reset packet cache (call on disconnect or mode change)
+     */
+    fun resetPacketCache() {
+        lastJoystickPacket = null
+        lastSendTime = 0L
+    }
     // 0 = Min (-1.0), 100 = Center (0.0), 200 = Max (1.0)
     private fun mapJoystickValue(value: Float): Byte {
         val clamped = value.coerceIn(-1f, 1f)
