@@ -3,18 +3,23 @@ package com.metelci.ardunakon.wifi
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.net.wifi.WifiManager as AndroidWifiManager
 import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.Inet4Address
 import java.net.InetSocketAddress
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
 
 data class WifiDevice(val name: String, val ip: String, val port: Int, val trusted: Boolean = false)
@@ -195,13 +200,63 @@ class WifiScanner(
     }
 
     private fun resolveService(serviceInfo: NsdServiceInfo) {
-        nsdManager?.resolveService(serviceInfo, object : NsdManager.ResolveListener {
+        val manager = nsdManager ?: return
+        val listener = object : NsdManager.ResolveListener {
             override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {}
             override fun onServiceResolved(serviceInfo: NsdServiceInfo) {
-                val ip = serviceInfo.host.hostAddress
+                val ip = getResolvedHostAddress(serviceInfo)
                 if (ip != null) addDevice(serviceInfo.serviceName, ip, serviceInfo.port)
             }
-        })
+        }
+
+        // Resolve via reflection to avoid compile-time references to deprecated overloads on newer SDKs.
+        val executor = ContextCompat.getMainExecutor(context)
+        try {
+            val modern = manager.javaClass.getMethod(
+                "resolveService",
+                NsdServiceInfo::class.java,
+                java.util.concurrent.Executor::class.java,
+                NsdManager.ResolveListener::class.java
+            )
+            modern.invoke(manager, serviceInfo, executor, listener)
+            return
+        } catch (_: Exception) {
+            // Fall back below.
+        }
+
+        try {
+            val legacy = manager.javaClass.getMethod(
+                "resolveService",
+                NsdServiceInfo::class.java,
+                NsdManager.ResolveListener::class.java
+            )
+            legacy.invoke(manager, serviceInfo, listener)
+        } catch (_: Exception) {
+            // ignore
+        }
+    }
+
+    private fun getResolvedHostAddress(serviceInfo: NsdServiceInfo): String? {
+        // API 34+ provides hostAddresses; older versions have host. Avoid deprecated references by reflection.
+        val host: InetAddress? =
+            try {
+                val method = serviceInfo.javaClass.getMethod("getHostAddresses")
+                val value = method.invoke(serviceInfo)
+                when (value) {
+                    is Array<*> -> value.firstOrNull() as? InetAddress
+                    is List<*> -> value.firstOrNull() as? InetAddress
+                    else -> null
+                }
+            } catch (_: Exception) {
+                null
+            } ?: try {
+                val method = serviceInfo.javaClass.getMethod("getHost")
+                method.invoke(serviceInfo) as? InetAddress
+            } catch (_: Exception) {
+                null
+            }
+
+        return host?.hostAddress
     }
 
     private fun addDevice(name: String, ip: String, port: Int, trusted: Boolean = false) {
@@ -227,14 +282,27 @@ class WifiScanner(
     }
 
     private fun getBroadcastAddress(): InetAddress? {
+        // Use ConnectivityManager link properties to avoid deprecated WifiManager.dhcpInfo.
         return try {
-            val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as AndroidWifiManager
-            val dhcp = wifi.dhcpInfo ?: return null
-            val broadcast = (dhcp.ipAddress and dhcp.netmask) or dhcp.netmask.inv()
-            val quads = ByteArray(4)
-            for (k in 0..3) quads[k] = ((broadcast shr k * 8) and 0xFF).toByte()
-            InetAddress.getByAddress(quads)
-        } catch (_: Exception) { null }
+            val appContext = context.applicationContext
+            val cm = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return null
+            val network = cm.activeNetwork ?: return null
+            val linkProperties = cm.getLinkProperties(network) ?: return null
+
+            val ipv4 = linkProperties.linkAddresses
+                .firstOrNull { it.address is Inet4Address }
+                ?.let { it.address as Inet4Address to it.prefixLength }
+                ?: return null
+
+            val addrInt = ByteBuffer.wrap(ipv4.first.address).order(ByteOrder.BIG_ENDIAN).int
+            val prefixLen = ipv4.second.coerceIn(0, 32)
+            val mask = if (prefixLen == 0) 0 else (-1 shl (32 - prefixLen))
+            val broadcastInt = addrInt or mask.inv()
+            val bytes = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(broadcastInt).array()
+            InetAddress.getByAddress(bytes)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun hasWifiStatePermission() = context.checkSelfPermission(Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED

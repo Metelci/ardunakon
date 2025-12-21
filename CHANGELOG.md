@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.9-alpha] - 2025-12-21
+
+### Added
+- BLE throughput tuning: 2M PHY + 517 MTU negotiation when supported
+- Bounded BLE write queue (150 packets) to handle bursts safely
+- Foreground/background-aware monitoring cadence for reduced battery use
+- RTT-adaptive WiFi heartbeat tuning (1.5s - 5s)
+- Additional Compose UI tests for key dialogs (telemetry graphs + encryption errors)
+
+### Changed
+- Protocol transmission now suppresses duplicates and caps joystick/control sends to ~60fps
+- WiFi discovery timeout increased to 4s; WiFi auto-reconnect now stops after 3 failed attempts
+- Mode switching resets protocol caches/session state to prevent stale traffic
+
 ## [0.2.8-alpha] - 2025-12-20
 
 ### Added

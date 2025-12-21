@@ -1,8 +1,22 @@
+Version 0.2.9-alpha - December 21, 2025
+
+IMPROVEMENTS:
+• BLE Throughput: 2M PHY + 517 MTU negotiation (when supported)
+• BLE Stability: 150-packet bounded write queue + balanced connection priority (30-50ms)
+• Network Efficiency: Duplicate suppression + ~60fps rate limiting for control packets
+• Battery Optimization: Foreground/background-aware monitoring cadence
+• WiFi: 4s discovery timeout, 3 max reconnect attempts, RTT-adaptive heartbeat (1.5s - 5s; base 3s)
+• Quality: Added Compose UI tests for Telemetry Graph and Encryption Error dialogs
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.7-alpha-hotfix2 - December 18, 2025
 
 IMPROVEMENTS:
- Updated app/store descriptions and removed "Dev 2" references
- A/Z servo button actions now log to the debug window
+• Updated app/store descriptions and removed "Dev 2" references
+• A/Z servo button actions now log to the debug window
 
 For full changelog, visit: https://github.com/metelci/ardunakon
 
@@ -11,9 +25,9 @@ For full changelog, visit: https://github.com/metelci/ardunakon
 Version 0.2.7-alpha-hotfix1 - December 17, 2025
 
 FIXES:
- Servo Z (A/Z) fix: A and Z are now encoded only in AUX bits inside CMD_JOYSTICK (0x01)
- Heartbeat (0x03) remains keepalive-only (no control logic)
- Reduced idle traffic: control packets stop sending when all inputs are neutral
+• Servo Z (A/Z) fix: A and Z are now encoded only in AUX bits inside CMD_JOYSTICK (0x01)
+• Heartbeat (0x03) remains keepalive-only (no control logic)
+• Reduced idle traffic: control packets stop sending when all inputs are neutral
 
 For full changelog, visit: https://github.com/metelci/ardunakon
 

@@ -3,6 +3,8 @@ package com.metelci.ardunakon.wifi
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import android.net.ConnectivityManager
+import android.net.wifi.WifiInfo
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.bluetooth.TelemetryParser
 import com.metelci.ardunakon.protocol.ProtocolManager
@@ -300,13 +302,46 @@ class WifiConnectionManager(
 
     private fun startRssiMonitor() {
         scope.launch(ioDispatcher) {
-            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+            val appContext = context.applicationContext
+            val wifiManager = appContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+            val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             while (isActive && isConnected.get()) {
                 try {
-                    wifiManager?.connectionInfo?.rssi?.let { callback.onRssiUpdated(it) }
+                    getCurrentWifiRssi(connectivityManager, wifiManager)?.let { callback.onRssiUpdated(it) }
                 } catch (_: Exception) {}
                 delay(2000)
             }
+        }
+    }
+
+    private fun getCurrentWifiRssi(
+        connectivityManager: ConnectivityManager?,
+        wifiManager: android.net.wifi.WifiManager?
+    ): Int? {
+        // Preferred: ConnectivityManager + NetworkCapabilities TransportInfo (avoids deprecated WifiManager.connectionInfo).
+        try {
+            val network = connectivityManager?.activeNetwork ?: return null
+            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return null
+            val transportInfo = capabilities.transportInfo
+            val wifiInfo = transportInfo as? WifiInfo
+            if (wifiInfo != null) {
+                val rssi = wifiInfo.rssi
+                // Typical RSSI range is about -127..0. Treat other values as unknown.
+                if (rssi in -127..0) return rssi
+            }
+        } catch (_: Exception) {
+            // Fall back below.
+        }
+
+        // Fallback: reflection (legacy devices / stacks).
+        return try {
+            val wm = wifiManager ?: return null
+            val getConnectionInfo = wm.javaClass.getMethod("getConnectionInfo")
+            val info = getConnectionInfo.invoke(wm)
+            val getRssi = info?.javaClass?.getMethod("getRssi") ?: return null
+            (getRssi.invoke(info) as? Int)
+        } catch (_: Exception) {
+            null
         }
     }
 

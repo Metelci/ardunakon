@@ -4,8 +4,15 @@
 Ardunakon is an Android application designed to control Arduino RC cars and robots via Bluetooth Classic, BLE, or Wi-Fi UDP. It supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and classic Arduino UNO with HC-05/HC-06 or HM-10 modules. The app focuses on stability, clear telemetry, and a customizable interface.
 
 ## Release Info
-* Current Alpha: **0.2.7-alpha-hotfix1** (build 25)
-* Target SDK: 36, Min SDK: 26
+* Current Alpha: **0.2.9-alpha** (build 29)
+* Target SDK: 35, Min SDK: 26
+
+### What's New in 0.2.9-alpha
+*   **BLE Throughput**: 2M PHY + 517 MTU negotiation (when supported), balanced connection priority, and a 150-packet bounded write queue.
+*   **Network Efficiency**: Duplicate suppression + ~60fps rate limiting for joystick/control packets to reduce saturation.
+*   **Battery Optimization**: Foreground/background-aware monitoring cadence to reduce background power draw.
+*   **Adaptive WiFi**: 4s discovery timeout, 3 max reconnect attempts, and RTT-adaptive heartbeat (1.5s - 5s).
+*   **Docs & Tests**: Updated architecture diagrams and added Compose UI tests for key dialogs.
 
 ### What's New in 0.2.7-alpha-hotfix1
 *   **Servo Z Fix (A/Z)**: A/Z are now encoded only in `auxBits` inside `CMD_JOYSTICK (0x01)` (no heartbeat control packets)
@@ -100,8 +107,8 @@ Requires external Bluetooth module.
 
 ### 3. Connecting
 1.  Open Ardunakon.
-2.  Tap **"Dev 1"**.
-3.  Select your Arduino from the device list.
+2.  Tap the connection status card to open the device list.
+3.  Select your Arduino device.
 4.  The status card will turn **Green** upon connection.
 
 ### 4. Wi-Fi Mode Quickstart

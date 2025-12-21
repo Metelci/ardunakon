@@ -1,3 +1,22 @@
+What's New in v0.2.9-alpha:
+
+⚡ **Performance & Battery**:
+    • **BLE Throughput**: Enables 2M PHY and negotiates 517-byte MTU (when supported)
+    • **BLE Stability**: 150-packet bounded write queue + balanced connection priority (30-50ms)
+    • **Network Efficiency**: Duplicate suppression + ~60fps rate limiting for control packets
+    • **Battery Optimization**: Foreground/background-aware monitoring cadence
+
+📶 **WiFi Improvements**:
+    • **Discovery Timeout**: 4s scan window for more reliable device discovery
+    • **Reconnect Policy**: Stops after 3 failed reconnect attempts for faster failure detection
+    • **Adaptive Heartbeat**: RTT-based keep-alive tuning (1.5s - 5s; base 3s)
+
+🧪 **Quality**:
+    • Added Compose UI tests for Telemetry Graph dialog and Encryption Error dialog
+    • Updated architecture documentation with optimization summary
+
+---
+
 What's New in v0.2.8-alpha:
 
 🧪 **Test Coverage & Quality**:
