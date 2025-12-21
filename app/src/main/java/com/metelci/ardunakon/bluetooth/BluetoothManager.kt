@@ -1,41 +1,55 @@
 package com.metelci.ardunakon.bluetooth
 
-import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.metelci.ardunakon.crash.BreadcrumbManager
+import com.metelci.ardunakon.data.AutoReconnectPreferences
+import com.metelci.ardunakon.data.ConnectionPreferences
+import com.metelci.ardunakon.data.DeviceNameCache
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
+import com.metelci.ardunakon.security.CryptoEngine
+import com.metelci.ardunakon.security.SecurityManager
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 class AppBluetoothManager(
     private val context: Context,
-    private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
-    private val cryptoEngine: com.metelci.ardunakon.security.CryptoEngine = com.metelci.ardunakon.security.SecurityManager(),
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, t -> 
-        Log.e("AppBluetoothManager", "Uncaught exception", t)
-    }),
+    private val connectionPreferences: ConnectionPreferences,
+    private val cryptoEngine: CryptoEngine = SecurityManager(),
+    private val scope: CoroutineScope =
+        CoroutineScope(
+            Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, t ->
+                Log.e("AppBluetoothManager", "Uncaught exception", t)
+            }
+        ),
     private val startMonitors: Boolean = true
 ) : ConnectionCallback {
 
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val adapter: BluetoothAdapter? = bluetoothManager.adapter
-    
+
     /* scope already passed in constructor */
     private val deviceNameCache = com.metelci.ardunakon.data.DeviceNameCache(context, cryptoEngine)
     private val autoReconnectPrefs = com.metelci.ardunakon.data.AutoReconnectPreferences(context, cryptoEngine)
@@ -48,16 +62,18 @@ class AppBluetoothManager(
         callbacks = object : BluetoothScanner.ScannerCallbacks {
             override fun onDeviceFound(device: BluetoothDeviceModel) { /* UI updates via StateFlow */ }
             override fun onDeviceUpdated(device: BluetoothDeviceModel) { /* Device type upgrade */ }
-            override fun onScanLog(message: String, type: LogType) { log(message, type) }
+            override fun onScanLog(message: String, type: LogType) {
+                log(message, type)
+            }
         },
         cryptoEngine = cryptoEngine
     )
 
     private val telemetryManager = TelemetryManager(scope) { msg, type -> log(msg, type) }
-    
+
     // Active Connection Manager (Strategy Pattern)
     private var connectionManager: BluetoothConnectionManager? = null
-    
+
     // --- Public State Flows ---
     val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = scanner.scannedDevices
     val telemetryHistoryManager: TelemetryHistoryManager = telemetryManager.telemetryHistoryManager
@@ -79,7 +95,7 @@ class AppBluetoothManager(
 
     private val _isEmergencyStopActive = MutableStateFlow(false)
     val isEmergencyStopActive: StateFlow<Boolean> = _isEmergencyStopActive.asStateFlow()
-    
+
     // Battery optimization: foreground/background mode
     private var isForeground = true
     private val foregroundMonitorInterval = 1000L
@@ -93,7 +109,7 @@ class AppBluetoothManager(
         if (isForeground == foreground) return
         isForeground = foreground
         log("App moved to ${if (foreground) "foreground" else "background"} - adjusting monitors", LogType.INFO)
-        
+
         // Restart monitors with new intervals
         if (connectionState.value == ConnectionState.CONNECTED) {
             startKeepAlivePings()
@@ -126,6 +142,7 @@ class AppBluetoothManager(
         val rssi = values[1] as Int
         val connectionHealth = values[2] as ConnectionHealth
         val telem = values[3] as Telemetry?
+
         @Suppress("UNCHECKED_CAST")
         val rtt = values[4] as? List<Long> ?: emptyList()
         val autoReconnect = values[5] as Boolean
@@ -157,14 +174,14 @@ class AppBluetoothManager(
     private var savedDevice: BluetoothDeviceModel? = null
     private var connectionType: DeviceType? = null
     var allowReflectionFallback: Boolean = false
-    private var _shouldReconnect = false
+    private var shouldReconnect = false
     private val connectionMutex = Mutex()
     private var keepAliveJob: Job? = null
-    
+
     // Backoff State
     private var reconnectAttempts = 0
     private var nextReconnectAt = 0L
-    
+
     // Heartbeat config
     private val heartbeatTimeoutClassicMs = BluetoothConfig.HEARTBEAT_TIMEOUT_CLASSIC_MS
     private val heartbeatTimeoutBleMs = BluetoothConfig.HEARTBEAT_TIMEOUT_BLE_MS
@@ -174,25 +191,25 @@ class AppBluetoothManager(
     init {
         scope.launch {
             val saved = autoReconnectPrefs.loadAutoReconnectState()
-            _shouldReconnect = saved[0]
+            shouldReconnect = saved[0]
             _autoReconnectEnabled.value = saved[0]
-            
+
             // Restore saved device address for "True Auto-Reconnect"
             val lastConn = connectionPreferences.loadLastConnection()
             val savedAddress = lastConn.btAddress
             val savedType = lastConn.btType
             if (!savedAddress.isNullOrEmpty()) {
-                 val savedName = deviceNameCache.getName(savedAddress) ?: "Unknown Device"
-                 val type = if (savedType == "LE") DeviceType.LE else DeviceType.CLASSIC
-                 
-                 // Construct a minimal model for reconnection
-                 savedDevice = BluetoothDeviceModel(
-                     name = savedName,
-                     address = savedAddress,
-                     rssi = 0,
-                     type = type
-                 )
-                 log("Restored saved device: $savedName (${type.name})", LogType.INFO)
+                val savedName = deviceNameCache.getName(savedAddress) ?: "Unknown Device"
+                val type = if (savedType == "LE") DeviceType.LE else DeviceType.CLASSIC
+
+                // Construct a minimal model for reconnection
+                savedDevice = BluetoothDeviceModel(
+                    name = savedName,
+                    address = savedAddress,
+                    rssi = 0,
+                    type = type
+                )
+                log("Restored saved device: $savedName (${type.name})", LogType.INFO)
             }
 
             if (saved[0]) log("Restored auto-reconnect: enabled", LogType.INFO)
@@ -243,7 +260,7 @@ class AppBluetoothManager(
                 // Setup state
                 savedDevice = coercedModel
                 connectionType = coercedModel.type
-                _shouldReconnect = _autoReconnectEnabled.value
+                shouldReconnect = _autoReconnectEnabled.value
                 telemetryManager.updateRssi(coercedModel.rssi)
 
                 if (!isAutoReconnect) {
@@ -253,10 +270,12 @@ class AppBluetoothManager(
                 }
 
                 // Clean up before connect
-                try { adapter.cancelDiscovery() } catch (_: Exception) {}
+                try {
+                    adapter.cancelDiscovery()
+                } catch (_: Exception) {}
                 stopScan()
                 connectionManager?.cleanup()
-                
+
                 // Switch Manager
                 val device = adapter.getRemoteDevice(coercedModel.address)
                 connectionManager = if (coercedModel.type == DeviceType.LE) {
@@ -264,18 +283,17 @@ class AppBluetoothManager(
                 } else {
                     ClassicConnectionManager(context, adapter, this@AppBluetoothManager)
                 }
-                
+
                 // Connect
                 delay(200) // Settle
                 connectionManager?.connect(device)
-                
             } catch (e: Exception) {
                 log("Connect launch failed: ${e.message}", LogType.ERROR)
                 connectionMutex.unlock()
             }
-            // Note: Mutex is unlocked when connection finishes (success or fail) logic? 
+            // Note: Mutex is unlocked when connection finishes (success or fail) logic?
             // In original code: BLE unlocked on success, Classic thread unlocked on finish.
-            // Here: Managers don't control mutex. WE do. 
+            // Here: Managers don't control mutex. WE do.
             // We should unlock here immediately? No, that allows concurrent attempts.
             // We should unlock when 'Connecting' phase is done (Success or Error).
             // But 'connect' is async for BLE and Thread for Classic.
@@ -286,7 +304,7 @@ class AppBluetoothManager(
     }
 
     fun disconnect() {
-        _shouldReconnect = false
+        shouldReconnect = false
         _autoReconnectEnabled.value = false
         BreadcrumbManager.leave("Bluetooth", "Manual disconnect")
         performDisconnect("Disconnected")
@@ -322,20 +340,23 @@ class AppBluetoothManager(
     }
 
     fun requestRssi() {
-        if (connectionType == DeviceType.LE) connectionManager?.requestRssi()
-        else log("RSSI refresh not supported for classic devices", LogType.WARNING)
+        if (connectionType == DeviceType.LE) {
+            connectionManager?.requestRssi()
+        } else {
+            log("RSSI refresh not supported for classic devices", LogType.WARNING)
+        }
     }
 
     fun setAutoReconnectEnabled(enabled: Boolean) {
         _autoReconnectEnabled.value = enabled
-         scope.launch { autoReconnectPrefs.saveAutoReconnectState(0, enabled) }
-         
+        scope.launch { autoReconnectPrefs.saveAutoReconnectState(0, enabled) }
+
         if (enabled) {
-            _shouldReconnect = false // Arm only
+            shouldReconnect = false // Arm only
             resetCircuitBreaker()
             log("Auto-reconnect ARMED", LogType.INFO)
         } else {
-            _shouldReconnect = false
+            shouldReconnect = false
             resetCircuitBreaker()
             performDisconnect("Auto-reconnect DISABLED")
             savedDevice = null
@@ -362,53 +383,53 @@ class AppBluetoothManager(
     // --- Callback Implementation ---
 
     override fun onStateChanged(state: ConnectionState) {
-         updateConnectionState(state)
-         if (state == ConnectionState.CONNECTED) {
-             telemetryManager.resetHeartbeat()
-             resetCircuitBreaker()
-             vibrate(BluetoothConfig.VIBRATION_CONNECTED_MS)
-             
-             // Update connected device info for UI
-             val device = savedDevice
-             if (device != null) {
-                 val typeLabel = if (device.type == DeviceType.LE) "BLE" else "Classic"
-                 val info = "${device.name} ($typeLabel)"
-                 _connectedDeviceInfo.value = info
-                 log("Device connected: $info", LogType.SUCCESS)
-             } else {
-                 log("Connected but savedDevice is null", LogType.WARNING)
-             }
-             
-             // Save as last connected device
-             savedDevice?.let { device ->
-                 scope.launch {
-                     connectionPreferences.saveLastConnection(
-                         type = "BLUETOOTH",
-                         btAddress = device.address,
-                         btType = device.type.name
-                     )
-                     deviceNameCache.saveName(device.address, device.name, device.type)
-                 }
-             }
-         } else if (state == ConnectionState.DISCONNECTED || state == ConnectionState.ERROR) {
-             if (state == ConnectionState.ERROR) {
-                 vibrate(BluetoothConfig.VIBRATION_ERROR_MS)
-             }
-             _connectedDeviceInfo.value = null
-         }
+        updateConnectionState(state)
+        if (state == ConnectionState.CONNECTED) {
+            telemetryManager.resetHeartbeat()
+            resetCircuitBreaker()
+            vibrate(BluetoothConfig.VIBRATION_CONNECTED_MS)
+
+            // Update connected device info for UI
+            val device = savedDevice
+            if (device != null) {
+                val typeLabel = if (device.type == DeviceType.LE) "BLE" else "Classic"
+                val info = "${device.name} ($typeLabel)"
+                _connectedDeviceInfo.value = info
+                log("Device connected: $info", LogType.SUCCESS)
+            } else {
+                log("Connected but savedDevice is null", LogType.WARNING)
+            }
+
+            // Save as last connected device
+            savedDevice?.let { device ->
+                scope.launch {
+                    connectionPreferences.saveLastConnection(
+                        type = "BLUETOOTH",
+                        btAddress = device.address,
+                        btType = device.type.name
+                    )
+                    deviceNameCache.saveName(device.address, device.name, device.type)
+                }
+            }
+        } else if (state == ConnectionState.DISCONNECTED || state == ConnectionState.ERROR) {
+            if (state == ConnectionState.ERROR) {
+                vibrate(BluetoothConfig.VIBRATION_ERROR_MS)
+            }
+            _connectedDeviceInfo.value = null
+        }
     }
 
     // Throttling for debug RX logging to reduce performance impact
     private var lastRxLogTime = 0L
-    private val RX_LOG_THROTTLE_MS = 500L
+    private val rxLogThrottleMs = 500L
 
     override fun onDataReceived(data: ByteArray) {
         _incomingData.value = data
         telemetryManager.recordInbound()
-        
+
         // Throttled debug logging on background thread to avoid blocking
         val now = System.currentTimeMillis()
-        if (now - lastRxLogTime >= RX_LOG_THROTTLE_MS) {
+        if (now - lastRxLogTime >= rxLogThrottleMs) {
             lastRxLogTime = now
             scope.launch(Dispatchers.Default) {
                 val hex = data.joinToString("") { "%02X".format(it) }
@@ -419,12 +440,12 @@ class AppBluetoothManager(
         }
 
         telemetryManager.parseTelemetryPacket(data)
-        
+
         // Capabilities Check
         if (data.size >= 5 && data[2].toInt() and 0xFF == 0x05) {
-             val caps = DeviceCapabilities.fromPacket(data, 3)
-             _deviceCapability.value = caps
-             log("Data received from ${caps.boardType.displayName}", LogType.SUCCESS)
+            val caps = DeviceCapabilities.fromPacket(data, 3)
+            _deviceCapability.value = caps
+            log("Data received from ${caps.boardType.displayName}", LogType.SUCCESS)
         }
     }
 
@@ -449,14 +470,14 @@ class AppBluetoothManager(
         scope.launch {
             while (isActive) {
                 delay(1000)
-                if (!_isEmergencyStopActive.value && _shouldReconnect) {
+                if (!_isEmergencyStopActive.value && shouldReconnect) {
                     val state = _connectionState.value
                     if ((state == ConnectionState.DISCONNECTED || state == ConnectionState.ERROR) &&
                         savedDevice != null && System.currentTimeMillis() >= nextReconnectAt
                     ) {
                         if (reconnectAttempts >= BluetoothConfig.MAX_RECONNECT_ATTEMPTS) {
                             log("Circuit breaker: Too many failed attempts", LogType.ERROR)
-                            _shouldReconnect = false
+                            shouldReconnect = false
                             _autoReconnectEnabled.value = false
                         } else {
                             val backoff = BluetoothConfig.calculateBackoffDelay(reconnectAttempts)
@@ -483,11 +504,11 @@ class AppBluetoothManager(
                     // Let's keep a simple counter here.
                     // But TelemetryManager needs it to correlate?
                     // 'updateHealth' uses 'heartbeatSeq'.
-                    
+
                     // Actually, telemetry manager updateHealth takes seq.
                     // Let's use a local var for now, assuming persistence across pings.
                     val nextSeq = (telemetryManager.health.value.lastHeartbeatSeq + 1) and 0xFFFF
-                    
+
                     val heartbeat = ProtocolManager.formatHeartbeatData(nextSeq)
                     sendData(heartbeat, force = true)
                     telemetryManager.onHeartbeatSent(nextSeq)
@@ -510,15 +531,15 @@ class AppBluetoothManager(
                         log("Heartbeat timeout (missed $missed acks)", LogType.ERROR)
                         performDisconnect("Heartbeat timeout")
                         // Trigger reconnect via ERROR state?
-                        updateConnectionState(ConnectionState.ERROR) 
+                        updateConnectionState(ConnectionState.ERROR)
                     }
                 }
             }
         }
     }
-    
+
     fun holdOfflineAfterEStopReset() {
-        _shouldReconnect = false
+        shouldReconnect = false
         _autoReconnectEnabled.value = false
         savedDevice = null
         scope.launch { autoReconnectPrefs.saveAutoReconnectState(0, false) }
@@ -537,7 +558,7 @@ class AppBluetoothManager(
         // Debounce?
         _connectionState.value = state
     }
-    
+
     fun log(message: String, type: LogType = LogType.INFO) {
         // Use ArrayDeque for O(1) head removal instead of O(n) list.removeAt(0)
         val deque = java.util.ArrayDeque(_debugLogs.value)
@@ -551,29 +572,34 @@ class AppBluetoothManager(
 
         if (type == LogType.ERROR) {
             com.metelci.ardunakon.crash.CrashHandler.logException(
-                context, 
-                Exception("Non-fatal error logged: $message"), 
+                context,
+                Exception("Non-fatal error logged: $message"),
                 message
             )
         }
     }
 
-    private fun checkBluetoothPermission(): Boolean = 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-        } else true
+    private fun checkBluetoothPermission(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+    } else {
+        true
+    }
 
     private fun vibrate(durationMs: Long) {
-         // ... vibration logic ...
-         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
-            vibratorManager.defaultVibrator.vibrate(android.os.VibrationEffect.createOneShot(durationMs, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+        // ... vibration logic ...
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(
+                Context.VIBRATOR_MANAGER_SERVICE
+            ) as android.os.VibratorManager
+            vibratorManager.defaultVibrator.vibrate(
+                android.os.VibrationEffect.createOneShot(durationMs, android.os.VibrationEffect.DEFAULT_AMPLITUDE)
+            )
         } else {
             @Suppress("DEPRECATION")
             (context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator).vibrate(durationMs)
         }
     }
-    
+
     // Compatibility methods for WifiManager if they share interfaces?
     // WifiManager seems independent.
 }

@@ -10,9 +10,12 @@ data class BleModuleVariant(
     val name: String,
     val description: String,
     val serviceUuid: UUID,
-    val txCharUuid: UUID?, // TX characteristic (notify/indicate - device to phone)
-    val rxCharUuid: UUID?, // RX characteristic (write - phone to device)
-    val legacyCharUuid: UUID? = null // Legacy single characteristic (bidirectional)
+    // TX characteristic (notify/indicate - device to phone)
+    val txCharUuid: UUID?,
+    // RX characteristic (write - phone to device)
+    val rxCharUuid: UUID?,
+    // Legacy single characteristic (bidirectional)
+    val legacyCharUuid: UUID? = null
 ) {
     /**
      * Check if this variant uses split TX/RX characteristics
@@ -53,9 +56,12 @@ object BleUuidRegistry {
         name = "HC-08/HM-10 Standard",
         description = "Most common HC-08 and HM-10 modules (JNHuaMao, DSD TECH, Bolutek)",
         serviceUuid = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB"),
-        txCharUuid = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB"), // TX (notify)
-        rxCharUuid = UUID.fromString("0000FFE2-0000-1000-8000-00805F9B34FB"), // RX (write)
-        legacyCharUuid = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB") // Legacy single char
+        // TX (notify)
+        txCharUuid = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB"),
+        // RX (write)
+        rxCharUuid = UUID.fromString("0000FFE2-0000-1000-8000-00805F9B34FB"),
+        // Legacy single char
+        legacyCharUuid = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
     )
 
     /**
@@ -70,8 +76,10 @@ object BleUuidRegistry {
         name = "Nordic UART Service",
         description = "Nordic nRF51822/nRF52 based modules, some HM-10 clones, Adafruit Bluefruit",
         serviceUuid = UUID.fromString("6E400001-B5A3-F393-E0A9-E50E24DCCA9E"),
-        txCharUuid = UUID.fromString("6E400003-B5A3-F393-E0A9-E50E24DCCA9E"), // TX (notify) - Nordic calls this RX
-        rxCharUuid = UUID.fromString("6E400002-B5A3-F393-E0A9-E50E24DCCA9E") // RX (write) - Nordic calls this TX
+        // TX (notify) - Nordic calls this RX
+        txCharUuid = UUID.fromString("6E400003-B5A3-F393-E0A9-E50E24DCCA9E"),
+        // RX (write) - Nordic calls this TX
+        rxCharUuid = UUID.fromString("6E400002-B5A3-F393-E0A9-E50E24DCCA9E")
     )
 
     /**
@@ -134,8 +142,10 @@ object BleUuidRegistry {
         name = "MLT-BT05",
         description = "MLT-BT05 standard firmware (same as HM-10)",
         serviceUuid = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB"),
-        txCharUuid = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB"), // TX (notify)
-        rxCharUuid = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB"), // RX (write) - same char, bidirectional
+        // TX (notify)
+        txCharUuid = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB"),
+        // RX (write) - same char, bidirectional
+        rxCharUuid = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB"),
         legacyCharUuid = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB")
     )
 
@@ -166,9 +176,12 @@ object BleUuidRegistry {
         name = "ArduinoBLE",
         description = "ArduinoBLE Library Standard Example (Uno R4 WiFi / Nano 33 IoT)",
         serviceUuid = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214"),
-        txCharUuid = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214"), // TX (notify)
-        rxCharUuid = UUID.fromString("19B10002-E8F2-537E-4F6C-D104768A1214"), // RX (write)
-        legacyCharUuid = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214") // Legacy single char
+        // TX (notify)
+        txCharUuid = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214"),
+        // RX (write)
+        rxCharUuid = UUID.fromString("19B10002-E8F2-537E-4F6C-D104768A1214"),
+        // Legacy single char
+        legacyCharUuid = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214")
     )
 
     /**
@@ -191,15 +204,24 @@ object BleUuidRegistry {
      * Note: MLT-BT05 is prioritized as it's a known working module
      */
     val ALL_VARIANTS = listOf(
-        VARIANT_MLT_BT05, // MLT-BT05 standard (FFE0/FFE1) - prioritized (user confirmed)
-        VARIANT_HC08_HM10, // HC-08/HM-10 (FFE0/FFE1)
-        VARIANT_MLT_BT05_ALT, // MLT-BT05 alternate firmware (FFF0/FFF6)
-        VARIANT_NORDIC_UART, // Nordic-based modules
-        VARIANT_TI_HM10, // Original TI firmware (FFF0/FFF1)
-        VARIANT_HC08_ALT, // Alternative HC-08
-        VARIANT_AT09, // AT-09 variant
-        VARIANT_ARDUINO_CUSTOM_GAME_CONTROLLER, // ArduinoBLE custom UUID sketch
-        VARIANT_ARDUINO_BLE // Arduino library standard example
+        // MLT-BT05 standard (FFE0/FFE1) - prioritized (user confirmed)
+        VARIANT_MLT_BT05,
+        // HC-08/HM-10 (FFE0/FFE1)
+        VARIANT_HC08_HM10,
+        // MLT-BT05 alternate firmware (FFF0/FFF6)
+        VARIANT_MLT_BT05_ALT,
+        // Nordic-based modules
+        VARIANT_NORDIC_UART,
+        // Original TI firmware (FFF0/FFF1)
+        VARIANT_TI_HM10,
+        // Alternative HC-08
+        VARIANT_HC08_ALT,
+        // AT-09 variant
+        VARIANT_AT09,
+        // ArduinoBLE custom UUID sketch
+        VARIANT_ARDUINO_CUSTOM_GAME_CONTROLLER,
+        // Arduino library standard example
+        VARIANT_ARDUINO_BLE
     )
 
     /**

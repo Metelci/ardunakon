@@ -18,12 +18,9 @@ import com.metelci.ardunakon.model.FeatureType
  * Phase 5: Completion screen.
  * Celebrates success and provides next steps.
  */
+@Suppress("FunctionName")
 @Composable
-fun CompletionScreen(
-    onFinish: () -> Unit,
-    exploredFeatures: Set<FeatureType>,
-    modifier: Modifier = Modifier
-) {
+fun CompletionScreen(onFinish: () -> Unit, exploredFeatures: Set<FeatureType>, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -84,7 +81,9 @@ fun CompletionScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "• Connect your Arduino and test the joystick\n• Open Debug Console for connection stats\n• Check Help for detailed guides anytime",
+                        text = "• Connect your Arduino and test the joystick\n" +
+                            "• Open Debug Console for connection stats\n" +
+                            "• Check Help for detailed guides anytime",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Start,
@@ -126,6 +125,7 @@ fun CompletionScreen(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun CompletionChecklist(exploredFeatures: Set<FeatureType>) {
     Column(
@@ -135,7 +135,7 @@ private fun CompletionChecklist(exploredFeatures: Set<FeatureType>) {
         ChecklistItem(text = "Essential controls learned", checked = true)
         ChecklistItem(text = "Connection process understood", checked = true)
         ChecklistItem(text = "Safety features explained", checked = true)
-        
+
         if (exploredFeatures.isNotEmpty()) {
             ChecklistItem(
                 text = "Advanced features explored (${exploredFeatures.size})",
@@ -145,11 +145,9 @@ private fun CompletionChecklist(exploredFeatures: Set<FeatureType>) {
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun ChecklistItem(
-    text: String,
-    checked: Boolean
-) {
+private fun ChecklistItem(text: String, checked: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -164,10 +162,11 @@ private fun ChecklistItem(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (checked) 
-                MaterialTheme.colorScheme.onBackground 
-            else 
+            color = if (checked) {
+                MaterialTheme.colorScheme.onBackground
+            } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
+            }
         )
     }
 }

@@ -38,6 +38,7 @@ import kotlinx.coroutines.launch
  * Features: Local/Cloud tabs, recent files history, file info, detailed errors
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionName")
 @Composable
 fun OtaDialog(
     otaManager: OtaManager,
@@ -262,6 +263,7 @@ fun OtaDialog(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun LocalFileContent(selectedFileName: String?, selectedFile: File?, fileCrc: Long?, onSelectFile: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -291,6 +293,7 @@ private fun LocalFileContent(selectedFileName: String?, selectedFile: File?, fil
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun HistoryContent(
     history: List<OtaHistoryManager.HistoryEntry>,
@@ -336,6 +339,7 @@ private fun HistoryContent(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun ProgressContent(progress: OtaProgress) {
     Column(
@@ -379,6 +383,7 @@ private fun ProgressContent(progress: OtaProgress) {
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun MethodOption(
     label: String,

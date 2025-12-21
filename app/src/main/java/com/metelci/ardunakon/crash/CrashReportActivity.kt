@@ -51,7 +51,7 @@ class CrashReportActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                CrashScreen(
+                CrashReportActivity_Content(
                     message = message,
                     stackTrace = stackTrace,
                     onRestart = {
@@ -80,8 +80,9 @@ class CrashReportActivity : ComponentActivity() {
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-fun CrashScreen(
+fun CrashReportActivity_Content(
     message: String,
     stackTrace: String,
     onRestart: () -> Unit,
@@ -113,14 +114,14 @@ fun CrashScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
                 text = "Ardunakon encountered an error and needed to stop. A report has been generated.",
                 style = MaterialTheme.typography.bodyMedium
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(text = "Error: $message", style = MaterialTheme.typography.titleMedium)
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -129,7 +130,8 @@ fun CrashScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                color = Color(0xFF1E1E1E), // Dark log background
+                // Dark log background
+                color = Color(0xFF1E1E1E),
                 shape = MaterialTheme.shapes.medium,
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray)
             ) {
@@ -149,6 +151,7 @@ fun CrashScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Action buttons
             Row(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
                     onClick = onCopy,
@@ -164,7 +167,7 @@ fun CrashScreen(
                     Text("Share")
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(

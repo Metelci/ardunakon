@@ -5,7 +5,6 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.metelci.ardunakon.model.LogType
@@ -26,7 +25,7 @@ class ClassicConnectionManager(
     private val isConnecting = AtomicBoolean(false)
 
     // Standard SPP UUID
-    private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
+    private val sppUuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
 
     @SuppressLint("MissingPermission")
     override fun connect(device: BluetoothDevice) {
@@ -34,7 +33,7 @@ class ClassicConnectionManager(
             callback.onStateChanged(ConnectionState.ERROR)
             return
         }
-        
+
         if (isConnecting.getAndSet(true)) {
             callback.onError("Connection already in progress", LogType.WARNING)
             return
@@ -77,6 +76,7 @@ class ClassicConnectionManager(
     @SuppressLint("MissingPermission")
     private inner class ConnectThread(private val device: BluetoothDevice) : Thread() {
         private var socket: BluetoothSocket? = null
+
         @Volatile private var cancelled = false
 
         override fun run() {
@@ -88,13 +88,16 @@ class ClassicConnectionManager(
                 }
 
                 val deviceName = device.name ?: "Unknown"
-                callback.onError("Connecting to $deviceName...", LogType.INFO) // Info log via error channel as generic log
+                callback.onError(
+                    "Connecting to $deviceName...",
+                    LogType.INFO
+                ) // Info log via error channel as generic log
 
                 val manufacturer = Build.MANUFACTURER.uppercase()
                 // Xiaomi/Redmi/Poco aggressive connection handling
-                val aggressiveXiaomi = manufacturer.contains("XIAOMI") || 
-                                     manufacturer.contains("REDMI") || 
-                                     manufacturer.contains("POCO")
+                val aggressiveXiaomi = manufacturer.contains("XIAOMI") ||
+                    manufacturer.contains("REDMI") ||
+                    manufacturer.contains("POCO")
 
                 if (aggressiveXiaomi) {
                     safeSleep(300)
@@ -105,7 +108,7 @@ class ClassicConnectionManager(
 
                 // Attempt 1: Standard Insecure SPP
                 try {
-                    socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                    socket = device.createInsecureRfcommSocketToServiceRecord(sppUuid)
                     socket?.connect()
                     connected = true
                     callback.onError("Standard SPP connection established.", LogType.SUCCESS)
@@ -146,7 +149,6 @@ class ClassicConnectionManager(
                     callback.onError("All connection attempts failed", LogType.ERROR)
                     callback.onStateChanged(ConnectionState.ERROR)
                 }
-
             } catch (e: Exception) {
                 if (!cancelled) {
                     Log.e("BT", "Fatal connect error", e)
@@ -177,6 +179,7 @@ class ClassicConnectionManager(
         private val inputStream: InputStream = socket.inputStream
         private val outputStream: OutputStream = socket.outputStream
         private val buffer = ByteArray(1024)
+
         @Volatile private var isRunning = true
 
         override fun run() {
@@ -187,7 +190,7 @@ class ClassicConnectionManager(
                         val data = buffer.copyOf(bytesRead)
                         callback.onDataReceived(data)
                     } else if (bytesRead == -1) {
-                         // End of stream
+                        // End of stream
                         break
                     }
                 } catch (e: IOException) {

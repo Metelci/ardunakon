@@ -1,8 +1,5 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,38 +8,31 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.BatteryStd
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.SignalCellularAlt
-import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.model.ArduinoType
 import com.metelci.ardunakon.model.ConnectionTutorialStep
-import com.metelci.ardunakon.model.FeatureType
-import com.metelci.ardunakon.ui.components.LatencySparkline
+import com.metelci.ardunakon.ui.screens.control.ConnectionMode
 
 /**
- * Screen for Phase 3: Connection Tutorial.
- * Guides the user through choosing device, explaining modes, and finally connecting + advanced features.
+ * Phase 3: Connection Tutorial. Guides the user through choosing device,
+ * explaining modes, and finally connecting + advanced features.
  */
+@Suppress("FunctionName")
 @Composable
 fun ConnectionTutorialScreen(
     step: ConnectionTutorialStep,
     selectedArduinoType: ArduinoType?,
     onArduinoSelected: (ArduinoType) -> Unit,
-    connectionMode: com.metelci.ardunakon.ui.screens.control.ConnectionMode = com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH,
+    connectionMode: com.metelci.ardunakon.ui.screens.control.ConnectionMode =
+        com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH,
     onConnectionModeChanged: (com.metelci.ardunakon.ui.screens.control.ConnectionMode) -> Unit = {},
     onNext: () -> Unit,
     onBack: () -> Unit,
@@ -82,14 +72,14 @@ fun ConnectionTutorialScreen(
                         connectionMode = connectionMode,
                         onModeChanged = onConnectionModeChanged
                     )
-                    ConnectionTutorialStep.SETUP_FINAL -> SetupFinalContent()
+                    ConnectionTutorialStep.SETUP_FINAL -> TutorialFooter()
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Navigation Buttons
-            NavigationRow(
+            TutorialIndicator(
                 step = step,
                 selectedArduinoType = selectedArduinoType,
                 onNext = onNext,
@@ -100,8 +90,9 @@ fun ConnectionTutorialScreen(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun NavigationRow(
+private fun TutorialIndicator(
     step: ConnectionTutorialStep,
     selectedArduinoType: ArduinoType?,
     onNext: () -> Unit,
@@ -111,7 +102,8 @@ private fun NavigationRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding(), // Add safe area padding for system nav bar
+            // Add safe area padding for system nav bar
+            .navigationBarsPadding(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -131,28 +123,29 @@ private fun NavigationRow(
                 onClick = onNext,
                 enabled = step != ConnectionTutorialStep.CHOOSE_ARDUINO || selectedArduinoType != null,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (step == ConnectionTutorialStep.SETUP_FINAL)
-                        Color(0xFF00C853) else MaterialTheme.colorScheme.primary
+                    containerColor = if (step == ConnectionTutorialStep.SETUP_FINAL) {
+                        Color(0xFF00C853)
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    }
                 )
             ) {
                 Text(if (step == ConnectionTutorialStep.SETUP_FINAL) "Finish" else "Continue")
                 if (step != ConnectionTutorialStep.SETUP_FINAL) {
                     Spacer(modifier = Modifier.width(4.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Continue")
                 } else {
                     Spacer(modifier = Modifier.width(4.dp))
-                    Icon(Icons.Default.CheckCircle, contentDescription = null)
+                    Icon(Icons.Default.CheckCircle, contentDescription = "Finish tutorial")
                 }
             }
         }
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun ChooseArduinoContent(
-    selectedType: ArduinoType?,
-    onSelect: (ArduinoType) -> Unit
-) {
+private fun ChooseArduinoContent(selectedType: ArduinoType?, onSelect: (ArduinoType) -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = "Select Your Device 🤖",
@@ -172,7 +165,7 @@ private fun ChooseArduinoContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(ArduinoType.entries) { type ->
-                ArduinoSelectionCard(
+                TutorialNextButton(
                     type = type,
                     isSelected = type == selectedType,
                     onClick = { onSelect(type) }
@@ -182,21 +175,29 @@ private fun ChooseArduinoContent(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun ArduinoSelectionCard(
-    type: ArduinoType,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
+private fun TutorialNextButton(type: ArduinoType, isSelected: Boolean, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
         ),
-        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+        border = if (isSelected) {
+            androidx.compose.foundation.BorderStroke(
+                2.dp,
+                MaterialTheme.colorScheme.primary
+            )
+        } else {
+            null
+        }
     ) {
         Row(
             modifier = Modifier
@@ -226,11 +227,12 @@ private fun ArduinoSelectionCard(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun ConnectionModeContent(
     selectedArduinoType: ArduinoType?,
-    connectionMode: com.metelci.ardunakon.ui.screens.control.ConnectionMode,
-    onModeChanged: (com.metelci.ardunakon.ui.screens.control.ConnectionMode) -> Unit
+    connectionMode: ConnectionMode,
+    onModeChanged: (ConnectionMode) -> Unit
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
@@ -239,15 +241,15 @@ private fun ConnectionModeContent(
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         val boardHint = selectedArduinoType?.let { "Selected device: ${it.displayName} (${it.connectionType})" }
         Text(
             text = boardHint ?: "Ardunakon supports both Bluetooth and WiFi.",
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.secondaryContainer,
@@ -265,53 +267,77 @@ private fun ConnectionModeContent(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(50),
-                        color = if (connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH) 
-                            MaterialTheme.colorScheme.primary else Color.Transparent,
+                        color = if (
+                            connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH
+                        ) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            Color.Transparent
+                        },
                         modifier = Modifier
-                            .clickable { onModeChanged(com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH) }
-                    ) {
-                         Text(
-                             "Bluetooth", 
-                             color = if (connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH) 
-                                 Color.White else MaterialTheme.colorScheme.onSurface, 
-                             fontWeight = FontWeight.Bold, 
-                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                         )
-                    }
-                    
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = if (connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.WIFI) 
-                            Color(0xFF00C853) else Color.Transparent,
-                        modifier = Modifier
-                            .clickable { onModeChanged(com.metelci.ardunakon.ui.screens.control.ConnectionMode.WIFI) }
+                            .clickable {
+                                onModeChanged(ConnectionMode.BLUETOOTH)
+                            }
                     ) {
                         Text(
-                             "WiFi", 
-                             color = if (connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.WIFI) 
-                                 Color.White else MaterialTheme.colorScheme.onSurface, 
-                             fontWeight = FontWeight.Bold, 
-                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                         )
+                            "Bluetooth",
+                            color = if (
+                                connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH
+                            ) {
+                                Color.White
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = if (
+                            connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.WIFI
+                        ) {
+                            Color(0xFF00C853)
+                        } else {
+                            Color.Transparent
+                        },
+                        modifier = Modifier
+                            .clickable { onModeChanged(ConnectionMode.WIFI) }
+                    ) {
+                        Text(
+                            "WiFi",
+                            color = if (
+                                connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.WIFI
+                            ) {
+                                Color.White
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 val instructionText =
-                    if (connectionMode == com.metelci.ardunakon.ui.screens.control.ConnectionMode.BLUETOOTH) {
-                        "Bluetooth mode selected. Best for external Bluetooth modules (HC-05/HC-06) and common BLE serial modules (HM-10/HC-08/AT-09/MLT-BT05)."
+                    if (connectionMode == ConnectionMode.BLUETOOTH) {
+                        "Bluetooth mode selected. Best for external Bluetooth modules (HC-05/HC-06) and common " +
+                            "BLE serial modules (HM-10/HC-08/AT-09/MLT-BT05)."
                     } else {
-                        "WiFi mode selected. Best for boards running a WiFi (UDP) sketch/firmware (for example Arduino UNO R4 WiFi or ESP32-based boards)."
+                        "WiFi mode selected. Best for boards running a WiFi (UDP) sketch/firmware (for example " +
+                            "Arduino UNO R4 WiFi or ESP32-based boards)."
                     }
-                
+
                 Text(
                     text = instructionText,
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
-                 Spacer(modifier = Modifier.height(8.dp))
-                 Text(
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
                     text = "You can change this later in the top-left header while using the app.",
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodySmall,
@@ -322,8 +348,9 @@ private fun ConnectionModeContent(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun SetupFinalContent() {
+private fun TutorialFooter() {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -346,7 +373,7 @@ private fun SetupFinalContent() {
         StepCard(number = 2, text = "Select your Arduino from the list")
         Spacer(modifier = Modifier.height(8.dp))
         StepCard(number = 3, text = "Wait for green \"Connected\" status")
-        
+
         Spacer(modifier = Modifier.height(24.dp))
 
         Card(
@@ -363,9 +390,9 @@ private fun SetupFinalContent() {
                 StatusColorItem(Color(0xFF00C853), "Connected")
             }
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             text = "💡 Tip: You can access Debug Console and Telemetry from the header icons after connecting.",
             style = MaterialTheme.typography.bodySmall,
@@ -375,6 +402,7 @@ private fun SetupFinalContent() {
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun StepCard(number: Int, text: String) {
     Surface(
@@ -407,6 +435,7 @@ private fun StepCard(number: Int, text: String) {
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun StatusColorItem(color: Color, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -419,4 +448,3 @@ private fun StatusColorItem(color: Color, label: String) {
         Text(text = label, style = MaterialTheme.typography.labelSmall)
     }
 }
-

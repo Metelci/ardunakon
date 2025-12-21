@@ -55,7 +55,7 @@ class TelemetryHistoryManagerTest {
     @Test
     fun `records packet loss correctly`() {
         history.recordPacketLoss(100, 95, 3, 2)
-        
+
         val lossData = history.getPacketLossHistory()
         assertEquals(1, lossData.size)
         val point = lossData[0]
@@ -94,13 +94,13 @@ class TelemetryHistoryManagerTest {
     @Test
     fun `calculates connection quality history`() {
         history.recordRssi(-50) // Strong signal
-        history.recordRtt(20L)   // Low latency
+        history.recordRtt(20L) // Low latency
         history.recordPacketLoss(100, 100, 0, 0) // No loss
-        
+
         val qualityHistory = history.getConnectionQualityHistory()
         assertFalse(qualityHistory.isEmpty())
         val latestQuality = qualityHistory.last().value
-        
+
         // With -50dBm, 20ms RTT, and 0% loss, quality should be high (> 75%)
         assertTrue("Quality score should be high: $latestQuality", latestQuality > 75f)
     }

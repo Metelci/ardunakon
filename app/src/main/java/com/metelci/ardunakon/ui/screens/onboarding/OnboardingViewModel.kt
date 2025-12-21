@@ -5,20 +5,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.metelci.ardunakon.data.ConnectionPreferences
 import com.metelci.ardunakon.data.OnboardingManager
 import com.metelci.ardunakon.model.ArduinoType
 import com.metelci.ardunakon.model.ConnectionTutorialStep
 import com.metelci.ardunakon.model.FeatureType
 import com.metelci.ardunakon.model.InterfaceElement
 import com.metelci.ardunakon.model.OnboardingStep
+import com.metelci.ardunakon.ui.screens.control.ConnectionMode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.metelci.ardunakon.data.ConnectionPreferences
-import com.metelci.ardunakon.ui.screens.control.ConnectionMode
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * ViewModel for the onboarding flow.
@@ -130,8 +130,6 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-
-
     // ========== Step Calculation ==========
 
     private fun calculateNextStep(): OnboardingStep {
@@ -227,4 +225,3 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 }
-

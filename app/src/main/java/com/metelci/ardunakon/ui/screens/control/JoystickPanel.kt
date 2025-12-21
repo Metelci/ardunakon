@@ -21,6 +21,7 @@ import com.metelci.ardunakon.ui.components.JoystickControl
  * @param modifier Optional modifier for the container Box
  * @param contentAlignment Alignment of the joystick within the container
  */
+@Suppress("FunctionName")
 @Composable
 fun JoystickPanel(
     onMoved: (x: Float, y: Float) -> Unit,
@@ -53,4 +54,3 @@ fun JoystickPanel(
         )
     }
 }
-

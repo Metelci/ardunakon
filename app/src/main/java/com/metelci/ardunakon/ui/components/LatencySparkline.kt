@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
  * @param modifier Modifier for sizing/positioning
  * @param maxValues Maximum number of values to display (default 20)
  */
+@Suppress("FunctionName")
 @Composable
 fun LatencySparkline(
     rttValues: List<Long>,
@@ -35,7 +36,7 @@ fun LatencySparkline(
         avgRtt < 100 -> Color(0xFFFFD54F) // Yellow - acceptable
         else -> Color(0xFFFF5252) // Red - poor
     }
-    
+
     val lineColor = fixedColor ?: dynamicColor
 
     Canvas(

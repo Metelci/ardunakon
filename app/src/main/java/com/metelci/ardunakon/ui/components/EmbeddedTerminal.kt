@@ -17,9 +17,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +36,7 @@ import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionName")
 @Composable
 fun EmbeddedTerminal(
     logs: List<LogEntry>,
@@ -45,7 +46,6 @@ fun EmbeddedTerminal(
     onClearLogs: () -> Unit,
     onMaximize: () -> Unit,
     onMinimize: () -> Unit,
-    @Suppress("UNUSED_PARAMETER") isDarkTheme: Boolean = true,
     modifier: Modifier = Modifier,
     onExportLogs: () -> Unit = {}
 ) {
@@ -56,7 +56,11 @@ fun EmbeddedTerminal(
     // Search and Filter State
     var searchQuery by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
-    var selectedFilters by remember { mutableStateOf(setOf(LogType.INFO, LogType.SUCCESS, LogType.WARNING, LogType.ERROR)) }
+    var selectedFilters by remember {
+        mutableStateOf(
+            setOf(LogType.INFO, LogType.SUCCESS, LogType.WARNING, LogType.ERROR)
+        )
+    }
 
     // Filtered logs
     val filteredLogs = remember(logs, searchQuery, selectedFilters) {
@@ -96,7 +100,8 @@ fun EmbeddedTerminal(
                         Text(
                             connectedDeviceInfo,
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF00C853) // Green for connected
+                            // Green for connected
+                            color = Color(0xFF00C853)
                         )
                     }
                 }
@@ -122,7 +127,12 @@ fun EmbeddedTerminal(
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
-                            imageVector = if (showSearch) Icons.Default.Close else Icons.Default.Search, // Need Search Icon
+                            // Need Search Icon
+                            imageVector = if (showSearch) {
+                                Icons.Default.Close
+                            } else {
+                                Icons.Default.Search
+                            },
                             contentDescription = "Search",
                             tint = if (showSearch) Color(0xFFFFD54F) else Color.White,
                             modifier = Modifier.size(16.dp)
@@ -293,7 +303,8 @@ fun EmbeddedTerminal(
                                 if (hint != null) {
                                     Text(
                                         text = "  → ${hint.first}. ${hint.second}",
-                                        color = Color(0xFFFFFF00), // Electric yellow
+                                        // Electric yellow
+                                        color = Color(0xFFFFFF00),
                                         fontFamily = FontFamily.Monospace,
                                         fontStyle = FontStyle.Italic,
                                         fontSize = 9.sp,

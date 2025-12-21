@@ -1,16 +1,14 @@
 package com.metelci.ardunakon.wifi
 
 import android.content.Context
-import android.util.Base64
-import android.util.Log
 import android.net.ConnectivityManager
 import android.net.wifi.WifiInfo
+import android.util.Log
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.bluetooth.TelemetryParser
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.security.EncryptionException
 import com.metelci.ardunakon.security.SessionKeyNegotiator
-import kotlinx.coroutines.*
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -20,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.coroutines.*
 
 interface WifiConnectionCallback {
     fun onStateChanged(state: WifiConnectionState)
@@ -38,6 +37,7 @@ class WifiConnectionManager(
     private val encryptionPreferences: com.metelci.ardunakon.data.WifiEncryptionPreferences,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
+    private var shouldReconnect = false
     private var socket: DatagramSocket? = null
     private var receiveJob: Job? = null
     private var targetIp: String = "192.168.4.1"
@@ -61,7 +61,7 @@ class WifiConnectionManager(
     private val heartbeatMaxIntervalMs = 5000L
 
     private val handshakeTimeoutMs = 5000L
-    private val DEFAULT_R4_WIFI_PSK = "ArdunakonSecretKey1234567890ABCD".toByteArray()
+    private val defaultR4WifiPsk = "ArdunakonSecretKey1234567890ABCD".toByteArray()
 
     fun setRequireEncryption(required: Boolean) {
         requireEncryption.set(required)
@@ -89,7 +89,7 @@ class WifiConnectionManager(
 
                 callback.onStateChanged(WifiConnectionState.CONNECTED)
                 callback.onLog("WiFi: Connected to $ip:$port (UDP${if (isEncrypted.get()) ", encrypted" else ""})")
-                
+
                 startReceiving()
                 startPing()
                 startTimeoutMonitor()
@@ -119,7 +119,7 @@ class WifiConnectionManager(
         val required = requireEncryption.get()
         return try {
             val storedPsk = encryptionPreferences.loadPsk(targetIp)
-            val candidates = listOfNotNull(storedPsk, DEFAULT_R4_WIFI_PSK).distinctBy { it.contentHashCode() }
+            val candidates = listOfNotNull(storedPsk, defaultR4WifiPsk).distinctBy { it.contentHashCode() }
 
             var handshakeSuccess = false
             for (psk in candidates) {
@@ -136,7 +136,9 @@ class WifiConnectionManager(
             if (handshakeSuccess) {
                 true
             } else if (required) {
-                callback.onEncryptionError(EncryptionException.HandshakeFailedException("Encryption required but handshake failed"))
+                callback.onEncryptionError(
+                    EncryptionException.HandshakeFailedException("Encryption required but handshake failed")
+                )
                 false
             } else {
                 isEncrypted.set(false)
@@ -169,7 +171,8 @@ class WifiConnectionManager(
             socket?.receive(receivePacket)
 
             val responseData = receivePacket.data.copyOf(receivePacket.length)
-            val (deviceNonce, signature) = ProtocolManager.parseHandshakeResponse(responseData) ?: return@withContext false
+            val (deviceNonce, signature) = ProtocolManager.parseHandshakeResponse(responseData)
+                ?: return@withContext false
 
             sessionKey.set(negotiator.completeHandshake(deviceNonce, signature))
             isEncrypted.set(true)
@@ -227,19 +230,27 @@ class WifiConnectionManager(
                 try {
                     val packet = DatagramPacket(buffer, buffer.size)
                     socket?.receive(packet)
-                    val data = try { decryptIfNeeded(packet.data.copyOf(packet.length)) } catch (e: Exception) { continue }
-                    
+                    val data = try {
+                        decryptIfNeeded(packet.data.copyOf(packet.length))
+                    } catch (
+                        e: Exception
+                    ) {
+                        continue
+                    }
+
                     callback.onDataReceived(data)
                     lastRxTime = System.currentTimeMillis()
-                    
+
                     TelemetryParser.parse(data)?.let { result ->
-                        callback.onTelemetryUpdated(Telemetry(
-                            batteryVoltage = result.batteryVoltage,
-                            status = result.status,
-                            packetsSent = packetsSent,
-                            packetsDropped = 0,
-                            packetsFailed = packetsFailed
-                        ))
+                        callback.onTelemetryUpdated(
+                            Telemetry(
+                                batteryVoltage = result.batteryVoltage,
+                                status = result.status,
+                                packetsSent = packetsSent,
+                                packetsDropped = 0,
+                                packetsFailed = packetsFailed
+                            )
+                        )
                     }
 
                     if (lastPingTime > 0) {
@@ -278,11 +289,11 @@ class WifiConnectionManager(
                     lastPingTime = System.currentTimeMillis()
                     val pingData = ProtocolManager.formatHeartbeatData(pingSequence)
                     sendData(pingData)
-                    
+
                     val delayMs = getOptimalHeartbeatInterval()
                     delay(delayMs)
-                } catch (e: Exception) { 
-                    delay(2000) 
+                } catch (e: Exception) {
+                    delay(2000)
                 }
             }
         }

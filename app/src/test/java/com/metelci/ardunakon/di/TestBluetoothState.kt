@@ -12,4 +12,3 @@ object TestBluetoothState {
     val telemetry = MutableStateFlow<Telemetry?>(null)
     val rttHistory = MutableStateFlow(emptyList<Long>())
 }
-

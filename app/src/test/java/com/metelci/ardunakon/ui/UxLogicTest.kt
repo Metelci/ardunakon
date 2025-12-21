@@ -19,7 +19,10 @@ class UxLogicTest {
     fun testRssiMapping() {
         assertEquals(4, getBarsForRssi(-40))
         assertEquals(4, getBarsForRssi(-49))
-        assertEquals(3, getBarsForRssi(-50)) // Boundary check: > -50 is 4, so -50 is 3? Wait, logic says > -50. So -50 is 3.
+        assertEquals(
+            3,
+            getBarsForRssi(-50)
+        ) // Boundary check: > -50 is 4, so -50 is 3? Wait, logic says > -50. So -50 is 3.
         assertEquals(3, getBarsForRssi(-60))
         assertEquals(2, getBarsForRssi(-70))
         assertEquals(1, getBarsForRssi(-90))

@@ -44,19 +44,32 @@ class ClassicConnection(
 
         // Manufacturer-specific UUIDs for HC-06 clones and variants
         val MANUFACTURER_UUIDS: List<UUID> = listOf(
-            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"), // Standard SPP
-            UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb"), // HM-10/HC-08
-            UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e"), // Nordic UART
-            UUID.fromString("00001105-0000-1000-8000-00805f9b34fb"), // Object Push
-            UUID.fromString("00001106-0000-1000-8000-00805f9b34fb"), // OBEX File Transfer
-            UUID.fromString("00001108-0000-1000-8000-00805f9b34fb"), // Headset Profile
-            UUID.fromString("0000111e-0000-1000-8000-00805f9b34fb"), // Hands-Free Profile
-            UUID.fromString("0000110e-0000-1000-8000-00805f9b34fb"), // A/V Remote Control
-            UUID.fromString("0000110b-0000-1000-8000-00805f9b34fb"), // Audio Distribution
-            UUID.fromString("00001103-0000-1000-8000-00805f9b34fb"), // Dial-up Networking
-            UUID.fromString("00001102-0000-1000-8000-00805f9b34fb"), // LAN Access
-            UUID.fromString("00000003-0000-1000-8000-00805f9b34fb"), // RFCOMM
-            UUID.fromString("00000000-0000-1000-8000-00805f9b34fb") // Base UUID
+            // Standard SPP
+            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"),
+            // HM-10/HC-08
+            UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb"),
+            // Nordic UART
+            UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e"),
+            // Object Push
+            UUID.fromString("00001105-0000-1000-8000-00805f9b34fb"),
+            // OBEX File Transfer
+            UUID.fromString("00001106-0000-1000-8000-00805f9b34fb"),
+            // Headset Profile
+            UUID.fromString("00001108-0000-1000-8000-00805f9b34fb"),
+            // Hands-Free Profile
+            UUID.fromString("0000111e-0000-1000-8000-00805f9b34fb"),
+            // A/V Remote Control
+            UUID.fromString("0000110e-0000-1000-8000-00805f9b34fb"),
+            // Audio Distribution
+            UUID.fromString("0000110b-0000-1000-8000-00805f9b34fb"),
+            // Dial-up Networking
+            UUID.fromString("00001103-0000-1000-8000-00805f9b34fb"),
+            // LAN Access
+            UUID.fromString("00001102-0000-1000-8000-00805f9b34fb"),
+            // RFCOMM
+            UUID.fromString("00000003-0000-1000-8000-00805f9b34fb"),
+            // Base UUID
+            UUID.fromString("00000000-0000-1000-8000-00805f9b34fb")
         )
     }
 

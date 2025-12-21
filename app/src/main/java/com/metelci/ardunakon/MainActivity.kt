@@ -142,7 +142,6 @@ class MainActivity : ComponentActivity() {
                         // Normal app flow
                         isBound && bluetoothService != null -> {
                             ControlScreen(
-                                isDarkTheme = true,
                                 onQuitApp = {
                                     quitApp()
                                 },
@@ -214,7 +213,7 @@ class MainActivity : ComponentActivity() {
         }
         checkBluetoothEnabled()
         requestNotificationPermission()
-        
+
         com.metelci.ardunakon.crash.BreadcrumbManager.leave("Lifecycle", "MainActivity Created")
     }
 
@@ -350,6 +349,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 fun BluetoothOffDialog(onDismiss: () -> Unit, onTurnOn: () -> Unit) {
     AlertDialog(
@@ -370,6 +370,7 @@ fun BluetoothOffDialog(onDismiss: () -> Unit, onTurnOn: () -> Unit) {
     )
 }
 
+@Suppress("FunctionName")
 @Composable
 fun NotificationPermissionDialog(onDismiss: () -> Unit, onOpenSettings: () -> Unit, onRetry: () -> Unit) {
     AlertDialog(
@@ -378,7 +379,8 @@ fun NotificationPermissionDialog(onDismiss: () -> Unit, onOpenSettings: () -> Un
         text = {
             Column {
                 Text(
-                    "Android 13+ requires notification permission to show the foreground service that keeps Bluetooth connections alive.",
+                    "Android 13+ requires notification permission to show the foreground service " +
+                        "that keeps Bluetooth connections alive.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -393,6 +395,7 @@ fun NotificationPermissionDialog(onDismiss: () -> Unit, onOpenSettings: () -> Un
     )
 }
 
+@Suppress("FunctionName")
 @Composable
 fun PermissionDeniedDialog(onDismiss: () -> Unit, onRetry: () -> Unit, onOpenSettings: () -> Unit) {
     AlertDialog(

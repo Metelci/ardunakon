@@ -22,12 +22,9 @@ import androidx.compose.ui.unit.dp
  * Phase 1: Welcome screen with value propositions.
  * First thing users see when starting the app for the first time.
  */
+@Suppress("FunctionName")
 @Composable
-fun WelcomeScreen(
-    onStart: () -> Unit,
-    onSkip: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun WelcomeScreen(onStart: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -109,7 +106,8 @@ fun WelcomeScreen(
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF00C853) // Bright green
+                    // Bright green
+                    containerColor = Color(0xFF00C853)
                 )
             ) {
                 Text(
@@ -135,19 +133,16 @@ fun WelcomeScreen(
             Text(
                 text = "📖 Access tutorial later in Help",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                // Semi-transparent
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             )
         }
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun ValueProposition(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    modifier: Modifier = Modifier
-) {
+private fun ValueProposition(icon: ImageVector, title: String, description: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -162,7 +157,7 @@ private fun ValueProposition(
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = null,
+                    contentDescription = title,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
                 )

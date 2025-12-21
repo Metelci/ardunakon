@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
  * - Orange: > 5% loss
  * - Red: > 10% loss
  */
+@Suppress("FunctionName")
 @Composable
 fun PacketLossWarningCard(packetsSent: Long, packetsDropped: Long, packetsFailed: Long, modifier: Modifier = Modifier) {
     val totalLoss = packetsDropped + packetsFailed

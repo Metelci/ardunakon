@@ -1,17 +1,15 @@
 package com.metelci.ardunakon.bluetooth
 
-import com.metelci.ardunakon.model.LogEntry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.SharingStarted
 
 /**
  * Combined state flow that reduces recompositions by consolidating
  * multiple related flows into a single state object.
- * 
+ *
  * This is more efficient than collecting 11+ individual flows in the UI layer.
  */
 data class CombinedConnectionState(
@@ -28,8 +26,7 @@ data class CombinedConnectionState(
  * Extension function to create a combined state flow from AppBluetoothManager.
  * Call this once in the manager to expose a consolidated state.
  */
-fun AppBluetoothManager.combinedState(scope: CoroutineScope
-): StateFlow<CombinedConnectionState> {
+fun AppBluetoothManager.combinedState(scope: CoroutineScope): StateFlow<CombinedConnectionState> {
     return combine(
         connectionState,
         rssiValue,

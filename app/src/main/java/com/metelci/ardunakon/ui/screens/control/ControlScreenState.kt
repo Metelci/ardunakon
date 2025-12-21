@@ -17,7 +17,7 @@ data class ControlScreenState(
     val connectionState: ConnectionState,
     val wifiState: WifiConnectionState,
     val isWifiEncrypted: Boolean = false,
-    
+
     // Signal quality
     val rssiValue: Int,
     val wifiRssi: Int,
@@ -25,11 +25,11 @@ data class ControlScreenState(
     val rttHistory: List<Long>,
     val wifiRttHistory: List<Long>,
     val health: ConnectionHealth?,
-    
+
     // Telemetry and logs
     val telemetry: Telemetry?,
     val debugLogs: List<LogEntry>,
-    
+
     // Control flags
     val autoReconnectEnabled: Boolean,
     val isEStopActive: Boolean
@@ -43,6 +43,5 @@ data class ControlScreenEnvironment(
     val safeDrawingPadding: PaddingValues,
     val orientationConfig: android.content.res.Configuration,
     val view: android.view.View,
-    val context: android.content.Context,
-    val isDarkTheme: Boolean
+    val context: android.content.Context
 )

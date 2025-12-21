@@ -22,16 +22,15 @@ import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.crash.CrashHandler
 import com.metelci.ardunakon.model.LogType
-import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.components.PacketLossWarningCard
 import com.metelci.ardunakon.ui.components.StatusCard
-import com.metelci.ardunakon.ui.screens.control.ConnectionMode
 import com.metelci.ardunakon.wifi.WifiConnectionState
 
 /**
  * Landscape layout: Side by side (Controls left, Debug right)
  */
+@Suppress("FunctionName")
 @Composable
 fun LandscapeControlLayout(
     viewModel: ControlViewModel,
@@ -50,7 +49,6 @@ fun LandscapeControlLayout(
     isEStopActive: Boolean,
     isWifiEncrypted: Boolean = false,
     connectedDeviceInfo: String? = null,
-    isDarkTheme: Boolean,
     safeDrawingPadding: androidx.compose.foundation.layout.PaddingValues,
     orientationConfig: Configuration,
     view: android.view.View,
@@ -85,10 +83,7 @@ fun LandscapeControlLayout(
                 autoReconnectEnabled = autoReconnectEnabled,
                 onToggleAutoReconnect = { bluetoothManager.setAutoReconnectEnabled(it) },
                 isWifiEncrypted = isWifiEncrypted,
-                isDebugPanelVisible = viewModel.isDebugPanelVisible,
 
-                isDarkTheme = isDarkTheme,
-                allowReflection = viewModel.allowReflection,
                 buttonSize = 36.dp,
                 eStopSize = 72.dp,
                 onScanDevices = { viewModel.showDeviceList = true },
@@ -101,20 +96,16 @@ fun LandscapeControlLayout(
                 onConfigureWifi = { viewModel.showWifiConfig = true },
                 onTelemetryGraph = { viewModel.showTelemetryGraph = true },
                 onToggleEStop = { viewModel.toggleEStop(view) },
-                onToggleDebugPanel = { viewModel.isDebugPanelVisible = !viewModel.isDebugPanelVisible },
+                onShowSettings = { viewModel.showSettingsDialog = true },
                 onShowHelp = { viewModel.showHelpDialog = true },
                 onShowAbout = { viewModel.showAboutDialog = true },
                 onShowCrashLog = { viewModel.showCrashLog = true },
                 onShowOta = { viewModel.showOtaDialog = true },
-                onToggleReflection = { viewModel.allowReflection = !viewModel.allowReflection },
                 onOpenArduinoCloud = {
                     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                     context.startActivity(intent)
                 },
-                onResetTutorial = { viewModel.resetTutorial() },
                 onQuitApp = onQuitApp,
-                joystickSensitivity = viewModel.joystickSensitivity,
-                onJoystickSensitivityChange = { viewModel.updateJoystickSensitivity(it) },
                 context = context,
                 view = view
             )
@@ -129,7 +120,6 @@ fun LandscapeControlLayout(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val currentConnectionState = if (viewModel.connectionMode == ConnectionMode.WIFI) {
-
                     when (wifiState) {
                         WifiConnectionState.CONNECTED -> ConnectionState.CONNECTED
                         WifiConnectionState.CONNECTING -> ConnectionState.CONNECTING
@@ -160,8 +150,7 @@ fun LandscapeControlLayout(
                                 viewModel.showDeviceList = true
                             }
                         },
-                        onCrashLogClick = { viewModel.showCrashLog = true },
-                        isDarkTheme = isDarkTheme
+                        onCrashLogClick = { viewModel.showCrashLog = true }
                     )
                 }
             }
@@ -227,7 +216,6 @@ fun LandscapeControlLayout(
                 onClearLogs = { bluetoothManager.log("Logs cleared", LogType.INFO) },
                 onMaximize = { viewModel.showMaximizedDebug = true },
                 onMinimize = { viewModel.isDebugPanelVisible = false },
-                isDarkTheme = isDarkTheme,
                 modifier = Modifier.weight(0.35f).fillMaxHeight(),
                 onExportLogs = exportLogs
             )

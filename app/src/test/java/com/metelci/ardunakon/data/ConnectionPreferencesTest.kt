@@ -3,13 +3,13 @@ package com.metelci.ardunakon.data
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.metelci.ardunakon.security.CryptoEngine
+import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class ConnectionPreferencesTest {

@@ -107,8 +107,16 @@ class ReconnectPolicy(private val scope: CoroutineScope, private val config: Blu
                     // Check for timeout
                     val sinceLastPacket = System.currentTimeMillis() - lastPacketAt
                     val isBle = getConnectionType() == DeviceType.LE
-                    val timeoutMs = if (isBle) BluetoothConfig.HEARTBEAT_TIMEOUT_BLE_MS else BluetoothConfig.HEARTBEAT_TIMEOUT_CLASSIC_MS
-                    val ackThreshold = if (isBle) BluetoothConfig.MISSED_ACK_THRESHOLD_BLE else BluetoothConfig.MISSED_ACK_THRESHOLD_CLASSIC
+                    val timeoutMs = if (isBle) {
+                        BluetoothConfig.HEARTBEAT_TIMEOUT_BLE_MS
+                    } else {
+                        BluetoothConfig.HEARTBEAT_TIMEOUT_CLASSIC_MS
+                    }
+                    val ackThreshold = if (isBle) {
+                        BluetoothConfig.MISSED_ACK_THRESHOLD_BLE
+                    } else {
+                        BluetoothConfig.MISSED_ACK_THRESHOLD_CLASSIC
+                    }
 
                     if (missedHeartbeatAcks >= ackThreshold && lastPacketAt > 0 && sinceLastPacket > timeoutMs) {
                         onLog(

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@Suppress("FunctionName")
 @Composable
 fun SignalStrengthIcon(
     rssi: Int,

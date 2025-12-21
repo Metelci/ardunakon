@@ -90,3 +90,4 @@ dependency_tree.txt
 .kotlin/
 arduino_sketches/ArdunakonR4WiFi/arduino_secrets.h
 wifi_tests_all_output_v2.txt
+IMPROVEMENT_PLAN.md

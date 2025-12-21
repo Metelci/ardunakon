@@ -1,18 +1,15 @@
 package com.metelci.ardunakon.ui
 
-import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
-import org.junit.Rule
-import org.junit.Test
-
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
-
-import com.metelci.ardunakon.MainActivity
+import org.junit.Rule
+import org.junit.Test
 
 @HiltAndroidTest
 class StatusBarTest {

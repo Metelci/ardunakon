@@ -49,7 +49,6 @@ class CriticalFlowsComposeTest {
                     ConnectionModeSelector(
                         selectedMode = mode,
                         onModeSelected = { mode = it },
-                        isDarkTheme = true,
                         view = LocalView.current
                     )
                     Text("mode=$mode")
@@ -76,7 +75,6 @@ class CriticalFlowsComposeTest {
                         wifiState = WifiConnectionState.DISCONNECTED,
                         rssi = -60,
                         rttHistory = listOf(17L),
-                        isDarkTheme = true,
                         onReconnect = { lastAction = "reconnect" },
                         onConfigure = { lastAction = "configure" },
                         onScanDevices = { lastAction = "scan" },
@@ -113,7 +111,6 @@ class CriticalFlowsComposeTest {
                         wifiState = WifiConnectionState.DISCONNECTED,
                         rssi = -45,
                         rttHistory = listOf(23L),
-                        isDarkTheme = true,
                         onReconnect = { lastAction = "reconnect" },
                         onConfigure = { lastAction = "configure" },
                         onScanDevices = { lastAction = "scan" },
@@ -156,9 +153,6 @@ class CriticalFlowsComposeTest {
                         autoReconnectEnabled = true,
                         onToggleAutoReconnect = {},
                         isWifiEncrypted = false,
-                        isDebugPanelVisible = false,
-                        isDarkTheme = true,
-                        allowReflection = allowReflection,
                         onScanDevices = {},
                         onReconnectDevice = {},
                         onSwitchToWifi = {},
@@ -166,14 +160,12 @@ class CriticalFlowsComposeTest {
                         onConfigureWifi = {},
                         onTelemetryGraph = {},
                         onToggleEStop = {},
-                        onToggleDebugPanel = {},
+                        onShowSettings = {},
                         onShowHelp = { helpOpened = true },
                         onShowAbout = {},
                         onShowCrashLog = {},
                         onShowOta = {},
-                        onToggleReflection = { allowReflection = !allowReflection },
                         onOpenArduinoCloud = {},
-                        onResetTutorial = {},
                         onQuitApp = {},
                         context = context,
                         view = view
@@ -217,9 +209,6 @@ class CriticalFlowsComposeTest {
                         autoReconnectEnabled = true,
                         onToggleAutoReconnect = {},
                         isWifiEncrypted = false,
-                        isDebugPanelVisible = false,
-                        isDarkTheme = true,
-                        allowReflection = false,
                         onScanDevices = {},
                         onReconnectDevice = {},
                         onSwitchToWifi = {},
@@ -227,14 +216,12 @@ class CriticalFlowsComposeTest {
                         onConfigureWifi = {},
                         onTelemetryGraph = {},
                         onToggleEStop = { isEStopActive = !isEStopActive },
-                        onToggleDebugPanel = {},
+                        onShowSettings = {},
                         onShowHelp = {},
                         onShowAbout = {},
                         onShowCrashLog = {},
                         onShowOta = {},
-                        onToggleReflection = {},
                         onOpenArduinoCloud = {},
-                        onResetTutorial = {},
                         onQuitApp = {},
                         context = context,
                         view = view
@@ -269,7 +256,6 @@ class CriticalFlowsComposeTest {
                 Column {
                     DeviceListDialog(
                         scannedDevices = listOf(device),
-                        isDarkTheme = true,
                         onScan = { scanClicks++ },
                         onDeviceSelected = { selectedDevice = it },
                         onDismiss = {},

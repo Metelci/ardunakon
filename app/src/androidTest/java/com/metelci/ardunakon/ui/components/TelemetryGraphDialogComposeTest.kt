@@ -31,8 +31,7 @@ class TelemetryGraphDialogComposeTest {
                 Column {
                     TelemetryGraphDialog(
                         telemetryHistoryManager = history,
-                        onDismiss = { dismissed = true },
-                        isDarkTheme = true
+                        onDismiss = { dismissed = true }
                     )
                     Text("dismissed=$dismissed")
                 }
@@ -53,8 +52,7 @@ class TelemetryGraphDialogComposeTest {
             MaterialTheme {
                 TelemetryGraphDialog(
                     telemetryHistoryManager = history,
-                    onDismiss = {},
-                    isDarkTheme = true
+                    onDismiss = {}
                 )
             }
         }

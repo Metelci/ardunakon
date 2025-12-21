@@ -60,10 +60,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.crash.CrashHandler
+import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 import com.metelci.ardunakon.ui.components.LatencySparkline
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
 import com.metelci.ardunakon.wifi.WifiConnectionState
-import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 
 /**
  * Reusable header bar for the control screen.
@@ -71,6 +71,7 @@ import com.metelci.ardunakon.ui.components.AutoReconnectToggle
  * Contains signal indicator, connection button, telemetry graph button,
  * E-STOP button, debug toggle, and overflow menu.
  */
+@Suppress("FunctionName")
 @Composable
 fun ControlHeaderBar(
     // Connection state
@@ -90,13 +91,6 @@ fun ControlHeaderBar(
     // Encryption status
     isWifiEncrypted: Boolean = false,
 
-    // Debug panel state
-    isDebugPanelVisible: Boolean,
-
-    // Settings
-    isDarkTheme: Boolean,
-    allowReflection: Boolean,
-
     // Button sizes
     buttonSize: Dp = 40.dp,
     eStopSize: Dp = 72.dp,
@@ -109,19 +103,13 @@ fun ControlHeaderBar(
     onConfigureWifi: () -> Unit,
     onTelemetryGraph: () -> Unit,
     onToggleEStop: () -> Unit,
-    onToggleDebugPanel: () -> Unit,
+    onShowSettings: () -> Unit,
     onShowHelp: () -> Unit,
     onShowAbout: () -> Unit,
     onShowCrashLog: () -> Unit,
     onShowOta: () -> Unit,
-    onToggleReflection: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
-    onResetTutorial: () -> Unit,
     onQuitApp: () -> Unit,
-
-    // Joystick Settings
-    joystickSensitivity: Float = 1.0f,
-    onJoystickSensitivityChange: (Float) -> Unit = {},
 
     // Context for crash log check
     context: Context,
@@ -169,7 +157,6 @@ fun ControlHeaderBar(
                         onModeSelected = { mode ->
                             if (mode == ConnectionMode.WIFI) onSwitchToWifi() else onSwitchToBluetooth()
                         },
-                        isDarkTheme = isDarkTheme,
                         view = view,
                         segmentWidth = modeSelectorWidth,
                         modifier = Modifier.height(widgetHeight)
@@ -181,7 +168,6 @@ fun ControlHeaderBar(
                         wifiState = wifiConnectionState,
                         rssi = if (connectionMode == ConnectionMode.BLUETOOTH) rssiValue else wifiRssi,
                         rttHistory = if (connectionMode == ConnectionMode.BLUETOOTH) rttHistory else wifiRttHistory,
-                        isDarkTheme = isDarkTheme,
                         isEncrypted = connectionMode == ConnectionMode.WIFI && isWifiEncrypted,
                         onScanDevices = onScanDevices,
                         onReconnect = onReconnectDevice,
@@ -215,10 +201,8 @@ fun ControlHeaderBar(
                         .background(
                             if (isEStopActive) {
                                 Color(0xFFFF5252)
-                            } else if (isDarkTheme) {
-                                Color(0xFF455A64)
                             } else {
-                                Color(0xFFE0E0E0)
+                                Color(0xFF455A64)
                             },
                             CircleShape
                         )
@@ -226,10 +210,8 @@ fun ControlHeaderBar(
                             1.dp,
                             if (isEStopActive) {
                                 Color(0xFFD32F2F)
-                            } else if (isDarkTheme) {
-                                Color(0xFF90CAF9)
                             } else {
-                                Color(0xFF455A64)
+                                Color(0xFF90CAF9)
                             },
                             CircleShape
                         )
@@ -238,10 +220,8 @@ fun ControlHeaderBar(
                         if (isEStopActive) "RESET" else "STOP",
                         color = if (isEStopActive) {
                             Color.White
-                        } else if (isDarkTheme) {
-                            Color(0xFF90CAF9)
                         } else {
-                            Color(0xFF2D3436)
+                            Color(0xFF90CAF9)
                         },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
@@ -258,61 +238,48 @@ fun ControlHeaderBar(
                     connectionMode = connectionMode,
                     autoReconnectEnabled = autoReconnectEnabled,
                     onToggleAutoReconnect = onToggleAutoReconnect,
-                    isDebugPanelVisible = isDebugPanelVisible,
-                    isDarkTheme = isDarkTheme,
                     rightButtonSize = rightButtonSize,
                     itemSpacing = itemSpacing,
                     view = view,
                     onTelemetryGraph = onTelemetryGraph,
-                    onToggleDebugPanel = onToggleDebugPanel,
+                    onShowSettings = onShowSettings,
                     showOverflowMenu = showOverflowMenu,
                     onToggleOverflowMenu = { showOverflowMenu = !showOverflowMenu },
                     onDismissOverflowMenu = { showOverflowMenu = false },
-                    allowReflection = allowReflection,
                     context = context,
                     onShowHelp = onShowHelp,
                     onShowAbout = onShowAbout,
                     onShowCrashLog = onShowCrashLog,
-                    onToggleReflection = onToggleReflection,
                     onShowOta = onShowOta,
                     onOpenArduinoCloud = onOpenArduinoCloud,
-                    onResetTutorial = onResetTutorial,
-                    onQuitApp = onQuitApp,
-                    joystickSensitivity = joystickSensitivity,
-                    onJoystickSensitivityChange = onJoystickSensitivityChange
+                    onQuitApp = onQuitApp
                 )
             }
         }
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun HeaderActionsRow(
     connectionMode: ConnectionMode,
     autoReconnectEnabled: Boolean,
     onToggleAutoReconnect: (Boolean) -> Unit,
-    isDebugPanelVisible: Boolean,
-    isDarkTheme: Boolean,
     rightButtonSize: Dp,
     itemSpacing: Dp,
     view: View,
     onTelemetryGraph: () -> Unit,
-    onToggleDebugPanel: () -> Unit,
+    onShowSettings: () -> Unit,
     showOverflowMenu: Boolean,
     onToggleOverflowMenu: () -> Unit,
     onDismissOverflowMenu: () -> Unit,
-    allowReflection: Boolean,
     context: Context,
     onShowHelp: () -> Unit,
     onShowAbout: () -> Unit,
     onShowCrashLog: () -> Unit,
-    onToggleReflection: () -> Unit,
     onShowOta: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
-    onResetTutorial: () -> Unit,
-    onQuitApp: () -> Unit,
-    joystickSensitivity: Float,
-    onJoystickSensitivityChange: (Float) -> Unit
+    onQuitApp: () -> Unit
 ) {
     val actionIconSize = (rightButtonSize * 0.5f).coerceIn(14.dp, 18.dp)
     val menuIconSize = (rightButtonSize * 0.45f).coerceIn(14.dp, 16.dp)
@@ -337,7 +304,7 @@ private fun HeaderActionsRow(
             modifier = Modifier
                 .size(rightButtonSize)
                 .shadow(2.dp, CircleShape)
-                .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                .background(Color(0xFF455A64), CircleShape)
                 .border(1.dp, Color(0xFF00FF00), CircleShape)
         ) {
             Icon(
@@ -351,21 +318,18 @@ private fun HeaderActionsRow(
         IconButton(
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                onToggleDebugPanel()
+                onShowSettings()
             },
             modifier = Modifier
                 .size(rightButtonSize)
                 .shadow(2.dp, CircleShape)
-                .background(
-                    if (isDebugPanelVisible) Color(0xFF43A047) else Color(0xFF455A64),
-                    CircleShape
-                )
-                .border(1.dp, Color(0xFF00FF00), CircleShape)
+                .background(Color(0xFF455A64), CircleShape)
+                .border(1.dp, Color(0xFF00C853), CircleShape)
         ) {
             Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = "Toggle Debug",
-                tint = if (isDebugPanelVisible) Color.White else Color(0xFF00FF00),
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Settings",
+                tint = Color(0xFF00C853),
                 modifier = Modifier.size(actionIconSize)
             )
         }
@@ -379,7 +343,7 @@ private fun HeaderActionsRow(
                 modifier = Modifier
                     .size(rightButtonSize)
                     .shadow(2.dp, CircleShape)
-                    .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape)
+                    .background(Color(0xFF455A64), CircleShape)
                     .border(1.dp, Color(0xFF00FF00), CircleShape)
             ) {
                 Icon(
@@ -393,25 +357,6 @@ private fun HeaderActionsRow(
                 expanded = showOverflowMenu,
                 onDismissRequest = onDismissOverflowMenu
             ) {
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text("Joystick Sensitivity: ${"%.1f".format(joystickSensitivity)}", style = MaterialTheme.typography.labelSmall)
-                            androidx.compose.material3.Slider(
-                                value = joystickSensitivity,
-                                onValueChange = onJoystickSensitivityChange,
-                                valueRange = 0.5f..2.0f,
-                                steps = 14,
-                                colors = androidx.compose.material3.SliderDefaults.colors(
-                                    thumbColor = Color(0xFF00FF00),
-                                    activeTrackColor = Color(0xFF00FF00)
-                                )
-                            )
-                        }
-                    },
-                    onClick = {}
-                )
-                Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
                 DropdownMenuItem(
                     text = { Text("Help") },
                     leadingIcon = { Icon(Icons.Default.Help, null) },
@@ -442,23 +387,6 @@ private fun HeaderActionsRow(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Legacy Reflection (HC-06): " + if (allowReflection) "On" else "Off") },
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onToggleReflection()
-                        onDismissOverflowMenu()
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("OTA Firmware Update") },
-                    leadingIcon = { Icon(Icons.Default.Settings, null) },
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onShowOta()
-                        onDismissOverflowMenu()
-                    }
-                )
-                DropdownMenuItem(
                     text = { Text("Open Arduino Cloud") },
                     leadingIcon = { Icon(Icons.Default.OpenInNew, null, tint = Color(0xFF00FF00)) },
                     onClick = {
@@ -467,16 +395,7 @@ private fun HeaderActionsRow(
                         onDismissOverflowMenu()
                     }
                 )
-                DropdownMenuItem(
-                    text = { Text("Reset Tutorial") },
-                    leadingIcon = { Icon(Icons.Default.Settings, null) },
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onResetTutorial()
-                        onDismissOverflowMenu()
-                    }
-                )
-                Divider(color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFB0BEC5), thickness = 1.dp)
+                Divider(color = Color(0xFF455A64), thickness = 1.dp)
                 DropdownMenuItem(
                     text = { Text("Quit App", color = Color(0xFFFF5252)) },
                     leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
@@ -495,6 +414,7 @@ private fun HeaderActionsRow(
  * Pill-shaped connection status widget showing signal strength, RTT, and latency sparkline.
  * Tapping opens a menu for reconnect/configure options.
  */
+@Suppress("FunctionName")
 @Composable
 fun ConnectionStatusWidget(
     connectionMode: ConnectionMode,
@@ -502,7 +422,6 @@ fun ConnectionStatusWidget(
     wifiState: WifiConnectionState,
     rssi: Int,
     rttHistory: List<Long>,
-    isDarkTheme: Boolean,
     isEncrypted: Boolean = false,
     onReconnect: () -> Unit,
     onConfigure: () -> Unit,
@@ -535,7 +454,7 @@ fun ConnectionStatusWidget(
                 showMenu = true
             },
             shape = CircleShape,
-            color = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
+            color = Color(0xFF455A64),
             border = BorderStroke(1.dp, stateColor),
             modifier = Modifier.matchParentSize()
         ) {
@@ -616,11 +535,11 @@ fun ConnectionStatusWidget(
  * Compact pill-shaped segmented button for switching between BLE and WiFi modes.
  * Custom implementation for precise size control and centered content.
  */
+@Suppress("FunctionName")
 @Composable
 fun ConnectionModeSelector(
     selectedMode: ConnectionMode,
     onModeSelected: (ConnectionMode) -> Unit,
-    isDarkTheme: Boolean,
     view: View,
     segmentWidth: Dp = 48.dp,
     modifier: Modifier = Modifier
@@ -631,7 +550,7 @@ fun ConnectionModeSelector(
     Row(
         modifier = modifier
             .border(1.dp, Color(0xFF00FF00), CircleShape)
-            .background(if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0), CircleShape),
+            .background(Color(0xFF455A64), CircleShape),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // BLE Button

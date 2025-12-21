@@ -7,18 +7,16 @@ package com.metelci.ardunakon.model
 sealed class OnboardingStep {
     /** Phase 1: Welcome screen with value propositions */
     data object Welcome : OnboardingStep()
-    
+
     /** Phase 2: Interface tour - highlighting UI elements */
     data class InterfaceTour(val element: InterfaceElement) : OnboardingStep()
-    
+
     /** Phase 3: Connection tutorial - real device connection */
     data class ConnectionTutorial(val step: ConnectionTutorialStep) : OnboardingStep()
-    
 
-    
     /** Phase 5: Completion and next steps */
     data object Completion : OnboardingStep()
-    
+
     /** Onboarding finished - user completed or skipped */
     data object Finished : OnboardingStep()
 }
@@ -32,7 +30,7 @@ enum class InterfaceElement(val displayName: String, val description: String) {
     LEFT_JOYSTICK("Joystick", "Controls movement (direction and speed)"),
     SERVO_CONTROLS("Servo Buttons", "Control the camera, arm, or other attachments"),
     CONNECTION_MODE("Connection Mode", "Switch between Bluetooth and WiFi");
-    
+
     companion object {
         /** Returns the ordered list of elements for the interface tour */
         fun tourOrder(): List<InterfaceElement> = listOf(
@@ -74,7 +72,11 @@ enum class ArduinoType(
     R4_WIFI("Arduino UNO R4 WiFi", "Built-in BLE + WiFi", "BLE/WiFi"),
     UNO_OTHER("Arduino UNO (other models)", "Use an external Bluetooth module (HC-05/HC-06/HM-10)", "Classic BT/BLE"),
 
-    NANO_CLASSIC("Arduino Nano (classic/older)", "Use an external Bluetooth module (HC-05/HC-06/HM-10)", "Classic BT/BLE"),
+    NANO_CLASSIC(
+        "Arduino Nano (classic/older)",
+        "Use an external Bluetooth module (HC-05/HC-06/HM-10)",
+        "Classic BT/BLE"
+    ),
     NANO_R4("Arduino Nano R4", "Select if your project is based on a Nano R4 board", "BLE/WiFi"),
     NANO_ESP32("Arduino Nano ESP32", "ESP32-based Nano (BLE/WiFi via your sketch)", "BLE/WiFi"),
 

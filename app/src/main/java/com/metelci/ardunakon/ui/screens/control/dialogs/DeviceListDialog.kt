@@ -53,10 +53,10 @@ import kotlinx.coroutines.launch
 /**
  * Dialog for displaying and selecting Bluetooth devices.
  */
+@Suppress("FunctionName")
 @Composable
 fun DeviceListDialog(
     scannedDevices: List<BluetoothDeviceModel>,
-    isDarkTheme: Boolean,
     onScan: () -> Unit,
     onDeviceSelected: (BluetoothDeviceModel) -> Unit,
     onDismiss: () -> Unit,
@@ -165,7 +165,7 @@ fun DeviceListDialog(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Bluetooth,
-                                    contentDescription = null,
+                                    contentDescription = "No Bluetooth devices found",
                                     modifier = Modifier.size(48.dp),
                                     tint = Color(0xFFB0BEC5)
                                 )
@@ -213,7 +213,7 @@ fun DeviceListDialog(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Filled.Bluetooth,
-                                            contentDescription = null,
+                                            contentDescription = "Bluetooth device",
                                             tint = Color(0xFF2196F3),
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -257,7 +257,7 @@ fun DeviceListDialog(
             ) {
                 Text(
                     "Close",
-                    color = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2),
+                    color = Color(0xFF90CAF9),
                     style = MaterialTheme.typography.labelSmall
                 )
             }

@@ -5,7 +5,6 @@ import android.content.Intent
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
@@ -16,7 +15,6 @@ import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
-import com.metelci.ardunakon.security.AuthRequiredException
 import com.metelci.ardunakon.security.EncryptionException
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiManager
@@ -24,15 +22,15 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlin.math.abs
 
 /**
  * Connection mode for the control screen.
@@ -69,6 +67,7 @@ class ControlViewModel @javax.inject.Inject constructor(
     var showOtaDialog by mutableStateOf(false)
     var showWifiConfig by mutableStateOf(false)
     var showCrashLog by mutableStateOf(false)
+    var showSettingsDialog by mutableStateOf(false)
     var showHeaderMenu by mutableStateOf(false)
 
     // User Feedback (Snackbars)
@@ -185,15 +184,13 @@ class ControlViewModel @javax.inject.Inject constructor(
                 connectionMode = ConnectionMode.BLUETOOTH // Default
             }
         }
-    
+
         wifiManager.setRequireEncryption(requireEncryption)
         startTransmissionLoop()
         syncReflectionSetting()
         observeConnectionState()
         observeEncryptionErrors()
     }
-
-
 
     private fun syncReflectionSetting() {
         viewModelScope.launch {
@@ -429,8 +426,6 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
-
-
     // ========== Connection Mode ==========
     fun toggleConnectionMode() {
         if (connectionMode == ConnectionMode.BLUETOOTH) {
@@ -488,7 +483,7 @@ class ControlViewModel @javax.inject.Inject constructor(
                 appendLine("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
                 appendLine("=".repeat(50))
                 appendLine()
-                
+
                 // Device Info Header
                 appendLine("Device Info:")
                 appendLine("  App Version: ${getAppVersion(context)}")

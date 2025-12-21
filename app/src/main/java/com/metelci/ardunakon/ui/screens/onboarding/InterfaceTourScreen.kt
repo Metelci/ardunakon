@@ -25,6 +25,7 @@ import com.metelci.ardunakon.model.InterfaceElement
  * Phase 2: Interface tour screen.
  * Guides users through the main UI elements with highlighted overlays.
  */
+@Suppress("FunctionName")
 @Composable
 fun InterfaceTourScreen(
     element: InterfaceElement,
@@ -69,11 +70,9 @@ fun InterfaceTourScreen(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun ElementHighlight(
-    element: InterfaceElement,
-    modifier: Modifier = Modifier
-) {
+private fun ElementHighlight(element: InterfaceElement, modifier: Modifier = Modifier) {
     // Pulse animation for the highlight
     val infiniteTransition = rememberInfiniteTransition(label = "highlight_pulse")
     val scale by infiniteTransition.animateFloat(
@@ -141,6 +140,7 @@ private fun ElementHighlight(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 fun TutorialCard(
     title: String,
@@ -241,11 +241,9 @@ fun TutorialCard(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-fun OnboardingProgress(
-    progress: Float,
-    modifier: Modifier = Modifier
-) {
+fun OnboardingProgress(progress: Float, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally

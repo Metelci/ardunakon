@@ -14,6 +14,7 @@ import com.metelci.ardunakon.ota.BleOtaTransport
 import com.metelci.ardunakon.ota.OtaManager
 import com.metelci.ardunakon.ota.WifiOtaTransport
 import com.metelci.ardunakon.ui.components.OtaDialog
+import com.metelci.ardunakon.ui.components.SettingsDialog
 import com.metelci.ardunakon.ui.components.TelemetryGraphDialog
 import com.metelci.ardunakon.ui.components.TerminalDialog
 import com.metelci.ardunakon.ui.components.WifiConfigDialog
@@ -24,12 +25,12 @@ import com.metelci.ardunakon.wifi.WifiManager
  * Container for all dialogs used in ControlScreen.
  * Centralizes dialog rendering to reduce main screen complexity.
  */
+@Suppress("FunctionName")
 @Composable
 fun ControlScreenDialogs(
     viewModel: ControlViewModel,
     bluetoothManager: AppBluetoothManager,
     wifiManager: WifiManager,
-    isDarkTheme: Boolean,
     view: View,
     onExportLogs: () -> Unit,
     onTakeTutorial: (() -> Unit)? = null
@@ -73,8 +74,7 @@ fun ControlScreenDialogs(
     if (viewModel.showTelemetryGraph) {
         TelemetryGraphDialog(
             telemetryHistoryManager = bluetoothManager.telemetryHistoryManager,
-            onDismiss = { viewModel.showTelemetryGraph = false },
-            isDarkTheme = isDarkTheme
+            onDismiss = { viewModel.showTelemetryGraph = false }
         )
     }
 
@@ -82,16 +82,14 @@ fun ControlScreenDialogs(
     if (viewModel.showHelpDialog) {
         com.metelci.ardunakon.ui.components.HelpDialog(
             onDismiss = { viewModel.showHelpDialog = false },
-            onTakeTutorial = onTakeTutorial,
-            isDarkTheme = isDarkTheme
+            onTakeTutorial = onTakeTutorial
         )
     }
 
     // About Dialog
     if (viewModel.showAboutDialog) {
         com.metelci.ardunakon.ui.components.AboutDialog(
-            onDismiss = { viewModel.showAboutDialog = false },
-            isDarkTheme = isDarkTheme
+            onDismiss = { viewModel.showAboutDialog = false }
         )
     }
 
@@ -100,7 +98,6 @@ fun ControlScreenDialogs(
         val crashLog = com.metelci.ardunakon.crash.CrashHandler.getCrashLog(context)
         CrashLogDialog(
             crashLog = crashLog,
-            isDarkTheme = isDarkTheme,
             view = view,
             onShare = { /* Share handled internally */ },
             onClear = { viewModel.showCrashLog = false },
@@ -112,7 +109,6 @@ fun ControlScreenDialogs(
     if (viewModel.showDeviceList) {
         DeviceListDialog(
             scannedDevices = scannedDevices,
-            isDarkTheme = isDarkTheme,
             onScan = { bluetoothManager.startScan() },
             onDeviceSelected = { device ->
                 bluetoothManager.connectToDevice(device)
@@ -154,6 +150,25 @@ fun ControlScreenDialogs(
             bleTransport = bleOtaTransport,
             wifiTransport = wifiOtaTransport,
             onDismiss = { viewModel.showOtaDialog = false }
+        )
+    }
+
+    // Settings Dialog
+    if (viewModel.showSettingsDialog) {
+        SettingsDialog(
+            onDismiss = { viewModel.showSettingsDialog = false },
+            view = view,
+            isDebugPanelVisible = viewModel.isDebugPanelVisible,
+            onToggleDebugPanel = { viewModel.isDebugPanelVisible = !viewModel.isDebugPanelVisible },
+            joystickSensitivity = viewModel.joystickSensitivity,
+            onJoystickSensitivityChange = { viewModel.updateJoystickSensitivity(it) },
+            allowReflection = viewModel.allowReflection,
+            onToggleReflection = { viewModel.updateAllowReflection(!viewModel.allowReflection) },
+            onShowOta = {
+                viewModel.showSettingsDialog = false
+                viewModel.showOtaDialog = true
+            },
+            onResetTutorial = { viewModel.resetTutorial() }
         )
     }
 

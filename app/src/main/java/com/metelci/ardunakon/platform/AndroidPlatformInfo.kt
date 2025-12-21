@@ -10,12 +10,12 @@ import javax.inject.Singleton
  */
 @Singleton
 class AndroidPlatformInfo @Inject constructor() : PlatformInfo {
-    
+
     override val sdkVersion: Int = Build.VERSION.SDK_INT
-    
+
     override val manufacturer: String = Build.MANUFACTURER ?: "unknown"
-    
+
     override val model: String = Build.MODEL ?: "unknown"
-    
+
     override val androidVersion: String = Build.VERSION.RELEASE ?: "unknown"
 }

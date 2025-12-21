@@ -11,7 +11,7 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
     private val rssiHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
     private val rttHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
     private val packetLossHistory = ConcurrentLinkedDeque<PacketLossDataPoint>()
-    
+
     // Time-based cleanup: remove data older than 10 minutes
     private val maxHistoryAgeMs = 10 * 60 * 1000L
 
@@ -38,7 +38,7 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
         } else {
             0f
         }
-        
+
         val point = PacketLossDataPoint(
             timestamp = System.currentTimeMillis(),
             packetsSent = packetsSent,
@@ -47,17 +47,17 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
             packetsFailed = packetsFailed,
             lossPercent = lossPercent
         )
-        
+
         packetLossHistory.addLast(point)
-        
+
         // Size-based cleanup
         while (packetLossHistory.size > maxHistorySize) {
             packetLossHistory.removeFirst()
         }
-        
+
         // Time-based cleanup
         cleanupStalePacketLossData()
-        
+
         _historyUpdated.value = System.currentTimeMillis()
     }
 
@@ -69,14 +69,14 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
         while (buffer.size > maxHistorySize) {
             buffer.removeFirst()
         }
-        
+
         // Time-based cleanup: remove data older than maxHistoryAgeMs
         cleanupStaleData(buffer)
 
         // Notify UI of update
         _historyUpdated.value = System.currentTimeMillis()
     }
-    
+
     /**
      * Remove entries older than maxHistoryAgeMs from a TelemetryDataPoint buffer.
      */
@@ -86,7 +86,7 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
             buffer.pollFirst()
         }
     }
-    
+
     /**
      * Remove entries older than maxHistoryAgeMs from packet loss buffer.
      */
@@ -96,7 +96,7 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
             packetLossHistory.pollFirst()
         }
     }
-    
+
     /**
      * Manually trigger cleanup of all stale data across all buffers.
      * Useful when reconnecting or on session start.
@@ -133,21 +133,23 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
         val rssiData = getRssiHistory(timeRangeMs)
         val rttData = getRttHistory(timeRangeMs)
         val lossData = getPacketLossHistory(timeRangeMs)
-        
+
         if (rssiData.isEmpty() && rttData.isEmpty() && lossData.isEmpty()) {
             return emptyList()
         }
-        
+
         // Merge time series by finding closest timestamps
-        val allTimestamps = (rssiData.map { it.timestamp } + 
-                            rttData.map { it.timestamp } + 
-                            lossData.map { it.timestamp }).distinct().sorted()
-        
+        val allTimestamps = (
+            rssiData.map { it.timestamp } +
+                rttData.map { it.timestamp } +
+                lossData.map { it.timestamp }
+            ).distinct().sorted()
+
         return allTimestamps.mapNotNull { timestamp ->
-            val rssi = rssiData.findClosest(timestamp)?.value?.toInt() ?: -70  // Default: moderate signal
-            val rtt = rttData.findClosest(timestamp)?.value?.toLong() ?: 100L  // Default: 100ms
-            val loss = lossData.findClosest(timestamp)?.lossPercent ?: 0f       // Default: no loss
-            
+            val rssi = rssiData.findClosest(timestamp)?.value?.toInt() ?: -70 // Default: moderate signal
+            val rtt = rttData.findClosest(timestamp)?.value?.toLong() ?: 100L // Default: 100ms
+            val loss = lossData.findClosest(timestamp)?.lossPercent ?: 0f // Default: no loss
+
             val quality = calculateQualityScore(rssi, rtt, loss)
             TelemetryDataPoint(timestamp, quality)
         }
@@ -164,13 +166,13 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
     private fun calculateQualityScore(rssi: Int, rtt: Long, packetLoss: Float): Float {
         // RSSI score: -100dBm = 0%, 0dBm = 100%
         val rssiScore = ((rssi + 100) / 100f).coerceIn(0f, 1f)
-        
+
         // RTT score: 0ms = 100%, 1000ms = 0%
         val rttScore = (1f - (rtt / 1000f)).coerceIn(0f, 1f)
-        
+
         // Loss score: 0% = 100%, 100% = 0%
         val lossScore = (1f - (packetLoss / 100f)).coerceIn(0f, 1f)
-        
+
         // Weighted average
         return (rssiScore * 0.4f + rttScore * 0.3f + lossScore * 0.3f) * 100f
     }

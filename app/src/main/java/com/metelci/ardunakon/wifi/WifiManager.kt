@@ -4,20 +4,17 @@ package com.metelci.ardunakon.wifi
 
 import android.content.Context
 import android.util.Base64
-import android.util.Log
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.data.WifiEncryptionPreferences
 import com.metelci.ardunakon.security.EncryptionException
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import java.net.InetAddress
 import java.security.SecureRandom
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class WifiManager(
     private val context: Context,
@@ -33,13 +30,21 @@ class WifiManager(
     private val discoveryNonce = AtomicReference<String?>(null)
 
     private val scanner = WifiScanner(
-        context, scope, onLog,
-        ::buildDiscoveryMessage, ::verifySignature,
-        { sessionKey.get() }, { discoveryNonce.get() }
+        context,
+        scope,
+        onLog,
+        ::buildDiscoveryMessage,
+        ::verifySignature,
+        { sessionKey.get() },
+        { discoveryNonce.get() }
     )
 
     private val connectionManager = WifiConnectionManager(
-        context, scope, this, encryptionPreferences, ioDispatcher
+        context,
+        scope,
+        this,
+        encryptionPreferences,
+        ioDispatcher
     )
 
     // Connection State (Binary compatible with UI)
@@ -48,7 +53,7 @@ class WifiManager(
 
     private val _autoReconnectEnabled = MutableStateFlow(false)
     val autoReconnectEnabled = _autoReconnectEnabled.asStateFlow()
-    private var _shouldReconnect = false
+    private var shouldReconnect = false
     private var reconnectAttempts = 0
     private var nextReconnectAt = 0L
 
@@ -82,13 +87,13 @@ class WifiManager(
     init {
         scope.launch {
             val lastConn = connectionPreferences.loadLastConnection()
-            _shouldReconnect = lastConn.autoReconnectWifi
+            shouldReconnect = lastConn.autoReconnectWifi
             _autoReconnectEnabled.value = lastConn.autoReconnectWifi
-            
+
             if (!lastConn.wifiIp.isNullOrEmpty()) {
                 targetIp = lastConn.wifiIp
                 targetPort = lastConn.wifiPort
-                if (_shouldReconnect) onLog("Restored WiFi target: $targetIp and armed auto-reconnect")
+                if (shouldReconnect) onLog("Restored WiFi target: $targetIp and armed auto-reconnect")
             }
         }
         if (startMonitors) {
@@ -98,7 +103,7 @@ class WifiManager(
 
     fun setAutoReconnectEnabled(enabled: Boolean) {
         _autoReconnectEnabled.value = enabled
-        _shouldReconnect = enabled
+        shouldReconnect = enabled
         scope.launch { connectionPreferences.saveLastConnection(autoReconnectWifi = enabled) }
         reconnectAttempts = 0
         onLog(if (enabled) "WiFi Auto-reconnect ARMED" else "WiFi Auto-reconnect DISABLED")
@@ -124,7 +129,7 @@ class WifiManager(
     }
 
     fun disconnect() {
-        _shouldReconnect = false
+        shouldReconnect = false
         BreadcrumbManager.leave("WiFi", "Manual disconnect")
         connectionManager.disconnect()
     }
@@ -139,7 +144,9 @@ class WifiManager(
 
     fun setRequireEncryption(required: Boolean) = connectionManager.setRequireEncryption(required)
     fun isEncryptionRequired(): Boolean = true // Now mandatory by default in Manager
-    fun clearEncryptionError() { _encryptionError.value = null }
+    fun clearEncryptionError() {
+        _encryptionError.value = null
+    }
 
     // --- WifiConnectionCallback ---
 
@@ -197,7 +204,9 @@ class WifiManager(
         val nonceBytes = Base64.decode(nonce, Base64.NO_WRAP)
         val sigBytes = Base64.decode(sig, Base64.NO_WRAP)
         sigBytes.contentEquals(hmac(nonceBytes, key))
-    } catch (_: Exception) { false }
+    } catch (_: Exception) {
+        false
+    }
 
     private fun hmac(data: ByteArray, key: ByteArray): ByteArray {
         val mac = Mac.getInstance("HmacSHA256")
@@ -209,7 +218,11 @@ class WifiManager(
         scope.launch {
             while (isActive) {
                 delay(2000)
-                if (_shouldReconnect && (_connectionState.value == WifiConnectionState.DISCONNECTED || _connectionState.value == WifiConnectionState.ERROR)) {
+                if (shouldReconnect && (
+                        _connectionState.value == WifiConnectionState.DISCONNECTED ||
+                            _connectionState.value == WifiConnectionState.ERROR
+                        )
+                ) {
                     if (System.currentTimeMillis() >= nextReconnectAt) {
                         if (reconnectAttempts >= 3) {
                             setAutoReconnectEnabled(false)

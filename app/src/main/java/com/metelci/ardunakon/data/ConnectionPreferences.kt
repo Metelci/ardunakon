@@ -16,12 +16,15 @@ class ConnectionPreferences(
     private val fileName = "connection_prefs.json"
 
     data class LastConnection(
-        val type: String?, // "BLUETOOTH" or "WIFI"
+        // "BLUETOOTH" or "WIFI"
+        val type: String?,
         val btAddress: String?,
-        val btType: String?, // "CLASSIC" or "LE"
+        // "CLASSIC" or "LE"
+        val btType: String?,
         val wifiIp: String?,
         val wifiPort: Int,
-        val wifiPsk: String?, // Encrypted PSK
+        // Encrypted PSK
+        val wifiPsk: String?,
         val autoReconnectWifi: Boolean,
         val joystickSensitivity: Float
     )

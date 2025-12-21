@@ -54,8 +54,12 @@ class AndroidSystemServicesTest {
     @Test
     fun permission_checks_use_context_on_android12_plus() {
         val context = mockk<Context>(relaxed = true)
-        every { context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) } returns PackageManager.PERMISSION_DENIED
-        every { context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) } returns PackageManager.PERMISSION_GRANTED
+        every {
+            context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
+        } returns PackageManager.PERMISSION_DENIED
+        every {
+            context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)
+        } returns PackageManager.PERMISSION_GRANTED
 
         val services = AndroidSystemServices(context, fakePlatform(sdk = 31))
 
@@ -72,4 +76,3 @@ class AndroidSystemServicesTest {
         }
     }
 }
-

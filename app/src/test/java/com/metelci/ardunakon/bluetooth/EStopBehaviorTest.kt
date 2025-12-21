@@ -96,8 +96,8 @@ class EStopBehaviorTest {
         val packetSize = 10
         val packet = ByteArray(packetSize)
         packet[0] = 0xAA.toByte() // START
-        packet[1] = 0x01          // DEV_ID
-        packet[2] = 0x04          // CMD_ESTOP
+        packet[1] = 0x01 // DEV_ID
+        packet[2] = 0x04 // CMD_ESTOP
         // D1-D5 should be 0
         for (i in 3..7) packet[i] = 0
         // Calculate checksum: XOR of bytes 1-7
@@ -116,8 +116,8 @@ class EStopBehaviorTest {
     fun `E-STOP packet structure is valid`() {
         val packet = ByteArray(10)
         packet[0] = 0xAA.toByte() // START
-        packet[1] = 0x01          // DEV_ID
-        packet[2] = 0x04          // CMD_ESTOP
+        packet[1] = 0x01 // DEV_ID
+        packet[2] = 0x04 // CMD_ESTOP
         for (i in 3..7) packet[i] = 0
         var xor: Byte = 0
         for (i in 1..7) xor = (xor.toInt() xor packet[i].toInt()).toByte()

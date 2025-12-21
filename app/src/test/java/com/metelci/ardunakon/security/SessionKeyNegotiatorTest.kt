@@ -1,11 +1,11 @@
 package com.metelci.ardunakon.security
 
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
 /**
  * Unit tests for SessionKeyNegotiator.

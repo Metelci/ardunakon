@@ -2,7 +2,6 @@ package com.metelci.ardunakon.ui.screens.onboarding
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -32,7 +31,7 @@ object HighlightTags {
     const val JOYSTICK = "highlight_joystick"
     const val SERVO_CONTROLS = "highlight_servo_controls"
     const val CONNECTION_MODE = "highlight_connection_mode"
-    
+
     fun tagFor(element: InterfaceElement): String = when (element) {
         InterfaceElement.ESTOP -> ESTOP
         InterfaceElement.CONNECTION_STATUS -> CONNECTION_STATUS
@@ -49,11 +48,11 @@ object HighlightTags {
 class HighlightState {
     var elementBounds by mutableStateOf<Map<String, Rect>>(emptyMap())
         private set
-    
+
     fun updateBounds(tag: String, bounds: Rect) {
         elementBounds = elementBounds + (tag to bounds)
     }
-    
+
     fun getBounds(element: InterfaceElement): Rect? {
         return elementBounds[HighlightTags.tagFor(element)]
     }
@@ -70,25 +69,29 @@ fun rememberHighlightState(): HighlightState {
 /**
  * Modifier extension to register an element for highlighting.
  */
-fun Modifier.highlightable(
-    state: HighlightState,
-    tag: String
-): Modifier = this.onGloballyPositioned { layoutCoordinates ->
-    val bounds = layoutCoordinates.boundsInRoot()
-    state.updateBounds(tag, bounds)
-}
+fun Modifier.highlightable(state: HighlightState, tag: String): Modifier =
+    this.onGloballyPositioned { layoutCoordinates ->
+        val bounds = layoutCoordinates.boundsInRoot()
+        state.updateBounds(tag, bounds)
+    }
 
 /**
  * Overlay that highlights a specific element with a cutout effect.
  * Draws a semi-transparent dark overlay with a transparent hole over the target element.
  */
+@Suppress("FunctionName")
 @Composable
 fun HighlightOverlay(
-    targetBounds: Rect?,
-    modifier: Modifier = Modifier,
-    cornerRadius: Float = 16f,
-    scrimColor: Color = Color.Black.copy(alpha = 0.8f)
+    targetRect: androidx.compose.ui.geometry.Rect?,
+    text: String,
+    // "top", "bottom", "left", "right"
+    position: String = "bottom",
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    val scrimColor: Color = Color.Black.copy(alpha = 0.8f)
+    val cornerRadius: Float = 16f
+
     // Pulse animation for the highlight border
     val infiniteTransition = rememberInfiniteTransition(label = "highlight_pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
@@ -100,7 +103,7 @@ fun HighlightOverlay(
         ),
         label = "pulse_alpha"
     )
-    
+
     val borderScale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.02f,
@@ -114,21 +117,20 @@ fun HighlightOverlay(
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .graphicsLayer(alpha = 0.99f) // Required for BlendMode.Clear to work
+            // Required for BlendMode.Clear to work
+            .graphicsLayer(alpha = 0.99f)
     ) {
         // Draw the scrim
         drawRect(color = scrimColor)
-        
-        targetBounds?.let { bounds ->
+
+        targetRect?.let { bounds ->
             // Add some padding around the element
             val padding = 8f
             val highlightRect = Rect(
-                left = bounds.left - padding,
-                top = bounds.top - padding,
-                right = bounds.right + padding,
-                bottom = bounds.bottom + padding
+                offset = Offset(bounds.left - padding, bounds.top - padding),
+                size = Size(bounds.width + 2 * padding, bounds.height + 2 * padding)
             )
-            
+
             // Clear a rounded rectangle hole for the highlighted element
             drawRoundRect(
                 color = Color.Transparent,
@@ -137,16 +139,14 @@ fun HighlightOverlay(
                 cornerRadius = CornerRadius(cornerRadius, cornerRadius),
                 blendMode = BlendMode.Clear
             )
-            
+
             // Draw a pulsing border around the highlighted element
             val scaledPadding = padding * borderScale
             val borderRect = Rect(
-                left = bounds.left - scaledPadding,
-                top = bounds.top - scaledPadding,
-                right = bounds.right + scaledPadding,
-                bottom = bounds.bottom + scaledPadding
+                offset = Offset(bounds.left - scaledPadding, bounds.top - scaledPadding),
+                size = Size(bounds.width + 2 * scaledPadding, bounds.height + 2 * scaledPadding)
             )
-            
+
             drawRoundRect(
                 color = Color(0xFF00C853).copy(alpha = pulseAlpha),
                 topLeft = Offset(borderRect.left, borderRect.top),
@@ -162,6 +162,7 @@ fun HighlightOverlay(
  * Tutorial card that appears during interface tour, showing info about the highlighted element.
  * Positioned at the bottom of the screen.
  */
+@Suppress("FunctionName")
 @Composable
 fun TourInfoCard(
     element: InterfaceElement,
@@ -186,9 +187,9 @@ fun TourInfoCard(
             color = Color(0xFF00C853),
             trackColor = Color.White.copy(alpha = 0.3f)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Info card
         Card(
             modifier = Modifier.fillMaxWidth(),

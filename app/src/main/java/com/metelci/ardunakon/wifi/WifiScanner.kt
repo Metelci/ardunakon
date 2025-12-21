@@ -10,17 +10,16 @@ import android.net.wifi.WifiManager as AndroidWifiManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import java.net.DatagramPacket
 import java.net.DatagramSocket
-import java.net.InetAddress
 import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 data class WifiDevice(val name: String, val ip: String, val port: Int, val trusted: Boolean = false)
 
@@ -85,7 +84,7 @@ class WifiScanner(
         }
 
         val broadcastAddress = getBroadcastAddress()
-        
+
         scope.launch {
             var discoverySocket: DatagramSocket? = null
             try {
@@ -128,11 +127,11 @@ class WifiScanner(
                             val lastResponse = discoveryRateLimiter[senderIp] ?: 0L
                             if (now - lastResponse < discoveryRateLimitMs) continue
                             discoveryRateLimiter[senderIp] = now
-                            
+
                             val payload = response.substringAfter("ARDUNAKON_DEVICE:")
                             val parts = payload.split("|")
                             val name = parts.firstOrNull().orEmpty()
-                            
+
                             val key = getSessionKey()
                             val trusted = when {
                                 key != null && parts.size >= 3 -> {
@@ -194,7 +193,9 @@ class WifiScanner(
 
     private fun stopDiscoveryListener() {
         discoveryListener?.let {
-            try { nsdManager?.stopServiceDiscovery(it) } catch (_: Exception) {}
+            try {
+                nsdManager?.stopServiceDiscovery(it)
+            } catch (_: Exception) {}
             discoveryListener = null
         }
     }
@@ -305,6 +306,8 @@ class WifiScanner(
         }
     }
 
-    private fun hasWifiStatePermission() = context.checkSelfPermission(Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED
-    private fun hasNearbyWifiPermission() = context.checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED
+    private fun hasWifiStatePermission() =
+        context.checkSelfPermission(Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED
+    private fun hasNearbyWifiPermission() =
+        context.checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED
 }

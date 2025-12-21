@@ -1,17 +1,16 @@
 package com.metelci.ardunakon.ui
 
-import androidx.activity.ComponentActivity
+import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.material3.Text
+import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 import com.metelci.ardunakon.ui.components.JoystickControl
@@ -19,14 +18,11 @@ import com.metelci.ardunakon.ui.components.ServoButtonControl
 import com.metelci.ardunakon.ui.components.StatusCard
 import com.metelci.ardunakon.ui.components.WifiConfigDialog
 import com.metelci.ardunakon.wifi.WifiDevice
-import org.junit.Rule
-import org.junit.Test
-
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
-
-import com.metelci.ardunakon.MainActivity
+import org.junit.Rule
+import org.junit.Test
 
 @HiltAndroidTest
 class UiComponentAccessibilityTest {
@@ -81,8 +77,7 @@ class UiComponentAccessibilityTest {
                 rssi = -60,
                 hasCrashLog = false,
                 onClick = {},
-                onCrashLogClick = {},
-                isDarkTheme = true
+                onCrashLogClick = {}
             )
         }
 

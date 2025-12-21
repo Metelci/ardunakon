@@ -1,7 +1,6 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
 import android.content.res.Configuration
-import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -20,7 +19,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,9 +31,12 @@ import com.metelci.ardunakon.ui.components.SignalStrengthIcon
  * Demo version of the control layout for onboarding tutorial.
  * Shows all UI elements with mock/demo data, no service dependencies.
  */
+@Suppress("FunctionName")
 @Composable
 fun DemoControlLayout(
     highlightedElement: InterfaceElement?,
+    // Visual indicators only
+    onAction: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
@@ -67,10 +68,11 @@ fun DemoControlLayout(
             if (isPortrait) {
                 // PORTRAIT: Vertical Stack
                 // Debug -> Servo -> Joystick
-                
+
                 // Demo Debug Panel (Always visible to maintain layout)
                 DemoDebugPanel(
-                    isHighlighted = false, // Never highlighted in this tour step? Or add logic if needed
+                    // Never highlighted in this tour step? Or add logic if needed
+                    isHighlighted = false,
                     modifier = Modifier
                         .weight(0.35f)
                         .fillMaxWidth()
@@ -97,7 +99,7 @@ fun DemoControlLayout(
             } else {
                 // LANDSCAPE: Row Layout
                 // Left: Joystick | Right: Column(Debug, Servo)
-                
+
                 Row(modifier = Modifier.fillMaxSize()) {
                     // Left Side: Joystick
                     Box(
@@ -106,13 +108,14 @@ fun DemoControlLayout(
                             .fillMaxHeight(),
                         contentAlignment = Alignment.Center
                     ) {
-                         DemoJoystickPanel(
+                        DemoJoystickPanel(
                             isHighlighted = highlightedElement == InterfaceElement.LEFT_JOYSTICK,
-                            size = 160.dp, // Smaller in landscape? or consistent
+                            // Smaller in landscape? or consistent
+                            size = 160.dp,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-                    
+
                     // Right Side: Servo + Debug
                     Column(
                         modifier = Modifier
@@ -126,7 +129,7 @@ fun DemoControlLayout(
                                 .weight(0.5f)
                                 .fillMaxWidth()
                         )
-                        
+
                         DemoServoPanel(
                             modifier = Modifier
                                 .weight(0.5f)
@@ -139,11 +142,9 @@ fun DemoControlLayout(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun DemoHeaderBar(
-    highlightedElement: InterfaceElement?,
-    modifier: Modifier = Modifier
-) {
+private fun DemoHeaderBar(highlightedElement: InterfaceElement?, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier.padding(horizontal = 4.dp).height(56.dp)
     ) {
@@ -192,11 +193,9 @@ private fun DemoHeaderBar(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun DemoConnectionModeSelector(
-    isHighlighted: Boolean,
-    modifier: Modifier = Modifier
-) {
+private fun DemoConnectionModeSelector(isHighlighted: Boolean, modifier: Modifier = Modifier) {
     val borderColor = if (isHighlighted) Color(0xFF00C853) else Color(0xFF00FF00)
     val borderWidth = if (isHighlighted) 3.dp else 1.dp
 
@@ -247,11 +246,9 @@ private fun DemoConnectionModeSelector(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun DemoConnectionStatusWidget(
-    isHighlighted: Boolean,
-    modifier: Modifier = Modifier
-) {
+private fun DemoConnectionStatusWidget(isHighlighted: Boolean, modifier: Modifier = Modifier) {
     val borderColor = if (isHighlighted) Color(0xFF00C853) else Color(0xFF00FF00)
     val borderWidth = if (isHighlighted) 3.dp else 1.dp
     val mockRttHistory = listOf(45L, 42L, 48L, 44L, 46L, 43L, 47L, 45L)
@@ -293,12 +290,9 @@ private fun DemoConnectionStatusWidget(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun DemoEStopButton(
-    isHighlighted: Boolean,
-    size: androidx.compose.ui.unit.Dp,
-    modifier: Modifier = Modifier
-) {
+private fun DemoEStopButton(isHighlighted: Boolean, size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
     val borderColor = if (isHighlighted) Color(0xFF00C853) else Color(0xFF90CAF9)
     val borderWidth = if (isHighlighted) 3.dp else 1.dp
 
@@ -321,6 +315,7 @@ private fun DemoEStopButton(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun DemoIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -346,11 +341,9 @@ private fun DemoIconButton(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun DemoDebugPanel(
-    isHighlighted: Boolean,
-    modifier: Modifier = Modifier
-) {
+private fun DemoDebugPanel(isHighlighted: Boolean, modifier: Modifier = Modifier) {
     val borderColor = if (isHighlighted) Color(0xFF00C853) else Color(0xFF00FF00).copy(alpha = 0.5f)
     val borderWidth = if (isHighlighted) 2.dp else 1.dp
 
@@ -391,10 +384,9 @@ private fun DemoDebugPanel(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun DemoServoPanel(
-    modifier: Modifier = Modifier
-) {
+private fun DemoServoPanel(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.Center,
@@ -414,6 +406,7 @@ private fun DemoServoPanel(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun DemoServoButton(label: String) {
     Surface(
@@ -432,6 +425,7 @@ private fun DemoServoButton(label: String) {
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun DemoJoystickPanel(
     isHighlighted: Boolean,
@@ -450,7 +444,7 @@ private fun DemoJoystickPanel(
                     .border(3.dp, Color(0xFF00C853), CircleShape)
             )
         }
-        
+
         JoystickControl(
             onMoved = { /* Demo - no action */ },
             size = size,

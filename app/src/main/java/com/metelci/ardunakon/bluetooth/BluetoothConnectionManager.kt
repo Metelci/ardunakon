@@ -11,7 +11,7 @@ interface BluetoothConnectionManager {
     fun send(data: ByteArray)
     fun requestRssi()
     fun cleanup()
-    
+
     // For auto-reconnect logic or stats
     fun getPacketStats(): NetworkStats
 }

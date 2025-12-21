@@ -47,8 +47,7 @@ class ControlScreenTest {
                     state = ConnectionState.DISCONNECTED,
                     rssi = 0,
                     hasCrashLog = false,
-                    onClick = {},
-                    isDarkTheme = true
+                    onClick = {}
                 )
             }
         }
@@ -66,8 +65,7 @@ class ControlScreenTest {
                     state = ConnectionState.CONNECTED,
                     rssi = -60,
                     hasCrashLog = false,
-                    onClick = {},
-                    isDarkTheme = true
+                    onClick = {}
                 )
             }
         }
@@ -87,8 +85,8 @@ class ControlScreenTest {
                         state = ConnectionState.DISCONNECTED,
                         rssi = 0,
                         hasCrashLog = false,
-                        onClick = { clicks++ },
-                        isDarkTheme = true
+                        onClick = { clicks++ }
+
                     )
                     Text("clicks=$clicks")
                 }

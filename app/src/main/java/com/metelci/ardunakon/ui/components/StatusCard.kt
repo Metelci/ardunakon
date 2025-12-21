@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.ConnectionState
 
+@Suppress("FunctionName")
 @Composable
 fun StatusCard(
     label: String,
@@ -31,8 +32,7 @@ fun StatusCard(
     @Suppress("UNUSED_PARAMETER") rssi: Int,
     hasCrashLog: Boolean = false,
     onClick: () -> Unit,
-    onCrashLogClick: () -> Unit = {},
-    @Suppress("UNUSED_PARAMETER") isDarkTheme: Boolean
+    onCrashLogClick: () -> Unit = {}
 ) {
     val view = LocalView.current
 
@@ -47,7 +47,9 @@ fun StatusCard(
     // Soft filled background for connected, pale for disconnected/error
     val containerColor = when (state) {
         ConnectionState.CONNECTED -> Color(0xFFFFFF00).copy(alpha = 0.2f) // Electric Yellow shadow
-        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(0xFFFF9800).copy(alpha = 0.2f) // Orange shadow
+        ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> Color(
+            0xFFFF9800
+        ).copy(alpha = 0.2f) // Orange shadow
         else -> Color.Transparent // Pale (no fill)
     }
 
@@ -68,7 +70,8 @@ fun StatusCard(
     androidx.compose.material3.Surface(
         color = containerColor,
         contentColor = contentColor,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(50), // Fully rounded like Button
+        // Fully rounded like Button
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
         border = BorderStroke(1.dp, borderColor),
         modifier = Modifier
             .height(36.dp)
@@ -100,12 +103,14 @@ fun StatusCard(
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         onCrashLogClick()
                     },
-                    modifier = Modifier.size(24.dp) // Slightly larger touch target
+                    // Slightly larger touch target
+                    modifier = Modifier.size(24.dp)
                 ) {
                     androidx.compose.material3.Icon(
                         imageVector = androidx.compose.material.icons.Icons.Default.Warning,
                         contentDescription = "View Crash Log",
-                        tint = Color(0xFFFF9800), // Orange warning color
+                        // Orange warning color
+                        tint = Color(0xFFFF9800),
                         modifier = Modifier.size(16.dp)
                     )
                 }

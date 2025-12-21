@@ -1,8 +1,8 @@
 package com.metelci.ardunakon.ui.screens.control
 
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import io.mockk.mockk
@@ -33,9 +33,6 @@ class ControlHeaderBarTest {
                 isEStopActive = false,
                 autoReconnectEnabled = false,
                 onToggleAutoReconnect = {},
-                isDebugPanelVisible = false,
-                isDarkTheme = true,
-                allowReflection = false,
                 onScanDevices = {},
                 onReconnectDevice = {},
                 onSwitchToWifi = {},
@@ -43,14 +40,12 @@ class ControlHeaderBarTest {
                 onConfigureWifi = {},
                 onTelemetryGraph = {},
                 onToggleEStop = {},
-                onToggleDebugPanel = {},
+                onShowSettings = {},
                 onShowHelp = {},
                 onShowAbout = {},
                 onShowCrashLog = {},
                 onShowOta = {},
-                onToggleReflection = {},
                 onOpenArduinoCloud = {},
-                onResetTutorial = {},
                 onQuitApp = {},
                 context = mockk(relaxed = true),
                 view = mockk(relaxed = true)
@@ -74,9 +69,6 @@ class ControlHeaderBarTest {
                 isEStopActive = true,
                 autoReconnectEnabled = false,
                 onToggleAutoReconnect = {},
-                isDebugPanelVisible = false,
-                isDarkTheme = true,
-                allowReflection = false,
                 onScanDevices = {},
                 onReconnectDevice = {},
                 onSwitchToWifi = {},
@@ -84,14 +76,12 @@ class ControlHeaderBarTest {
                 onConfigureWifi = {},
                 onTelemetryGraph = {},
                 onToggleEStop = {},
-                onToggleDebugPanel = {},
+                onShowSettings = {},
                 onShowHelp = {},
                 onShowAbout = {},
                 onShowCrashLog = {},
                 onShowOta = {},
-                onToggleReflection = {},
                 onOpenArduinoCloud = {},
-                onResetTutorial = {},
                 onQuitApp = {},
                 context = mockk(relaxed = true),
                 view = mockk(relaxed = true)
@@ -115,9 +105,6 @@ class ControlHeaderBarTest {
                 isEStopActive = false,
                 autoReconnectEnabled = false,
                 onToggleAutoReconnect = {},
-                isDebugPanelVisible = false,
-                isDarkTheme = true,
-                allowReflection = false,
                 onScanDevices = {},
                 onReconnectDevice = {},
                 onSwitchToWifi = {},
@@ -125,14 +112,12 @@ class ControlHeaderBarTest {
                 onConfigureWifi = {},
                 onTelemetryGraph = {},
                 onToggleEStop = {},
-                onToggleDebugPanel = {},
+                onShowSettings = {},
                 onShowHelp = {},
                 onShowAbout = {},
                 onShowCrashLog = {},
                 onShowOta = {},
-                onToggleReflection = {},
                 onOpenArduinoCloud = {},
-                onResetTutorial = {},
                 onQuitApp = {},
                 context = mockk(relaxed = true),
                 view = mockk(relaxed = true)

@@ -25,6 +25,7 @@ import com.metelci.ardunakon.security.EncryptionException
  * - Continue without encryption (disables encryption requirement)
  * - Disconnect completely
  */
+@Suppress("FunctionName")
 @Composable
 fun EncryptionErrorDialog(
     error: EncryptionException,
@@ -41,7 +42,8 @@ fun EncryptionErrorDialog(
 
     val suggestion = when (error) {
         is EncryptionException.HandshakeFailedException ->
-            "The device could not establish a secure connection. This may indicate an incompatible device or network security policy."
+            "The device could not establish a secure connection. " +
+                "This may indicate an incompatible device or network security policy."
         is EncryptionException.EncryptionFailedException ->
             "A security protocol error occurred. Check your connection and try again."
         is EncryptionException.NoSessionKeyException ->
@@ -67,8 +69,9 @@ fun EncryptionErrorDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "Connection blocked to prevent unencrypted data transmission.",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "The connection is not secure. " +
+                        "A secure handshake is required to ensure data integrity and privacy.",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )
             }
@@ -91,4 +94,3 @@ fun EncryptionErrorDialog(
         }
     )
 }
-

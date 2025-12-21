@@ -35,4 +35,3 @@ class BreadcrumbManagerTest {
         assertTrue(text.trimStart().startsWith("["))
     }
 }
-

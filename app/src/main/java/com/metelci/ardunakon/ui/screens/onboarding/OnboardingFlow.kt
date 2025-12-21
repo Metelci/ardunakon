@@ -21,6 +21,7 @@ import com.metelci.ardunakon.model.OnboardingStep
  * @param onComplete Called when user completes the tutorial
  * @param onSkip Called when user skips the tutorial
  */
+@Suppress("FunctionName")
 @Composable
 fun OnboardingFlow(
     onComplete: () -> Unit,
@@ -84,7 +85,7 @@ fun OnboardingFlow(
                     progress = viewModel.getProgressPercent()
                 )
             }
-                // AdvancedFeatures step removed/merged
+            // AdvancedFeatures step removed/merged
 
             is OnboardingStep.Completion -> {
                 CompletionScreen(

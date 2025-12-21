@@ -44,7 +44,7 @@ class OnboardingManagerTest {
     @Test
     fun startOnboarding_updatesPrefs() {
         manager.startOnboarding()
-        io.mockk.verify { 
+        io.mockk.verify {
             prefs.setInProgress(true)
             prefs.setCurrentStep(0)
         }

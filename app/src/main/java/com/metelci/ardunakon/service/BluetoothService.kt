@@ -16,12 +16,10 @@ import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.R
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
-import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.wifi.WifiManager
-import kotlinx.coroutines.*
-
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.*
 
 @AndroidEntryPoint
 class BluetoothService : Service() {
@@ -128,6 +126,7 @@ class BluetoothService : Service() {
         super.onDestroy()
         scope.cancel()
         bluetoothManager.cleanup()
+        wifiManager.cleanup()
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }

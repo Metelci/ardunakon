@@ -30,15 +30,9 @@ import com.metelci.ardunakon.crash.CrashHandler
 /**
  * Dialog to display crash logs with share and clear options.
  */
+@Suppress("FunctionName")
 @Composable
-fun CrashLogDialog(
-    crashLog: String,
-    isDarkTheme: Boolean,
-    view: View,
-    onShare: () -> Unit,
-    onClear: () -> Unit,
-    onDismiss: () -> Unit
-) {
+fun CrashLogDialog(crashLog: String, view: View, onShare: () -> Unit, onClear: () -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
 
     AlertDialog(
@@ -80,7 +74,7 @@ fun CrashLogDialog(
                         text = crashLog.ifEmpty { "No crash logs available" },
                         fontFamily = FontFamily.Monospace,
                         fontSize = 10.sp,
-                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Black,
+                        color = Color(0xFFB0BEC5),
                         lineHeight = 14.sp
                     )
                 }

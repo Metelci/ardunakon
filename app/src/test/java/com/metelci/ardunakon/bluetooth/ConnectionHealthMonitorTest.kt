@@ -15,10 +15,10 @@ class ConnectionHealthMonitorTest {
     private lateinit var callbacks: TestHealthCallbacks
 
     class TestHealthCallbacks : ConnectionHealthMonitor.HealthCallbacks {
-        private var _connectionState = ConnectionState.DISCONNECTED
-        private var _connectionType: DeviceType? = DeviceType.CLASSIC
-        private var _autoReconnectEnabled = true
-        private var _hasSavedDevice = true
+        private var connectionState = ConnectionState.DISCONNECTED
+        private var connectionType: DeviceType? = DeviceType.CLASSIC
+        private var autoReconnectEnabled = true
+        private var hasSavedDevice = true
 
         var heartbeatTimeoutCalled = false
         var missedAckThresholdCalled = false
@@ -45,10 +45,10 @@ class ConnectionHealthMonitorTest {
             circuitBreakerCalled = true
         }
 
-        override fun getConnectionState() = _connectionState
-        override fun getConnectionType() = _connectionType
-        override fun isAutoReconnectEnabled() = _autoReconnectEnabled
-        override fun hasSavedDevice() = _hasSavedDevice
+        override fun getConnectionState() = connectionState
+        override fun getConnectionType() = connectionType
+        override fun isAutoReconnectEnabled() = autoReconnectEnabled
+        override fun hasSavedDevice() = hasSavedDevice
     }
 
     @Before

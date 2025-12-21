@@ -16,22 +16,22 @@ object AccessibilityDefaults {
      * Minimum touch target size following WCAG 2.1 AA guidelines.
      * Android also recommends 48dp as the minimum touch target.
      */
-    val MinTouchTarget = 48.dp
+    val MIN_TOUCH_TARGET = 48.dp
 
     /**
      * WCAG 2.1 AA minimum contrast ratio for normal text (< 18pt or < 14pt bold).
      */
-    const val MinContrastRatio = 4.5f
+    const val MIN_CONTRAST_RATIO = 4.5f
 
     /**
      * WCAG 2.1 AA minimum contrast ratio for large text (≥ 18pt or ≥ 14pt bold).
      */
-    const val MinContrastRatioLarge = 3.0f
+    const val MIN_CONTRAST_RATIO_LARGE = 3.0f
 
     /**
      * WCAG 2.1 AAA enhanced contrast ratio for normal text.
      */
-    const val EnhancedContrastRatio = 7.0f
+    const val ENHANCED_CONTRAST_RATIO = 7.0f
 
     /**
      * High contrast color pairs that meet WCAG AA requirements.
@@ -39,24 +39,24 @@ object AccessibilityDefaults {
      */
     object HighContrastPairs {
         // Primary actions
-        val primaryDark = Pair(Color(0xFF1976D2), Color.White) // 5.5:1
-        val primaryLight = Pair(Color(0xFF0D47A1), Color.White) // 8.6:1
+        val PRIMARY_DARK = Pair(Color(0xFF1976D2), Color.White) // 5.5:1
+        val PRIMARY_LIGHT = Pair(Color(0xFF0D47A1), Color.White) // 8.6:1
 
         // Success/Connected states
-        val successDark = Pair(Color(0xFF388E3C), Color.White) // 4.5:1
-        val successLight = Pair(Color(0xFF1B5E20), Color.White) // 7.8:1
+        val SUCCESS_DARK = Pair(Color(0xFF388E3C), Color.White) // 4.5:1
+        val SUCCESS_LIGHT = Pair(Color(0xFF1B5E20), Color.White) // 7.8:1
 
         // Error/E-Stop states
-        val errorDark = Pair(Color(0xFFD32F2F), Color.White) // 5.9:1
-        val errorLight = Pair(Color(0xFFB71C1C), Color.White) // 8.1:1
+        val ERROR_DARK = Pair(Color(0xFFD32F2F), Color.White) // 5.9:1
+        val ERROR_LIGHT = Pair(Color(0xFFB71C1C), Color.White) // 8.1:1
 
         // Warning states
-        val warningDark = Pair(Color(0xFFF57C00), Color.Black) // 5.2:1
-        val warningLight = Pair(Color(0xFFE65100), Color.White) // 4.6:1
+        val WARNING_DARK = Pair(Color(0xFFF57C00), Color.Black) // 5.2:1
+        val WARNING_LIGHT = Pair(Color(0xFFE65100), Color.White) // 4.6:1
 
         // Neutral/Disabled states
-        val neutralDark = Pair(Color(0xFF455A64), Color.White) // 6.1:1
-        val neutralLight = Pair(Color(0xFF263238), Color.White) // 12.6:1
+        val NEUTRAL_DARK = Pair(Color(0xFF455A64), Color.White) // 6.1:1
+        val NEUTRAL_LIGHT = Pair(Color(0xFF263238), Color.White) // 12.6:1
     }
 
     /**

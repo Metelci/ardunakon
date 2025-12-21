@@ -1,13 +1,13 @@
 package com.metelci.ardunakon.di
 
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
-import com.metelci.ardunakon.bluetooth.ConnectionState
-import com.metelci.ardunakon.bluetooth.TelemetryManager
+import com.metelci.ardunakon.bluetooth.BluetoothDeviceModel
 import com.metelci.ardunakon.bluetooth.BluetoothScanner
 import com.metelci.ardunakon.bluetooth.ConnectionHealth
-import com.metelci.ardunakon.bluetooth.BluetoothDeviceModel
-import com.metelci.ardunakon.model.LogEntry
+import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.bluetooth.Telemetry
+import com.metelci.ardunakon.bluetooth.TelemetryManager
+import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import dagger.Module
 import dagger.Provides
@@ -15,8 +15,8 @@ import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @Module
 @TestInstallIn(
@@ -29,7 +29,7 @@ object FakeBluetoothModule {
     @Singleton
     fun provideAppBluetoothManager(): AppBluetoothManager {
         val mock = mockk<AppBluetoothManager>(relaxed = true)
-        
+
         // Define stable flows
         val connectionStateFlow = MutableStateFlow(ConnectionState.DISCONNECTED)
         val rssiValueFlow = MutableStateFlow(0)

@@ -1,16 +1,12 @@
 package com.metelci.ardunakon.bluetooth
 
-import android.util.Log
 import com.metelci.ardunakon.model.LogType
-import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
+import java.util.concurrent.atomic.AtomicLongArray
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicLongArray
-import kotlin.experimental.xor
 
 data class Telemetry(
     val batteryVoltage: Float,
@@ -22,7 +18,8 @@ data class Telemetry(
 
 class TelemetryManager(
     private val scope: CoroutineScope,
-    private val logCallback: (String, LogType) -> Unit // Simple callback for logging
+    // Simple callback for logging
+    private val logCallback: (String, LogType) -> Unit
 ) {
 
     // History Manager (UI Graphs)
@@ -54,7 +51,7 @@ class TelemetryManager(
     private val packetsSent = AtomicLongArray(1)
     private val packetsDropped = AtomicLongArray(1)
     private val packetsFailed = AtomicLongArray(1)
-    
+
     private var lastTelemetryLogTime = 0L
     private val isDebugMode = com.metelci.ardunakon.BuildConfig.DEBUG
 
@@ -66,7 +63,7 @@ class TelemetryManager(
 
         lastPacketAt = now
         rssiFailures = 0
-        missedHeartbeatAcks = 0 
+        missedHeartbeatAcks = 0
 
         if (wasTimeout) {
             logCallback("Heartbeat recovered", LogType.SUCCESS)
@@ -86,16 +83,16 @@ class TelemetryManager(
         }
         updateHealth() // Last packet time doesn't change on RSSI update? Original code did pass it.
     }
-    
+
     fun recordRssiFailure() {
         rssiFailures = (rssiFailures + 1).coerceAtMost(10)
         updateHealth()
     }
-    
+
     fun resetRssiFailures() {
         rssiFailures = 0
     }
-    
+
     fun getRssiFailures() = rssiFailures
 
     fun onHeartbeatSent(seq: Int) {
@@ -104,13 +101,13 @@ class TelemetryManager(
         missedHeartbeatAcks++
         updateHealth()
     }
-    
+
     fun resetHeartbeat() {
         missedHeartbeatAcks = 0
         lastHeartbeatSentAt = 0L
         rssiFailures = 0
     }
-    
+
     fun getMissedAcks() = missedHeartbeatAcks
     fun getLastPacketTime() = lastPacketAt
 
@@ -118,7 +115,7 @@ class TelemetryManager(
         packetsSent.set(0, sent)
         packetsDropped.set(0, dropped)
         packetsFailed.set(0, failed)
-        
+
         // Record packet loss to history for graphs
         if (sent > 0) {
             _telemetryHistoryManager.recordPacketLoss(
@@ -128,7 +125,7 @@ class TelemetryManager(
                 packetsFailed = failed.toInt()
             )
         }
-        
+
         // Update telemetry object if exists
         val current = _telemetry.value
         if (current != null) {
@@ -142,14 +139,14 @@ class TelemetryManager(
 
     fun parseTelemetryPacket(packet: ByteArray) {
         val parsed = TelemetryParser.parse(packet) ?: return
-        
+
         // Preserve local packet stats which are not part of the parsed payload
         val fullTelemetry = parsed.copy(
             packetsSent = packetsSent.get(0),
             packetsDropped = packetsDropped.get(0),
             packetsFailed = packetsFailed.get(0)
         )
-        
+
         _telemetry.value = fullTelemetry
         _telemetryHistoryManager.recordBattery(parsed.batteryVoltage)
 
@@ -161,10 +158,10 @@ class TelemetryManager(
 
     private fun updateHealth() {
         _health.value = ConnectionHealth(
-            lastPacketAt, 
-            rssiFailures, 
-            heartbeatSeq, 
-            lastHeartbeatSentAt, 
+            lastPacketAt,
+            rssiFailures,
+            heartbeatSeq,
+            lastHeartbeatSentAt,
             lastRttMs
         )
         if (lastRttMs > 0) {

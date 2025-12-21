@@ -1,7 +1,6 @@
 package com.metelci.ardunakon.data
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import com.metelci.ardunakon.security.CryptoEngine
 import kotlinx.coroutines.test.runTest
@@ -146,7 +145,7 @@ class WifiEncryptionPreferencesTest {
     @Test
     fun `getPskPreview returns truncated hex`() = runTest {
         val psk = byteArrayOf(0xDE.toByte(), 0xAD.toByte(), 0xBE.toByte(), 0xEF.toByte()) +
-                ByteArray(28)
+            ByteArray(28)
         prefs.savePsk("192.168.4.1", psk)
 
         val preview = prefs.getPskPreview("192.168.4.1")

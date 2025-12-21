@@ -17,29 +17,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.metelci.ardunakon.ui.screens.control.ControlViewModel
 import com.metelci.ardunakon.ui.screens.control.LandscapeControlLayout
 import com.metelci.ardunakon.ui.screens.control.PortraitControlLayout
 import com.metelci.ardunakon.ui.screens.control.dialogs.ControlScreenDialogs
 import com.metelci.ardunakon.wifi.WifiConnectionState
-import com.metelci.ardunakon.wifi.WifiManager
-
-import androidx.hilt.navigation.compose.hiltViewModel
 
 /**
  * Main control screen for the Ardunakon application.
  * Refactored to delegate to layout-specific composables and dialog manager.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionName")
 @Composable
 fun ControlScreen(
-    isDarkTheme: Boolean = true,
     onQuitApp: () -> Unit = {},
     onTakeTutorial: (() -> Unit)? = null,
     viewModel: ControlViewModel = hiltViewModel()
@@ -47,7 +44,7 @@ fun ControlScreen(
     val context = LocalContext.current
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    
+
     // Access managers from ViewModel
     val bluetoothManager = viewModel.bluetoothManager
     val wifiManager = viewModel.wifiManager
@@ -64,7 +61,7 @@ fun ControlScreen(
     val wifiTelemetry by wifiManager.telemetry.collectAsState()
     val isWifiEncrypted by wifiManager.isEncrypted.collectAsState()
     val btConnectedDeviceInfo by bluetoothManager.connectedDeviceInfo.collectAsState()
-    
+
     // Compute connected device info (WiFi or BT)
     val connectedDeviceInfo = if (wifiState == WifiConnectionState.CONNECTED) {
         "WiFi Device" // WiFi doesn't have a device name exposed currently
@@ -98,19 +95,19 @@ fun ControlScreen(
     val btTelemetry = btCombined.telemetry
     val btRssi = btCombined.rssi
     val btHealth = btCombined.health
-    
+
     LaunchedEffect(btConnectionState, btTelemetry, btRssi, btHealth) {
         if (btConnectionState == com.metelci.ardunakon.bluetooth.ConnectionState.CONNECTED) {
             // Record RSSI if available and not zero
             if (btRssi != 0) {
                 bluetoothManager.telemetryHistoryManager.recordRssi(btRssi)
             }
-            
+
             // Record RTT from health if available
             if (btHealth.lastRttMs > 0) {
                 bluetoothManager.telemetryHistoryManager.recordRtt(btHealth.lastRttMs)
             }
-            
+
             // Record battery from telemetry if available
             btTelemetry?.let { t ->
                 if (t.batteryVoltage > 0) {
@@ -160,11 +157,7 @@ fun ControlScreen(
     val isPortrait = orientationConfig.orientation == Configuration.ORIENTATION_PORTRAIT
 
     val backgroundBrush = Brush.verticalGradient(
-        colors = if (isDarkTheme) {
-            listOf(Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F1419))
-        } else {
-            listOf(Color(0xFFFCE4EC), Color(0xFFE3F2FD), Color(0xFFE8F5E9))
-        }
+        colors = listOf(Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F1419))
     )
 
     val snackbarHostState = androidx.compose.runtime.remember { androidx.compose.material3.SnackbarHostState() }
@@ -204,7 +197,6 @@ fun ControlScreen(
                     isEStopActive = btCombined.isEmergencyStopActive,
                     isWifiEncrypted = isWifiEncrypted,
                     connectedDeviceInfo = connectedDeviceInfo,
-                    isDarkTheme = isDarkTheme,
                     safeDrawingPadding = safeDrawingPadding,
                     orientationConfig = orientationConfig,
                     view = view,
@@ -230,7 +222,6 @@ fun ControlScreen(
                     isEStopActive = btCombined.isEmergencyStopActive,
                     isWifiEncrypted = isWifiEncrypted,
                     connectedDeviceInfo = connectedDeviceInfo,
-                    isDarkTheme = isDarkTheme,
                     safeDrawingPadding = safeDrawingPadding,
                     orientationConfig = orientationConfig,
                     view = view,
@@ -247,7 +238,6 @@ fun ControlScreen(
         viewModel = viewModel,
         bluetoothManager = bluetoothManager,
         wifiManager = wifiManager,
-        isDarkTheme = isDarkTheme,
         view = view,
         onExportLogs = exportLogs,
         onTakeTutorial = onTakeTutorial

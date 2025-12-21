@@ -15,8 +15,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.atan2
@@ -26,8 +26,10 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 data class JoystickState(
-    val x: Float, // -1.0 to 1.0
-    val y: Float // -1.0 to 1.0
+    // -1.0 to 1.0
+    val x: Float,
+    // -1.0 to 1.0
+    val y: Float
 )
 
 /**
@@ -43,6 +45,7 @@ data class JoystickState(
  * @param connectionLatencyMs Current connection latency in milliseconds for quality ring (null = hide ring)
  * @param onMoved Callback when joystick position changes
  */
+@Suppress("FunctionName")
 @Composable
 fun JoystickControl(
     modifier: Modifier = Modifier,
@@ -67,7 +70,7 @@ fun JoystickControl(
     // Initialize position at center
     val initialPosition = remember(center) { center }
     var knobPosition by remember(initialPosition) { mutableStateOf(initialPosition) }
-    
+
     // Throttle position updates to 20Hz (50ms) to match transmission rate
     var lastEmitTime by remember { mutableStateOf(0L) }
 
@@ -159,7 +162,7 @@ fun JoystickControl(
 
                             // Normalize output and apply 20Hz throttling
                             val now = System.currentTimeMillis()
-                            if (now - lastEmitTime >= 50) {  // 20Hz = 50ms interval
+                            if (now - lastEmitTime >= 50) { // 20Hz = 50ms interval
                                 val normalizedX = (knobPosition.x - center.x) / radius
                                 val normalizedY = -(knobPosition.y - center.y) / radius // -1 (bottom) to 1 (top)
                                 onMoved(JoystickState(normalizedX.coerceIn(-1f, 1f), normalizedY.coerceIn(-1f, 1f)))

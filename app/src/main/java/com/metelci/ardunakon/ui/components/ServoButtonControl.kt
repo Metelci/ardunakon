@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@Suppress("FunctionName")
 @Composable
 fun ServoButtonControl(
     modifier: Modifier = Modifier,
@@ -112,7 +113,7 @@ fun ServoButtonControl(
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         val newY = (servoY + step).coerceIn(-1f, 1f)
                         val angle = ((newY + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo Y: ${angle} deg (W)")
+                        onLog?.invoke("Servo Y: $angle deg (W)")
                         onMove(servoX, newY, servoZ)
                         commitMove(currentTime)
                     }
@@ -165,7 +166,7 @@ fun ServoButtonControl(
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         val newX = (servoX - step).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo X: ${angle} deg (L)")
+                        onLog?.invoke("Servo X: $angle deg (L)")
                         onMove(newX, servoY, servoZ)
                         commitMove(currentTime)
                     }
@@ -193,7 +194,7 @@ fun ServoButtonControl(
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         val newY = (servoY - step).coerceIn(-1f, 1f)
                         val angle = ((newY + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo Y: ${angle} deg (B)")
+                        onLog?.invoke("Servo Y: $angle deg (B)")
                         onMove(servoX, newY, servoZ)
                         commitMove(currentTime)
                     }
@@ -221,7 +222,7 @@ fun ServoButtonControl(
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                         val newX = (servoX + step).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
-                        onLog?.invoke("Servo X: ${angle} deg (R)")
+                        onLog?.invoke("Servo X: $angle deg (R)")
                         onMove(newX, servoY, servoZ)
                         commitMove(currentTime)
                     }

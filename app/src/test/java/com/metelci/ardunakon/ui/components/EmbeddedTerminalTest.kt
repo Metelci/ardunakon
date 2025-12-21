@@ -28,7 +28,7 @@ class EmbeddedTerminalTest {
         val before = System.currentTimeMillis()
         val entry = LogEntry(type = LogType.WARNING, message = "Warning")
         val after = System.currentTimeMillis()
-        
+
         assertTrue("Timestamp should be in valid range", entry.timestamp in before..after)
     }
 
@@ -38,7 +38,7 @@ class EmbeddedTerminalTest {
         val warning = LogEntry(type = LogType.WARNING, message = "warning")
         val error = LogEntry(type = LogType.ERROR, message = "error")
         val success = LogEntry(type = LogType.SUCCESS, message = "success")
-        
+
         assertNotEquals(info.type, warning.type)
         assertNotEquals(warning.type, error.type)
         assertNotEquals(error.type, success.type)

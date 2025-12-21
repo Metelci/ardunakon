@@ -28,6 +28,7 @@ import com.metelci.ardunakon.model.InterfaceElement
  * Real Screen Tour - Shows the DemoControlLayout with highlighted elements
  * and tutorial information overlays.
  */
+@Suppress("FunctionName")
 @Composable
 fun RealScreenTour(
     currentElement: InterfaceElement,
@@ -46,6 +47,7 @@ fun RealScreenTour(
         // Layer 1: Demo Control Layout showing all UI elements with highlights
         DemoControlLayout(
             highlightedElement = currentElement,
+            onAction = { /* demo */ },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -98,7 +100,7 @@ fun RealScreenTour(
             // If element is at the top (Header), move card to Bottom.
             val isBottomElement = currentElement == InterfaceElement.LEFT_JOYSTICK ||
                 currentElement == InterfaceElement.SERVO_CONTROLS
-            
+
             TutorialNavigationCard(
                 element = currentElement,
                 isFirst = isFirst,
@@ -111,21 +113,20 @@ fun RealScreenTour(
                     .navigationBarsPadding() // Use safe area handling
                     .padding(
                         top = if (isBottomElement) 60.dp else 0.dp,
-                        bottom = if (!isBottomElement) 80.dp else 0.dp // Aggressive padding to clear system nav
+                        // Aggressive padding to clear system nav
+                        bottom = if (!isBottomElement) 80.dp else 0.dp
                     )
             )
         }
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun ElementArrowIndicator(
-    element: InterfaceElement,
-    modifier: Modifier = Modifier
-) {
+private fun ElementArrowIndicator(element: InterfaceElement, modifier: Modifier = Modifier) {
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
-    
+
     // Animate arrow movement
     val infiniteTransition = rememberInfiniteTransition(label = "arrow_bob")
     val offset by infiniteTransition.animateFloat(
@@ -142,7 +143,7 @@ private fun ElementArrowIndicator(
         when (element) {
             InterfaceElement.CONNECTION_MODE -> {
                 // Points to connection switch (Top Left)
-                // Center of switch is ~45dp from start. Arrow center is start+20dp. 
+                // Center of switch is ~45dp from start. Arrow center is start+20dp.
                 // So start = 25dp.
                 // Bottom of header is 56dp. Arrow tip should be close, e.g. 60dp.
                 ArrowUp(
@@ -181,14 +182,14 @@ private fun ElementArrowIndicator(
                 } else {
                     // Landscape: Right side column
                     // Point to the vertical center of the right half
+                    // Let's use ArrowDown from top-right area
+                    // Actually, if it's CenterEnd, we might want pointing LEFT?
+                    // But keeping it simple with ArrowDown from slightly above.
+                    // Align TopEnd, padding top ~100dp, end ~80dp.
                     ArrowDown(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
-                            .padding(end = 80.dp, bottom = offset.dp) // Pointing down at it? Or side?
-                            // Let's use ArrowDown from top-right area
-                            // Actually, if it's CenterEnd, we might want pointing LEFT?
-                            // But keeping it simple with ArrowDown from slightly above.
-                            // Align TopEnd, padding top ~100dp, end ~80dp.
+                            .padding(end = 80.dp, bottom = offset.dp)
                     )
                 }
             }
@@ -209,8 +210,10 @@ private fun ElementArrowIndicator(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .padding(
-                                start = 120.dp, // Approx center of left half
-                                bottom = 240.dp + offset.dp // Moved up significantly
+                                // Approx center of left half
+                                start = 120.dp,
+                                // Moved up significantly
+                                bottom = 240.dp + offset.dp
                             )
                     )
                 }
@@ -219,11 +222,9 @@ private fun ElementArrowIndicator(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun ArrowUp(
-    modifier: Modifier = Modifier,
-    color: Color = Color(0xFF00C853)
-) {
+private fun ArrowUp(modifier: Modifier = Modifier, color: Color = Color(0xFF00C853)) {
     Canvas(modifier = modifier.size(40.dp)) {
         val path = Path().apply {
             moveTo(size.width / 2, 0f)
@@ -231,7 +232,7 @@ private fun ArrowUp(
             lineTo(size.width / 2, 0f)
             lineTo(0f, 20f)
         }
-        
+
         // Shaft
         drawLine(
             color = color,
@@ -240,7 +241,7 @@ private fun ArrowUp(
             strokeWidth = 8f,
             cap = androidx.compose.ui.graphics.StrokeCap.Round
         )
-        
+
         // Head
         drawPath(
             path = path,
@@ -254,11 +255,9 @@ private fun ArrowUp(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
-private fun ArrowDown(
-    modifier: Modifier = Modifier,
-    color: Color = Color(0xFF00C853)
-) {
+private fun ArrowDown(modifier: Modifier = Modifier, color: Color = Color(0xFF00C853)) {
     Canvas(modifier = modifier.size(40.dp)) {
         val path = Path().apply {
             moveTo(size.width / 2, size.height)
@@ -266,7 +265,7 @@ private fun ArrowDown(
             lineTo(size.width / 2, size.height)
             lineTo(0f, size.height - 20f)
         }
-        
+
         // Shaft
         drawLine(
             color = color,
@@ -275,7 +274,7 @@ private fun ArrowDown(
             strokeWidth = 8f,
             cap = androidx.compose.ui.graphics.StrokeCap.Round
         )
-        
+
         // Head
         drawPath(
             path = path,
@@ -289,6 +288,7 @@ private fun ArrowDown(
     }
 }
 
+@Suppress("FunctionName")
 @Composable
 private fun TutorialNavigationCard(
     element: InterfaceElement,
@@ -398,9 +398,19 @@ private fun getElementEmoji(element: InterfaceElement): String = when (element) 
 }
 
 private fun getElementTip(element: InterfaceElement): String = when (element) {
-    InterfaceElement.ESTOP -> "💡 Tip: This is your safety switch! Tap it anytime to immediately stop all motors. Tap again to reset and resume control."
-    InterfaceElement.CONNECTION_STATUS -> "💡 Tip: Tap this widget to scan for devices or configure WiFi. The sparkline shows connection latency over time."
-    InterfaceElement.LEFT_JOYSTICK -> "💡 Tip: The outer ring shows connection quality. Green = great, yellow = okay, red = poor latency."
-    InterfaceElement.SERVO_CONTROLS -> "💡 Tip: Use these buttons to control attached servos (e.g. camera mount or robot arm). Press to toggle positions."
-    InterfaceElement.CONNECTION_MODE -> "💡 Tip: Bluetooth (BLE) works for most Arduino boards. Use WiFi for Arduino R4 WiFi with better range."
+    InterfaceElement.ESTOP ->
+        "💡 Tip: This is your safety switch! Tap it anytime to immediately stop all motors. " +
+            "Tap again to reset and resume control."
+    InterfaceElement.CONNECTION_STATUS ->
+        "📶 Tip: Tap this widget to scan for devices or configure WiFi. " +
+            "The sparkline shows connection latency over time."
+    InterfaceElement.LEFT_JOYSTICK ->
+        "🎮 Tip: The outer ring shows connection quality. " +
+            "Green = great, yellow = okay, red = poor latency."
+    InterfaceElement.SERVO_CONTROLS ->
+        "🤖 Tip: Use these buttons to control attached servos " +
+            "(e.g. camera mount or robot arm). Press to toggle positions."
+    InterfaceElement.CONNECTION_MODE ->
+        "🔄 Tip: Bluetooth (BLE) works for most Arduino boards. " +
+            "Use WiFi for Arduino R4 WiFi with better range."
 }

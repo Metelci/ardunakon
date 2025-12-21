@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionName")
 @Composable
 fun WifiConfigDialog(
     initialIp: String,
@@ -219,7 +220,7 @@ fun WifiConfigDialog(
                                 }
                                 Icon(
                                     imageVector = Icons.Default.Wifi,
-                                    contentDescription = null,
+                                    contentDescription = "WiFi device available",
                                     tint = Color(0xFF00FF00),
                                     modifier = Modifier.size(14.dp)
                                 )

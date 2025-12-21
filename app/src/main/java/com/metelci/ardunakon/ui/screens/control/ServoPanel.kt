@@ -20,6 +20,7 @@ import com.metelci.ardunakon.ui.components.ServoButtonControl
  * @param modifier Optional modifier for the container Box
  * @param contentAlignment Alignment within the container
  */
+@Suppress("FunctionName")
 @Composable
 fun ServoPanel(
     servoX: Float,

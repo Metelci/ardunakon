@@ -32,12 +32,9 @@ import com.metelci.ardunakon.util.AssetReader
  * inside an in-app WebView dialog with enhanced readability.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionName")
 @Composable
-fun HelpDialog(
-    onDismiss: () -> Unit,
-    onTakeTutorial: (() -> Unit)? = null,
-    isDarkTheme: Boolean = true
-) {
+fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
@@ -76,7 +73,7 @@ fun HelpDialog(
                 .fillMaxHeight(0.95f),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isDarkTheme) Color(0xFF2D3436) else Color(0xFFF5F5F5)
+                containerColor = Color(0xFF2D3436)
             )
         ) {
             Column(
@@ -93,13 +90,13 @@ fun HelpDialog(
                     Text(
                         "Help & Documentation",
                         style = MaterialTheme.typography.titleLarge,
-                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
+                        color = Color.White
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
+                            tint = Color(0xFFB0BEC5)
                         )
                     }
                 }
@@ -109,8 +106,8 @@ fun HelpDialog(
                 // Tab Row
                 ScrollableTabRow(
                     selectedTabIndex = selectedTab,
-                    containerColor = if (isDarkTheme) Color(0xFF1E1E2E) else Color(0xFFE0E0E0),
-                    contentColor = if (isDarkTheme) Color(0xFF74B9FF) else Color(0xFF2D3436),
+                    containerColor = Color(0xFF1E1E2E),
+                    contentColor = Color(0xFF74B9FF),
                     modifier = Modifier.fillMaxWidth(),
                     edgePadding = 0.dp
                 ) {
@@ -124,7 +121,7 @@ fun HelpDialog(
                                     color = if (selectedTab == index) {
                                         Color(0xFF74B9FF)
                                     } else {
-                                        if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF757575)
+                                        Color(0xFFB0BEC5)
                                     }
                                 )
                             }
@@ -140,12 +137,12 @@ fun HelpDialog(
                         .fillMaxWidth()
                         .weight(1f)
                         .background(
-                            if (isDarkTheme) Color(0xFF1E1E2E) else Color(0xFFFFFFFF),
+                            Color(0xFF1E1E2E),
                             RoundedCornerShape(8.dp)
                         )
                         .border(
                             1.dp,
-                            if (isDarkTheme) Color(0xFF3E3E4E) else Color(0xFFE0E0E0),
+                            Color(0xFF3E3E4E),
                             RoundedCornerShape(8.dp)
                         )
                         .padding(12.dp)
@@ -155,7 +152,7 @@ fun HelpDialog(
                             text = content,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp,
-                            color = if (isDarkTheme) Color(0xFFE0E0E0) else Color(0xFF212121),
+                            color = Color(0xFFE0E0E0),
                             lineHeight = 16.sp,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -223,11 +220,11 @@ fun HelpDialog(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = if (isDarkTheme) Color(0xFF00C853) else Color(0xFF2E7D32)
+                                contentColor = Color(0xFF00C853)
                             ),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                if (isDarkTheme) Color(0xFF00C853) else Color(0xFF2E7D32)
+                                Color(0xFF00C853)
                             )
                         ) {
                             Icon(
@@ -252,14 +249,13 @@ fun HelpDialog(
             com.metelci.ardunakon.ui.components.WebViewDialog(
                 url = urlString,
                 title = "Arduino Cloud",
-                onDismiss = { webUrlToOpen = null },
-                isDarkTheme = isDarkTheme
+                onDismiss = { webUrlToOpen = null }
             )
         } else {
             // Generate HTML for the text content with proper anchor link support
-            val bgColor = if (isDarkTheme) "#1E1E2E" else "#FFFFFF"
-            val textColor = if (isDarkTheme) "#E0E0E0" else "#212121"
-            val linkColor = if (isDarkTheme) "#74B9FF" else "#1976D2"
+            val bgColor = "#1E1E2E"
+            val textColor = "#E0E0E0"
+            val linkColor = "#74B9FF"
 
             // Escape HTML in content but preserve anchor tags
             // Render content as HTML directly.
@@ -318,7 +314,7 @@ fun HelpDialog(
                     transition: all 0.3s ease;
                 }
                 #backToTop:hover {
-                    background-color: ${if (isDarkTheme) "#90CAF9" else "#1565C0"};
+                    background-color: #90CAF9;
                     transform: scale(1.1);
                 }
                 #backToTop:active {
@@ -344,8 +340,7 @@ fun HelpDialog(
             com.metelci.ardunakon.ui.components.WebViewDialog(
                 htmlContent = htmlContent,
                 title = "${tabs[selectedTab]} Guide",
-                onDismiss = { webUrlToOpen = null },
-                isDarkTheme = isDarkTheme
+                onDismiss = { webUrlToOpen = null }
             )
         }
     }

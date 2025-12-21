@@ -108,12 +108,10 @@ class SessionKeyNegotiator(
     /**
      * Encodes a nonce as Base64 for transmission in text-based protocols.
      */
-    fun encodeNonce(nonce: ByteArray): String =
-        Base64.encodeToString(nonce, Base64.NO_WRAP)
+    fun encodeNonce(nonce: ByteArray): String = Base64.encodeToString(nonce, Base64.NO_WRAP)
 
     /**
      * Decodes a Base64-encoded nonce.
      */
-    fun decodeNonce(encoded: String): ByteArray =
-        Base64.decode(encoded, Base64.NO_WRAP)
+    fun decodeNonce(encoded: String): ByteArray = Base64.decode(encoded, Base64.NO_WRAP)
 }

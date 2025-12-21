@@ -18,15 +18,13 @@ import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
-import com.metelci.ardunakon.ui.screens.control.ConnectionMode
-import com.metelci.ardunakon.wifi.WifiConnectionState
-import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 import com.metelci.ardunakon.ui.components.PacketLossWarningCard
-
+import com.metelci.ardunakon.wifi.WifiConnectionState
 
 /**
  * Portrait layout: Stacked vertically (Header → Debug → Servo → Joystick)
  */
+@Suppress("FunctionName")
 @Composable
 fun PortraitControlLayout(
     viewModel: ControlViewModel,
@@ -45,8 +43,6 @@ fun PortraitControlLayout(
     isEStopActive: Boolean,
     isWifiEncrypted: Boolean = false,
     connectedDeviceInfo: String? = null,
-
-    isDarkTheme: Boolean,
     safeDrawingPadding: androidx.compose.foundation.layout.PaddingValues,
     orientationConfig: Configuration,
     view: android.view.View,
@@ -74,10 +70,7 @@ fun PortraitControlLayout(
             autoReconnectEnabled = autoReconnectEnabled,
             onToggleAutoReconnect = { bluetoothManager.setAutoReconnectEnabled(it) },
             isWifiEncrypted = isWifiEncrypted,
-            isDebugPanelVisible = viewModel.isDebugPanelVisible,
 
-            isDarkTheme = isDarkTheme,
-            allowReflection = viewModel.allowReflection,
             buttonSize = 32.dp,
             eStopSize = 56.dp,
             onScanDevices = { viewModel.showDeviceList = true },
@@ -90,25 +83,19 @@ fun PortraitControlLayout(
             onConfigureWifi = { viewModel.showWifiConfig = true },
             onTelemetryGraph = { viewModel.showTelemetryGraph = true },
             onToggleEStop = { viewModel.toggleEStop(view) },
-            onToggleDebugPanel = { viewModel.isDebugPanelVisible = !viewModel.isDebugPanelVisible },
+            onShowSettings = { viewModel.showSettingsDialog = true },
             onShowHelp = { viewModel.showHelpDialog = true },
             onShowAbout = { viewModel.showAboutDialog = true },
             onShowCrashLog = { viewModel.showCrashLog = true },
             onShowOta = { viewModel.showOtaDialog = true },
-            onToggleReflection = { viewModel.allowReflection = !viewModel.allowReflection },
             onOpenArduinoCloud = {
                 val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                 context.startActivity(intent)
             },
-            onResetTutorial = { viewModel.resetTutorial() },
             onQuitApp = onQuitApp,
-            joystickSensitivity = viewModel.joystickSensitivity,
-            onJoystickSensitivityChange = { viewModel.updateJoystickSensitivity(it) },
             context = context,
             view = view
         )
-
-
 
         // Packet Loss Warning
         telemetry?.let { telem ->
@@ -118,7 +105,6 @@ fun PortraitControlLayout(
                 packetsFailed = telem.packetsFailed
             )
         }
-
 
         // Debug Panel (if visible)
         if (viewModel.isDebugPanelVisible) {
@@ -130,7 +116,6 @@ fun PortraitControlLayout(
                 onClearLogs = { bluetoothManager.log("Logs cleared", LogType.INFO) },
                 onMaximize = { viewModel.showMaximizedDebug = true },
                 onMinimize = { viewModel.isDebugPanelVisible = false },
-                isDarkTheme = isDarkTheme,
                 modifier = Modifier.weight(0.4f).fillMaxWidth(),
                 onExportLogs = exportLogs
             )

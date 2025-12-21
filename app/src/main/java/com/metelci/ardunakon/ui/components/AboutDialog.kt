@@ -33,8 +33,9 @@ import com.metelci.ardunakon.BuildConfig
 /**
  * About dialog showing app information, version, and links.
  */
+@Suppress("FunctionName")
 @Composable
-fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
+fun AboutDialog(onDismiss: () -> Unit) {
     val view = LocalView.current
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -46,7 +47,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isDarkTheme) Color(0xFF2D3436) else Color(0xFFF5F5F5)
+                containerColor = Color(0xFF2D3436)
             )
         ) {
             Column(
@@ -63,7 +64,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                     Text(
                         "About",
                         style = MaterialTheme.typography.titleMedium,
-                        color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
+                        color = Color.White
                     )
                     IconButton(
                         onClick = {
@@ -75,7 +76,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436),
+                            tint = Color(0xFFB0BEC5),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -103,7 +104,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                     Text(
                         "Arduino Controller",
                         fontSize = 14.sp,
-                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF757575),
+                        color = Color(0xFFB0BEC5),
                         textAlign = TextAlign.Center
                     )
 
@@ -113,7 +114,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                     Text(
                         "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                         fontSize = 12.sp,
-                        color = if (isDarkTheme) Color(0xFFE0E0E0) else Color(0xFF212121),
+                        color = Color(0xFFE0E0E0),
                         textAlign = TextAlign.Center
                     )
 
@@ -124,12 +125,12 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                color = if (isDarkTheme) Color(0xFF243039) else Color(0xFFE3F2FD),
+                                color = Color(0xFF243039),
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .border(
                                 width = 1.dp,
-                                color = if (isDarkTheme) Color(0xFF37474F) else Color(0xFF90CAF9),
+                                color = Color(0xFF37474F),
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .padding(12.dp)
@@ -138,7 +139,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                             "What's new in ${BuildConfig.VERSION_NAME}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = if (isDarkTheme) Color.White else Color(0xFF0D47A1)
+                            color = Color.White
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
@@ -155,7 +156,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                         }
 
                         releaseNotes.forEach { note ->
-                            FeatureItem(note, isDarkTheme)
+                            FeatureItem(note)
                         }
                     }
 
@@ -169,16 +170,16 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2)
+                            contentColor = Color(0xFF90CAF9)
                         ),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
-                            if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1976D2)
+                            Color(0xFF90CAF9)
                         )
                     ) {
                         Icon(
                             imageVector = Icons.Default.OpenInNew,
-                            contentDescription = null,
+                            contentDescription = "Open GitHub",
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -195,16 +196,16 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = if (isDarkTheme) Color(0xFF00C853) else Color(0xFF2E7D32)
+                            contentColor = Color(0xFF00C853)
                         ),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
-                            if (isDarkTheme) Color(0xFF00C853) else Color(0xFF2E7D32)
+                            Color(0xFF00C853)
                         )
                     ) {
                         Icon(
                             imageVector = Icons.Default.OpenInNew,
-                            contentDescription = null,
+                            contentDescription = "Open Arduino Cloud",
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -217,7 +218,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
                     Text(
                         "Open source project\nBuilt with Jetpack Compose",
                         fontSize = 11.sp,
-                        color = if (isDarkTheme) Color(0xFF9E9E9E) else Color(0xFF757575),
+                        color = Color(0xFF9E9E9E),
                         textAlign = TextAlign.Center,
                         lineHeight = 14.sp
                     )
@@ -231,8 +232,7 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
         WebViewDialog(
             url = url,
             title = "About Ardunakon",
-            onDismiss = { webUrlToOpen = null },
-            isDarkTheme = isDarkTheme
+            onDismiss = { webUrlToOpen = null }
         )
     }
 }
@@ -240,8 +240,9 @@ fun AboutDialog(onDismiss: () -> Unit, isDarkTheme: Boolean = true) {
 /**
  * Helper composable for feature list items.
  */
+@Suppress("FunctionName")
 @Composable
-private fun FeatureItem(text: String, isDarkTheme: Boolean) {
+private fun FeatureItem(text: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -257,7 +258,7 @@ private fun FeatureItem(text: String, isDarkTheme: Boolean) {
         Text(
             text,
             fontSize = 13.sp,
-            color = if (isDarkTheme) Color(0xFFE0E0E0) else Color(0xFF212121)
+            color = Color(0xFFE0E0E0)
         )
     }
 }

@@ -197,7 +197,7 @@ object BluetoothConfig {
     /**
      * Check if current device requires reflection fallback for SPP connections
      * Some OEMs block standard SPP on HC-06 modules
-     * 
+     *
      * Note: For better testability, inject PlatformInfo and use its requiresReflectionFallback() method.
      * This static method is kept for backward compatibility.
      */
@@ -205,7 +205,7 @@ object BluetoothConfig {
         val oem = android.os.Build.MANUFACTURER?.lowercase()?.trim() ?: return false
         return FORCE_REFLECTION_OEMS.contains(oem)
     }
-    
+
     /**
      * Check if manufacturer requires reflection fallback (testable version)
      */

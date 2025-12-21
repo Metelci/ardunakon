@@ -3,16 +3,14 @@ package com.metelci.ardunakon.bluetooth
 import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.metelci.ardunakon.model.LogType
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.atomic.AtomicInteger
 
 class BleConnectionManager(
     context: Context,
@@ -24,7 +22,7 @@ class BleConnectionManager(
     private var bluetoothGatt: BluetoothGatt? = null
     private var txCharacteristic: BluetoothGattCharacteristic? = null
     private var currentDevice: BluetoothDevice? = null
-    
+
     // Connection Management
     private var connectionJob: Job? = null
     private var timeoutJob: Job? = null
@@ -52,7 +50,9 @@ class BleConnectionManager(
     private val maxServiceDiscoveryAttempts = 2
 
     // Pending descriptor writes for notification enablement
-    private val pendingDescriptorWrites = java.util.concurrent.ConcurrentLinkedQueue<Triple<BluetoothGatt, BluetoothGattDescriptor, ByteArray>>()
+    private val pendingDescriptorWrites = java.util.concurrent.ConcurrentLinkedQueue<
+        Triple<BluetoothGatt, BluetoothGattDescriptor, ByteArray>
+        >()
     private var descriptorWriteIndex = 0
 
     @SuppressLint("MissingPermission")
@@ -130,7 +130,7 @@ class BleConnectionManager(
             packetsDropped.incrementAndGet()
             return
         }
-        
+
         if (writeQueue.offer(data)) return
 
         // Queue is full: drop the oldest packet to prioritize current controls/commands.
@@ -201,22 +201,24 @@ class BleConnectionManager(
                 isGattConnected.set(true)
                 timeoutJob?.cancel()
                 callback.onError("BLE Connected - Negotiating...", LogType.INFO)
-                
+
                 // Request Balanced connection parameters (30ms-50ms interval) for better battery life
                 gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
-                
+
                 // BLE 5.0 PHY Optimization: Use 2M PHY for faster data transfer
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     gatt.setPreferredPhy(
-                        BluetoothDevice.PHY_LE_2M_MASK,  // TX: 2M for speed
-                        BluetoothDevice.PHY_LE_2M_MASK,  // RX: 2M for speed
+                        // TX: 2M for speed
+                        BluetoothDevice.PHY_LE_2M_MASK,
+                        // RX: 2M for speed
+                        BluetoothDevice.PHY_LE_2M_MASK,
                         BluetoothDevice.PHY_OPTION_NO_PREFERRED
                     )
                 }
 
                 // Request maximum MTU for better throughput (BLE 5.0 supports up to 517)
                 gatt.requestMtu(517)
-                
+
                 // Discover services after a short settle; ESP32-based peripherals can return empty services if queried immediately.
                 serviceDiscoveryJob?.cancel()
                 serviceDiscoveryJob = scope.launch(Dispatchers.IO) {
@@ -225,10 +227,9 @@ class BleConnectionManager(
                     callback.onError("Discovering BLE services...", LogType.INFO)
                     gatt.discoverServices()
                 }
-                
+
                 // Start RSSI polling
                 startRssiPolling()
-                
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 if (isRetrying.get()) return
                 callback.onError("BLE Disconnected", LogType.INFO)
@@ -240,7 +241,10 @@ class BleConnectionManager(
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
-                callback.onError("BLE service discovery failed: ${GattStatus.getErrorDescription(status)}", LogType.ERROR)
+                callback.onError(
+                    "BLE service discovery failed: ${GattStatus.getErrorDescription(status)}",
+                    LogType.ERROR
+                )
                 cleanupGatt(ConnectionState.ERROR)
                 return
             }
@@ -250,7 +254,8 @@ class BleConnectionManager(
                 if (attempt < maxServiceDiscoveryAttempts) {
                     val serviceCount = gatt.services?.size ?: 0
                     callback.onError(
-                        "BLE Service/Characteristic not found (attempt $attempt/$maxServiceDiscoveryAttempts, services=$serviceCount). Retrying...",
+                        "BLE Service/Characteristic not found " +
+                            "(attempt $attempt/$maxServiceDiscoveryAttempts, services=$serviceCount). Retrying...",
                         LogType.WARNING
                     )
                     serviceDiscoveryJob?.cancel()
@@ -265,11 +270,14 @@ class BleConnectionManager(
                 callback.onError("BLE Service/Characteristic not found", LogType.ERROR)
                 gatt.services?.forEach { svc -> callback.onError("Available service: ${svc.uuid}", LogType.INFO) }
                 if ((gatt.services?.isEmpty() != false) &&
-                    (resolvedDeviceName.contains("R4", ignoreCase = true) ||
-                        resolvedDeviceName.contains("ARDUNAKON", ignoreCase = true))
+                    (
+                        resolvedDeviceName.contains("R4", ignoreCase = true) ||
+                            resolvedDeviceName.contains("ARDUNAKON", ignoreCase = true)
+                        )
                 ) {
                     callback.onError(
-                        "Tip: If you're using the UNO R4 WiFi sketch, ensure it was uploaded in BLE mode (USE_BLE_MODE=1). Otherwise use WiFi mode in the app.",
+                        "Tip: If you're using the UNO R4 WiFi sketch, ensure it was uploaded in BLE mode " +
+                            "(USE_BLE_MODE=1). Otherwise use WiFi mode in the app.",
                         LogType.INFO
                     )
                 }
@@ -329,36 +337,40 @@ class BleConnectionManager(
                 onReady() // Try anyway
             }
         }
-        
+
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
-             callback.onError("MTU changed to $mtu", LogType.INFO)
+            callback.onError("MTU changed to $mtu", LogType.INFO)
         }
 
-        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
-             // API 33+
-             processIncoming(value)
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray
+        ) {
+            // API 33+
+            processIncoming(value)
         }
-        
+
         // Legacy callback
         @Deprecated("Deprecated in Java")
         @Suppress("DEPRECATION")
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
-             processIncoming(characteristic.value)
+            processIncoming(characteristic.value)
         }
-        
+
         override fun onReadRemoteRssi(gatt: BluetoothGatt, rssi: Int, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 callback.onRssiUpdated(rssi)
             }
         }
-        
+
         // --- Helper for writes ---
         private fun processIncoming(data: ByteArray) {
             if (data.isNotEmpty()) {
                 callback.onDataReceived(data)
             }
         }
-        
+
         private fun onReady() {
             isConnected.set(true)
             callback.onStateChanged(ConnectionState.CONNECTED)
@@ -454,8 +466,9 @@ class BleConnectionManager(
                 }
 
                 if (candidateNotify != null && candidateWrite != null) {
-                    val usesIndication = (candidateNotify.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0 &&
-                        (candidateNotify.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0
+                    val usesIndication =
+                        (candidateNotify.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0 &&
+                            (candidateNotify.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0
                     return ResolvedGattProfile(
                         variantId = 99,
                         variantName = "Generic BLE",
@@ -516,33 +529,32 @@ class BleConnectionManager(
         writeQueue.clear()
         writeJob = scope.launch(Dispatchers.IO) {
             delay(200) // Stabilize
-            
+
             while (isActive) {
                 try {
                     val data = writeQueue.take() // Blocking
                     val gatt = bluetoothGatt
                     val char = txCharacteristic
-                    
+
                     if (gatt != null && char != null) {
                         // Write
-                         val writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-                         
-                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                             gatt.writeCharacteristic(char, data, writeType)
-                         } else {
-                             @Suppress("DEPRECATION")
-                             char.value = data
-                             @Suppress("DEPRECATION")
-                             char.writeType = writeType
-                             @Suppress("DEPRECATION")
-                             gatt.writeCharacteristic(char)
-                         }
-                         packetsSent.incrementAndGet()
+                        val writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gatt.writeCharacteristic(char, data, writeType)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            char.value = data
+                            @Suppress("DEPRECATION")
+                            char.writeType = writeType
+                            @Suppress("DEPRECATION")
+                            gatt.writeCharacteristic(char)
+                        }
+                        packetsSent.incrementAndGet()
                     }
-                    
+
                     val delayMs = if (detectedVariant == 6) 2L else 10L // Simple logic for now
                     delay(delayMs)
-                    
                 } catch (e: Exception) {
                     if (e is InterruptedException) break
                     packetsFailed.incrementAndGet()
@@ -550,14 +562,14 @@ class BleConnectionManager(
             }
         }
     }
-    
+
     private fun startRssiPolling() {
         pollingJob?.cancel()
         pollingJob = scope.launch {
-             while (isActive) {
-                 delay(2000)
-                 if (isConnected.get()) requestRssi()
-             }
+            while (isActive) {
+                delay(2000)
+                if (isConnected.get()) requestRssi()
+            }
         }
     }
 }

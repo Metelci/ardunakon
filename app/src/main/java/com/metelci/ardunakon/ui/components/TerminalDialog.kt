@@ -31,6 +31,7 @@ import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionName")
 @Composable
 fun TerminalDialog(
     logs: List<LogEntry>,

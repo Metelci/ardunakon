@@ -13,6 +13,8 @@ import android.os.Build
 import android.util.Log
 import com.metelci.ardunakon.data.DeviceNameCache
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.security.CryptoEngine
+import com.metelci.ardunakon.security.SecurityManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -36,7 +38,7 @@ class BluetoothScanner(
     private val adapter: BluetoothAdapter?,
     private val scope: CoroutineScope,
     private val callbacks: ScannerCallbacks,
-    private val cryptoEngine: com.metelci.ardunakon.security.CryptoEngine = com.metelci.ardunakon.security.SecurityManager()
+    private val cryptoEngine: CryptoEngine = SecurityManager()
 ) {
     /**
      * Callbacks for scanner events
@@ -345,6 +347,8 @@ class BluetoothScanner(
     } else {
         hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
     }
+
+    private fun checkAllPermissions(results: Map<String, Boolean>) = results.values.all { it }
 
     private fun hasPermission(permission: String): Boolean =
         context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED

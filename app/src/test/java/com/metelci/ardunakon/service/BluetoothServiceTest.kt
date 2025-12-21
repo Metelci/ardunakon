@@ -5,26 +5,26 @@ import android.content.Intent
 import android.os.Looper
 import android.os.PowerManager
 import androidx.test.core.app.ApplicationProvider
-import com.metelci.ardunakon.di.TestBluetoothState
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.di.TestBluetoothState
 import com.metelci.ardunakon.wifi.WifiManager
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.HiltTestApplication
 import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.Shadows.shadowOf
-import org.robolectric.annotation.Config
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
-import dagger.hilt.android.testing.HiltTestApplication
-import org.junit.Rule
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 
 /**
  * Robolectric tests for {@link BluetoothService}.
@@ -43,6 +43,7 @@ class BluetoothServiceTest {
     val hiltRule = HiltAndroidRule(this)
 
     @javax.inject.Inject lateinit var bluetoothManager: AppBluetoothManager
+
     @javax.inject.Inject lateinit var wifiManager: WifiManager
 
     @Before

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 /**
  * Toggle for auto-reconnect feature (defaults to WCAG 48dp touch target).
  */
+@Suppress("FunctionName")
 @Composable
 fun AutoReconnectToggle(
     enabled: Boolean,
@@ -56,7 +57,8 @@ fun AutoReconnectToggle(
     ) {
         Icon(
             imageVector = if (enabled) Icons.Filled.Sync else Icons.Filled.SyncDisabled,
-            contentDescription = null, // Handled by semantics block
+            // Handled by semantics block
+            contentDescription = null,
             tint = if (enabled) Color.White else Color(0xFFFF5252),
             modifier = Modifier.size(iconSize)
         )

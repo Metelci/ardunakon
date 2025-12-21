@@ -29,12 +29,9 @@ enum class GraphTab {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionName")
 @Composable
-fun TelemetryGraphDialog(
-    telemetryHistoryManager: TelemetryHistoryManager,
-    onDismiss: () -> Unit,
-    isDarkTheme: Boolean = true
-) {
+fun TelemetryGraphDialog(telemetryHistoryManager: TelemetryHistoryManager, onDismiss: () -> Unit) {
     val view = LocalView.current
     var selectedTab by remember { mutableStateOf(GraphTab.BATTERY) }
 
@@ -53,7 +50,7 @@ fun TelemetryGraphDialog(
                 .fillMaxWidth(0.90f)
                 .fillMaxHeight(0.85f),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = if (isDarkTheme) Color(0xFF2D3436) else Color.White)
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3436))
         ) {
             Column(
                 modifier = Modifier
@@ -69,7 +66,7 @@ fun TelemetryGraphDialog(
                     Text(
                         "Telemetry Graphs",
                         style = MaterialTheme.typography.titleMedium,
-                        color = if (isDarkTheme) Color.White else Color.Black
+                        color = Color.White
                     )
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -85,7 +82,7 @@ fun TelemetryGraphDialog(
                             Icon(
                                 Icons.Default.Delete,
                                 "Clear History",
-                                tint = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Black,
+                                tint = Color(0xFFB0BEC5),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -99,7 +96,7 @@ fun TelemetryGraphDialog(
                             Icon(
                                 Icons.Default.Close,
                                 "Close",
-                                tint = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Black,
+                                tint = Color(0xFFB0BEC5),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -111,40 +108,40 @@ fun TelemetryGraphDialog(
                 // Tab Row
                 ScrollableTabRow(
                     selectedTabIndex = selectedTab.ordinal,
-                    containerColor = if (isDarkTheme) Color(0xFF455A64) else Color(0xFFE0E0E0),
+                    containerColor = Color(0xFF455A64),
                     edgePadding = 0.dp
                 ) {
                     Tab(
                         selected = selectedTab == GraphTab.BATTERY,
                         onClick = { selectedTab = GraphTab.BATTERY },
                         text = {
-                            Text("Battery", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp)
+                            Text("Battery", color = Color.White, fontSize = 10.sp)
                         }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.RSSI,
                         onClick = { selectedTab = GraphTab.RSSI },
-                        text = { Text("RSSI", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp) }
+                        text = { Text("RSSI", color = Color.White, fontSize = 10.sp) }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.RTT,
                         onClick = { selectedTab = GraphTab.RTT },
                         text = {
-                            Text("Latency", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp)
+                            Text("Latency", color = Color.White, fontSize = 10.sp)
                         }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.PACKET_LOSS,
                         onClick = { selectedTab = GraphTab.PACKET_LOSS },
                         text = {
-                            Text("Loss", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp)
+                            Text("Loss", color = Color.White, fontSize = 10.sp)
                         }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.QUALITY,
                         onClick = { selectedTab = GraphTab.QUALITY },
                         text = {
-                            Text("Quality", color = if (isDarkTheme) Color.White else Color.Black, fontSize = 10.sp)
+                            Text("Quality", color = Color.White, fontSize = 10.sp)
                         }
                     )
                 }
@@ -159,7 +156,7 @@ fun TelemetryGraphDialog(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     unitsLabel,
-                    color = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF37474F),
+                    color = Color(0xFFB0BEC5),
                     style = MaterialTheme.typography.labelSmall
                 )
 
@@ -172,7 +169,7 @@ fun TelemetryGraphDialog(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .background(if (isDarkTheme) Color(0xFF1E1E1E) else Color.White, RoundedCornerShape(8.dp))
+                        .background(Color(0xFF1E1E1E), RoundedCornerShape(8.dp))
                         .padding(8.dp)
                 ) {
                     when (selectedTab) {
@@ -192,7 +189,7 @@ fun TelemetryGraphDialog(
                                 ) {
                                     Text(
                                         "No battery data available",
-                                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Gray,
+                                        color = Color(0xFFB0BEC5),
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
@@ -201,8 +198,7 @@ fun TelemetryGraphDialog(
                                     series = series,
                                     yAxisLabel = "Battery Voltage (V)",
                                     yAxisMin = 0f,
-                                    yAxisMax = 30f,
-                                    isDarkTheme = isDarkTheme
+                                    yAxisMax = 30f
                                 )
                             }
                         }
@@ -222,7 +218,7 @@ fun TelemetryGraphDialog(
                                 ) {
                                     Text(
                                         "No RSSI data available",
-                                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Gray,
+                                        color = Color(0xFFB0BEC5),
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
@@ -231,8 +227,7 @@ fun TelemetryGraphDialog(
                                     series = series,
                                     yAxisLabel = "RSSI (dBm)",
                                     yAxisMin = -100f,
-                                    yAxisMax = 0f,
-                                    isDarkTheme = isDarkTheme
+                                    yAxisMax = 0f
                                 )
                             }
                         }
@@ -252,7 +247,7 @@ fun TelemetryGraphDialog(
                                 ) {
                                     Text(
                                         "No RTT data available",
-                                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Gray,
+                                        color = Color(0xFFB0BEC5),
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
@@ -260,15 +255,15 @@ fun TelemetryGraphDialog(
                                 LineChart(
                                     series = series,
                                     yAxisLabel = "Round-Trip Time (ms)",
-                                    yAxisMin = 0f,
-                                    isDarkTheme = isDarkTheme
+                                    yAxisMin = 0f
                                 )
                             }
                         }
                         GraphTab.PACKET_LOSS -> {
                             PacketLossHeatmap(
-                                lossHistory = telemetryHistoryManager.getPacketLossHistory(900_000L),
-                                isDarkTheme = isDarkTheme,
+                                data = telemetryHistoryManager.getPacketLossHistory(
+                                    900_000L
+                                ).map { it.lossPercent / 100f },
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -287,7 +282,7 @@ fun TelemetryGraphDialog(
                                 ) {
                                     Text(
                                         "No quality data available",
-                                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Gray,
+                                        color = Color(0xFFB0BEC5),
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
@@ -296,8 +291,7 @@ fun TelemetryGraphDialog(
                                     series = series,
                                     yAxisLabel = "Connection Quality (%)",
                                     yAxisMin = 0f,
-                                    yAxisMax = 100f,
-                                    isDarkTheme = isDarkTheme
+                                    yAxisMax = 100f
                                 )
                             }
                         }

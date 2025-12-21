@@ -95,7 +95,7 @@ class CrashHandler private constructor(
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         try {
             val crashData = saveCrashLog(thread, throwable)
-            
+
             // Launch Crash Report Activity
             val intent = Intent(context, CrashReportActivity::class.java).apply {
                 putExtra("STACK_TRACE", crashData)
@@ -103,7 +103,7 @@ class CrashHandler private constructor(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             }
             context.startActivity(intent)
-            
+
             // Kill current process
             android.os.Process.killProcess(android.os.Process.myPid())
             exitProcess(1)
@@ -156,13 +156,13 @@ class CrashHandler private constructor(
         // Write combined log
         try {
             FileWriter(file, true).use { writer ->
-                 writer.write(crashInfo)
+                writer.write(crashInfo)
             }
             Log.d(TAG, "Crash log saved to ${file.absolutePath}")
         } catch (e: Exception) {
             Log.e(TAG, "Error writing crash log", e)
         }
-        
+
         return crashInfo
     }
 

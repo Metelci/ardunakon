@@ -64,9 +64,9 @@ class OnboardingPreferencesTest {
         prefs.setCompleted(true)
         prefs.setSkipped(true)
         prefs.setVersion(2)
-        
+
         prefs.clear()
-        
+
         assertFalse(prefs.isCompleted())
         assertFalse(prefs.isSkipped())
         assertEquals(0, prefs.getVersion())

@@ -22,19 +22,19 @@ class AndroidSystemServices @Inject constructor(
     @ApplicationContext private val context: Context,
     private val platformInfo: PlatformInfo
 ) : SystemServices {
-    
+
     private val bluetoothManager: BluetoothManager? by lazy {
         context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     }
-    
+
     override fun getBluetoothAdapter(): BluetoothAdapter? {
         return bluetoothManager?.adapter
     }
-    
+
     override fun isBluetoothEnabled(): Boolean {
         return getBluetoothAdapter()?.isEnabled == true
     }
-    
+
     override fun vibrate(durationMs: Long) {
         try {
             if (platformInfo.isAtLeastAndroid12()) {
@@ -56,7 +56,7 @@ class AndroidSystemServices @Inject constructor(
             // Vibration not critical, silently fail
         }
     }
-    
+
     override fun hasBluetoothConnectPermission(): Boolean {
         return if (platformInfo.isAtLeastAndroid12()) {
             context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
@@ -64,7 +64,7 @@ class AndroidSystemServices @Inject constructor(
             true // Pre-Android 12: implied from manifest
         }
     }
-    
+
     override fun hasBluetoothScanPermission(): Boolean {
         return if (platformInfo.isAtLeastAndroid12()) {
             context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED

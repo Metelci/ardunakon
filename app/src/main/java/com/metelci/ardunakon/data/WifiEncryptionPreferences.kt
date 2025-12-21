@@ -5,9 +5,9 @@ import android.util.Base64
 import android.util.Log
 import com.metelci.ardunakon.security.CryptoEngine
 import com.metelci.ardunakon.security.SecurityManager
+import java.security.SecureRandom
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.security.SecureRandom
 
 /**
  * Manages Pre-Shared Keys (PSKs) for WiFi encryption.

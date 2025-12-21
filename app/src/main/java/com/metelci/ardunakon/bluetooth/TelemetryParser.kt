@@ -1,6 +1,5 @@
 package com.metelci.ardunakon.bluetooth
 
-import com.metelci.ardunakon.protocol.ProtocolManager
 import kotlin.experimental.xor
 
 object TelemetryParser {
@@ -18,7 +17,7 @@ object TelemetryParser {
         // Scan for start byte 0xAA
         for (i in 0..packet.size - 10) {
             if (packet[i] != 0xAA.toByte()) continue
-            
+
             // Check potential frame
             // [i] = START (0xAA)
             // [i+1] = DEV (any)
@@ -27,7 +26,7 @@ object TelemetryParser {
             // [i+9] = END (0x55)
 
             if (packet[i + 9] != 0x55.toByte()) continue
-            
+
             // CMD check
             if ((packet[i + 2].toInt() and 0xFF) != CMD_TELEMETRY) continue
 
@@ -61,7 +60,7 @@ object TelemetryParser {
                 packetsSent = 0,
                 packetsDropped = 0,
                 packetsFailed = 0
-            ) 
+            )
         }
         return null
     }

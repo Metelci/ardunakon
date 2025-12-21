@@ -25,6 +25,7 @@ import kotlin.math.abs
 
 data class LineChartSeries(val label: String, val data: List<TelemetryDataPoint>, val color: Color)
 
+@Suppress("FunctionName")
 @Composable
 fun LineChart(
     series: List<LineChartSeries>,
@@ -33,8 +34,7 @@ fun LineChart(
     xAxisLabel: String = "Time",
     yAxisMin: Float? = null,
     yAxisMax: Float? = null,
-    showGrid: Boolean = true,
-    isDarkTheme: Boolean = true
+    showGrid: Boolean = true
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         Box(
@@ -45,8 +45,8 @@ fun LineChart(
             Canvas(
                 modifier = Modifier
                     .matchParentSize()
-                    .border(1.dp, if (isDarkTheme) Color(0xFF455A64) else Color.LightGray)
-                    .background(if (isDarkTheme) Color(0xFF1E1E1E) else Color.White)
+                    .border(1.dp, Color(0xFF455A64))
+                    .background(Color(0xFF1E1E1E))
                     .padding(start = 50.dp, top = 30.dp, end = 16.dp, bottom = 32.dp)
             ) {
                 val width = size.width
@@ -71,7 +71,7 @@ fun LineChart(
 
                 // Draw grid
                 if (showGrid) {
-                    drawGrid(width, height, isDarkTheme)
+                    drawGrid(width, height, true)
                 }
 
                 // Draw each series
@@ -91,7 +91,7 @@ fun LineChart(
                 }
 
                 // Draw axes
-                drawAxes(width, height, isDarkTheme)
+                drawAxes(width, height, true)
 
                 // Draw Y-axis numeric labels (5 divisions)
                 drawYLabels(
@@ -99,7 +99,7 @@ fun LineChart(
                     height = height,
                     minValue = minValue,
                     maxValue = maxValue,
-                    isDarkTheme = isDarkTheme
+                    isDarkTheme = true
                 )
 
                 // Draw X-axis start/end time labels
@@ -107,7 +107,7 @@ fun LineChart(
                     width = width,
                     height = height,
                     timeRangeMs = timeRange,
-                    isDarkTheme = isDarkTheme
+                    isDarkTheme = true
                 )
             }
 
@@ -116,7 +116,7 @@ fun LineChart(
                 Text(
                     text = yAxisLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isDarkTheme) Color.White else Color.Black,
+                    color = Color.White,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(start = 52.dp, top = 4.dp)
@@ -126,7 +126,7 @@ fun LineChart(
                 Text(
                     text = xAxisLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isDarkTheme) Color.White else Color.Black,
+                    color = Color.White,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(12.dp)
@@ -152,7 +152,7 @@ fun LineChart(
                     Text(
                         text = "${seriesData.label} (${seriesData.data.size} pts)",
                         fontSize = 10.sp,
-                        color = if (isDarkTheme) Color(0xFFB0BEC5) else Color.Black
+                        color = Color(0xFFB0BEC5)
                     )
                 }
             }
@@ -254,7 +254,8 @@ private fun DrawScope.drawYLabels(
             canvas.nativeCanvas.drawText(
                 label,
                 4.dp.toPx(),
-                y + 4.dp.toPx(), // Slight offset for readability
+                // Slight offset for readability
+                y + 4.dp.toPx(),
                 paint
             )
         }

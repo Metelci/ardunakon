@@ -1,9 +1,7 @@
-Extended Board Support!
-- Added support for 5 new Arduino board families:
-  - Arduino Mega 2560
-  - Arduino Leonardo & Micro
-  - Arduino Due (3.3V)
-  - Arduino Zero / M0 (3.3V)
-  - Arduino GIGA R1 WiFi
-- Fixed issues with R4 WiFi sketch.
-- Updated Setup Guide with detailed wirings.
+Performance & Battery Optimizations
+- BLE throughput tuning: 2M PHY + 517 MTU negotiation
+- Foreground/background-aware monitoring (1s/5s)
+- RTT-adaptive WiFi heartbeat tuning (1.5s - 5s)
+- Bounded BLE write queue (150 packets)
+- Protocol caps joystick/control sends to ~60fps
+- WiFi discovery timeout increased to 4s

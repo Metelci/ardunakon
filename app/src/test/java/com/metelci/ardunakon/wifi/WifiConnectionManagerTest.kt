@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.metelci.ardunakon.data.WifiEncryptionPreferences
 import com.metelci.ardunakon.security.CryptoEngine
-import com.metelci.ardunakon.security.EncryptionException
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -54,9 +53,9 @@ class WifiConnectionManagerTest {
         val isConnectedField = manager.javaClass.getDeclaredField("isConnected")
         isConnectedField.isAccessible = true
         (isConnectedField.get(manager) as java.util.concurrent.atomic.AtomicBoolean).set(true)
-        
+
         manager.disconnect()
-        
+
         assertFalse(manager.isConnected())
         io.mockk.verify { callback.onStateChanged(WifiConnectionState.DISCONNECTED) }
     }
@@ -75,7 +74,7 @@ class WifiConnectionManagerTest {
     fun `encryption and decryption are consistent`() = runTest(testDispatcher) {
         val data = "Hello WiFi".toByteArray()
         val key = ByteArray(16) { it.toByte() }
-        
+
         // Set sessionKey via reflection
         val sessionKeyField = manager.javaClass.getDeclaredField("sessionKey")
         sessionKeyField.isAccessible = true
@@ -87,11 +86,11 @@ class WifiConnectionManagerTest {
         encryptMethod.isAccessible = true
         val decryptMethod = manager.javaClass.getDeclaredMethod("decryptIfNeeded", ByteArray::class.java)
         decryptMethod.isAccessible = true
-        
+
         val encrypted = encryptMethod.invoke(manager, data) as ByteArray
         assertNotEquals("Encrypted data should differ from original", data.toList(), encrypted.toList())
         assertTrue("Encrypted data should be longer than original (IV + tag)", encrypted.size > data.size)
-        
+
         val decrypted = decryptMethod.invoke(manager, encrypted) as ByteArray
         assertArrayEquals("Decrypted data should match original", data, decrypted)
     }
@@ -101,10 +100,10 @@ class WifiConnectionManagerTest {
         val flagField = manager.javaClass.getDeclaredField("requireEncryption")
         flagField.isAccessible = true
         val flag = flagField.get(manager) as java.util.concurrent.atomic.AtomicBoolean
-        
+
         manager.setRequireEncryption(false)
         assertFalse(flag.get())
-        
+
         manager.setRequireEncryption(true)
         assertTrue(flag.get())
     }

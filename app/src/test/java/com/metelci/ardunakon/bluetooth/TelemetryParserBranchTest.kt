@@ -1,6 +1,5 @@
 package com.metelci.ardunakon.bluetooth
 
-import com.metelci.ardunakon.protocol.ProtocolManager
 import kotlin.experimental.xor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

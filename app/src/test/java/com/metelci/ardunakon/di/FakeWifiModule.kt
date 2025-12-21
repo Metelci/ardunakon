@@ -26,4 +26,3 @@ object FakeWifiModule {
         return mock
     }
 }
-

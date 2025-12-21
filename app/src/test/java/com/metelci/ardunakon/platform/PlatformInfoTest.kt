@@ -45,10 +45,7 @@ class PlatformInfoTest {
         assertFalse(fakePlatform(manufacturer = "Google").isXiaomiDevice())
     }
 
-    private fun fakePlatform(
-        sdkVersion: Int = 34,
-        manufacturer: String = "unknown"
-    ): PlatformInfo {
+    private fun fakePlatform(sdkVersion: Int = 34, manufacturer: String = "unknown"): PlatformInfo {
         return object : PlatformInfo {
             override val sdkVersion: Int = sdkVersion
             override val manufacturer: String = manufacturer
@@ -57,4 +54,3 @@ class PlatformInfoTest {
         }
     }
 }
-

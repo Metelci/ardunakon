@@ -13,11 +13,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class PlatformModule {
-    
+
     @Binds
     @Singleton
     abstract fun bindPlatformInfo(impl: AndroidPlatformInfo): PlatformInfo
-    
+
     @Binds
     @Singleton
     abstract fun bindSystemServices(impl: AndroidSystemServices): SystemServices

@@ -47,9 +47,9 @@ class ServoButtonControlTest {
     fun `servo x and y are independent`() {
         var servoX = 90
         var servoY = 90
-        
+
         servoX = (servoX + 20).coerceIn(0, 180)
-        
+
         assertEquals(110, servoX)
         assertEquals(90, servoY)
     }

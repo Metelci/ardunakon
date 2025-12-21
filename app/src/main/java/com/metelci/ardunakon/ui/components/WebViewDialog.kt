@@ -26,13 +26,13 @@ import androidx.compose.ui.window.DialogProperties
  * WebView dialog for displaying web content inside the app.
  * Used for viewing GitHub documentation without leaving the app.
  */
+@Suppress("FunctionName")
 @Composable
 fun WebViewDialog(
     url: String = "",
     htmlContent: String? = null,
     title: String = "Documentation",
-    onDismiss: () -> Unit,
-    isDarkTheme: Boolean = true
+    onDismiss: () -> Unit
 ) {
     val view = LocalView.current
     var isLoading by remember { mutableStateOf(true) }
@@ -49,7 +49,7 @@ fun WebViewDialog(
                 .padding(8.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isDarkTheme) Color(0xFF2D3436) else Color(0xFFF5F5F5)
+                containerColor = Color(0xFF2D3436)
             )
         ) {
             Column(
@@ -59,7 +59,7 @@ fun WebViewDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(if (isDarkTheme) Color(0xFF1E1E2E) else Color(0xFFE0E0E0))
+                        .background(Color(0xFF1E1E2E))
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -68,13 +68,13 @@ fun WebViewDialog(
                         Text(
                             title,
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (isDarkTheme) Color.White else Color(0xFF2D3436)
+                            color = Color.White
                         )
                         if (isLoading) {
                             Text(
                                 "Loading...",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isDarkTheme) Color(0xFF74B9FF) else Color(0xFF2D3436)
+                                color = Color(0xFF74B9FF)
                             )
                         }
                     }
@@ -85,7 +85,7 @@ fun WebViewDialog(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF2D3436)
+                            tint = Color(0xFFB0BEC5)
                         )
                     }
                 }
@@ -96,7 +96,7 @@ fun WebViewDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(4.dp)
-                            .background(if (isDarkTheme) Color(0xFF1E1E2E) else Color(0xFFE0E0E0))
+                            .background(Color(0xFF1E1E2E))
                     ) {
                         LinearProgressIndicator(
                             modifier = Modifier.fillMaxWidth(),
@@ -174,7 +174,7 @@ fun WebViewDialog(
                     },
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(if (isDarkTheme) Color(0xFF1E1E2E) else Color.White)
+                        .background(Color(0xFF1E1E2E))
                 )
             }
         }

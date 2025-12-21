@@ -1,18 +1,18 @@
 package com.metelci.ardunakon.di
 
-import com.metelci.ardunakon.wifi.WifiManager
-import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.security.EncryptionException
+import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiDevice
+import com.metelci.ardunakon.wifi.WifiManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @Module
 @TestInstallIn(

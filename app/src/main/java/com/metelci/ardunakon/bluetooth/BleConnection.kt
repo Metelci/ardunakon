@@ -152,7 +152,10 @@ class BleConnection(
 
     private fun hasBluetoothConnectPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
         } else {
             true
         }
@@ -463,11 +466,7 @@ class BleConnection(
         }
     }
 
-    private fun writeDescriptorLegacy(
-        gatt: BluetoothGatt,
-        descriptor: BluetoothGattDescriptor,
-        value: ByteArray
-    ) {
+    private fun writeDescriptorLegacy(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, value: ByteArray) {
         try {
             val setValue = BluetoothGattDescriptor::class.java.getMethod("setValue", ByteArray::class.java)
             setValue.invoke(descriptor, value)

@@ -6,7 +6,7 @@ import org.junit.Test
 
 /**
  * Edge case tests for connection failures, error recovery, and reconnection scenarios.
- * 
+ *
  * Tests cover:
  * - Connection failure handling
  * - Timeout scenarios
@@ -75,9 +75,12 @@ class ConnectionEdgeCaseTest {
         val invalidAddresses = listOf(
             "",
             "invalid",
-            "00:11:22:33:44",  // Too short
-            "00:11:22:33:44:55:66",  // Too long
-            "GG:HH:II:JJ:KK:LL"  // Invalid hex
+            // Too short
+            "00:11:22:33:44",
+            // Too long
+            "00:11:22:33:44:55:66",
+            // Invalid hex
+            "GG:HH:II:JJ:KK:LL"
         )
 
         for (address in invalidAddresses) {
@@ -143,7 +146,7 @@ class ConnectionEdgeCaseTest {
 
     @Test
     fun `GATT error 133 triggers retry`() {
-        val gattError = 133  // Common Android GATT error
+        val gattError = 133 // Common Android GATT error
         var shouldRetry = false
         var gattRetryAttempt = 0
         val maxGattRetries = 3
@@ -160,9 +163,9 @@ class ConnectionEdgeCaseTest {
 
     @Test
     fun `GATT error 8 does not trigger retry`() {
-        val gattError = 8  // Connection timeout - likely permanent
+        val gattError = 8 // Connection timeout - likely permanent
         var shouldRetry = false
-        
+
         // Error 8 typically means device out of range or unresponsive
         val retriableErrors = setOf(133, 6, 19)
         if (retriableErrors.contains(gattError)) {
@@ -204,7 +207,7 @@ class ConnectionEdgeCaseTest {
             serviceDiscoveryAttempts++
             // Simulating failure
             if (serviceDiscoveryAttempts >= 3) {
-                servicesDiscovered = true  // Success on 3rd try
+                servicesDiscovered = true // Success on 3rd try
             }
         }
 
@@ -250,8 +253,9 @@ class ConnectionEdgeCaseTest {
         var reconnectAttempted = false
 
         // Simulate reconnect check
-        if (connectionState == ConnectionState.DISCONNECTED || 
-            connectionState == ConnectionState.ERROR) {
+        if (connectionState == ConnectionState.DISCONNECTED ||
+            connectionState == ConnectionState.ERROR
+        ) {
             reconnectAttempted = true
         }
 
@@ -299,7 +303,7 @@ class ConnectionEdgeCaseTest {
         // Simulate switching to new device
         connectionState.value = ConnectionState.DISCONNECTED
         currentDeviceDisconnected = true
-        
+
         connectionState.value = ConnectionState.CONNECTING
         newDeviceConnected = true
 
@@ -315,7 +319,7 @@ class ConnectionEdgeCaseTest {
             rssi = -70,
             type = DeviceType.CLASSIC
         )
-        
+
         val newDevice = BluetoothDeviceModel(
             name = "NewDevice",
             address = "11:22:33:44:55:66",
@@ -346,7 +350,7 @@ class ConnectionEdgeCaseTest {
 
     @Test
     fun `heartbeat timeout triggers disconnect`() {
-        val lastPacketTime = System.currentTimeMillis() - 25000  // 25 seconds ago
+        val lastPacketTime = System.currentTimeMillis() - 25000 // 25 seconds ago
         val heartbeatTimeout = 20000L
         val now = System.currentTimeMillis()
         var shouldDisconnect = false
@@ -439,8 +443,9 @@ class ConnectionEdgeCaseTest {
         var canAttemptReconnect = false
 
         // Simulate reconnect eligibility check
-        if (connectionState == ConnectionState.ERROR || 
-            connectionState == ConnectionState.DISCONNECTED) {
+        if (connectionState == ConnectionState.ERROR ||
+            connectionState == ConnectionState.DISCONNECTED
+        ) {
             canAttemptReconnect = true
         }
 
@@ -453,8 +458,9 @@ class ConnectionEdgeCaseTest {
         var shouldStartReconnect = false
 
         // Simulate reconnect check
-        if (connectionState == ConnectionState.DISCONNECTED || 
-            connectionState == ConnectionState.ERROR) {
+        if (connectionState == ConnectionState.DISCONNECTED ||
+            connectionState == ConnectionState.ERROR
+        ) {
             shouldStartReconnect = true
         }
 

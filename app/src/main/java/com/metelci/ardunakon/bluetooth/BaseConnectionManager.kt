@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Abstract base class for Bluetooth connection managers (Classic and BLE).
- * 
+ *
  * Provides common functionality:
  * - Permission checking
  * - Bluetooth adapter validation
@@ -33,7 +33,7 @@ abstract class BaseConnectionManager(
      */
     protected fun checkBluetoothPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == 
+            context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) ==
                 PackageManager.PERMISSION_GRANTED
         } else {
             true // Legacy: implied from manifest

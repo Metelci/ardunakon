@@ -5,11 +5,11 @@ import android.content.res.AssetManager
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.every
 import io.mockk.mockk
+import java.io.IOException
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.io.IOException
 
 @RunWith(RobolectricTestRunner::class)
 class AssetReaderTest {
@@ -52,4 +52,3 @@ class AssetReaderTest {
         assertTrue(result.contains("Error: missing"))
     }
 }
-

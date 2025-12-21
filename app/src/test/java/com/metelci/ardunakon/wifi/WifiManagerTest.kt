@@ -63,7 +63,7 @@ class WifiManagerTest {
     fun `setAutoReconnectEnabled updates state`() = runTest(testDispatcher) {
         manager.setAutoReconnectEnabled(true)
         assertTrue(manager.autoReconnectEnabled.value)
-        
+
         manager.setAutoReconnectEnabled(false)
         assertFalse(manager.autoReconnectEnabled.value)
     }
@@ -82,10 +82,10 @@ class WifiManagerTest {
         field.isAccessible = true
         @Suppress("UNCHECKED_CAST")
         val errorFlow = field.get(manager) as kotlinx.coroutines.flow.MutableStateFlow<EncryptionException?>
-        
+
         errorFlow.value = EncryptionException.NoSessionKeyException("test")
         assertNotNull(manager.encryptionError.value)
-        
+
         manager.clearEncryptionError()
         assertNull(manager.encryptionError.value)
     }
@@ -94,7 +94,7 @@ class WifiManagerTest {
     fun `onStateChanged updates flow`() = runTest(testDispatcher) {
         manager.onStateChanged(WifiConnectionState.CONNECTED)
         assertEquals(WifiConnectionState.CONNECTED, manager.connectionState.value)
-        
+
         manager.onStateChanged(WifiConnectionState.ERROR)
         assertEquals(WifiConnectionState.ERROR, manager.connectionState.value)
     }

@@ -18,13 +18,13 @@ import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -69,7 +69,9 @@ class ControlViewModelTest {
     ): ControlViewModel {
         every { bluetoothManager.debugLogs } returns MutableStateFlow<List<LogEntry>>(emptyList())
         every { bluetoothManager.telemetry } returns MutableStateFlow(null)
-        every { bluetoothManager.connectionState } returns MutableStateFlow(com.metelci.ardunakon.bluetooth.ConnectionState.DISCONNECTED)
+        every {
+            bluetoothManager.connectionState
+        } returns MutableStateFlow(com.metelci.ardunakon.bluetooth.ConnectionState.DISCONNECTED)
         every { bluetoothManager.isEmergencyStopActive } returns MutableStateFlow(false)
         every { bluetoothManager.sendDataToAll(any(), any()) } just runs
         every { bluetoothManager.log(any(), any()) } just runs
@@ -78,7 +80,9 @@ class ControlViewModelTest {
         every { bluetoothManager.allowReflectionFallback = any() } just runs
 
         every { wifiManager.autoReconnectEnabled } returns MutableStateFlow(false)
-        every { wifiManager.connectionState } returns MutableStateFlow(com.metelci.ardunakon.wifi.WifiConnectionState.DISCONNECTED)
+        every {
+            wifiManager.connectionState
+        } returns MutableStateFlow(com.metelci.ardunakon.wifi.WifiConnectionState.DISCONNECTED)
         every { wifiManager.encryptionError } returns MutableStateFlow(null)
         every { wifiManager.setRequireEncryption(any()) } just runs
         every { wifiManager.clearEncryptionError() } just runs
@@ -188,7 +192,9 @@ class ControlViewModelTest {
         every { bluetoothManager.allowReflectionFallback = any() } just runs
 
         every { wifiManager.autoReconnectEnabled } returns MutableStateFlow(false)
-        every { wifiManager.connectionState } returns MutableStateFlow(com.metelci.ardunakon.wifi.WifiConnectionState.DISCONNECTED)
+        every {
+            wifiManager.connectionState
+        } returns MutableStateFlow(com.metelci.ardunakon.wifi.WifiConnectionState.DISCONNECTED)
         every { wifiManager.encryptionError } returns MutableStateFlow(null)
         every { wifiManager.setRequireEncryption(any()) } just runs
         every { wifiManager.clearEncryptionError() } just runs
