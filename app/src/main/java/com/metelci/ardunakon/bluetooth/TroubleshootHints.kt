@@ -12,42 +12,42 @@ object TroubleshootHints {
         // Connection errors
         Hint(
             "socket",
-            "Bağlantı soketi oluşturulamadı",
-            "Bluetooth eşleştirmesini kontrol edin ve cihazı yeniden başlatın"
+            "Connection socket creation failed",
+            "Check Bluetooth pairing and restart the device"
         ),
-        Hint("refused", "Bağlantı reddedildi", "Arduino'nun açık ve eşleştirilmiş olduğundan emin olun"),
-        Hint("timeout", "Bağlantı zaman aşımına uğradı", "Arduino'ya yaklaşın veya cihazı yeniden başlatın"),
-        Hint("discovery", "Cihaz bulunamadı", "Arduino'nun açık ve keşfedilebilir modda olduğunu kontrol edin"),
+        Hint("refused", "Connection refused", "Make sure Arduino is on and paired"),
+        Hint("timeout", "Connection timed out", "Move closer to Arduino or restart the device"),
+        Hint("discovery", "Device not found", "Check that Arduino is on and in discoverable mode"),
 
         // BLE errors
-        Hint("GATT", "BLE GATT hatası", "Bluetooth'u kapatıp açın ve tekrar deneyin"),
+        Hint("GATT", "BLE GATT error", "Turn Bluetooth off and on, then try again"),
         Hint(
             "characteristic",
-            "BLE özelliği bulunamadı",
-            "Arduino sketch'inin doğru UUID'leri kullandığını doğrulayın"
+            "BLE characteristic not found",
+            "Verify Arduino sketch is using correct UUIDs"
         ),
-        Hint("MTU", "Paket boyutu hatası", "Cihaz BLE MTU boyutunu desteklemiyor olabilir"),
+        Hint("MTU", "Packet size error", "Device may not support BLE MTU size"),
 
         // Heartbeat errors
-        Hint("heartbeat", "Kalp atışı yanıtı yok", "Arduino'nun düzgün çalıştığından emin olun"),
-        Hint("missed.*ack", "ACK paketleri eksik", "Sinyal kalitesini kontrol edin veya yaklaşın"),
+        Hint("heartbeat", "No heartbeat response", "Make sure Arduino is running properly"),
+        Hint("missed.*ack", "ACK packets missing", "Check signal quality or move closer"),
 
         // OTA errors
-        Hint("CRC", "Checksum uyuşmazlığı", "Firmware dosyasını yeniden indirin"),
-        Hint("flash", "Flash yazma hatası", "Arduino'da yeterli depolama alanı olduğundan emin olun"),
-        Hint("AP not found", "WiFi AP bulunamadı", "Arduino'nun ArdunakonOTA sketch'ini çalıştırdığından emin olun"),
+        Hint("CRC", "Checksum mismatch", "Re-download the firmware file"),
+        Hint("flash", "Flash write error", "Make sure Arduino has enough storage space"),
+        Hint("AP not found", "WiFi AP not found", "Make sure Arduino is running ArdunakonOTA sketch"),
 
         // Permission errors
-        Hint("permission", "İzin reddedildi", "Uygulama ayarlarından Bluetooth iznini verin"),
+        Hint("permission", "Permission denied", "Grant Bluetooth permission in app settings"),
         Hint(
             "BLUETOOTH",
-            "Bluetooth izni eksik",
-            "Ayarlar > Uygulamalar > Ardunakon > İzinler'den Bluetooth'u etkinleştirin"
+            "Bluetooth permission missing",
+            "Enable Bluetooth in Settings > Apps > Ardunakon > Permissions"
         ),
 
         // Hardware errors
-        Hint("adapter", "Bluetooth adaptörü yok", "Cihazınızda Bluetooth bulunmadığından emin olun"),
-        Hint("disabled", "Bluetooth kapalı", "Bluetooth'u sistem ayarlarından açın")
+        Hint("adapter", "No Bluetooth adapter", "Make sure your device has Bluetooth"),
+        Hint("disabled", "Bluetooth is off", "Turn on Bluetooth in system settings")
     )
 
     /**

@@ -6,6 +6,7 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import com.metelci.ardunakon.bluetooth.Telemetry
+import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.data.WifiEncryptionPreferences
 import com.metelci.ardunakon.security.EncryptionException
 import kotlinx.coroutines.*
@@ -109,6 +110,7 @@ class WifiManager(
     fun connect(ip: String, port: Int) {
         targetIp = ip
         targetPort = port
+        BreadcrumbManager.leave("WiFi", "Connect: $ip:$port")
         connectionManager.connect(ip, port) { psk ->
             scope.launch {
                 connectionPreferences.saveLastConnection(
@@ -123,6 +125,7 @@ class WifiManager(
 
     fun disconnect() {
         _shouldReconnect = false
+        BreadcrumbManager.leave("WiFi", "Manual disconnect")
         connectionManager.disconnect()
     }
 
@@ -145,6 +148,9 @@ class WifiManager(
         if (state == WifiConnectionState.CONNECTED) {
             reconnectAttempts = 0
             _isEncrypted.value = connectionManager.isEncrypted()
+            BreadcrumbManager.leave("WiFi", "Connected (encrypted: ${_isEncrypted.value})")
+        } else if (state == WifiConnectionState.ERROR) {
+            BreadcrumbManager.leave("WiFi", "Connection error")
         }
     }
 

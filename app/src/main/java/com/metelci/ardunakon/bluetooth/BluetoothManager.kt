@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
@@ -227,6 +228,7 @@ class AppBluetoothManager(
                 if (!isAutoReconnect) {
                     updateConnectionState(ConnectionState.CONNECTING)
                     log("Connecting to ${coercedModel.name}...", LogType.INFO)
+                    BreadcrumbManager.leave("Bluetooth", "Connect: ${coercedModel.name} (${coercedModel.type})")
                 }
 
                 // Clean up before connect
@@ -265,6 +267,7 @@ class AppBluetoothManager(
     fun disconnect() {
         _shouldReconnect = false
         _autoReconnectEnabled.value = false
+        BreadcrumbManager.leave("Bluetooth", "Manual disconnect")
         performDisconnect("Disconnected")
     }
 
@@ -288,8 +291,13 @@ class AppBluetoothManager(
 
     fun setEmergencyStop(active: Boolean) {
         _isEmergencyStopActive.value = active
-        if (active) log("E-STOP ACTIVATED: Blocking connections", LogType.WARNING)
-        else log("E-STOP RELEASED: Connections allowed", LogType.SUCCESS)
+        if (active) {
+            log("E-STOP ACTIVATED: Blocking connections", LogType.WARNING)
+            BreadcrumbManager.leave("Safety", "E-STOP ACTIVATED")
+        } else {
+            log("E-STOP RELEASED: Connections allowed", LogType.SUCCESS)
+            BreadcrumbManager.leave("Safety", "E-STOP released")
+        }
     }
 
     fun requestRssi() {

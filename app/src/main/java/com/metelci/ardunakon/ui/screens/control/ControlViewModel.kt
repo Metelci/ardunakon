@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.security.AuthRequiredException
@@ -451,6 +452,7 @@ class ControlViewModel @javax.inject.Inject constructor(
         connectionMode = ConnectionMode.WIFI
         viewModelScope.launch { connectionPreferences.saveLastConnection(type = "WIFI") }
         bluetoothManager.log("WiFi mode active", LogType.SUCCESS)
+        BreadcrumbManager.leave("Mode", "Switched to WiFi")
     }
 
     fun switchToBluetooth() {
@@ -462,6 +464,7 @@ class ControlViewModel @javax.inject.Inject constructor(
         connectionMode = ConnectionMode.BLUETOOTH
         viewModelScope.launch { connectionPreferences.saveLastConnection(type = "BLUETOOTH") }
         bluetoothManager.log("Bluetooth mode active", LogType.SUCCESS)
+        BreadcrumbManager.leave("Mode", "Switched to Bluetooth")
     }
 
     fun toggleWifiAutoReconnect(enabled: Boolean) {
