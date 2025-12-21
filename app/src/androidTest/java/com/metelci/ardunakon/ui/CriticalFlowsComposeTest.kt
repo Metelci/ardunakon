@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -91,7 +92,7 @@ class CriticalFlowsComposeTest {
         composeRule.onNodeWithContentDescription("Connection Status").performClick()
         composeRule.onNodeWithText("Scan for Devices").assertIsDisplayed()
         composeRule.onNodeWithText("Reconnect Device").assertIsDisplayed()
-        composeRule.onNodeWithText("Configure WiFi").assertDoesNotExist()
+        composeRule.onAllNodesWithText("Configure WiFi").assertCountEquals(0)
 
         composeRule.onNodeWithText("Scan for Devices").performClick()
         composeRule.onNodeWithText("action=scan").assertIsDisplayed()
@@ -126,8 +127,8 @@ class CriticalFlowsComposeTest {
 
         composeRule.onNodeWithContentDescription("Connection Status").performClick()
         composeRule.onNodeWithText("Configure WiFi").assertIsDisplayed()
-        composeRule.onNodeWithText("Scan for Devices").assertDoesNotExist()
-        composeRule.onNodeWithText("Reconnect Device").assertDoesNotExist()
+        composeRule.onAllNodesWithText("Scan for Devices").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Reconnect Device").assertCountEquals(0)
 
         composeRule.onNodeWithText("Configure WiFi").performClick()
         composeRule.onNodeWithText("action=configure").assertIsDisplayed()
