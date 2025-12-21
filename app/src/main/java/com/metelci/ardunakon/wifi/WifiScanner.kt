@@ -36,6 +36,7 @@ class WifiScanner(
 
     private val discoveryRateLimiter = mutableMapOf<String, Long>()
     private val discoveryRateLimitMs = 1000L
+    private val discoveryTimeoutMs = 4000L
 
     private val nsdManager: NsdManager? by lazy {
         try {
@@ -87,14 +88,14 @@ class WifiScanner(
                     DatagramSocket(null).apply {
                         reuseAddress = true
                         broadcast = true
-                        soTimeout = 4000
+                        soTimeout = discoveryTimeoutMs.toInt()
                         bind(InetSocketAddress(8888))
                     }
                 } catch (e: Exception) {
                     onLog("UDP discovery: couldn't bind to port 8888; using ephemeral port")
                     DatagramSocket().apply {
                         broadcast = true
-                        soTimeout = 2000
+                        soTimeout = discoveryTimeoutMs.toInt()
                     }
                 }
 
@@ -108,9 +109,9 @@ class WifiScanner(
                 }
 
                 val receiveBuffer = ByteArray(1024)
-                val endTime = System.currentTimeMillis() + 5000
+                val endTime = System.currentTimeMillis() + discoveryTimeoutMs
 
-                while (System.currentTimeMillis() < endTime && isActive) {
+                while (_isScanning.value && System.currentTimeMillis() < endTime && isActive) {
                     try {
                         val receivePacket = DatagramPacket(receiveBuffer, receiveBuffer.size)
                         discoverySocket.receive(receivePacket)
@@ -154,7 +155,7 @@ class WifiScanner(
         }
 
         scope.launch {
-            delay(10000)
+            delay(discoveryTimeoutMs)
             stopDiscovery()
         }
     }

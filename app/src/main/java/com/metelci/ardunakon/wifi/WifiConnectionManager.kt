@@ -54,6 +54,10 @@ class WifiConnectionManager(
     private var lastRxTime = 0L
     private var pingSequence = 0
 
+    private val heartbeatBaseIntervalMs = 3000L
+    private val heartbeatMinIntervalMs = 1500L
+    private val heartbeatMaxIntervalMs = 5000L
+
     private val handshakeTimeoutMs = 5000L
     private val DEFAULT_R4_WIFI_PSK = "ArdunakonSecretKey1234567890ABCD".toByteArray()
 
@@ -251,11 +255,16 @@ class WifiConnectionManager(
     }
 
     private fun getOptimalHeartbeatInterval(): Long {
-        val lastRtt = rttHistory.firstOrNull() ?: 100L
+        val lastRtt = rttHistory.firstOrNull()
+        if (lastRtt == null || lastRtt <= 0L) return heartbeatBaseIntervalMs
+
+        // Adaptive keep-alive tuning (1.5s - 5s). Base is 3s until RTT is known.
         return when {
-            lastRtt < 50 -> 6000L    // Good connection: 6s
-            lastRtt < 200 -> 4000L   // Moderate: 4s
-            else -> 3000L            // Poor or high latency: 3s (Base)
+            lastRtt <= 30L -> heartbeatMaxIntervalMs // Excellent link: relax keep-alives
+            lastRtt <= 100L -> 4000L
+            lastRtt <= 250L -> heartbeatBaseIntervalMs
+            lastRtt <= 800L -> 2000L
+            else -> heartbeatMinIntervalMs // Very poor link: keep the session warm
         }
     }
 

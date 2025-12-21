@@ -81,13 +81,6 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
-    init {
-        viewModelScope.launch {
-            val lastConn = connectionPreferences.loadLastConnection()
-            joystickSensitivity = lastConn.joystickSensitivity
-        }
-    }
-
     /**
      * Resets the onboarding tutorial so it appears on next launch.
      */
@@ -181,9 +174,10 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     init {
-        // Restore Connection Mode
+        // Restore Connection Mode + persisted sensitivity
         viewModelScope.launch {
             val lastConn = connectionPreferences.loadLastConnection()
+            joystickSensitivity = lastConn.joystickSensitivity
             if (lastConn.type == "WIFI") {
                 connectionMode = ConnectionMode.WIFI
                 bluetoothManager.log("Restored Connection Mode: WiFi", LogType.INFO)

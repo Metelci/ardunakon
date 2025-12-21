@@ -31,7 +31,7 @@ class BleConnectionManager(
     private var writeJob: Job? = null
     private var pollingJob: Job? = null
     private var serviceDiscoveryJob: Job? = null
-    private val writeQueue = LinkedBlockingQueue<ByteArray>()
+    private val writeQueue = LinkedBlockingQueue<ByteArray>(BluetoothConfig.MAX_WRITE_QUEUE_SIZE)
     private val connectionMutex = Mutex()
     private val isConnected = java.util.concurrent.atomic.AtomicBoolean(false)
     private val isGattConnected = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -131,9 +131,15 @@ class BleConnectionManager(
             return
         }
         
+        if (writeQueue.offer(data)) return
+
+        // Queue is full: drop the oldest packet to prioritize current controls/commands.
+        writeQueue.poll()
+        packetsDropped.incrementAndGet()
+
         if (!writeQueue.offer(data)) {
             packetsDropped.incrementAndGet()
-            callback.onError("Write queue full", LogType.WARNING)
+            callback.onError("Write queue full - dropping packet", LogType.WARNING)
         }
     }
 

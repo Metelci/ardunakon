@@ -73,6 +73,7 @@ class ControlViewModelTest {
         every { bluetoothManager.isEmergencyStopActive } returns MutableStateFlow(false)
         every { bluetoothManager.sendDataToAll(any(), any()) } just runs
         every { bluetoothManager.log(any(), any()) } just runs
+        every { bluetoothManager.setForegroundMode(any()) } just runs
         every { bluetoothManager.allowReflectionFallback } returns false
         every { bluetoothManager.allowReflectionFallback = any() } just runs
 
@@ -182,6 +183,7 @@ class ControlViewModelTest {
         every { bluetoothManager.isEmergencyStopActive } returns MutableStateFlow(true)
         every { bluetoothManager.sendDataToAll(any(), any()) } just runs
         every { bluetoothManager.log(any(), any()) } just runs
+        every { bluetoothManager.setForegroundMode(any()) } just runs
         every { bluetoothManager.allowReflectionFallback } returns false
         every { bluetoothManager.allowReflectionFallback = any() } just runs
 
