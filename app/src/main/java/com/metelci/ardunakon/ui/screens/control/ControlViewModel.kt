@@ -52,7 +52,8 @@ class ControlViewModel @javax.inject.Inject constructor(
     val wifiManager: WifiManager,
     private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
     private val onboardingManager: com.metelci.ardunakon.data.OnboardingManager,
-    val customCommandRegistry: com.metelci.ardunakon.protocol.CustomCommandRegistry
+    val customCommandRegistry: com.metelci.ardunakon.protocol.CustomCommandRegistry,
+    private val hapticPreferences: com.metelci.ardunakon.data.HapticPreferences
 ) : ViewModel() {
 
     private val transmissionDispatcher: CoroutineDispatcher = Dispatchers.Default
@@ -110,6 +111,10 @@ class ControlViewModel @javax.inject.Inject constructor(
     var encryptionError by mutableStateOf<EncryptionException?>(null)
     var requireEncryption by mutableStateOf(false)
 
+    // Haptic feedback state
+    var isHapticEnabled by mutableStateOf(true)
+        private set
+
     // Sensitivity state
     var joystickSensitivity by mutableStateOf(1.0f)
         private set
@@ -118,6 +123,13 @@ class ControlViewModel @javax.inject.Inject constructor(
         joystickSensitivity = sensitivity
         viewModelScope.launch {
             connectionPreferences.saveLastConnection(joystickSensitivity = sensitivity)
+        }
+    }
+
+    fun updateHapticEnabled(enabled: Boolean) {
+        isHapticEnabled = enabled
+        viewModelScope.launch {
+            hapticPreferences.setHapticEnabled(enabled)
         }
     }
 
@@ -179,10 +191,11 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     init {
-        // Restore Connection Mode + persisted sensitivity
+        // Restore Connection Mode + persisted sensitivity + haptic preference
         viewModelScope.launch {
             val lastConn = connectionPreferences.loadLastConnection()
             joystickSensitivity = lastConn.joystickSensitivity
+            isHapticEnabled = hapticPreferences.isHapticEnabled()
             if (lastConn.type == "WIFI") {
                 connectionMode = ConnectionMode.WIFI
                 bluetoothManager.log("Restored Connection Mode: WiFi", LogType.INFO)

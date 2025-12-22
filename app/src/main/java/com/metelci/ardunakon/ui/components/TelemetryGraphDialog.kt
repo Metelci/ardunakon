@@ -28,6 +28,20 @@ enum class GraphTab {
     QUALITY
 }
 
+/**
+ * Get the selected/active color for a specific graph tab.
+ * Uses semantic colors based on data type.
+ */
+private fun getTabColor(tab: GraphTab, isSelected: Boolean): Color {
+    return when (tab) {
+        GraphTab.BATTERY -> if (isSelected) Color(0xFF4CAF50) else Color(0xFF81C784)      // Green (power/energy)
+        GraphTab.RSSI -> if (isSelected) Color(0xFF2196F3) else Color(0xFF64B5F6)         // Blue (signal)
+        GraphTab.RTT -> if (isSelected) Color(0xFF00BCD4) else Color(0xFF4DD0E1)          // Cyan (speed/time)
+        GraphTab.PACKET_LOSS -> if (isSelected) Color(0xFFFF9800) else Color(0xFFFFB74D)  // Orange (warning)
+        GraphTab.QUALITY -> if (isSelected) Color(0xFF9C27B0) else Color(0xFFBA68C8)      // Purple (quality)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("FunctionName")
 @Composable
@@ -108,40 +122,48 @@ fun TelemetryGraphDialog(telemetryHistoryManager: TelemetryHistoryManager, onDis
                 // Tab Row
                 ScrollableTabRow(
                     selectedTabIndex = selectedTab.ordinal,
-                    containerColor = Color(0xFF455A64),
+                    containerColor = Color(0xFF1E1E2E),
+                    contentColor = Color.White,
                     edgePadding = 0.dp
                 ) {
                     Tab(
                         selected = selectedTab == GraphTab.BATTERY,
                         onClick = { selectedTab = GraphTab.BATTERY },
                         text = {
-                            Text("Battery", color = Color.White, fontSize = 10.sp)
+                            val color = getTabColor(GraphTab.BATTERY, selectedTab == GraphTab.BATTERY)
+                            Text("Battery", color = color, fontSize = 10.sp)
                         }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.RSSI,
                         onClick = { selectedTab = GraphTab.RSSI },
-                        text = { Text("RSSI", color = Color.White, fontSize = 10.sp) }
+                        text = {
+                            val color = getTabColor(GraphTab.RSSI, selectedTab == GraphTab.RSSI)
+                            Text("RSSI", color = color, fontSize = 10.sp)
+                        }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.RTT,
                         onClick = { selectedTab = GraphTab.RTT },
                         text = {
-                            Text("Latency", color = Color.White, fontSize = 10.sp)
+                            val color = getTabColor(GraphTab.RTT, selectedTab == GraphTab.RTT)
+                            Text("Latency", color = color, fontSize = 10.sp)
                         }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.PACKET_LOSS,
                         onClick = { selectedTab = GraphTab.PACKET_LOSS },
                         text = {
-                            Text("Loss", color = Color.White, fontSize = 10.sp)
+                            val color = getTabColor(GraphTab.PACKET_LOSS, selectedTab == GraphTab.PACKET_LOSS)
+                            Text("Loss", color = color, fontSize = 10.sp)
                         }
                     )
                     Tab(
                         selected = selectedTab == GraphTab.QUALITY,
                         onClick = { selectedTab = GraphTab.QUALITY },
                         text = {
-                            Text("Quality", color = Color.White, fontSize = 10.sp)
+                            val color = getTabColor(GraphTab.QUALITY, selectedTab == GraphTab.QUALITY)
+                            Text("Quality", color = color, fontSize = 10.sp)
                         }
                     )
                 }

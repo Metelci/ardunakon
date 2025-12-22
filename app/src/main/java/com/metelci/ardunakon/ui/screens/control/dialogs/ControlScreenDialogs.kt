@@ -161,6 +161,8 @@ fun ControlScreenDialogs(
             view = view,
             isDebugPanelVisible = viewModel.isDebugPanelVisible,
             onToggleDebugPanel = { viewModel.isDebugPanelVisible = !viewModel.isDebugPanelVisible },
+            isHapticEnabled = viewModel.isHapticEnabled,
+            onToggleHaptic = { viewModel.updateHapticEnabled(!viewModel.isHapticEnabled) },
             joystickSensitivity = viewModel.joystickSensitivity,
             onJoystickSensitivityChange = { viewModel.updateJoystickSensitivity(it) },
             allowReflection = viewModel.allowReflection,

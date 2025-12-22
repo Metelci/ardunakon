@@ -375,17 +375,15 @@ private fun HeaderActionsRow(
                         onDismissOverflowMenu()
                     }
                 )
-                if (CrashHandler.hasCrashLog(context)) {
-                    DropdownMenuItem(
-                        text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
-                        leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            onShowCrashLog()
-                            onDismissOverflowMenu()
-                        }
-                    )
-                }
+                DropdownMenuItem(
+                    text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
+                    leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onShowCrashLog()
+                        onDismissOverflowMenu()
+                    }
+                )
                 DropdownMenuItem(
                     text = { Text("Open Arduino Cloud") },
                     leadingIcon = { Icon(Icons.Default.OpenInNew, null, tint = Color(0xFF00FF00)) },

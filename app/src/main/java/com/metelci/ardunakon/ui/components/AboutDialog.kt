@@ -143,15 +143,19 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // Dynamically load release notes from assets
+                        // Dynamically load release notes from CHANGELOG.md
                         val context = LocalContext.current
                         val releaseNotes = remember {
                             try {
-                                context.assets.open("release_notes.txt").bufferedReader().use { it.readText() }
-                                    .lines()
-                                    .filter { it.isNotBlank() }
+                                val changelog = context.assets.open("CHANGELOG.md")
+                                    .bufferedReader()
+                                    .use { it.readText() }
+                                com.metelci.ardunakon.utils.ChangelogParser.parseLatestRelease(
+                                    changelog,
+                                    BuildConfig.VERSION_NAME
+                                )
                             } catch (e: Exception) {
-                                listOf("Check CHANGELOG.md for details.")
+                                listOf("Unable to load release notes. Check CHANGELOG.md for details.")
                             }
                         }
 

@@ -1,3 +1,13 @@
+Version 0.2.10-alpha-hotfix1 - December 22, 2025
+
+IMPROVEMENTS:
+• Internal code improvements and refactoring
+• Enhanced code organization and maintainability
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.10-alpha - December 22, 2025
 
 IMPROVEMENTS:

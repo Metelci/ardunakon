@@ -36,6 +36,10 @@ fun SettingsDialog(
     isDebugPanelVisible: Boolean,
     onToggleDebugPanel: () -> Unit,
 
+    // Haptic feedback
+    isHapticEnabled: Boolean,
+    onToggleHaptic: () -> Unit,
+
     // Joystick sensitivity
     joystickSensitivity: Float,
     onJoystickSensitivityChange: (Float) -> Unit,
@@ -137,6 +141,30 @@ fun SettingsDialog(
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color(0xFF00FF00),
                                     checkedTrackColor = Color(0xFF00FF00).copy(alpha = 0.3f)
+                                )
+                            )
+                        }
+                    )
+
+                    Divider(color = Color(0xFF333333))
+
+                    // Haptic Feedback Toggle
+                    SettingsSection(
+                        icon = Icons.Default.Vibration,
+                        title = "Haptic Feedback",
+                        subtitle = if (isHapticEnabled) "Enabled" else "Disabled",
+                        trailing = {
+                            Switch(
+                                checked = isHapticEnabled,
+                                onCheckedChange = {
+                                    if (isHapticEnabled) {
+                                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    }
+                                    onToggleHaptic()
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color(0xFFFF9800),
+                                    checkedTrackColor = Color(0xFFFF9800).copy(alpha = 0.3f)
                                 )
                             )
                         }
