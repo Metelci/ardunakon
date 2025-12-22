@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.10-alpha-hotfix2] - 2025-12-23
+
+### Added
+- Custom command buttons visible on main control screen (up to 4 commands)
+- Keyboard shortcut support for custom commands (A-Z, excluding reserved keys)
+
+### Changed
+- Internal code improvements and refactoring
+
 ## [0.2.10-alpha-hotfix1] - 2025-12-22
 
 ### Changed

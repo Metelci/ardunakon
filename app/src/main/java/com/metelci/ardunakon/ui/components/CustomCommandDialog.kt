@@ -56,6 +56,7 @@ fun CustomCommandDialog(
     var selectedColorHex by remember { mutableStateOf(command?.colorHex ?: 0xFF2196F3) }
     var isToggle by remember { mutableStateOf(command?.isToggle ?: false) }
     var selectedIconName by remember { mutableStateOf(command?.iconName ?: "Build") }
+    var selectedShortcut by remember { mutableStateOf(command?.keyboardShortcut) }
 
     // Validation
     val isValid = name.isNotBlank() && payloadHex.length == 10
@@ -228,6 +229,12 @@ fun CustomCommandDialog(
                         selectedIconName = selectedIconName,
                         onIconSelected = { selectedIconName = it }
                     )
+
+                    // Keyboard shortcut picker
+                    ShortcutPicker(
+                        selectedShortcut = selectedShortcut,
+                        onShortcutSelected = { selectedShortcut = it }
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -262,7 +269,8 @@ fun CustomCommandDialog(
                                 payload = payload,
                                 colorHex = selectedColorHex,
                                 isToggle = isToggle,
-                                iconName = selectedIconName
+                                iconName = selectedIconName,
+                                keyboardShortcut = selectedShortcut
                             )
                             onSave(savedCommand)
                         },
@@ -447,6 +455,110 @@ private fun IconPicker(
                 }
             }
         }
+    }
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun ShortcutPicker(
+    selectedShortcut: Char?,
+    onShortcutSelected: (Char?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val availableKeys = CustomCommand.AVAILABLE_SHORTCUT_KEYS
+
+    Column {
+        Text(
+            "Keyboard Shortcut (Optional)",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Box {
+            Surface(
+                onClick = { expanded = true },
+                color = Color(0xFF2A2A3E),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Keyboard,
+                            contentDescription = null,
+                            tint = if (selectedShortcut != null) Color(0xFF00C853) else Color.Gray,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            selectedShortcut?.toString() ?: "None",
+                            color = if (selectedShortcut != null) Color.White else Color.Gray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        tint = Color.Gray
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                // None option
+                DropdownMenuItem(
+                    text = { Text("None") },
+                    onClick = {
+                        onShortcutSelected(null)
+                        expanded = false
+                    },
+                    leadingIcon = {
+                        if (selectedShortcut == null) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color(0xFF00C853)
+                            )
+                        }
+                    }
+                )
+                // Available keys
+                availableKeys.forEach { key ->
+                    DropdownMenuItem(
+                        text = { Text(key.toString()) },
+                        onClick = {
+                            onShortcutSelected(key)
+                            expanded = false
+                        },
+                        leadingIcon = {
+                            if (key == selectedShortcut) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color(0xFF00C853)
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        Text(
+            "Reserved: W, A, S, D (servos), L, R, B (buttons)",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Gray.copy(alpha = 0.7f),
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 

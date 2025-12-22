@@ -28,7 +28,10 @@ data class CustomCommand(
     val isToggle: Boolean = false,
 
     /** Material icon name for display */
-    val iconName: String = "Build"
+    val iconName: String = "Build",
+
+    /** Optional keyboard shortcut (A-Z, excluding reserved keys) */
+    val keyboardShortcut: Char? = null
 ) {
     companion object {
         /** Start of custom command ID range (inclusive) */
@@ -40,9 +43,19 @@ data class CustomCommand(
         /** Maximum number of custom commands */
         const val MAX_COMMANDS = 16
 
+        /** Reserved keys for servo controls (W, A, S, D, L, R, B) */
+        val RESERVED_KEYS = setOf('W', 'A', 'S', 'D', 'L', 'R', 'B')
+
+        /** Available shortcut keys (A-Z excluding reserved) */
+        val AVAILABLE_SHORTCUT_KEYS = ('A'..'Z').filter { it !in RESERVED_KEYS }
+
         /** Validate command ID is in allowed range */
         fun isValidCommandId(id: Byte): Boolean =
             id in COMMAND_ID_RANGE_START..COMMAND_ID_RANGE_END
+
+        /** Validate keyboard shortcut is allowed */
+        fun isValidShortcut(key: Char?): Boolean =
+            key == null || (key.uppercaseChar() in 'A'..'Z' && key.uppercaseChar() !in RESERVED_KEYS)
     }
 
     /** Returns true if this command has a valid command ID */
@@ -61,6 +74,7 @@ data class CustomCommand(
         if (colorHex != other.colorHex) return false
         if (isToggle != other.isToggle) return false
         if (iconName != other.iconName) return false
+        if (keyboardShortcut != other.keyboardShortcut) return false
 
         return true
     }
@@ -73,6 +87,7 @@ data class CustomCommand(
         result = 31 * result + colorHex.hashCode()
         result = 31 * result + isToggle.hashCode()
         result = 31 * result + iconName.hashCode()
+        result = 31 * result + (keyboardShortcut?.hashCode() ?: 0)
         return result
     }
 }

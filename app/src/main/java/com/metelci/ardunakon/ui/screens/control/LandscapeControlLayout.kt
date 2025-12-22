@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,6 +24,7 @@ import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.crash.CrashHandler
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.ui.components.CustomCommandButtonRow
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.components.PacketLossWarningCard
 import com.metelci.ardunakon.ui.components.StatusCard
@@ -112,7 +115,7 @@ fun LandscapeControlLayout(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Status row
+            // Status row with Custom Command Buttons
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -132,12 +135,24 @@ fun LandscapeControlLayout(
 
                 val currentRssi = if (viewModel.connectionMode == ConnectionMode.WIFI) wifiRssi else rssiValue
                 val hasCrashLog = CrashHandler.hasCrashLog(context)
+                val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
+                val leftCommands = customCommands.take(2)
+                val rightCommands = customCommands.drop(2).take(2)
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Left side custom command buttons
+                    CustomCommandButtonRow(
+                        commands = leftCommands,
+                        view = view,
+                        onCommandClick = { viewModel.sendCustomCommand(it) },
+                        buttonSize = 40.dp,
+                        maxButtons = 2
+                    )
+
                     StatusCard(
                         label = "Device",
                         state = currentConnectionState,
@@ -151,6 +166,15 @@ fun LandscapeControlLayout(
                             }
                         },
                         onCrashLogClick = { viewModel.showCrashLog = true }
+                    )
+
+                    // Right side custom command buttons
+                    CustomCommandButtonRow(
+                        commands = rightCommands,
+                        view = view,
+                        onCommandClick = { viewModel.sendCustomCommand(it) },
+                        buttonSize = 40.dp,
+                        maxButtons = 2
                     )
                 }
             }

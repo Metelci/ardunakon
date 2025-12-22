@@ -3,13 +3,18 @@ package com.metelci.ardunakon.ui.screens.control
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -17,6 +22,7 @@ import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.ui.components.CustomCommandButtonRow
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.components.PacketLossWarningCard
 import com.metelci.ardunakon.wifi.WifiConnectionState
@@ -135,16 +141,49 @@ fun PortraitControlLayout(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Joystick
+        // Joystick with Custom Command Buttons on sides
         val portraitJoystickSize = minOf(orientationConfig.screenWidthDp.dp * 0.5f, 180.dp)
-        JoystickPanel(
-            onMoved = { x, y -> viewModel.updateJoystick(x, y) },
-            size = portraitJoystickSize,
-            isThrottle = false,
-            bluetoothRttMs = health?.lastRttMs,
-            wifiRttMs = wifiRtt,
-            isWifiMode = viewModel.connectionMode == ConnectionMode.WIFI,
-            modifier = Modifier.weight(if (viewModel.isDebugPanelVisible) 0.35f else 0.6f).fillMaxWidth()
-        )
+        val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
+        val leftCommands = customCommands.take(2)
+        val rightCommands = customCommands.drop(2).take(2)
+
+        Row(
+            modifier = Modifier
+                .weight(if (viewModel.isDebugPanelVisible) 0.35f else 0.6f)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left side custom command buttons
+            CustomCommandButtonRow(
+                commands = leftCommands,
+                view = view,
+                onCommandClick = { viewModel.sendCustomCommand(it) },
+                buttonSize = 44.dp,
+                maxButtons = 2,
+                modifier = Modifier.fillMaxHeight()
+            )
+
+            // Joystick
+            JoystickPanel(
+                onMoved = { x, y -> viewModel.updateJoystick(x, y) },
+                size = portraitJoystickSize,
+                isThrottle = false,
+                bluetoothRttMs = health?.lastRttMs,
+                wifiRttMs = wifiRtt,
+                isWifiMode = viewModel.connectionMode == ConnectionMode.WIFI,
+                modifier = Modifier
+            )
+
+            // Right side custom command buttons
+            CustomCommandButtonRow(
+                commands = rightCommands,
+                view = view,
+                onCommandClick = { viewModel.sendCustomCommand(it) },
+                buttonSize = 44.dp,
+                maxButtons = 2,
+                modifier = Modifier.fillMaxHeight()
+            )
+        }
     }
 }
