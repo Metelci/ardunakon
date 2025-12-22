@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.metelci.ardunakon.TestCryptoEngine
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.data.ConnectionPreferences
+import com.metelci.ardunakon.data.HapticPreferences
 import com.metelci.ardunakon.data.OnboardingManager
 import com.metelci.ardunakon.data.OnboardingPreferences
 import com.metelci.ardunakon.model.LogEntry
@@ -39,6 +40,7 @@ class ControlViewModelTest {
     private lateinit var context: Context
     private lateinit var connectionPreferences: ConnectionPreferences
     private lateinit var onboardingManager: OnboardingManager
+    private lateinit var hapticPreferences: HapticPreferences
     private val mainDispatcher = UnconfinedTestDispatcher()
     private val timeoutMs = 1_500L
 
@@ -48,6 +50,7 @@ class ControlViewModelTest {
         context = ApplicationProvider.getApplicationContext()
         connectionPreferences = ConnectionPreferences(context, TestCryptoEngine())
         onboardingManager = OnboardingManager(OnboardingPreferences(context))
+        hapticPreferences = HapticPreferences(context)
     }
 
     @After
@@ -98,7 +101,8 @@ class ControlViewModelTest {
             wifiManager = wifiManager,
             connectionPreferences = connectionPreferences,
             onboardingManager = onboardingManager,
-            customCommandRegistry = customCommandRegistry
+            customCommandRegistry = customCommandRegistry,
+            hapticPreferences = hapticPreferences
         ).also { it.setForegroundActive(false) }
     }
 
@@ -212,7 +216,8 @@ class ControlViewModelTest {
             wifiManager = wifiManager,
             connectionPreferences = connectionPreferences,
             onboardingManager = onboardingManagerMock,
-            customCommandRegistry = customCommandRegistry
+            customCommandRegistry = customCommandRegistry,
+            hapticPreferences = hapticPreferences
         ).also { it.setForegroundActive(false) }
 
         viewModel.resetTutorial()

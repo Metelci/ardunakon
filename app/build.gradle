@@ -17,8 +17,8 @@ android {
         applicationId = "com.metelci.ardunakon"
         minSdk = 26
         targetSdk = 35
-        versionCode = 31
-        versionName = "0.2.10-alpha-hotfix1"
+        versionCode = 32
+        versionName = "0.2.10-alpha-hotfix2"
 
         // Use custom test runner for Hilt
         testInstrumentationRunner = "com.metelci.ardunakon.ArdunakonTestRunner"
@@ -122,15 +122,17 @@ jacoco {
     toolVersion = "0.8.11"
 }
 
+def buildDirFile = layout.buildDirectory.get().asFile
+
 // Allow Jacoco to instrument inline Kotlin classes.
 def testRunId = System.currentTimeMillis()
 tasks.withType(Test).configureEach {
     // Avoid occasional Windows file-lock issues when Gradle tries to delete the previous run's binary test results.
-    def runDir = file("$buildDir/test-results/${name}-${testRunId}")
+    def runDir = file("$buildDirFile/test-results/${name}-${testRunId}")
     binaryResultsDirectory = file("$runDir/binary")
     reports {
         junitXml.outputLocation = runDir
-        html.outputLocation = file("$buildDir/reports/tests/${name}-${testRunId}")
+        html.outputLocation = file("$buildDirFile/reports/tests/${name}-${testRunId}")
     }
 
     // Robolectric currently emits warnings and may behave unpredictably on SDKs requiring Java 21+; pin to SDK 34 for Java 17.
@@ -175,15 +177,15 @@ tasks.register("jacocoTestReport", JacocoReport) {
     ]
 
     // Unit tests execute against the Kotlin/Java compile outputs (not the later ASM-transformed packaging classes).
-    def kotlinTree = fileTree(dir: "$buildDir/tmp/kotlin-classes/debug", excludes: fileFilter)
-    def javacTree = fileTree(dir: "$buildDir/intermediates/javac/debug/classes", excludes: fileFilter)
+    def kotlinTree = fileTree(dir: "$buildDirFile/tmp/kotlin-classes/debug", excludes: fileFilter)
+    def javacTree = fileTree(dir: "$buildDirFile/intermediates/javac/debug/classes", excludes: fileFilter)
     classDirectories.from = files(kotlinTree, javacTree)
     sourceDirectories.from = files(
         "$projectDir/src/main/java",
         "$projectDir/src/main/kotlin"
     )
     executionData.from = fileTree(
-        dir: buildDir,
+        dir: buildDirFile,
         includes: [
             '**/jacoco/testDebugUnitTest.exec',
             '**/outputs/unit_test_code_coverage/**/testDebugUnitTest.exec'
@@ -216,8 +218,8 @@ tasks.register("jacocoAndroidTestReport", JacocoReport) {
         '**/*$WhenMappings*'
     ]
 
-    def kotlinTree = fileTree(dir: "$buildDir/tmp/kotlin-classes/debug", excludes: fileFilter)
-    def javacTree = fileTree(dir: "$buildDir/intermediates/javac/debug/classes", excludes: fileFilter)
+    def kotlinTree = fileTree(dir: "$buildDirFile/tmp/kotlin-classes/debug", excludes: fileFilter)
+    def javacTree = fileTree(dir: "$buildDirFile/intermediates/javac/debug/classes", excludes: fileFilter)
     classDirectories.from = files(kotlinTree, javacTree)
     sourceDirectories.from = files(
         "$projectDir/src/main/java",
@@ -226,7 +228,7 @@ tasks.register("jacocoAndroidTestReport", JacocoReport) {
 
     // Produced by `testCoverageEnabled` + connected tests.
     executionData.from = fileTree(
-        dir: "$buildDir/outputs/code_coverage",
+        dir: "$buildDirFile/outputs/code_coverage",
         includes: [
             "debugAndroidTest/connected/**/*.ec",
             "debugAndroidTest/connected/*.ec"
@@ -263,17 +265,17 @@ tasks.register("jacocoFullReport", JacocoReport) {
         '**/*$WhenMappings*'
     ]
 
-    def kotlinTree = fileTree(dir: "$buildDir/tmp/kotlin-classes/debug", excludes: fileFilter)
-    def javacTree = fileTree(dir: "$buildDir/intermediates/javac/debug/classes", excludes: fileFilter)
+    def kotlinTree = fileTree(dir: "$buildDirFile/tmp/kotlin-classes/debug", excludes: fileFilter)
+    def javacTree = fileTree(dir: "$buildDirFile/intermediates/javac/debug/classes", excludes: fileFilter)
     classDirectories.from = files(kotlinTree, javacTree)
     sourceDirectories.from = files(
         "$projectDir/src/main/java",
         "$projectDir/src/main/kotlin"
     )
     executionData.from = files(
-        fileTree(dir: buildDir, includes: ['**/jacoco/testDebugUnitTest.exec']),
+        fileTree(dir: buildDirFile, includes: ['**/jacoco/testDebugUnitTest.exec']),
         fileTree(
-            dir: "$buildDir/outputs/code_coverage",
+            dir: "$buildDirFile/outputs/code_coverage",
             includes: [
                 "debugAndroidTest/connected/**/*.ec",
                 "debugAndroidTest/connected/*.ec"
@@ -290,12 +292,12 @@ tasks.register("verifyTelemetryCoverage") {
     dependsOn "jacocoTestReport"
 
     doLast {
-        def reportFile = file("$buildDir/reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
+        def reportFile = file("$buildDirFile/reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
         if (!reportFile.exists()) {
             throw new GradleException("Missing JaCoCo XML report at: ${reportFile}")
         }
 
-        def report = new XmlSlurper().parse(reportFile)
+        def report = new groovy.xml.XmlSlurper().parse(reportFile)
         def telemetryPkg = report.package.find { it.@name?.toString() == "com/metelci/ardunakon/telemetry" }
         def historyClass = telemetryPkg?.class?.find {
             it.@name?.toString() == "com/metelci/ardunakon/telemetry/TelemetryHistoryManager"
