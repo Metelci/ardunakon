@@ -554,7 +554,7 @@ private fun ShortcutPicker(
             }
         }
         Text(
-            "Reserved: W, A, S, D (servos), L, R, B (buttons)",
+            "Reserved: W, A, S, D, L, R, B, Z (servo controls)",
             style = MaterialTheme.typography.bodySmall,
             color = Color.Gray.copy(alpha = 0.7f),
             modifier = Modifier.padding(top = 4.dp)

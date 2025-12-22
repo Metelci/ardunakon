@@ -43,8 +43,8 @@ data class CustomCommand(
         /** Maximum number of custom commands */
         const val MAX_COMMANDS = 16
 
-        /** Reserved keys for servo controls (W, A, S, D, L, R, B) */
-        val RESERVED_KEYS = setOf('W', 'A', 'S', 'D', 'L', 'R', 'B')
+        /** Reserved keys for servo controls (W, A, S, D, L, R, B, Z) */
+        val RESERVED_KEYS = setOf('W', 'A', 'S', 'D', 'L', 'R', 'B', 'Z')
 
         /** Available shortcut keys (A-Z excluding reserved) */
         val AVAILABLE_SHORTCUT_KEYS = ('A'..'Z').filter { it !in RESERVED_KEYS }
