@@ -148,5 +148,9 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 *   **[Dependency Analysis](DEPENDENCY_ANALYSIS.md)** - Zero dependency hell, full compatibility report
 *   **In-App Help** - Tap Menu > Help for offline documentation with 4 detailed guides
 
+## Contributors
+
+- **Metelci** - Owner and Lead Contributor
+
 ---
 Open source: https://github.com/metelci/ardunakon

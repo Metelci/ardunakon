@@ -327,4 +327,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Contributors
+
+- **Metelci** - Owner and Lead Contributor
+
 **Last Updated:** December 17, 2025
