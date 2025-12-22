@@ -1,14 +1,24 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
+import android.content.res.Configuration
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ScreenRotation
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -21,6 +31,8 @@ import com.metelci.ardunakon.model.FeatureType
 @Suppress("FunctionName")
 @Composable
 fun CompletionScreen(onFinish: () -> Unit, exploredFeatures: Set<FeatureType>, modifier: Modifier = Modifier) {
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -102,6 +114,13 @@ fun CompletionScreen(onFinish: () -> Unit, exploredFeatures: Set<FeatureType>, m
                 textAlign = TextAlign.Center
             )
 
+            if (!isLandscape) {
+                Spacer(modifier = Modifier.height(16.dp))
+                LandscapeTipCard(
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             Spacer(modifier = Modifier.height(40.dp))
 
             // Start button
@@ -123,6 +142,77 @@ fun CompletionScreen(onFinish: () -> Unit, exploredFeatures: Set<FeatureType>, m
             }
         }
     }
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun LandscapeTipCard(modifier: Modifier = Modifier) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AnimatedScreenRotateIcon()
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "↔️ Landscape mode is supported",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "Just rotate your phone to use Ardunakon sideways.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                )
+            }
+        }
+    }
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun AnimatedScreenRotateIcon(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "screen_rotate_hint")
+    val rotationZ = infiniteTransition.animateFloat(
+        initialValue = -18f,
+        targetValue = 18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "rotationZ"
+    ).value
+
+    val scale = infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    ).value
+
+    Icon(
+        imageVector = Icons.Outlined.ScreenRotation,
+        contentDescription = "Rotate screen",
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = modifier
+            .size(32.dp)
+            .graphicsLayer {
+                this.rotationZ = rotationZ
+                this.scaleX = scale
+                this.scaleY = scale
+            }
+    )
 }
 
 @Suppress("FunctionName")
