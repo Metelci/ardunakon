@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.10-alpha-hotfix10] - 2025-12-23
+
+### Changed
+- Custom command buttons relocated to servo control level in portrait mode
+- Buttons now on left/right screen edges for better accessibility
+- Joystick now standalone at bottom for cleaner layout
+
+## [0.2.10-alpha-hotfix9] - 2025-12-23
+
+### Fixed
+- About page now displays changelog correctly (synced changelog files)
+
 ## [0.2.10-alpha-hotfix8] - 2025-12-23
 
 ### Changed
