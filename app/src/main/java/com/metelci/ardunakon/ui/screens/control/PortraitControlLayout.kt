@@ -128,33 +128,19 @@ fun PortraitControlLayout(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // Servo Buttons
-        ServoPanel(
-            servoX = viewModel.servoX,
-            servoY = viewModel.servoY,
-            servoZ = viewModel.servoZ,
-            onServoMove = { x, y, z -> viewModel.updateServo(x, y, z) },
-            onLog = { message -> bluetoothManager.log(message, LogType.INFO) },
-            buttonSize = 56.dp,
-            modifier = Modifier.weight(if (viewModel.isDebugPanelVisible) 0.25f else 0.4f).fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Joystick with Custom Command Buttons on sides
-        val portraitJoystickSize = minOf(orientationConfig.screenWidthDp.dp * 0.5f, 180.dp)
+        // Servo Buttons with Custom Command Buttons on sides
         val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
         val leftCommands = customCommands.take(3)
         val rightCommands = customCommands.drop(3).take(3)
 
         Row(
             modifier = Modifier
-                .weight(if (viewModel.isDebugPanelVisible) 0.35f else 0.6f)
+                .weight(if (viewModel.isDebugPanelVisible) 0.25f else 0.4f)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left side custom command buttons
+            // Left side custom command buttons (at screen edge)
             CustomCommandButtonRow(
                 commands = leftCommands,
                 view = view,
@@ -164,18 +150,18 @@ fun PortraitControlLayout(
                 modifier = Modifier.fillMaxHeight()
             )
 
-            // Joystick
-            JoystickPanel(
-                onMoved = { x, y -> viewModel.updateJoystick(x, y) },
-                size = portraitJoystickSize,
-                isThrottle = false,
-                bluetoothRttMs = health?.lastRttMs,
-                wifiRttMs = wifiRtt,
-                isWifiMode = viewModel.connectionMode == ConnectionMode.WIFI,
-                modifier = Modifier
+            // Servo Panel in the center
+            ServoPanel(
+                servoX = viewModel.servoX,
+                servoY = viewModel.servoY,
+                servoZ = viewModel.servoZ,
+                onServoMove = { x, y, z -> viewModel.updateServo(x, y, z) },
+                onLog = { message -> bluetoothManager.log(message, LogType.INFO) },
+                buttonSize = 56.dp,
+                modifier = Modifier.weight(1f)
             )
 
-            // Right side custom command buttons
+            // Right side custom command buttons (at screen edge)
             CustomCommandButtonRow(
                 commands = rightCommands,
                 view = view,
@@ -185,5 +171,20 @@ fun PortraitControlLayout(
                 modifier = Modifier.fillMaxHeight()
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Joystick (now standalone, centered)
+        val portraitJoystickSize = minOf(orientationConfig.screenWidthDp.dp * 0.5f, 180.dp)
+
+        JoystickPanel(
+            onMoved = { x, y -> viewModel.updateJoystick(x, y) },
+            size = portraitJoystickSize,
+            isThrottle = false,
+            bluetoothRttMs = health?.lastRttMs,
+            wifiRttMs = wifiRtt,
+            isWifiMode = viewModel.connectionMode == ConnectionMode.WIFI,
+            modifier = Modifier.weight(if (viewModel.isDebugPanelVisible) 0.35f else 0.6f)
+        )
     }
 }
