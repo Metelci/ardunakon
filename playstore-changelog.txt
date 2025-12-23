@@ -1,3 +1,16 @@
+Version 0.2.10-alpha-hotfix3 - December 23, 2025
+
+FIXES:
+• Haptic Feedback Toggle: Setting now actually works (was being ignored before)
+
+IMPROVEMENTS:
+• Wider SCAN button for better visibility when disconnected
+• Created centralized haptic controller for consistent behavior
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.10-alpha-hotfix2 - December 23, 2025
 
 NEW FEATURES:

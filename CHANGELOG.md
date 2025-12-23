@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.10-alpha-hotfix3] - 2025-12-23
+
+### Fixed
+- Haptic feedback toggle now actually works (was being ignored)
+
+### Changed
+- Wider SCAN button for better visibility when disconnected
+- Created HapticController singleton for centralized haptic management
+
 ## [0.2.10-alpha-hotfix2] - 2025-12-23
 
 ### Added
