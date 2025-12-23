@@ -136,8 +136,8 @@ fun LandscapeControlLayout(
                 val currentRssi = if (viewModel.connectionMode == ConnectionMode.WIFI) wifiRssi else rssiValue
                 val hasCrashLog = CrashHandler.hasCrashLog(context)
                 val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
-                val leftCommands = customCommands.take(3)
-                val rightCommands = customCommands.drop(3).take(3)
+                val leftCommands = customCommands.take(2)
+                val rightCommands = customCommands.drop(2).take(2)
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -150,7 +150,7 @@ fun LandscapeControlLayout(
                         view = view,
                         onCommandClick = { viewModel.sendCustomCommand(it) },
                         buttonSize = 40.dp,
-                        maxButtons = 3
+                        maxButtons = 2
                     )
 
                     StatusCard(
@@ -174,7 +174,7 @@ fun LandscapeControlLayout(
                         view = view,
                         onCommandClick = { viewModel.sendCustomCommand(it) },
                         buttonSize = 40.dp,
-                        maxButtons = 3
+                        maxButtons = 2
                     )
                 }
             }

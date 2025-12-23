@@ -108,11 +108,10 @@ fun CustomCommandPlaceholder(
                 spotColor = ElectricYellow.copy(alpha = 0.4f)
             )
             .clip(placeholderShape)
-            .background(Color(0xFF2A2A3E).copy(alpha = 0.5f))
             .border(1.5.dp, ElectricYellow.copy(alpha = 0.5f), placeholderShape),
         contentAlignment = Alignment.Center
     ) {
-        // Empty - just a subtle placeholder with electric yellow glow
+        // Empty - just electric yellow glow border, no dark background
     }
 }
 

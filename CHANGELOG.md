@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.10-alpha-hotfix5] - 2025-12-23
+
+### Fixed
+- Removed dark square background from custom command button placeholders
+- Reverted landscape orientation to 2 buttons per side (layout fix)
+
 ## [0.2.10-alpha-hotfix4] - 2025-12-23
 
 ### Changed
-- Custom command buttons now show 3 per side (6 total, up from 4)
+- Custom command buttons now show 3 per side in portrait (6 total)
 - Electric yellow glowing border effect on all custom command buttons
 - Enhanced visual prominence for custom command placeholders
 
