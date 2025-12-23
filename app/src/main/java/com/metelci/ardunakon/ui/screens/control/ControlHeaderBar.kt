@@ -141,17 +141,8 @@ fun ControlHeaderBar(
         var eStopButtonSize = if (isTight) 52.dp else eStopSize
         var widgetHeight = if (isTight) 36.dp else 40.dp
 
-        // Check if currently disconnected to make SCAN button wider
-        val isDisconnected = when (connectionMode) {
-            ConnectionMode.BLUETOOTH -> bluetoothConnectionState == ConnectionState.DISCONNECTED
-            ConnectionMode.WIFI -> wifiConnectionState == WifiConnectionState.DISCONNECTED
-        }
-        // Use wider widget when showing SCAN button
-        val effectiveStatusWidth = if (isDisconnected) {
-            if (isTight) 60.dp else if (isLandscape) 80.dp else 72.dp
-        } else {
-            statusWidgetWidth
-        }
+        // Status widget width - same size for SCAN (disconnected) and RSSI (connected)
+        val effectiveStatusWidth = if (isTight) 60.dp else if (isLandscape) 80.dp else 72.dp
 
         Row(
             modifier = Modifier.fillMaxWidth(),
