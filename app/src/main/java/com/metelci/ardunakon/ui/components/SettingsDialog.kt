@@ -150,6 +150,20 @@ fun SettingsDialog(
 
                     Divider(color = Color(0xFF333333))
 
+                    // Custom Commands (top priority for quick access)
+                    SettingsSection(
+                        icon = Icons.Default.Extension,
+                        title = "Custom Commands",
+                        subtitle = if (customCommandCount > 0) "$customCommandCount configured" else "Create custom device commands",
+                        onClick = {
+                            view.hapticTap()
+                            onShowCustomCommands()
+                            onDismiss()
+                        }
+                    )
+
+                    Divider(color = Color(0xFF333333))
+
                     // Haptic Feedback Toggle
                     SettingsSection(
                         icon = Icons.Default.Vibration,
@@ -270,20 +284,6 @@ fun SettingsDialog(
                         onClick = {
                             view.hapticTap()
                             onShowOta()
-                            onDismiss()
-                        }
-                    )
-
-                    Divider(color = Color(0xFF333333))
-
-                    // Custom Commands
-                    SettingsSection(
-                        icon = Icons.Default.Extension,
-                        title = "Custom Commands",
-                        subtitle = if (customCommandCount > 0) "$customCommandCount configured" else "Create custom device commands",
-                        onClick = {
-                            view.hapticTap()
-                            onShowCustomCommands()
                             onDismiss()
                         }
                     )
