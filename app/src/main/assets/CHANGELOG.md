@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.10-alpha-hotfix8] - 2025-12-23
+
+### Changed
+- Custom Commands moved to top of Settings menu for quick access
+
+## [0.2.10-alpha-hotfix7] - 2025-12-23
+
+### Fixed
+- RSSI button now same size as SCAN button when connected
+
+## [0.2.10-alpha-hotfix6] - 2025-12-23
+
+### Fixed
+- Removed shadow causing dark squares in custom command buttons
+
 ## [0.2.10-alpha-hotfix5] - 2025-12-23
 
 ### Fixed
