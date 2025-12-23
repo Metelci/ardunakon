@@ -139,6 +139,18 @@ fun ControlHeaderBar(
         var eStopButtonSize = if (isTight) 52.dp else eStopSize
         var widgetHeight = if (isTight) 36.dp else 40.dp
 
+        // Check if currently disconnected to make SCAN button wider
+        val isDisconnected = when (connectionMode) {
+            ConnectionMode.BLUETOOTH -> bluetoothConnectionState == ConnectionState.DISCONNECTED
+            ConnectionMode.WIFI -> wifiConnectionState == WifiConnectionState.DISCONNECTED
+        }
+        // Use wider widget when showing SCAN button
+        val effectiveStatusWidth = if (isDisconnected) {
+            if (isTight) 60.dp else if (isLandscape) 80.dp else 72.dp
+        } else {
+            statusWidgetWidth
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -173,7 +185,7 @@ fun ControlHeaderBar(
                         onReconnect = onReconnectDevice,
                         onConfigure = onConfigureWifi,
                         view = view,
-                        modifier = Modifier.width(statusWidgetWidth).height(widgetHeight)
+                        modifier = Modifier.width(effectiveStatusWidth).height(widgetHeight)
                     )
                 }
             }
