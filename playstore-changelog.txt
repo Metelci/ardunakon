@@ -1,3 +1,18 @@
+Version 0.2.10-alpha-hotfix2 - December 23, 2025
+
+NEW FEATURES:
+• Custom Command Buttons: First 4 custom commands now visible on main control screen
+• Keyboard Shortcuts: Assign A-Z keys (except reserved) to custom commands
+• Dynamic SCAN Button: Shows "SCAN" when disconnected, RSSI/latency when connected
+
+IMPROVEMENTS:
+• Better first-time user experience with visible SCAN button
+• Direct tap on SCAN opens device scanner (no menu needed)
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.10-alpha-hotfix1 - December 22, 2025
 
 IMPROVEMENTS:
