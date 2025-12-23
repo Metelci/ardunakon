@@ -446,10 +446,29 @@ fun ConnectionStatusWidget(
     }
 
     Box(modifier = modifier) {
+        // Determine if connected
+        val isConnected = when (connectionMode) {
+            ConnectionMode.BLUETOOTH -> btState == ConnectionState.CONNECTED
+            ConnectionMode.WIFI -> wifiState == WifiConnectionState.CONNECTED
+        }
+        val isConnecting = when (connectionMode) {
+            ConnectionMode.BLUETOOTH -> btState == ConnectionState.CONNECTING || btState == ConnectionState.RECONNECTING
+            ConnectionMode.WIFI -> wifiState == WifiConnectionState.CONNECTING
+        }
+
         Surface(
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                showMenu = true
+                if (!isConnected && !isConnecting) {
+                    // When disconnected, tapping directly triggers scan
+                    if (connectionMode == ConnectionMode.BLUETOOTH) {
+                        onScanDevices()
+                    } else {
+                        onConfigure()
+                    }
+                } else {
+                    showMenu = true
+                }
             },
             shape = CircleShape,
             color = Color(0xFF455A64),
@@ -461,37 +480,56 @@ fun ConnectionStatusWidget(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    // Lock icon when encrypted
-                    if (isEncrypted) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "Encrypted connection",
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(10.dp)
+                if (isConnected) {
+                    // Connected: Show RSSI + latency info
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        // Lock icon when encrypted
+                        if (isEncrypted) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Encrypted connection",
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(10.dp)
+                            )
+                        }
+                        SignalStrengthIcon(
+                            rssi = rssi,
+                            color = stateColor,
+                            isWifi = connectionMode == ConnectionMode.WIFI,
+                            showLabels = false,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "${lastRtt}ms",
+                            fontSize = 9.sp,
+                            color = stateColor,
+                            fontWeight = FontWeight.Medium
                         )
                     }
-                    SignalStrengthIcon(
-                        rssi = rssi,
-                        color = stateColor,
-                        isWifi = connectionMode == ConnectionMode.WIFI,
-                        showLabels = false,
-                        modifier = Modifier.size(16.dp)
+                    LatencySparkline(
+                        rttValues = rttHistory,
+                        modifier = Modifier.fillMaxWidth().height(8.dp)
                     )
+                } else if (isConnecting) {
+                    // Connecting: Show connecting indicator
                     Text(
-                        text = "${lastRtt}ms",
-                        fontSize = 9.sp,
+                        text = "...",
+                        fontSize = 12.sp,
                         color = stateColor,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    // Disconnected: Show SCAN button
+                    Text(
+                        text = "SCAN",
+                        fontSize = 11.sp,
+                        color = Color(0xFF64B5F6),
+                        fontWeight = FontWeight.Bold
                     )
                 }
-                LatencySparkline(
-                    rttValues = rttHistory,
-                    modifier = Modifier.fillMaxWidth().height(8.dp)
-                )
             }
         }
         DropdownMenu(
