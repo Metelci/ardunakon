@@ -144,8 +144,8 @@ fun PortraitControlLayout(
         // Joystick with Custom Command Buttons on sides
         val portraitJoystickSize = minOf(orientationConfig.screenWidthDp.dp * 0.5f, 180.dp)
         val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
-        val leftCommands = customCommands.take(2)
-        val rightCommands = customCommands.drop(2).take(2)
+        val leftCommands = customCommands.take(3)
+        val rightCommands = customCommands.drop(3).take(3)
 
         Row(
             modifier = Modifier
@@ -160,7 +160,7 @@ fun PortraitControlLayout(
                 view = view,
                 onCommandClick = { viewModel.sendCustomCommand(it) },
                 buttonSize = 44.dp,
-                maxButtons = 2,
+                maxButtons = 3,
                 modifier = Modifier.fillMaxHeight()
             )
 
@@ -181,7 +181,7 @@ fun PortraitControlLayout(
                 view = view,
                 onCommandClick = { viewModel.sendCustomCommand(it) },
                 buttonSize = 44.dp,
-                maxButtons = 2,
+                maxButtons = 3,
                 modifier = Modifier.fillMaxHeight()
             )
         }

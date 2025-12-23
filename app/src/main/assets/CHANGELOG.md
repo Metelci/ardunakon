@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.10-alpha-hotfix4] - 2025-12-23
+
+### Changed
+- Custom command buttons now show 3 per side (6 total, up from 4)
+- Electric yellow glowing border effect on all custom command buttons
+- Enhanced visual prominence for custom command placeholders
+
 ## [0.2.10-alpha-hotfix3] - 2025-12-23
 
 ### Fixed

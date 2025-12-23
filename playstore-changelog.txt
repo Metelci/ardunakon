@@ -1,3 +1,14 @@
+Version 0.2.10-alpha-hotfix4 - December 23, 2025
+
+IMPROVEMENTS:
+• Custom Command Buttons: Now shows 6 buttons (3 per side, up from 4)
+• Electric Yellow Glow: All custom command buttons have glowing border effect
+• Enhanced visual prominence for button placeholders
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.10-alpha-hotfix3 - December 23, 2025
 
 FIXES:

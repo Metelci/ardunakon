@@ -16,12 +16,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.model.CustomCommand
+
+/** Electric yellow color for glowing border effect */
+private val ElectricYellow = Color(0xFFFFFF00)
 
 /**
  * Compact button for displaying a custom command on the main control screen.
@@ -38,12 +42,20 @@ fun CustomCommandButton(
 ) {
     val buttonColor = Color(command.colorHex)
     
+    val buttonShape = RoundedCornerShape(12.dp)
+    
     Box(
         modifier = modifier
             .size(size)
-            .clip(RoundedCornerShape(12.dp))
+            .shadow(
+                elevation = 8.dp,
+                shape = buttonShape,
+                ambientColor = ElectricYellow,
+                spotColor = ElectricYellow
+            )
+            .clip(buttonShape)
             .background(buttonColor.copy(alpha = 0.85f))
-            .border(1.dp, buttonColor, RoundedCornerShape(12.dp))
+            .border(2.dp, ElectricYellow, buttonShape)
             .clickable {
                 view.hapticTap()
                 onClick()
@@ -84,21 +96,29 @@ fun CustomCommandPlaceholder(
     size: Dp = 48.dp,
     modifier: Modifier = Modifier
 ) {
+    val placeholderShape = RoundedCornerShape(12.dp)
+    
     Box(
         modifier = modifier
             .size(size)
-            .clip(RoundedCornerShape(12.dp))
+            .shadow(
+                elevation = 6.dp,
+                shape = placeholderShape,
+                ambientColor = ElectricYellow.copy(alpha = 0.4f),
+                spotColor = ElectricYellow.copy(alpha = 0.4f)
+            )
+            .clip(placeholderShape)
             .background(Color(0xFF2A2A3E).copy(alpha = 0.5f))
-            .border(1.dp, Color(0xFF455A64).copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+            .border(1.5.dp, ElectricYellow.copy(alpha = 0.5f), placeholderShape),
         contentAlignment = Alignment.Center
     ) {
-        // Empty - just a subtle placeholder
+        // Empty - just a subtle placeholder with electric yellow glow
     }
 }
 
 /**
  * Row of custom command buttons with placeholders for empty slots.
- * Shows up to 2 buttons on each side.
+ * Shows up to 3 buttons on each side with electric yellow glow effect.
  */
 @Suppress("FunctionName")
 @Composable
