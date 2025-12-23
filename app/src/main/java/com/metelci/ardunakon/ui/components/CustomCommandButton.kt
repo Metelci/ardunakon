@@ -47,12 +47,6 @@ fun CustomCommandButton(
     Box(
         modifier = modifier
             .size(size)
-            .shadow(
-                elevation = 8.dp,
-                shape = buttonShape,
-                ambientColor = ElectricYellow,
-                spotColor = ElectricYellow
-            )
             .clip(buttonShape)
             .background(buttonColor.copy(alpha = 0.85f))
             .border(2.dp, ElectricYellow, buttonShape)
@@ -101,17 +95,11 @@ fun CustomCommandPlaceholder(
     Box(
         modifier = modifier
             .size(size)
-            .shadow(
-                elevation = 6.dp,
-                shape = placeholderShape,
-                ambientColor = ElectricYellow.copy(alpha = 0.4f),
-                spotColor = ElectricYellow.copy(alpha = 0.4f)
-            )
             .clip(placeholderShape)
             .border(1.5.dp, ElectricYellow.copy(alpha = 0.5f), placeholderShape),
         contentAlignment = Alignment.Center
     ) {
-        // Empty - just electric yellow glow border, no dark background
+        // Empty - just electric yellow border, no background
     }
 }
 
