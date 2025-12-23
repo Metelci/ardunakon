@@ -2,6 +2,8 @@
 
 package com.metelci.ardunakon.ui.screens.control.dialogs
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.clickable
@@ -106,7 +108,7 @@ fun DeviceListDialog(
                     // Compact scan button
                     OutlinedButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             isScanning = true
                             onScan()
                             // Auto-stop scanning indication after 5 seconds
@@ -191,7 +193,7 @@ fun DeviceListDialog(
                                     .fillMaxWidth()
                                     .heightIn(min = 10.dp)
                                     .clickable {
-                                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                        view.hapticTap()
                                         onDeviceSelected(device)
                                     },
                                 shape = RoundedCornerShape(8.dp),

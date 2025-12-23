@@ -1,5 +1,7 @@
 package com.metelci.ardunakon.ui.screens.control
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.content.Context
 import android.content.Intent
 import android.view.HapticFeedbackConstants
@@ -196,6 +198,7 @@ class ControlViewModel @javax.inject.Inject constructor(
             val lastConn = connectionPreferences.loadLastConnection()
             joystickSensitivity = lastConn.joystickSensitivity
             isHapticEnabled = hapticPreferences.isHapticEnabled()
+            com.metelci.ardunakon.ui.utils.HapticController.isEnabled = isHapticEnabled
             if (lastConn.type == "WIFI") {
                 connectionMode = ConnectionMode.WIFI
                 bluetoothManager.log("Restored Connection Mode: WiFi", LogType.INFO)
@@ -370,7 +373,7 @@ class ControlViewModel @javax.inject.Inject constructor(
 
     // ========== E-Stop Handling ==========
     fun toggleEStop(view: View) {
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        view.hapticTap()
         val isActive = bluetoothManager.isEmergencyStopActive.value
         if (isActive) {
             bluetoothManager.setEmergencyStop(false)

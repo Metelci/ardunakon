@@ -2,6 +2,8 @@
 
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
@@ -208,7 +210,7 @@ fun CustomCommandDialog(
                         Switch(
                             checked = isToggle,
                             onCheckedChange = {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                view.hapticTap()
                                 isToggle = it
                             },
                             colors = SwitchDefaults.colors(
@@ -255,7 +257,7 @@ fun CustomCommandDialog(
                     }
                     Button(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             // Parse payload
                             val payload = payloadHex.padEnd(10, '0')
                                 .chunked(2)

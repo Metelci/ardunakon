@@ -1,19 +1,32 @@
 package com.metelci.ardunakon.ui.utils
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import android.view.View
 
 /**
- * Performs haptic feedback on this View if enabled.
- * 
- * @param isEnabled Whether haptic feedback is enabled by the user
- * @param feedbackConstant The type of haptic feedback to perform
+ * Global haptic feedback controller.
+ * Allows centralized control of haptic feedback based on user preferences.
  */
-fun View.performHapticFeedbackIfEnabled(
-    isEnabled: Boolean,
-    feedbackConstant: Int = HapticFeedbackConstants.KEYBOARD_TAP
-) {
-    if (isEnabled) {
-        performHapticFeedback(feedbackConstant)
+object HapticController {
+    /** Whether haptic feedback is enabled globally */
+    @Volatile
+    var isEnabled: Boolean = true
+
+    /**
+     * Performs haptic feedback if globally enabled.
+     */
+    fun performHaptic(view: View, feedbackConstant: Int = HapticFeedbackConstants.KEYBOARD_TAP) {
+        if (isEnabled) {
+            view.performHapticFeedback(feedbackConstant)
+        }
     }
+}
+
+/**
+ * Extension function to perform haptic feedback respecting global settings.
+ */
+fun View.hapticTap() {
+    HapticController.performHaptic(this, HapticFeedbackConstants.KEYBOARD_TAP)
 }

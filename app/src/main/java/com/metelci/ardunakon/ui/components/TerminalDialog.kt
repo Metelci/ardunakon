@@ -2,6 +2,8 @@
 
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -84,19 +86,19 @@ fun TerminalDialog(
                     }
                     Row {
                         IconButton(onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onExportLogs()
                         }) {
                             Icon(Icons.Default.Share, "Export Logs", tint = Color(0xFF00C853))
                         }
                         IconButton(onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onClearLogs()
                         }) {
                             Icon(Icons.Default.Delete, "Clear Logs", tint = Color(0xFFB0BEC5))
                         }
                         IconButton(onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onDismiss()
                         }) {
                             Icon(Icons.Default.Close, "Close", tint = Color(0xFFB0BEC5))
@@ -172,7 +174,7 @@ fun TerminalDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             if (inputText.isNotBlank()) {
                                 onSendCommand(inputText)
                                 inputText = ""

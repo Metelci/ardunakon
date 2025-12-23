@@ -1,5 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -141,7 +143,7 @@ fun JoystickControl(
                                 }
                                 // Feedback when hitting the edge
                                 if (atEdge && !wasAtEdge) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    view.hapticTap()
                                 }
                             }
 

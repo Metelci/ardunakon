@@ -2,6 +2,8 @@
 
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -88,7 +90,7 @@ fun TelemetryGraphDialog(telemetryHistoryManager: TelemetryHistoryManager, onDis
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         IconButton(
                             onClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                view.hapticTap()
                                 telemetryHistoryManager.clearAllHistory()
                             },
                             modifier = Modifier.size(36.dp)
@@ -102,7 +104,7 @@ fun TelemetryGraphDialog(telemetryHistoryManager: TelemetryHistoryManager, onDis
                         }
                         IconButton(
                             onClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                view.hapticTap()
                                 onDismiss()
                             },
                             modifier = Modifier.size(36.dp)

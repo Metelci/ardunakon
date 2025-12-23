@@ -1,5 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,7 +38,7 @@ fun AutoReconnectToggle(
 
     IconButton(
         onClick = {
-            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            view.hapticTap()
             onToggle(!enabled)
         },
         modifier = modifier

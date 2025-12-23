@@ -2,6 +2,8 @@
 
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
@@ -155,7 +157,7 @@ fun CustomCommandListDialog(
                 // Add button
                 Button(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onAddCommand()
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -267,7 +269,7 @@ private fun CustomCommandItem(
                 // Send button
                 IconButton(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onSend()
                     }
                 ) {

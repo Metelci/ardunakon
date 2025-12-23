@@ -1,5 +1,7 @@
 package com.metelci.ardunakon.ui.screens.control.dialogs
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.content.Intent
 import android.view.HapticFeedbackConstants
 import android.view.View
@@ -48,7 +50,7 @@ fun CrashLogDialog(crashLog: String, view: View, onShare: () -> Unit, onClear: (
                 Text("Crash Log", color = Color(0xFFFF9800))
                 Row {
                     IconButton(onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         val shareIntent = CrashHandler.getShareIntent(context)
                         if (shareIntent != null) {
                             context.startActivity(Intent.createChooser(shareIntent, "Share Crash Log"))
@@ -58,7 +60,7 @@ fun CrashLogDialog(crashLog: String, view: View, onShare: () -> Unit, onClear: (
                         Icon(Icons.Default.Share, "Share", tint = Color(0xFF00E5FF))
                     }
                     IconButton(onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         CrashHandler.clearCrashLog(context)
                         onClear()
                     }) {

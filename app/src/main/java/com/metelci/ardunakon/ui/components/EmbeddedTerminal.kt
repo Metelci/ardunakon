@@ -4,6 +4,8 @@
 
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -109,7 +111,7 @@ fun EmbeddedTerminal(
                     // Export button
                     IconButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onExportLogs()
                             // Also clear logs via long press ideally, but let's keep simple
                         },
@@ -120,7 +122,7 @@ fun EmbeddedTerminal(
                     // Search toggle
                     IconButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             showSearch = !showSearch
                             if (!showSearch) searchQuery = ""
                         },
@@ -141,7 +143,7 @@ fun EmbeddedTerminal(
                     // Clear button
                     IconButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onClearLogs()
                         },
                         modifier = Modifier.size(28.dp)
@@ -151,7 +153,7 @@ fun EmbeddedTerminal(
                     // Maximize button
                     IconButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onMaximize()
                         },
                         modifier = Modifier.size(28.dp)
@@ -166,7 +168,7 @@ fun EmbeddedTerminal(
                     // Minimize/Hide button
                     IconButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onMinimize()
                         },
                         modifier = Modifier.size(28.dp)
@@ -352,7 +354,7 @@ fun EmbeddedTerminal(
                 Spacer(modifier = Modifier.width(4.dp))
                 Button(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         if (inputText.isNotBlank()) {
                             onSendCommand(inputText)
                             inputText = ""

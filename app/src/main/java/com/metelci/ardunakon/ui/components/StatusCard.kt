@@ -1,5 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -85,7 +87,7 @@ fun StatusCard(
             Row(
                 modifier = Modifier
                     .clickable {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onClick()
                     },
                 verticalAlignment = Alignment.CenterVertically
@@ -100,7 +102,7 @@ fun StatusCard(
                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
                 androidx.compose.material3.IconButton(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onCrashLogClick()
                     },
                     // Slightly larger touch target

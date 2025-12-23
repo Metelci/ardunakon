@@ -2,6 +2,8 @@
 
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -68,7 +70,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     )
                     IconButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onDismiss()
                         },
                         modifier = Modifier.size(32.dp)
@@ -169,7 +171,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     // GitHub link button
                     OutlinedButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             webUrlToOpen = "https://github.com/metelci/ardunakon"
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -195,7 +197,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     // Arduino Cloud link button
                     OutlinedButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             webUrlToOpen = "https://cloud.arduino.cc"
                         },
                         modifier = Modifier.fillMaxWidth(),

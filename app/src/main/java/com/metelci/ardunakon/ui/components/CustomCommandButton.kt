@@ -2,6 +2,8 @@
 
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
@@ -43,7 +45,7 @@ fun CustomCommandButton(
             .background(buttonColor.copy(alpha = 0.85f))
             .border(1.dp, buttonColor, RoundedCornerShape(12.dp))
             .clickable {
-                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                view.hapticTap()
                 onClick()
             },
         contentAlignment = Alignment.Center

@@ -2,6 +2,8 @@
 
 package com.metelci.ardunakon.ui.screens.control
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.content.Context
 import android.view.HapticFeedbackConstants
 import android.view.View
@@ -197,7 +199,7 @@ fun ControlHeaderBar(
             ) {
                 IconButton(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onToggleEStop()
                     },
                     modifier = Modifier
@@ -310,7 +312,7 @@ private fun HeaderActionsRow(
 
         IconButton(
             onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                view.hapticTap()
                 onTelemetryGraph()
             },
             modifier = Modifier
@@ -329,7 +331,7 @@ private fun HeaderActionsRow(
 
         IconButton(
             onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                view.hapticTap()
                 onShowSettings()
             },
             modifier = Modifier
@@ -349,7 +351,7 @@ private fun HeaderActionsRow(
         Box {
             IconButton(
                 onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    view.hapticTap()
                     onToggleOverflowMenu()
                 },
                 modifier = Modifier
@@ -373,7 +375,7 @@ private fun HeaderActionsRow(
                     text = { Text("Help") },
                     leadingIcon = { Icon(Icons.Default.Help, null) },
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onShowHelp()
                         onDismissOverflowMenu()
                     }
@@ -382,7 +384,7 @@ private fun HeaderActionsRow(
                     text = { Text("About") },
                     leadingIcon = { Icon(Icons.Outlined.Info, null) },
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onShowAbout()
                         onDismissOverflowMenu()
                     }
@@ -391,7 +393,7 @@ private fun HeaderActionsRow(
                     text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
                     leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onShowCrashLog()
                         onDismissOverflowMenu()
                     }
@@ -400,7 +402,7 @@ private fun HeaderActionsRow(
                     text = { Text("Open Arduino Cloud") },
                     leadingIcon = { Icon(Icons.Default.OpenInNew, null, tint = Color(0xFF00FF00)) },
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onOpenArduinoCloud()
                         onDismissOverflowMenu()
                     }
@@ -410,7 +412,7 @@ private fun HeaderActionsRow(
                     text = { Text("Quit App", color = Color(0xFFFF5252)) },
                     leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onQuitApp()
                         onDismissOverflowMenu()
                     }
@@ -470,7 +472,7 @@ fun ConnectionStatusWidget(
 
         Surface(
             onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                view.hapticTap()
                 if (!isConnected && !isConnecting) {
                     // When disconnected, tapping directly triggers scan
                     if (connectionMode == ConnectionMode.BLUETOOTH) {
@@ -552,7 +554,7 @@ fun ConnectionStatusWidget(
                 DropdownMenuItem(
                     text = { Text("Scan for Devices") },
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         showMenu = false
                         onScanDevices()
                     }
@@ -560,7 +562,7 @@ fun ConnectionStatusWidget(
                 DropdownMenuItem(
                     text = { Text("Reconnect Device") },
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         showMenu = false
                         onReconnect()
                     }
@@ -569,7 +571,7 @@ fun ConnectionStatusWidget(
                 DropdownMenuItem(
                     text = { Text("Configure WiFi") },
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         showMenu = false
                         onConfigure()
                     }
@@ -604,7 +606,7 @@ fun ConnectionModeSelector(
         // BLE Button
         Surface(
             onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                view.hapticTap()
                 onModeSelected(ConnectionMode.BLUETOOTH)
             },
             color = if (selectedMode == ConnectionMode.BLUETOOTH) {
@@ -641,7 +643,7 @@ fun ConnectionModeSelector(
         // WiFi Button
         Surface(
             onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                view.hapticTap()
                 onModeSelected(ConnectionMode.WIFI)
             },
             color = if (selectedMode == ConnectionMode.WIFI) {

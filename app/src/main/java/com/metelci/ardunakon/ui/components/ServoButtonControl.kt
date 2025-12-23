@@ -1,5 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -65,7 +67,7 @@ fun ServoButtonControl(
                 }
             )
             if (targetZ != 0f) {
-                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                view.hapticTap()
             }
             onMove(servoX, servoY, targetZ)
         }
@@ -110,7 +112,7 @@ fun ServoButtonControl(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (canMove(currentTime)) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         val newY = (servoY + step).coerceIn(-1f, 1f)
                         val angle = ((newY + 1f) / 2f * 180f).toInt()
                         onLog?.invoke("Servo Y: $angle deg (W)")
@@ -163,7 +165,7 @@ fun ServoButtonControl(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (canMove(currentTime)) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         val newX = (servoX - step).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
                         onLog?.invoke("Servo X: $angle deg (L)")
@@ -191,7 +193,7 @@ fun ServoButtonControl(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (canMove(currentTime)) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         val newY = (servoY - step).coerceIn(-1f, 1f)
                         val angle = ((newY + 1f) / 2f * 180f).toInt()
                         onLog?.invoke("Servo Y: $angle deg (B)")
@@ -219,7 +221,7 @@ fun ServoButtonControl(
                 onClick = {
                     val currentTime = System.currentTimeMillis()
                     if (canMove(currentTime)) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         val newX = (servoX + step).coerceIn(-1f, 1f)
                         val angle = ((newX + 1f) / 2f * 180f).toInt()
                         onLog?.invoke("Servo X: $angle deg (R)")

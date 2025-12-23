@@ -1,5 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.webkit.WebResourceError
@@ -79,7 +81,7 @@ fun WebViewDialog(
                         }
                     }
                     IconButton(onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.hapticTap()
                         onDismiss()
                     }) {
                         Icon(

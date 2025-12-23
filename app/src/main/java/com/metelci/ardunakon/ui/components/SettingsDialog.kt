@@ -2,6 +2,8 @@
 
 package com.metelci.ardunakon.ui.components
 
+import com.metelci.ardunakon.ui.utils.hapticTap
+
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
@@ -135,7 +137,7 @@ fun SettingsDialog(
                             Switch(
                                 checked = isDebugPanelVisible,
                                 onCheckedChange = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    view.hapticTap()
                                     onToggleDebugPanel()
                                 },
                                 colors = SwitchDefaults.colors(
@@ -158,7 +160,7 @@ fun SettingsDialog(
                                 checked = isHapticEnabled,
                                 onCheckedChange = {
                                     if (isHapticEnabled) {
-                                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                        view.hapticTap()
                                     }
                                     onToggleHaptic()
                                 },
@@ -247,7 +249,7 @@ fun SettingsDialog(
                             Switch(
                                 checked = allowReflection,
                                 onCheckedChange = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    view.hapticTap()
                                     onToggleReflection()
                                 },
                                 colors = SwitchDefaults.colors(
@@ -266,7 +268,7 @@ fun SettingsDialog(
                         title = "OTA Firmware Update",
                         subtitle = "Update Arduino firmware over-the-air",
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onShowOta()
                             onDismiss()
                         }
@@ -280,7 +282,7 @@ fun SettingsDialog(
                         title = "Custom Commands",
                         subtitle = if (customCommandCount > 0) "$customCommandCount configured" else "Create custom device commands",
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onShowCustomCommands()
                             onDismiss()
                         }
@@ -294,7 +296,7 @@ fun SettingsDialog(
                         title = "Reset Tutorial",
                         subtitle = "Show onboarding tutorial again",
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            view.hapticTap()
                             onResetTutorial()
                             onDismiss()
                         }
