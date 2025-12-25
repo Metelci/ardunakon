@@ -48,8 +48,8 @@ class WriteQueueManager(
 
             while (isActive) {
                 try {
-                    // Take from queue (blocking call)
-                    val data = queue.take()
+                    // Take from queue (blocking call) on an interruptible dispatcher so cancellation can stop it.
+                    val data = runInterruptible(Dispatchers.IO) { queue.take() }
 
                     // Perform actual write
                     val success = performWrite(data)
@@ -62,6 +62,8 @@ class WriteQueueManager(
 
                     // Small delay to prevent overwhelming BLE stack
                     delay(writeDelayMs)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: InterruptedException) {
                     // Queue interrupted, exit gracefully
                     break

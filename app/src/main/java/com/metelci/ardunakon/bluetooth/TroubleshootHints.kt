@@ -32,11 +32,6 @@ object TroubleshootHints {
         Hint("heartbeat", "No heartbeat response", "Make sure Arduino is running properly"),
         Hint("missed.*ack", "ACK packets missing", "Check signal quality or move closer"),
 
-        // OTA errors
-        Hint("CRC", "Checksum mismatch", "Re-download the firmware file"),
-        Hint("flash", "Flash write error", "Make sure Arduino has enough storage space"),
-        Hint("AP not found", "WiFi AP not found", "Make sure Arduino is running ArdunakonOTA sketch"),
-
         // Permission errors
         Hint("permission", "Permission denied", "Grant Bluetooth permission in app settings"),
         Hint(

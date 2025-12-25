@@ -93,7 +93,6 @@ fun PortraitControlLayout(
             onShowHelp = { viewModel.showHelpDialog = true },
             onShowAbout = { viewModel.showAboutDialog = true },
             onShowCrashLog = { viewModel.showCrashLog = true },
-            onShowOta = { viewModel.showOtaDialog = true },
             onOpenArduinoCloud = {
                 val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                 context.startActivity(intent)

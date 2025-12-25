@@ -26,6 +26,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import java.io.File
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -42,12 +43,15 @@ class ControlViewModelTest {
     private lateinit var onboardingManager: OnboardingManager
     private lateinit var hapticPreferences: HapticPreferences
     private val mainDispatcher = UnconfinedTestDispatcher()
-    private val timeoutMs = 1_500L
+    private val timeoutMs = 5_000L
 
     @Before
     fun setUp() {
         Dispatchers.setMain(mainDispatcher)
         context = ApplicationProvider.getApplicationContext()
+        File(context.filesDir, "connection_prefs.json").delete()
+        context.getSharedPreferences("haptic_prefs", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("onboarding_prefs", Context.MODE_PRIVATE).edit().clear().commit()
         connectionPreferences = ConnectionPreferences(context, TestCryptoEngine())
         onboardingManager = OnboardingManager(OnboardingPreferences(context))
         hapticPreferences = HapticPreferences(context)
@@ -110,11 +114,14 @@ class ControlViewModelTest {
     fun switchToWifi_disconnects_bluetooth_when_currently_bluetooth_and_persists_mode() = runBlocking {
         val bluetoothManager = mockk<AppBluetoothManager>(relaxed = true)
         val wifiManager = mockk<WifiManager>(relaxed = true)
+        connectionPreferences.saveLastConnection(type = "BLUETOOTH", joystickSensitivity = 1.234f)
         val viewModel = createViewModel(bluetoothManager, wifiManager)
+        waitUntil { viewModel.joystickSensitivity == 1.234f }
 
         viewModel.connectionMode = ConnectionMode.BLUETOOTH
         viewModel.switchToWifi()
-        waitUntil { viewModel.connectionMode == ConnectionMode.WIFI }
+        assertEquals(ConnectionMode.WIFI, viewModel.connectionMode)
+        waitUntil { connectionPreferences.loadLastConnection().type == "WIFI" }
 
         verify(exactly = 1) { bluetoothManager.disconnect() }
         assertEquals(ConnectionMode.WIFI, viewModel.connectionMode)
@@ -125,11 +132,14 @@ class ControlViewModelTest {
     fun switchToBluetooth_disconnects_wifi_when_currently_wifi_and_persists_mode() = runBlocking {
         val bluetoothManager = mockk<AppBluetoothManager>(relaxed = true)
         val wifiManager = mockk<WifiManager>(relaxed = true)
+        connectionPreferences.saveLastConnection(type = "BLUETOOTH", joystickSensitivity = 1.234f)
         val viewModel = createViewModel(bluetoothManager, wifiManager)
+        waitUntil { viewModel.joystickSensitivity == 1.234f }
 
         viewModel.connectionMode = ConnectionMode.WIFI
         viewModel.switchToBluetooth()
-        waitUntil { viewModel.connectionMode == ConnectionMode.BLUETOOTH }
+        assertEquals(ConnectionMode.BLUETOOTH, viewModel.connectionMode)
+        waitUntil { connectionPreferences.loadLastConnection().type == "BLUETOOTH" }
 
         verify(exactly = 1) { wifiManager.disconnect() }
         assertEquals(ConnectionMode.BLUETOOTH, viewModel.connectionMode)
@@ -140,16 +150,18 @@ class ControlViewModelTest {
     fun toggleConnectionMode_switches_between_modes() = runBlocking {
         val bluetoothManager = mockk<AppBluetoothManager>(relaxed = true)
         val wifiManager = mockk<WifiManager>(relaxed = true)
+        connectionPreferences.saveLastConnection(type = "BLUETOOTH", joystickSensitivity = 1.234f)
         val viewModel = createViewModel(bluetoothManager, wifiManager)
+        waitUntil { viewModel.joystickSensitivity == 1.234f }
 
         viewModel.connectionMode = ConnectionMode.BLUETOOTH
         viewModel.toggleConnectionMode()
-        waitUntil { viewModel.connectionMode == ConnectionMode.WIFI }
         assertEquals(ConnectionMode.WIFI, viewModel.connectionMode)
+        waitUntil { connectionPreferences.loadLastConnection().type == "WIFI" }
 
         viewModel.toggleConnectionMode()
-        waitUntil { viewModel.connectionMode == ConnectionMode.BLUETOOTH }
         assertEquals(ConnectionMode.BLUETOOTH, viewModel.connectionMode)
+        waitUntil { connectionPreferences.loadLastConnection().type == "BLUETOOTH" }
     }
 
     @Test

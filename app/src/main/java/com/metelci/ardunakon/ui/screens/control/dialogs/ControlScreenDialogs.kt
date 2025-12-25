@@ -10,10 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.model.LogType
-import com.metelci.ardunakon.ota.BleOtaTransport
-import com.metelci.ardunakon.ota.OtaManager
-import com.metelci.ardunakon.ota.WifiOtaTransport
-import com.metelci.ardunakon.ui.components.OtaDialog
 import com.metelci.ardunakon.ui.components.SettingsDialog
 import com.metelci.ardunakon.ui.components.TelemetryGraphDialog
 import com.metelci.ardunakon.ui.components.TerminalDialog
@@ -40,11 +36,6 @@ fun ControlScreenDialogs(
     val telemetry by bluetoothManager.telemetry.collectAsState()
     val scannedDevices by bluetoothManager.scannedDevices.collectAsState()
     val wifiScannedDevices by wifiManager.scannedDevices.collectAsState()
-
-    // OTA components
-    val otaManager = remember { OtaManager(context) }
-    val wifiOtaTransport = remember { WifiOtaTransport(context) }
-    val bleOtaTransport = remember { BleOtaTransport(context, bluetoothManager) }
 
     // Debug Console Dialog
     if (viewModel.showDebugConsole) {
@@ -143,16 +134,6 @@ fun ControlScreenDialogs(
         )
     }
 
-    // OTA Dialog
-    if (viewModel.showOtaDialog) {
-        OtaDialog(
-            otaManager = otaManager,
-            bleTransport = bleOtaTransport,
-            wifiTransport = wifiOtaTransport,
-            onDismiss = { viewModel.showOtaDialog = false }
-        )
-    }
-
     // Settings Dialog
     if (viewModel.showSettingsDialog) {
         val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
@@ -167,10 +148,6 @@ fun ControlScreenDialogs(
             onJoystickSensitivityChange = { viewModel.updateJoystickSensitivity(it) },
             allowReflection = viewModel.allowReflection,
             onToggleReflection = { viewModel.updateAllowReflection(!viewModel.allowReflection) },
-            onShowOta = {
-                viewModel.showSettingsDialog = false
-                viewModel.showOtaDialog = true
-            },
             customCommandCount = customCommands.size,
             onShowCustomCommands = {
                 viewModel.showSettingsDialog = false

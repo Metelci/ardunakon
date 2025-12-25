@@ -26,7 +26,7 @@ import androidx.compose.ui.window.DialogProperties
 
 /**
  * Settings dialog for app configuration.
- * Contains: Debug toggle, Joystick sensitivity, Legacy reflection, OTA firmware, Custom commands, Reset tutorial.
+ * Contains: Debug toggle, Joystick sensitivity, Legacy reflection, Custom commands, Reset tutorial.
  */
 @Suppress("FunctionName")
 @Composable
@@ -49,9 +49,6 @@ fun SettingsDialog(
     // Legacy reflection
     allowReflection: Boolean,
     onToggleReflection: () -> Unit,
-
-    // OTA Firmware
-    onShowOta: () -> Unit,
 
     // Custom commands
     customCommandCount: Int = 0,
@@ -271,20 +268,6 @@ fun SettingsDialog(
                                     checkedTrackColor = Color(0xFFFFD54F).copy(alpha = 0.3f)
                                 )
                             )
-                        }
-                    )
-
-                    Divider(color = Color(0xFF333333))
-
-                    // OTA Firmware Update
-                    SettingsSection(
-                        icon = Icons.Default.SystemUpdate,
-                        title = "OTA Firmware Update",
-                        subtitle = "Update Arduino firmware over-the-air",
-                        onClick = {
-                            view.hapticTap()
-                            onShowOta()
-                            onDismiss()
                         }
                     )
 

@@ -47,18 +47,6 @@ These sketches are the main firmware options for controlling Arduino boards via 
 
 ---
 
-### 4. ArdunakonOTA
-**Target Hardware:** Arduino UNO R4 WiFi  
-**Features:**
-- Over-The-Air (OTA) firmware updates via WiFi
-- WiFi access point mode for updates
-- Firmware upload and verification
-- Update history tracking
-
-**Use Case:** Enables wireless firmware updates from the Ardunakon app
-
----
-
 ## Example Sketches (Optional)
 
 Located in `examples/PlugAndMake_Projects/` - these are sample projects demonstrating advanced features:

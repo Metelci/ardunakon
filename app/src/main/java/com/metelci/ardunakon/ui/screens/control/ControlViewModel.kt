@@ -68,7 +68,6 @@ class ControlViewModel @javax.inject.Inject constructor(
     var showTelemetryGraph by mutableStateOf(false)
     var isDebugPanelVisible by mutableStateOf(true)
     var showMaximizedDebug by mutableStateOf(false)
-    var showOtaDialog by mutableStateOf(false)
     var showWifiConfig by mutableStateOf(false)
     var showCrashLog by mutableStateOf(false)
     var showSettingsDialog by mutableStateOf(false)

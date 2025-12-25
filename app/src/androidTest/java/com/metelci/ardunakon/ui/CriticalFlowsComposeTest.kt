@@ -67,7 +67,44 @@ class CriticalFlowsComposeTest {
     }
 
     @Test
-    fun connectionStatusWidget_bluetooth_shows_scan_and_reconnect_actions() {
+    fun connectionStatusWidget_bluetooth_connected_opens_menu_and_actions_invoke_callbacks() {
+        composeRule.setContent {
+            var lastAction by remember { mutableStateOf("none") }
+            MaterialTheme {
+                Column {
+                    ConnectionStatusWidget(
+                        connectionMode = ConnectionMode.BLUETOOTH,
+                        btState = ConnectionState.CONNECTED,
+                        wifiState = WifiConnectionState.DISCONNECTED,
+                        rssi = -60,
+                        rttHistory = listOf(17L),
+                        onReconnect = { lastAction = "reconnect" },
+                        onConfigure = { lastAction = "configure" },
+                        onScanDevices = { lastAction = "scan" },
+                        view = LocalView.current,
+                        modifier = Modifier.semantics { contentDescription = "Connection Status" }
+                    )
+                    Text("action=$lastAction")
+                }
+            }
+        }
+
+        // Connected -> tapping opens menu.
+        composeRule.onNodeWithContentDescription("Connection Status").performClick()
+        composeRule.onNodeWithText("Scan for Devices").assertIsDisplayed()
+        composeRule.onNodeWithText("Reconnect Device").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Configure WiFi").assertCountEquals(0)
+
+        composeRule.onNodeWithText("Scan for Devices").performClick()
+        composeRule.onNodeWithText("action=scan").assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Connection Status").performClick()
+        composeRule.onNodeWithText("Reconnect Device").performClick()
+        composeRule.onNodeWithText("action=reconnect").assertIsDisplayed()
+    }
+
+    @Test
+    fun connectionStatusWidget_bluetooth_disconnected_click_triggers_scan_without_menu() {
         composeRule.setContent {
             var lastAction by remember { mutableStateOf("none") }
             MaterialTheme {
@@ -89,21 +126,48 @@ class CriticalFlowsComposeTest {
             }
         }
 
+        // Disconnected -> tapping triggers scan directly (no menu).
         composeRule.onNodeWithContentDescription("Connection Status").performClick()
-        composeRule.onNodeWithText("Scan for Devices").assertIsDisplayed()
-        composeRule.onNodeWithText("Reconnect Device").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Configure WiFi").assertCountEquals(0)
-
-        composeRule.onNodeWithText("Scan for Devices").performClick()
         composeRule.onNodeWithText("action=scan").assertIsDisplayed()
-
-        composeRule.onNodeWithContentDescription("Connection Status").performClick()
-        composeRule.onNodeWithText("Reconnect Device").performClick()
-        composeRule.onNodeWithText("action=reconnect").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Scan for Devices").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Reconnect Device").assertCountEquals(0)
     }
 
     @Test
-    fun connectionStatusWidget_wifi_shows_configure_action() {
+    fun connectionStatusWidget_wifi_connected_opens_menu_and_configure_invokes_callback() {
+        composeRule.setContent {
+            var lastAction by remember { mutableStateOf("none") }
+            MaterialTheme {
+                Column {
+                    ConnectionStatusWidget(
+                        connectionMode = ConnectionMode.WIFI,
+                        btState = ConnectionState.DISCONNECTED,
+                        wifiState = WifiConnectionState.CONNECTED,
+                        rssi = -45,
+                        rttHistory = listOf(23L),
+                        onReconnect = { lastAction = "reconnect" },
+                        onConfigure = { lastAction = "configure" },
+                        onScanDevices = { lastAction = "scan" },
+                        view = LocalView.current,
+                        modifier = Modifier.semantics { contentDescription = "Connection Status" }
+                    )
+                    Text("action=$lastAction")
+                }
+            }
+        }
+
+        // Connected -> tapping opens menu.
+        composeRule.onNodeWithContentDescription("Connection Status").performClick()
+        composeRule.onNodeWithText("Configure WiFi").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Scan for Devices").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Reconnect Device").assertCountEquals(0)
+
+        composeRule.onNodeWithText("Configure WiFi").performClick()
+        composeRule.onNodeWithText("action=configure").assertIsDisplayed()
+    }
+
+    @Test
+    fun connectionStatusWidget_wifi_disconnected_click_triggers_configure_without_menu() {
         composeRule.setContent {
             var lastAction by remember { mutableStateOf("none") }
             MaterialTheme {
@@ -125,13 +189,58 @@ class CriticalFlowsComposeTest {
             }
         }
 
+        // Disconnected -> tapping triggers configure directly (no menu).
         composeRule.onNodeWithContentDescription("Connection Status").performClick()
-        composeRule.onNodeWithText("Configure WiFi").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Scan for Devices").assertCountEquals(0)
-        composeRule.onAllNodesWithText("Reconnect Device").assertCountEquals(0)
-
-        composeRule.onNodeWithText("Configure WiFi").performClick()
         composeRule.onNodeWithText("action=configure").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Configure WiFi").assertCountEquals(0)
+    }
+
+    @Test
+    fun connectionStatusWidget_wifi_connected_encrypted_shows_lock_icon() {
+        composeRule.setContent {
+            MaterialTheme {
+                ConnectionStatusWidget(
+                    connectionMode = ConnectionMode.WIFI,
+                    btState = ConnectionState.DISCONNECTED,
+                    wifiState = WifiConnectionState.CONNECTED,
+                    rssi = -45,
+                    rttHistory = listOf(23L),
+                    isEncrypted = true,
+                    onReconnect = {},
+                    onConfigure = {},
+                    onScanDevices = {},
+                    view = LocalView.current,
+                    modifier = Modifier.semantics { contentDescription = "Connection Status" }
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Encrypted connection", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun connectionStatusWidget_connecting_shows_indicator_and_opens_menu() {
+        composeRule.setContent {
+            MaterialTheme {
+                ConnectionStatusWidget(
+                    connectionMode = ConnectionMode.BLUETOOTH,
+                    btState = ConnectionState.CONNECTING,
+                    wifiState = WifiConnectionState.DISCONNECTED,
+                    rssi = -60,
+                    rttHistory = listOf(17L),
+                    onReconnect = {},
+                    onConfigure = {},
+                    onScanDevices = {},
+                    view = LocalView.current,
+                    modifier = Modifier.semantics { contentDescription = "Connection Status" }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("...").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Connection Status").performClick()
+        composeRule.onNodeWithText("Scan for Devices").assertIsDisplayed()
+        composeRule.onNodeWithText("Reconnect Device").assertIsDisplayed()
     }
 
     @Test
@@ -166,7 +275,6 @@ class CriticalFlowsComposeTest {
                         onShowHelp = { helpOpened = true },
                         onShowAbout = {},
                         onShowCrashLog = {},
-                        onShowOta = {},
                         onOpenArduinoCloud = {},
                         onQuitApp = {},
                         context = context,
@@ -214,7 +322,6 @@ class CriticalFlowsComposeTest {
                         onShowHelp = {},
                         onShowAbout = {},
                         onShowCrashLog = {},
-                        onShowOta = {},
                         onOpenArduinoCloud = {},
                         onQuitApp = {},
                         context = context,
@@ -317,7 +424,6 @@ class CriticalFlowsComposeTest {
                         onShowHelp = {},
                         onShowAbout = {},
                         onShowCrashLog = {},
-                        onShowOta = {},
                         onOpenArduinoCloud = {},
                         onQuitApp = {},
                         context = context,

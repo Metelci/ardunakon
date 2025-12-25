@@ -109,7 +109,6 @@ fun ControlHeaderBar(
     onShowHelp: () -> Unit,
     onShowAbout: () -> Unit,
     onShowCrashLog: () -> Unit,
-    onShowOta: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
     onQuitApp: () -> Unit,
 
@@ -255,7 +254,6 @@ fun ControlHeaderBar(
                     onShowHelp = onShowHelp,
                     onShowAbout = onShowAbout,
                     onShowCrashLog = onShowCrashLog,
-                    onShowOta = onShowOta,
                     onOpenArduinoCloud = onOpenArduinoCloud,
                     onQuitApp = onQuitApp
                 )
@@ -282,7 +280,6 @@ private fun HeaderActionsRow(
     onShowHelp: () -> Unit,
     onShowAbout: () -> Unit,
     onShowCrashLog: () -> Unit,
-    onShowOta: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
     onQuitApp: () -> Unit
 ) {

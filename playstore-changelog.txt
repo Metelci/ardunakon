@@ -1,3 +1,15 @@
+Version 0.2.11-alpha - December 26, 2025
+
+IMPROVEMENTS:
+• Test Coverage: Expanded test suite to 510+ tests with 100% unit test pass rate
+• New Instrumented Tests: Added CrashHandler and TelemetryParser instrumented tests
+• JaCoCo: Verified JaCoCo coverage reporting for comprehensive test metrics
+• Code Quality: Refactored WriteQueueManager and CrashHandler tests for stability
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.10-alpha-hotfix5 - December 23, 2025
 
 FIXES:

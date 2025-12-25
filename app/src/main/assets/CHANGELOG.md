@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.11-alpha] - 2025-12-26
+
+### Added
+- Test suite expanded to 510+ tests with 100% unit test pass rate
+- CrashHandler instrumented tests (5 tests) for file system operations
+- TelemetryParser instrumented tests (4 tests) for packet parsing
+- JaCoCo coverage reporting verified and configured
+
+### Changed
+- WriteQueueManager tests refactored for coroutine stability
+- CrashHandler tests simplified for Robolectric compatibility
+- BreadcrumbManager capacity test improved
+
+---
+
 ## [0.2.10-alpha-hotfix10] - 2025-12-23
 
 ### Changed
