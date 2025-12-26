@@ -1,3 +1,14 @@
+Version 0.2.12-alpha - December 26, 2025
+
+IMPROVEMENTS:
+• Settings Dialog: Two-column layout in landscape orientation for better space usage
+• Settings Dialog: Larger vertical size (85%) in landscape mode
+• Custom Command Buttons: Increased button sizes for better visibility and touch targets
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.11-alpha - December 26, 2025
 
 IMPROVEMENTS:

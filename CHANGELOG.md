@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.12-alpha] - 2025-12-26
+
+### Changed
+- Settings dialog now uses two-column layout in landscape orientation for better space usage
+- Settings dialog vertical size increased to 85% in landscape mode
+- Custom command buttons increased in size (48dp → 56dp, row buttons 44dp → 52dp)
+
+---
+
 ## [0.2.11-alpha] - 2025-12-26
 
 ### Added

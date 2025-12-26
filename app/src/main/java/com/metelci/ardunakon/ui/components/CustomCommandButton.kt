@@ -37,7 +37,7 @@ fun CustomCommandButton(
     command: CustomCommand,
     view: View,
     onClick: () -> Unit,
-    size: Dp = 48.dp,
+    size: Dp = 56.dp,
     modifier: Modifier = Modifier
 ) {
     val buttonColor = Color(command.colorHex)
@@ -87,7 +87,7 @@ fun CustomCommandButton(
 @Suppress("FunctionName")
 @Composable
 fun CustomCommandPlaceholder(
-    size: Dp = 48.dp,
+    size: Dp = 56.dp,
     modifier: Modifier = Modifier
 ) {
     val placeholderShape = RoundedCornerShape(12.dp)
@@ -113,7 +113,7 @@ fun CustomCommandButtonRow(
     commands: List<CustomCommand>,
     view: View,
     onCommandClick: (CustomCommand) -> Unit,
-    buttonSize: Dp = 44.dp,
+    buttonSize: Dp = 52.dp,
     maxButtons: Int = 2,
     modifier: Modifier = Modifier
 ) {
