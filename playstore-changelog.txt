@@ -8,10 +8,13 @@ NEW FEATURES:
 IMPROVEMENTS:
 • Settings: Joystick sensitivity slider made more compact in all orientations
 • Settings: Slider now uses inline title/value layout for better space efficiency
+• Tutorial: Interface Tour bar moved to top with dark background
+• Tutorial: Demo screens updated to match current app UI (header, servo buttons, SCAN button)
+• Tutorial: Arrow indicators repositioned for correct element highlighting
 
 BUG FIXES:
 • Haptic Feedback: Toggle now properly updates global settings when changed
-• Tutorial: Content no longer overlaps with system notification bar
+• Tutorial: Content and navigation properly positioned without overlapping
 
 For full changelog, visit: https://github.com/metelci/ardunakon
 

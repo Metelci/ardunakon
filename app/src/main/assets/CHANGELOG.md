@@ -17,10 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Joystick sensitivity slider made more compact in both orientations
 - Settings dialog slider now uses inline title/value layout
+- Tutorial Interface Tour bar moved to very top with dark background
+- Tutorial demo header updated with Settings and Help buttons (matches current app)
+- Tutorial servo buttons updated to correct 2-row layout (A,W,Z / L,B,R)
+- Tutorial status widget now shows SCAN button (disconnected state)
+- Tutorial arrow indicators repositioned to match updated layout
 
 ### Fixed
 - Haptic feedback toggle now properly updates global HapticController when changed
 - Tutorial content no longer overlaps with system notification bar
+- Tutorial navigation card properly positioned below progress bar
 
 ---
 

@@ -67,35 +67,40 @@ fun RealScreenTour(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Layer 4: Tutorial content - Dynamic Positioning
+        // Layer 4: Progress bar at very top (below system status bar)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .background(Color.Black.copy(alpha = 0.7f))
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = Color(0xFF00C853),
+                trackColor = Color.White.copy(alpha = 0.3f)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Interface Tour - ${currentIndex + 1}/${tourOrder.size}",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White
+            )
+        }
+
+        // Layer 5: Navigation card with proper positioning
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(16.dp)
+                .padding(top = 50.dp) // Clear progress bar area
+                .padding(horizontal = 16.dp)
         ) {
-            // Top: Progress bar (Always at top)
-            Column(
-                modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = Color(0xFF00C853),
-                    trackColor = Color.White.copy(alpha = 0.3f)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Interface Tour - ${currentIndex + 1}/${tourOrder.size}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.8f)
-                )
-            }
-
             // Navigation card: Position based on highlighted element to avoid overlap
             // If element is at the bottom (Joystick/Servo), move card to Top.
             // If element is at the top (Header), move card to Bottom.
@@ -111,10 +116,11 @@ fun RealScreenTour(
                 onSkip = onSkip,
                 modifier = Modifier
                     .align(if (isBottomElement) Alignment.TopCenter else Alignment.BottomCenter)
-                    .navigationBarsPadding() // Use safe area handling
+                    .navigationBarsPadding()
                     .padding(
-                        top = if (isBottomElement) 60.dp else 0.dp,
-                        // Aggressive padding to clear system nav
+                        // Additional top padding when card is at top
+                        top = if (isBottomElement) 16.dp else 0.dp,
+                        // Bottom padding to clear system nav
                         bottom = if (!isBottomElement) 80.dp else 0.dp
                     )
             )
@@ -140,36 +146,33 @@ private fun ElementArrowIndicator(element: InterfaceElement, modifier: Modifier 
         label = "arrow_offset"
     )
 
+    // Base top offset accounts for: status bar padding + Interface Tour bar (~50dp) + demo top padding (60dp)
+    val baseTopOffset = 110.dp
+
     Box(modifier = modifier) {
         when (element) {
             InterfaceElement.CONNECTION_MODE -> {
                 // Points to connection switch (Top Left)
-                // Center of switch is ~45dp from start. Arrow center is start+20dp.
-                // So start = 25dp.
-                // Bottom of header is 56dp. Arrow tip should be close, e.g. 60dp.
                 ArrowUp(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = 25.dp, top = 60.dp + offset.dp)
+                        .padding(start = 25.dp, top = baseTopOffset + offset.dp)
                 )
             }
             InterfaceElement.CONNECTION_STATUS -> {
                 // Points to RSSI widget (Top Left, after switch)
-                // Switch ends at ~90dp. Gap 8dp. Widget starts ~98dp. width 56dp. center ~126dp.
-                // Arrow center (start+20) = 126. Start = 106.
                 ArrowUp(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = 106.dp, top = 60.dp + offset.dp)
+                        .padding(start = 106.dp, top = baseTopOffset + offset.dp)
                 )
             }
             InterfaceElement.ESTOP -> {
                 // Points to Center Stop Button
-                // Position: Below header, pointing UP
                 ArrowUp(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 70.dp + offset.dp)
+                        .padding(top = (baseTopOffset + 10.dp) + offset.dp)
                 )
             }
             InterfaceElement.SERVO_CONTROLS -> {
@@ -182,11 +185,6 @@ private fun ElementArrowIndicator(element: InterfaceElement, modifier: Modifier 
                     )
                 } else {
                     // Landscape: Right side column
-                    // Point to the vertical center of the right half
-                    // Let's use ArrowDown from top-right area
-                    // Actually, if it's CenterEnd, we might want pointing LEFT?
-                    // But keeping it simple with ArrowDown from slightly above.
-                    // Align TopEnd, padding top ~100dp, end ~80dp.
                     ArrowDown(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
@@ -197,7 +195,6 @@ private fun ElementArrowIndicator(element: InterfaceElement, modifier: Modifier 
             InterfaceElement.LEFT_JOYSTICK -> {
                 if (isPortrait) {
                     // Portrait: Bottom Center
-                    // Move up to be fully above the joystick area (approx 300dp from bottom)
                     ArrowDown(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -205,15 +202,11 @@ private fun ElementArrowIndicator(element: InterfaceElement, modifier: Modifier 
                     )
                 } else {
                     // Landscape: Left side (centered in left half)
-                    // Point from above. Center is ~50% height. Joystick size ~160dp.
-                    // Need to be above the joystick.
                     ArrowDown(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .padding(
-                                // Approx center of left half
                                 start = 120.dp,
-                                // Moved up significantly
                                 bottom = 240.dp + offset.dp
                             )
                     )

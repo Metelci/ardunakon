@@ -9,7 +9,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -54,7 +56,7 @@ fun DemoControlLayout(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 24.dp),
+                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 60.dp), // Extra top padding for Interface Tour bar
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Demo Header Bar (Always at top)
@@ -173,7 +175,7 @@ private fun DemoHeaderBar(highlightedElement: InterfaceElement?, modifier: Modif
             modifier = Modifier.align(Alignment.Center)
         )
 
-        // Right side buttons
+        // Right side buttons (matching current app: Chart, Settings, Help)
         Row(
             modifier = Modifier.align(Alignment.CenterEnd),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -182,11 +184,19 @@ private fun DemoHeaderBar(highlightedElement: InterfaceElement?, modifier: Modif
             DemoIconButton(
                 icon = Icons.AutoMirrored.Filled.ShowChart,
                 contentDescription = "Telemetry",
+                borderColor = Color(0xFF00FF00),
                 size = 32.dp
             )
             DemoIconButton(
-                icon = Icons.Default.Info,
-                contentDescription = "Debug",
+                icon = Icons.Default.Settings,
+                contentDescription = "Settings",
+                borderColor = Color(0xFF00C853),
+                size = 32.dp
+            )
+            DemoIconButton(
+                icon = Icons.Default.Help,
+                contentDescription = "Help Menu",
+                borderColor = Color(0xFF00FF00),
                 size = 32.dp
             )
         }
@@ -249,9 +259,8 @@ private fun DemoConnectionModeSelector(isHighlighted: Boolean, modifier: Modifie
 @Suppress("FunctionName")
 @Composable
 private fun DemoConnectionStatusWidget(isHighlighted: Boolean, modifier: Modifier = Modifier) {
-    val borderColor = if (isHighlighted) Color(0xFF00C853) else Color(0xFF00FF00)
+    val borderColor = if (isHighlighted) Color(0xFF00C853) else Color(0xFF64B5F6)
     val borderWidth = if (isHighlighted) 3.dp else 1.dp
-    val mockRttHistory = listOf(45L, 42L, 48L, 44L, 46L, 43L, 47L, 45L)
 
     Surface(
         shape = CircleShape,
@@ -259,32 +268,16 @@ private fun DemoConnectionStatusWidget(isHighlighted: Boolean, modifier: Modifie
         border = androidx.compose.foundation.BorderStroke(borderWidth, borderColor),
         modifier = modifier
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                SignalStrengthIcon(
-                    rssi = -55,
-                    color = Color(0xFF00FF00),
-                    isWifi = false,
-                    showLabels = false,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = "45ms",
-                    fontSize = 9.sp,
-                    color = Color(0xFF00FF00),
-                    fontWeight = FontWeight.Medium
-                )
-            }
-            LatencySparkline(
-                rttValues = mockRttHistory,
-                modifier = Modifier.fillMaxWidth().height(8.dp)
+            // Show SCAN button (disconnected state) - matches real app initial state
+            Text(
+                text = "SCAN",
+                fontSize = 11.sp,
+                color = Color(0xFF64B5F6),
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -320,12 +313,13 @@ private fun DemoEStopButton(isHighlighted: Boolean, size: androidx.compose.ui.un
 private fun DemoIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
+    borderColor: Color = Color(0xFF00FF00),
     size: androidx.compose.ui.unit.Dp
 ) {
     Surface(
         shape = CircleShape,
         color = Color(0xFF455A64),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00FF00)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
         modifier = Modifier
             .size(size)
             .shadow(2.dp, CircleShape)
@@ -334,7 +328,7 @@ private fun DemoIconButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = Color(0xFF00FF00),
+                tint = borderColor,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -387,21 +381,22 @@ private fun DemoDebugPanel(isHighlighted: Boolean, modifier: Modifier = Modifier
 @Suppress("FunctionName")
 @Composable
 private fun DemoServoPanel(modifier: Modifier = Modifier) {
-    Row(
+    Column(
         modifier = modifier,
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // W button
-        DemoServoButton("W")
-        Spacer(modifier = Modifier.width(8.dp))
-        // L B R row
-        Column {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DemoServoButton("L")
-                DemoServoButton("B")
-                DemoServoButton("R")
-            }
+        // Top Row: A, W, Z (matching actual ServoButtonControl)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            DemoServoButton("A")
+            DemoServoButton("W")
+            DemoServoButton("Z")
+        }
+        // Bottom Row: L, B, R
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            DemoServoButton("L")
+            DemoServoButton("B")
+            DemoServoButton("R")
         }
     }
 }
