@@ -213,38 +213,38 @@ fun SettingsDialog(
                                 .verticalScroll(rightScrollState),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Joystick Sensitivity Slider
+                            // Joystick Sensitivity Slider (compact for landscape)
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(Color(0xFF2A2A3E), RoundedCornerShape(8.dp))
-                                    .padding(12.dp)
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Gamepad,
                                         contentDescription = null,
                                         tint = Color(0xFF00C853),
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
-                                    Column {
-                                        Text(
-                                            "Joystick Sensitivity",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.White
-                                        )
-                                        Text(
-                                            "${"%.1f".format(joystickSensitivity)}x",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = Color(0xFF00C853)
-                                        )
-                                    }
+                                    Text(
+                                        "Sensitivity",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Text(
+                                        "${"%.1f".format(joystickSensitivity)}x",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00C853)
+                                    )
                                 }
-                                Spacer(modifier = Modifier.height(8.dp))
                                 Slider(
                                     value = joystickSensitivity,
                                     onValueChange = onJoystickSensitivityChange,
@@ -254,27 +254,16 @@ fun SettingsDialog(
                                         thumbColor = Color(0xFF00C853),
                                         activeTrackColor = Color(0xFF00C853),
                                         inactiveTrackColor = Color(0xFF455A64)
-                                    )
+                                    ),
+                                    modifier = Modifier.height(32.dp)
                                 )
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("0.5x", fontSize = 10.sp, color = Color.Gray)
-                                    Text("2.0x", fontSize = 10.sp, color = Color.Gray)
+                                    Text("0.5x", fontSize = 9.sp, color = Color.Gray)
+                                    Text("2.0x", fontSize = 9.sp, color = Color.Gray)
                                 }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = when {
-                                        joystickSensitivity < 0.95f -> "Provides more precision for fine movements."
-                                        joystickSensitivity > 1.05f -> "Reaches full power with less stick movement."
-                                        else -> "Standard linear response."
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray.copy(alpha = 0.8f),
-                                    fontSize = 11.sp
-                                )
                             }
 
                             Divider(color = Color(0xFF333333))
@@ -382,38 +371,38 @@ fun SettingsDialog(
 
                         Divider(color = Color(0xFF333333))
 
-                        // Joystick Sensitivity Slider
+                        // Joystick Sensitivity Slider (compact)
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(Color(0xFF2A2A3E), RoundedCornerShape(8.dp))
-                                .padding(12.dp)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Gamepad,
                                     contentDescription = null,
                                     tint = Color(0xFF00C853),
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Column {
-                                    Text(
-                                        "Joystick Sensitivity",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        "${"%.1f".format(joystickSensitivity)}x",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color(0xFF00C853)
-                                    )
-                                }
+                                Text(
+                                    "Sensitivity",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                Text(
+                                    "${"%.1f".format(joystickSensitivity)}x",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF00C853)
+                                )
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
                             Slider(
                                 value = joystickSensitivity,
                                 onValueChange = onJoystickSensitivityChange,
@@ -423,27 +412,16 @@ fun SettingsDialog(
                                     thumbColor = Color(0xFF00C853),
                                     activeTrackColor = Color(0xFF00C853),
                                     inactiveTrackColor = Color(0xFF455A64)
-                                )
+                                ),
+                                modifier = Modifier.height(32.dp)
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("0.5x", fontSize = 10.sp, color = Color.Gray)
-                                Text("2.0x", fontSize = 10.sp, color = Color.Gray)
+                                Text("0.5x", fontSize = 9.sp, color = Color.Gray)
+                                Text("2.0x", fontSize = 9.sp, color = Color.Gray)
                             }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = when {
-                                    joystickSensitivity < 0.95f -> "Provides more precision for fine movements."
-                                    joystickSensitivity > 1.05f -> "Reaches full power with less stick movement."
-                                    else -> "Standard linear response."
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray.copy(alpha = 0.8f),
-                                fontSize = 11.sp
-                            )
                         }
 
                         Divider(color = Color(0xFF333333))

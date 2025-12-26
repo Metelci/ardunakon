@@ -4,6 +4,7 @@ package com.metelci.ardunakon.ui.components
 
 import com.metelci.ardunakon.ui.utils.hapticTap
 
+import android.content.res.Configuration
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -45,7 +47,11 @@ fun CustomCommandDialog(
     onDismiss: () -> Unit
 ) {
     val isEditMode = command != null
-    val scrollState = rememberScrollState()
+    val leftScrollState = rememberScrollState()
+    val rightScrollState = rememberScrollState()
+    val singleScrollState = rememberScrollState()
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     // Form state
     var name by remember { mutableStateOf(command?.name ?: "") }
@@ -73,8 +79,8 @@ fun CustomCommandDialog(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.85f),
+                .fillMaxWidth(if (isLandscape) 0.95f else 0.92f)
+                .fillMaxHeight(if (isLandscape) 0.9f else 0.85f),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
             elevation = CardDefaults.cardElevation(8.dp)
@@ -120,123 +126,264 @@ fun CustomCommandDialog(
                 Divider(color = Color(0xFF455A64))
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Content
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(scrollState),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Name field
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it.take(20) },
-                        label = { Text("Command Name") },
-                        placeholder = { Text("e.g., Horn, Lights, Servo A") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color(0xFF00C853),
-                            unfocusedBorderColor = Color(0xFF455A64),
-                            focusedLabelColor = Color(0xFF00C853),
-                            unfocusedLabelColor = Color.Gray
-                        )
-                    )
-
-                    // Command ID selector
-                    CommandIdSelector(
-                        selectedId = selectedCommandId,
-                        availableIds = if (isEditMode) {
-                            (availableCommandIds + command!!.commandId).distinct().sorted()
-                        } else {
-                            availableCommandIds
-                        },
-                        onIdSelected = { selectedCommandId = it }
-                    )
-
-                    // Payload hex editor
-                    OutlinedTextField(
-                        value = payloadHex,
-                        onValueChange = { newValue ->
-                            // Filter to hex chars only and limit to 10 chars (5 bytes)
-                            val filtered = newValue.uppercase().filter { it in '0'..'9' || it in 'A'..'F' }
-                            payloadHex = filtered.take(10)
-                        },
-                        label = { Text("Payload (5 bytes hex)") },
-                        placeholder = { Text("e.g., 0102030405") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-                        supportingText = {
-                            Text(
-                                "${payloadHex.length}/10 hex chars (${payloadHex.length / 2} bytes)",
-                                color = if (payloadHex.length == 10) Color(0xFF00C853) else Color.Gray
-                            )
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color(0xFF00C853),
-                            unfocusedBorderColor = Color(0xFF455A64),
-                            focusedLabelColor = Color(0xFF00C853),
-                            unfocusedLabelColor = Color.Gray
-                        )
-                    )
-
-                    // Toggle vs Momentary
+                // Content - Two-column layout for landscape
+                if (isLandscape) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF2A2A3E), RoundedCornerShape(8.dp))
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column {
-                            Text(
-                                "Toggle Mode",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.White
+                        // Left column: Name, Command ID, Payload, Toggle
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .verticalScroll(leftScrollState),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Name field
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it.take(20) },
+                                label = { Text("Command Name") },
+                                placeholder = { Text("e.g., Horn, Lights") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color(0xFF00C853),
+                                    unfocusedBorderColor = Color(0xFF455A64),
+                                    focusedLabelColor = Color(0xFF00C853),
+                                    unfocusedLabelColor = Color.Gray
+                                )
                             )
-                            Text(
-                                if (isToggle) "Press to toggle on/off" else "Press & hold to send",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
+
+                            // Command ID selector
+                            CommandIdSelector(
+                                selectedId = selectedCommandId,
+                                availableIds = if (isEditMode) {
+                                    (availableCommandIds + command!!.commandId).distinct().sorted()
+                                } else {
+                                    availableCommandIds
+                                },
+                                onIdSelected = { selectedCommandId = it }
+                            )
+
+                            // Payload hex editor
+                            OutlinedTextField(
+                                value = payloadHex,
+                                onValueChange = { newValue ->
+                                    val filtered = newValue.uppercase().filter { it in '0'..'9' || it in 'A'..'F' }
+                                    payloadHex = filtered.take(10)
+                                },
+                                label = { Text("Payload (5 bytes hex)") },
+                                placeholder = { Text("0102030405") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                                supportingText = {
+                                    Text(
+                                        "${payloadHex.length}/10 hex",
+                                        color = if (payloadHex.length == 10) Color(0xFF00C853) else Color.Gray
+                                    )
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color(0xFF00C853),
+                                    unfocusedBorderColor = Color(0xFF455A64),
+                                    focusedLabelColor = Color(0xFF00C853),
+                                    unfocusedLabelColor = Color.Gray
+                                )
+                            )
+
+                            // Toggle vs Momentary
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF2A2A3E), RoundedCornerShape(8.dp))
+                                    .padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        "Toggle Mode",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        if (isToggle) "On/off" else "Hold",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray
+                                    )
+                                }
+                                Switch(
+                                    checked = isToggle,
+                                    onCheckedChange = {
+                                        view.hapticTap()
+                                        isToggle = it
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color(0xFF00C853),
+                                        checkedTrackColor = Color(0xFF00C853).copy(alpha = 0.3f)
+                                    )
+                                )
+                            }
+                        }
+
+                        // Vertical divider
+                        Divider(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(1.dp),
+                            color = Color(0xFF455A64)
+                        )
+
+                        // Right column: Color, Icon, Shortcut
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .verticalScroll(rightScrollState),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Color picker
+                            ColorPicker(
+                                selectedColor = selectedColorHex,
+                                onColorSelected = { selectedColorHex = it }
+                            )
+
+                            // Icon picker
+                            IconPicker(
+                                selectedIconName = selectedIconName,
+                                onIconSelected = { selectedIconName = it }
+                            )
+
+                            // Keyboard shortcut picker
+                            ShortcutPicker(
+                                selectedShortcut = selectedShortcut,
+                                onShortcutSelected = { selectedShortcut = it }
                             )
                         }
-                        Switch(
-                            checked = isToggle,
-                            onCheckedChange = {
-                                view.hapticTap()
-                                isToggle = it
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color(0xFF00C853),
-                                checkedTrackColor = Color(0xFF00C853).copy(alpha = 0.3f)
+                    }
+                } else {
+                    // Portrait: Single column
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(singleScrollState),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Name field
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it.take(20) },
+                            label = { Text("Command Name") },
+                            placeholder = { Text("e.g., Horn, Lights, Servo A") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF00C853),
+                                unfocusedBorderColor = Color(0xFF455A64),
+                                focusedLabelColor = Color(0xFF00C853),
+                                unfocusedLabelColor = Color.Gray
                             )
                         )
+
+                        // Command ID selector
+                        CommandIdSelector(
+                            selectedId = selectedCommandId,
+                            availableIds = if (isEditMode) {
+                                (availableCommandIds + command!!.commandId).distinct().sorted()
+                            } else {
+                                availableCommandIds
+                            },
+                            onIdSelected = { selectedCommandId = it }
+                        )
+
+                        // Payload hex editor
+                        OutlinedTextField(
+                            value = payloadHex,
+                            onValueChange = { newValue ->
+                                val filtered = newValue.uppercase().filter { it in '0'..'9' || it in 'A'..'F' }
+                                payloadHex = filtered.take(10)
+                            },
+                            label = { Text("Payload (5 bytes hex)") },
+                            placeholder = { Text("e.g., 0102030405") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                            supportingText = {
+                                Text(
+                                    "${payloadHex.length}/10 hex chars (${payloadHex.length / 2} bytes)",
+                                    color = if (payloadHex.length == 10) Color(0xFF00C853) else Color.Gray
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF00C853),
+                                unfocusedBorderColor = Color(0xFF455A64),
+                                focusedLabelColor = Color(0xFF00C853),
+                                unfocusedLabelColor = Color.Gray
+                            )
+                        )
+
+                        // Toggle vs Momentary
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF2A2A3E), RoundedCornerShape(8.dp))
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    "Toggle Mode",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                                Text(
+                                    if (isToggle) "Press to toggle on/off" else "Press & hold to send",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+                            }
+                            Switch(
+                                checked = isToggle,
+                                onCheckedChange = {
+                                    view.hapticTap()
+                                    isToggle = it
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color(0xFF00C853),
+                                    checkedTrackColor = Color(0xFF00C853).copy(alpha = 0.3f)
+                                )
+                            )
+                        }
+
+                        // Color picker
+                        ColorPicker(
+                            selectedColor = selectedColorHex,
+                            onColorSelected = { selectedColorHex = it }
+                        )
+
+                        // Icon picker
+                        IconPicker(
+                            selectedIconName = selectedIconName,
+                            onIconSelected = { selectedIconName = it }
+                        )
+
+                        // Keyboard shortcut picker
+                        ShortcutPicker(
+                            selectedShortcut = selectedShortcut,
+                            onShortcutSelected = { selectedShortcut = it }
+                        )
                     }
-
-                    // Color picker
-                    ColorPicker(
-                        selectedColor = selectedColorHex,
-                        onColorSelected = { selectedColorHex = it }
-                    )
-
-                    // Icon picker
-                    IconPicker(
-                        selectedIconName = selectedIconName,
-                        onIconSelected = { selectedIconName = it }
-                    )
-
-                    // Keyboard shortcut picker
-                    ShortcutPicker(
-                        selectedShortcut = selectedShortcut,
-                        onShortcutSelected = { selectedShortcut = it }
-                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

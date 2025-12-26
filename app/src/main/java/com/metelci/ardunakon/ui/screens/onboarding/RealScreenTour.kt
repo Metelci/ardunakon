@@ -71,6 +71,7 @@ fun RealScreenTour(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(16.dp)
         ) {
             // Top: Progress bar (Always at top)

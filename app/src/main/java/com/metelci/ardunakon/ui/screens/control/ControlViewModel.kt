@@ -129,6 +129,7 @@ class ControlViewModel @javax.inject.Inject constructor(
 
     fun updateHapticEnabled(enabled: Boolean) {
         isHapticEnabled = enabled
+        com.metelci.ardunakon.ui.utils.HapticController.isEnabled = enabled
         viewModelScope.launch {
             hapticPreferences.setHapticEnabled(enabled)
         }

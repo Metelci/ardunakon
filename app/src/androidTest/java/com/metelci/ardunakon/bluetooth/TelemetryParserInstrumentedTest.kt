@@ -2,7 +2,6 @@ package com.metelci.ardunakon.bluetooth
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -14,13 +13,6 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class TelemetryParserInstrumentedTest {
-
-    private lateinit var telemetryManager: TelemetryManager
-
-    @Before
-    fun setup() {
-        telemetryManager = TelemetryManager()
-    }
 
     @Test
     fun parseTelemetryPacket_validPacket_extractsData() {

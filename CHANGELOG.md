@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.13-alpha] - 2025-12-26
+
+### Added
+- Two-column landscape layout for Custom Commands List dialog
+- Two-column landscape layout for New/Edit Command dialog
+- System notification bar padding for all onboarding/tutorial screens
+
+### Changed
+- Joystick sensitivity slider made more compact in both orientations
+- Settings dialog slider now uses inline title/value layout
+
+### Fixed
+- Haptic feedback toggle now properly updates global HapticController when changed
+- Tutorial content no longer overlaps with system notification bar
+
+---
+
 ## [0.2.12-alpha] - 2025-12-26
 
 ### Changed

@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.metelci.ardunakon.model.InterfaceElement
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,9 +27,8 @@ class DemoControlLayoutTest {
         composeRule.setContent {
             MaterialTheme {
                 DemoControlLayout(
-                    highlightJoystick = false,
-                    highlightServo = false,
-                    highlightStatus = false
+                    highlightedElement = null,
+                    onAction = {}
                 )
             }
         }
@@ -41,9 +41,8 @@ class DemoControlLayoutTest {
         composeRule.setContent {
             MaterialTheme {
                 DemoControlLayout(
-                    highlightJoystick = true,
-                    highlightServo = false,
-                    highlightStatus = false
+                    highlightedElement = InterfaceElement.LEFT_JOYSTICK,
+                    onAction = {}
                 )
             }
         }
@@ -57,9 +56,8 @@ class DemoControlLayoutTest {
         composeRule.setContent {
             MaterialTheme {
                 DemoControlLayout(
-                    highlightJoystick = false,
-                    highlightServo = true,
-                    highlightStatus = false
+                    highlightedElement = InterfaceElement.SERVO_CONTROLS,
+                    onAction = {}
                 )
             }
         }
@@ -73,9 +71,8 @@ class DemoControlLayoutTest {
         composeRule.setContent {
             MaterialTheme {
                 DemoControlLayout(
-                    highlightJoystick = false,
-                    highlightServo = false,
-                    highlightStatus = true
+                    highlightedElement = InterfaceElement.CONNECTION_STATUS,
+                    onAction = {}
                 )
             }
         }
@@ -85,19 +82,18 @@ class DemoControlLayoutTest {
     }
 
     @Test
-    fun demoLayout_multipleHighlights() {
+    fun demoLayout_highlightsEStop() {
         composeRule.setContent {
             MaterialTheme {
                 DemoControlLayout(
-                    highlightJoystick = true,
-                    highlightServo = true,
-                    highlightStatus = true
+                    highlightedElement = InterfaceElement.ESTOP,
+                    onAction = {}
                 )
             }
         }
 
         composeRule.waitForIdle()
-        // All areas highlighted simultaneously
+        // E-Stop should be highlighted
     }
 
     @Test
@@ -105,9 +101,8 @@ class DemoControlLayoutTest {
         composeRule.setContent {
             MaterialTheme {
                 DemoControlLayout(
-                    highlightJoystick = false,
-                    highlightServo = false,
-                    highlightStatus = false
+                    highlightedElement = null,
+                    onAction = {}
                 )
             }
         }
@@ -120,9 +115,8 @@ class DemoControlLayoutTest {
         composeRule.setContent {
             MaterialTheme {
                 DemoControlLayout(
-                    highlightJoystick = false,
-                    highlightServo = false,
-                    highlightStatus = false
+                    highlightedElement = null,
+                    onAction = {}
                 )
             }
         }

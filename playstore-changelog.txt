@@ -1,3 +1,22 @@
+Version 0.2.13-alpha - December 26, 2025
+
+NEW FEATURES:
+• Custom Commands: Two-column landscape layout for command list dialog
+• Custom Commands: Two-column landscape layout for new/edit command dialog
+• Tutorial Screens: System notification bar padding for all onboarding pages
+
+IMPROVEMENTS:
+• Settings: Joystick sensitivity slider made more compact in all orientations
+• Settings: Slider now uses inline title/value layout for better space efficiency
+
+BUG FIXES:
+• Haptic Feedback: Toggle now properly updates global settings when changed
+• Tutorial: Content no longer overlaps with system notification bar
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.12-alpha - December 26, 2025
 
 IMPROVEMENTS:
