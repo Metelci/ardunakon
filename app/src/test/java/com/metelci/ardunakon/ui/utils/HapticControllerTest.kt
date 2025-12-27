@@ -2,19 +2,19 @@ package com.metelci.ardunakon.ui.utils
 
 import android.view.HapticFeedbackConstants
 import android.view.View
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.*
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Unit tests for HapticController.
  *
  * Tests enabled/disabled state, global control, and haptic feedback execution.
  */
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
 class HapticControllerTest {
 
     private lateinit var mockView: View
