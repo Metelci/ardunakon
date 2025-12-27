@@ -43,6 +43,11 @@ class HapticControllerTest {
     }
 
     @Test
+    fun `default enabled state is true`() {
+        assert(HapticController.isEnabled)
+    }
+
+    @Test
     fun `performHaptic does not execute feedback when disabled`() {
         HapticController.isEnabled = false
 
@@ -149,5 +154,17 @@ class HapticControllerTest {
             HapticController.performHaptic(mockView, feedbackType)
             verify { mockView.performHapticFeedback(feedbackType) }
         }
+    }
+
+    @Test
+    fun `performHaptic handles multiple views`() {
+        val anotherView = mockk<View>(relaxed = true)
+        HapticController.isEnabled = true
+
+        HapticController.performHaptic(mockView)
+        HapticController.performHaptic(anotherView)
+
+        verify { mockView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
+        verify { anotherView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
     }
 }

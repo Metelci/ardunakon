@@ -61,4 +61,23 @@ class AssetReaderTest {
         assertTrue(result.contains("ARDUNAKON - ARDUINO SETUP GUIDE"))
         assertTrue(result.contains("SUPPORTED HARDWARE"))
     }
+
+    @Test
+    fun readAssetFile_compatibility_asset_contains_header() {
+        val context: Context = ApplicationProvider.getApplicationContext()
+
+        val result = AssetReader.readAssetFile(context, "docs/compatibility.txt")
+
+        assertTrue(result.contains("MAXIMUM BLUETOOTH COMPATIBILITY REPORT"))
+    }
+
+    @Test
+    fun readAssetFile_error_message_includes_quick_links() {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val result = AssetReader.readAssetFile(context, "missing.txt")
+
+        assertTrue(result.contains("QUICK LINKS:"))
+        assertTrue(result.contains("Setup Guide"))
+        assertTrue(result.contains("Compatibility"))
+    }
 }
