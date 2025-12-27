@@ -57,6 +57,7 @@ class ConnectionTutorialScreenTest {
             ConnectionTutorialScreen(
                 step = ConnectionTutorialStep.CONNECTION_MODE,
                 selectedArduinoType = ArduinoType.R4_WIFI,
+                onArduinoSelected = {},
                 connectionMode = mode,
                 onConnectionModeChanged = { mode = it },
                 onNext = {},

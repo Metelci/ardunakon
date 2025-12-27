@@ -51,4 +51,14 @@ class AssetReaderTest {
         assertTrue(result.contains("ERROR LOADING DOCUMENTATION"))
         assertTrue(result.contains("Error: missing"))
     }
+
+    @Test
+    fun readAssetFile_existing_asset_returns_contents() {
+        val context: Context = ApplicationProvider.getApplicationContext()
+
+        val result = AssetReader.readAssetFile(context, "docs/setup_guide.txt")
+
+        assertTrue(result.contains("ARDUNAKON - ARDUINO SETUP GUIDE"))
+        assertTrue(result.contains("SUPPORTED HARDWARE"))
+    }
 }
