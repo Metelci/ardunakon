@@ -183,13 +183,27 @@ class ControlViewModelTest {
         val bluetoothManager = mockk<AppBluetoothManager>(relaxed = true)
         val wifiManager = mockk<WifiManager>(relaxed = true)
         val viewModel = createViewModel(bluetoothManager, wifiManager)
-        waitUntil { viewModel.joystickSensitivity == 1.0f }
 
+        // Wait for initial load with increased tolerance
+        withTimeout(10_000L) {
+            while (viewModel.joystickSensitivity != 1.0f) {
+                delay(20)
+            }
+        }
+
+        // Update sensitivity
         viewModel.updateJoystickSensitivity(1.75f)
-        waitUntil { viewModel.joystickSensitivity == 1.75f }
-        waitUntil { connectionPreferences.loadLastConnection().joystickSensitivity == 1.75f }
 
+        // Verify state is immediately updated (sync operation)
         assertEquals(1.75f, viewModel.joystickSensitivity, 0.0001f)
+
+        // Wait for async persistence with tolerance
+        withTimeout(10_000L) {
+            while (connectionPreferences.loadLastConnection().joystickSensitivity != 1.75f) {
+                delay(50)
+            }
+        }
+
         assertEquals(1.75f, connectionPreferences.loadLastConnection().joystickSensitivity, 0.0001f)
     }
 

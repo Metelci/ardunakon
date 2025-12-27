@@ -30,7 +30,8 @@ class WifiScanner(
     private val buildDiscoveryMessage: () -> Pair<ByteArray, String?>,
     private val verifySignature: (String, String, ByteArray) -> Boolean,
     private val getSessionKey: () -> ByteArray?,
-    private val getDiscoveryNonce: () -> String?
+    private val getDiscoveryNonce: () -> String?,
+    private val socketFactory: SocketFactory = DefaultSocketFactory()
 ) {
     private val _scannedDevices = MutableStateFlow<List<WifiDevice>>(emptyList())
     val scannedDevices = _scannedDevices.asStateFlow()
@@ -52,6 +53,7 @@ class WifiScanner(
     }
     private var discoveryListener: NsdManager.DiscoveryListener? = null
     private var multicastLock: AndroidWifiManager.MulticastLock? = null
+    private var discoveryJob: Job? = null
 
     fun startDiscovery() {
         if (_isScanning.value) return
@@ -85,23 +87,10 @@ class WifiScanner(
 
         val broadcastAddress = getBroadcastAddress()
 
-        scope.launch {
+        discoveryJob = scope.launch {
             var discoverySocket: DatagramSocket? = null
             try {
-                discoverySocket = try {
-                    DatagramSocket(null).apply {
-                        reuseAddress = true
-                        broadcast = true
-                        soTimeout = discoveryTimeoutMs.toInt()
-                        bind(InetSocketAddress(8888))
-                    }
-                } catch (e: Exception) {
-                    onLog("UDP discovery: couldn't bind to port 8888; using ephemeral port")
-                    DatagramSocket().apply {
-                        broadcast = true
-                        soTimeout = discoveryTimeoutMs.toInt()
-                    }
-                }
+                discoverySocket = socketFactory.createDiscoverySocket()
 
                 val (buffer, _) = buildDiscoveryMessage()
                 val packet = DatagramPacket(buffer, buffer.size, InetAddress.getByName("255.255.255.255"), 8888)
@@ -148,9 +137,12 @@ class WifiScanner(
                     } catch (e: java.net.SocketTimeoutException) { /* continue */ }
                 }
             } catch (e: Exception) {
-                Log.e("WifiScanner", "UDP Discovery failed", e)
+                if (e !is CancellationException) {
+                    Log.e("WifiScanner", "UDP Discovery failed", e)
+                }
             } finally {
                 discoverySocket?.close()
+                _isScanning.value = false
             }
         }
 
@@ -185,6 +177,8 @@ class WifiScanner(
 
     fun stopDiscovery() {
         _isScanning.value = false
+        discoveryJob?.cancel()
+        discoveryJob = null
         stopDiscoveryListener()
         multicastLock?.let { if (it.isHeld) it.release() }
         multicastLock = null

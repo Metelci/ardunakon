@@ -35,7 +35,8 @@ class WifiConnectionManager(
     private val scope: CoroutineScope,
     private val callback: WifiConnectionCallback,
     private val encryptionPreferences: com.metelci.ardunakon.data.WifiEncryptionPreferences,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val socketFactory: SocketFactory = DefaultSocketFactory()
 ) {
     private var shouldReconnect = false
     private var socket: DatagramSocket? = null
@@ -77,7 +78,7 @@ class WifiConnectionManager(
 
         scope.launch(ioDispatcher) {
             try {
-                socket = DatagramSocket()
+                socket = socketFactory.createConnectionSocket()
                 isConnected.set(true)
                 lastRxTime = System.currentTimeMillis()
 
@@ -223,7 +224,7 @@ class WifiConnectionManager(
         return cipher.doFinal(cipherText)
     }
 
-    private fun startReceiving() {
+    internal fun startReceiving() {
         receiveJob = scope.launch(ioDispatcher) {
             val buffer = ByteArray(1024)
             while (isActive && isConnected.get()) {
@@ -281,7 +282,7 @@ class WifiConnectionManager(
         }
     }
 
-    private fun startPing() {
+    internal fun startPing() {
         scope.launch(ioDispatcher) {
             while (isActive && isConnected.get()) {
                 try {
@@ -299,7 +300,7 @@ class WifiConnectionManager(
         }
     }
 
-    private fun startTimeoutMonitor() {
+    internal fun startTimeoutMonitor() {
         scope.launch {
             while (isActive && isConnected.get()) {
                 delay(1000)
@@ -311,7 +312,7 @@ class WifiConnectionManager(
         }
     }
 
-    private fun startRssiMonitor() {
+    internal fun startRssiMonitor() {
         scope.launch(ioDispatcher) {
             val appContext = context.applicationContext
             val wifiManager = appContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
