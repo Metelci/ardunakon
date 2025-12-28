@@ -7,6 +7,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
@@ -130,7 +131,8 @@ class SettingsPersistenceTest {
 
         // Disable haptic feedback
         composeTestRule.onNode(
-            hasRole(Role.Switch) and hasAnyAncestor(hasText("Haptic Feedback"))
+            SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch) and
+                hasAnyAncestor(hasText("Haptic Feedback"))
         ).performClick()
         composeTestRule.waitForIdle()
 
@@ -150,7 +152,7 @@ class SettingsPersistenceTest {
         composeTestRule.waitForIdle()
 
         // Adjust joystick sensitivity slider
-        composeTestRule.onNode(hasSetProgressAction())
+        composeTestRule.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress))
             .performSemanticsAction(SemanticsActions.SetProgress) { it(1.5f) }
         composeTestRule.waitForIdle()
 
