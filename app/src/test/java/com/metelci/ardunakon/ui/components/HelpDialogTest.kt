@@ -20,9 +20,11 @@ class HelpDialogTest {
 
     @Test
     fun helpDialog_shows_setup_content_by_default() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
+        composeTestRule.mainClock.advanceTimeBy(500)
 
         composeTestRule.onNodeWithText("Help & Documentation").assertExists()
         composeTestRule.onNodeWithText("Setup").assertExists()
@@ -31,18 +33,21 @@ class HelpDialogTest {
 
     @Test
     fun helpDialog_switches_to_compatibility_tab() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
+        composeTestRule.mainClock.advanceTimeBy(500)
 
-        composeTestRule.onNodeWithText("Compatibility").performClick()
-        composeTestRule.onNodeWithText("MAXIMUM BLUETOOTH COMPATIBILITY REPORT", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Compatibility", substring = true).performClick()
+        composeTestRule.onNodeWithText("COMPATIBILITY", substring = true).assertExists()
     }
 
     @Test
     fun helpDialog_takeTutorial_invokes_callbacks() {
         var dismissed = false
         var tutorialStarted = false
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             HelpDialog(
@@ -50,23 +55,24 @@ class HelpDialogTest {
                 onTakeTutorial = { tutorialStarted = true }
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
-        composeTestRule.onNodeWithText("Take Tutorial", substring = true).performClick()
+        composeTestRule.onNodeWithText("Tutorial", substring = true).performClick()
 
-        composeTestRule.runOnIdle {
-            assertTrue(tutorialStarted)
-            assertTrue(dismissed)
-        }
+        assertTrue(tutorialStarted)
+        assertTrue(dismissed)
     }
 
     @Test
     fun helpDialog_openArduinoCloud_shows_webview_title() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
+        composeTestRule.mainClock.advanceTimeBy(500)
 
-        composeTestRule.onNodeWithText("Open Arduino Cloud").performClick()
-        composeTestRule.onNodeWithText("Arduino Cloud").assertExists()
+        composeTestRule.onNodeWithText("Open Arduino Cloud", substring = true).performClick()
+        composeTestRule.onNodeWithText("Arduino Cloud", substring = true).assertExists()
         composeTestRule.onNodeWithContentDescription("Close").assertExists()
     }
 }

@@ -160,6 +160,7 @@ class ControlLayoutsTest {
                 exportLogs = {}
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(500)
 
         composeTestRule.onNodeWithText("Terminal").assertExists()
         composeTestRule.onNodeWithText("Device").assertDoesNotExist()
@@ -199,8 +200,9 @@ class ControlLayoutsTest {
                 exportLogs = {}
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(500)
 
-        composeTestRule.onNodeWithText("Device").assertExists()
-        composeTestRule.onNodeWithText("Terminal").assertExists()
+        composeTestRule.onNodeWithText("Device", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Terminal", substring = true).assertExists()
     }
 }

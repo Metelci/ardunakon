@@ -22,6 +22,7 @@ class CompletionScreenTest {
     @Test
     fun completionScreen_shows_checklist_and_finish_action() {
         var finished = false
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             CompletionScreen(
@@ -32,11 +33,9 @@ class CompletionScreenTest {
 
         composeTestRule.onNodeWithText("You're Ready!").assertExists()
         composeTestRule.onNodeWithText("Advanced features explored (1)").assertExists()
-        composeTestRule.onNodeWithText("Start Controlling! ▶️").performClick()
+        composeTestRule.onNodeWithText("Start Controlling", substring = true).performClick()
 
-        composeTestRule.runOnIdle {
-            assertTrue(finished)
-        }
+        assertTrue(finished)
     }
 
     @Test

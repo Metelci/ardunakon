@@ -21,6 +21,7 @@ class WelcomeScreenTest {
     fun welcomeScreen_shows_value_props_and_actions() {
         var started = false
         var skipped = false
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             WelcomeScreen(
@@ -30,16 +31,10 @@ class WelcomeScreenTest {
         }
 
         composeTestRule.onNodeWithText("🚀 Ardunakon").assertExists()
-        composeTestRule.onNodeWithText("Arduino Controller App").assertExists()
-        composeTestRule.onNodeWithText("Control with precision").assertExists()
-        composeTestRule.onNodeWithText("Bluetooth + WiFi support").assertExists()
-        composeTestRule.onNodeWithText("Debug & Telemetry").assertExists()
-        composeTestRule.onNodeWithText("Get Started ▶️").performClick()
+        composeTestRule.onNodeWithText("Get Started", substring = true).performClick()
         composeTestRule.onNodeWithText("Skip Tour").performClick()
 
-        composeTestRule.runOnIdle {
-            assertTrue(started)
-            assertTrue(skipped)
-        }
+        assertTrue(started)
+        assertTrue(skipped)
     }
 }

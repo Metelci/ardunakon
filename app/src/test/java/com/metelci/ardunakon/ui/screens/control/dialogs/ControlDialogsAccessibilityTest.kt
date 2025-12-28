@@ -34,6 +34,7 @@ class ControlDialogsAccessibilityTest {
             type = DeviceType.LE
         )
 
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             DeviceListDialog(
                 scannedDevices = listOf(device),
@@ -52,6 +53,7 @@ class ControlDialogsAccessibilityTest {
 
     @Test
     fun crashLogDialog_exposes_share_and_clear_actions() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             CrashLogDialog(
                 crashLog = "Log line",
@@ -70,6 +72,7 @@ class ControlDialogsAccessibilityTest {
 
     @Test
     fun securityDialogs_have_action_labels() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             SecurityErrorDialog(
                 message = "Unlock required",

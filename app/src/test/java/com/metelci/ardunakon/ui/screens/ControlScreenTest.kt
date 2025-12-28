@@ -130,6 +130,7 @@ class ControlScreenTest {
     @Config(sdk = [34], qualifiers = "port")
     fun controlScreen_portrait_hides_device_status_card() {
         val handles = createViewModel()
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             ControlScreen(viewModel = handles.viewModel)
@@ -143,6 +144,7 @@ class ControlScreenTest {
     @Config(sdk = [34], qualifiers = "land")
     fun controlScreen_landscape_shows_device_status_card() {
         val handles = createViewModel()
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             ControlScreen(viewModel = handles.viewModel)
@@ -155,40 +157,37 @@ class ControlScreenTest {
     @Test
     fun controlScreen_shows_snackbar_from_user_message() {
         val handles = createViewModel()
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             ControlScreen(viewModel = handles.viewModel)
         }
 
-        composeTestRule.runOnIdle {
-            handles.viewModel.showMessage("Status updated")
-        }
-
-        composeTestRule.waitForIdle()
+        handles.viewModel.showMessage("Status updated")
+        
+        // Advance clock if needed to show snackbar, but assertExists might work without it
         composeTestRule.onNodeWithText("Status updated").assertExists()
     }
 
     @Test
     fun controlScreen_shows_packet_loss_warning_from_telemetry() {
         val handles = createViewModel()
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             ControlScreen(viewModel = handles.viewModel)
         }
 
-        composeTestRule.runOnIdle {
-            handles.combinedState.value = handles.combinedState.value.copy(
-                telemetry = Telemetry(
-                    batteryVoltage = 12.0f,
-                    status = "OK",
-                    packetsSent = 100,
-                    packetsDropped = 6,
-                    packetsFailed = 0
-                )
+        handles.combinedState.value = handles.combinedState.value.copy(
+            telemetry = Telemetry(
+                batteryVoltage = 12.0f,
+                status = "OK",
+                packetsSent = 100,
+                packetsDropped = 6,
+                packetsFailed = 0
             )
-        }
+        )
 
-        composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Packet Loss Detected", substring = true).assertExists()
     }
 }

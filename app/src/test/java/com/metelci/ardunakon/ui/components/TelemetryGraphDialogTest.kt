@@ -24,6 +24,7 @@ class TelemetryGraphDialogTest {
     fun telemetryGraphDialog_shows_empty_states_and_updates_units() {
         val manager = TelemetryHistoryManager()
         var dismissed = false
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             TelemetryGraphDialog(
@@ -31,27 +32,26 @@ class TelemetryGraphDialogTest {
                 onDismiss = { dismissed = true }
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Telemetry Graphs").assertExists()
         composeTestRule.onNodeWithText("Units: Volts (V)").assertExists()
-        composeTestRule.onNodeWithText("No battery data available").assertExists()
+        composeTestRule.onNodeWithText("No battery data available", substring = true).assertExists()
 
         composeTestRule.onNodeWithText("RSSI").performClick()
         composeTestRule.onNodeWithText("Units: Signal strength (dBm)").assertExists()
-        composeTestRule.onNodeWithText("No RSSI data available").assertExists()
+        composeTestRule.onNodeWithText("No RSSI data available", substring = true).assertExists()
 
         composeTestRule.onNodeWithText("Latency").performClick()
         composeTestRule.onNodeWithText("Units: Latency (ms)").assertExists()
-        composeTestRule.onNodeWithText("No RTT data available").assertExists()
+        composeTestRule.onNodeWithText("No RTT data available", substring = true).assertExists()
 
         composeTestRule.onNodeWithText("Quality").performClick()
         composeTestRule.onNodeWithText("Units: Connection quality (%)").assertExists()
-        composeTestRule.onNodeWithText("No quality data available").assertExists()
+        composeTestRule.onNodeWithText("No quality data available", substring = true).assertExists()
 
         composeTestRule.onNodeWithContentDescription("Close").performClick()
-        composeTestRule.runOnIdle {
-            assertTrue(dismissed)
-        }
+        assertTrue(dismissed)
     }
 
     @Test
@@ -61,6 +61,7 @@ class TelemetryGraphDialogTest {
         manager.recordRssi(-55)
         manager.recordRtt(42)
         manager.recordPacketLoss(packetsSent = 100, packetsReceived = 95, packetsDropped = 3, packetsFailed = 2)
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             TelemetryGraphDialog(
@@ -68,14 +69,13 @@ class TelemetryGraphDialogTest {
                 onDismiss = {}
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Battery Voltage (V)").assertExists()
-        composeTestRule.onNodeWithText("No battery data available").assertDoesNotExist()
+        composeTestRule.onNodeWithText("No battery data available", substring = true).assertDoesNotExist()
 
         composeTestRule.onNodeWithContentDescription("Clear History").performClick()
 
-        composeTestRule.runOnIdle {
-            assertEquals(0, manager.getHistorySize())
-        }
+        assertEquals(0, manager.getHistorySize())
     }
 }

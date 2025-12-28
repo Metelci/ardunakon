@@ -19,6 +19,7 @@ class HelpDialogAccessibilityTest {
 
     @Test
     fun helpDialog_exposes_tab_and_action_labels() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
@@ -33,6 +34,7 @@ class HelpDialogAccessibilityTest {
 
     @Test
     fun telemetryGraphDialog_exposes_icon_descriptions() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             TelemetryGraphDialog(
                 telemetryHistoryManager = TelemetryHistoryManager(),

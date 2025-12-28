@@ -23,6 +23,7 @@ class RealScreenTourTest {
     fun realScreenTour_firstElement_shows_progress_and_next_only() {
         var nextTapped = false
         var skipTapped = false
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             RealScreenTour(
@@ -43,16 +44,15 @@ class RealScreenTourTest {
         composeTestRule.onNodeWithText("Next").performClick()
         composeTestRule.onNodeWithContentDescription("Back").assertDoesNotExist()
 
-        composeTestRule.runOnIdle {
-            assertTrue(skipTapped)
-            assertTrue(nextTapped)
-        }
+        assertTrue(skipTapped)
+        assertTrue(nextTapped)
     }
 
     @Test
     fun realScreenTour_lastElement_shows_continue_and_back() {
         var backTapped = false
         var nextTapped = false
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             RealScreenTour(
@@ -70,9 +70,7 @@ class RealScreenTourTest {
         composeTestRule.onNodeWithContentDescription("Back").performClick()
         composeTestRule.onNodeWithText("Next").assertDoesNotExist()
 
-        composeTestRule.runOnIdle {
-            assertTrue(nextTapped)
-            assertTrue(backTapped)
-        }
+        assertTrue(nextTapped)
+        assertTrue(backTapped)
     }
 }

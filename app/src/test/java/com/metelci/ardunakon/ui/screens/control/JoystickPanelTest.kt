@@ -17,6 +17,7 @@ class JoystickPanelTest {
 
     @Test
     fun joystickPanel_exposes_steering_description() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             JoystickPanel(onMoved = { _, _ -> })
         }
@@ -26,6 +27,7 @@ class JoystickPanelTest {
 
     @Test
     fun joystickPanel_exposes_throttle_description() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             JoystickPanel(onMoved = { _, _ -> }, isThrottle = true)
         }

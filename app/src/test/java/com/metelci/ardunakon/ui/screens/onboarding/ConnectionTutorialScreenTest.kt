@@ -26,6 +26,7 @@ class ConnectionTutorialScreenTest {
     fun connectionTutorial_chooseArduino_requires_selection_to_continue() {
         var selected: ArduinoType? = null
         var nextTapped = false
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             ConnectionTutorialScreen(
@@ -39,19 +40,18 @@ class ConnectionTutorialScreenTest {
             )
         }
 
-        composeTestRule.onNodeWithText("Select Your Device 🤖").assertExists()
+        composeTestRule.onNodeWithText("Select Your Device", substring = true).assertExists()
         composeTestRule.onNodeWithText(ArduinoType.UNO_Q.displayName).performClick()
         composeTestRule.onNodeWithText("Continue").performClick()
 
-        composeTestRule.runOnIdle {
-            assertEquals(ArduinoType.UNO_Q, selected)
-            assertTrue(nextTapped)
-        }
+        assertEquals(ArduinoType.UNO_Q, selected)
+        assertTrue(nextTapped)
     }
 
     @Test
     fun connectionTutorial_connectionMode_toggles_and_shows_text() {
         var mode = ConnectionMode.BLUETOOTH
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             ConnectionTutorialScreen(
@@ -67,20 +67,20 @@ class ConnectionTutorialScreenTest {
             )
         }
 
-        composeTestRule.onNodeWithText("🔌 Connection Mode").assertExists()
+        composeTestRule.onNodeWithText("Connection Mode", substring = true).assertExists()
         composeTestRule.onNodeWithText("Bluetooth mode selected", substring = true).assertExists()
         composeTestRule.onNodeWithText("WiFi").performClick()
 
-        composeTestRule.runOnIdle {
-            assertEquals(ConnectionMode.WIFI, mode)
-        }
-
+        assertEquals(ConnectionMode.WIFI, mode)
+        
+        // Advance slightly if needed for state change to reflect in UI
         composeTestRule.onNodeWithText("WiFi mode selected", substring = true).assertExists()
     }
 
     @Test
     fun connectionTutorial_setupFinal_shows_finish_action() {
         var finished = false
+        composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             ConnectionTutorialScreen(
@@ -94,12 +94,10 @@ class ConnectionTutorialScreenTest {
             )
         }
 
-        composeTestRule.onNodeWithText("🚀 Ready to Connect!").assertExists()
+        composeTestRule.onNodeWithText("Ready to Connect!", substring = true).assertExists()
         composeTestRule.onNodeWithText("Finish").performClick()
         composeTestRule.onNodeWithContentDescription("Finish tutorial").assertExists()
 
-        composeTestRule.runOnIdle {
-            assertTrue(finished)
-        }
+        assertTrue(finished)
     }
 }
