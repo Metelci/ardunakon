@@ -1,9 +1,15 @@
 package com.metelci.ardunakon.ui.flows
 
+import android.Manifest
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.rule.GrantPermissionRule
 import com.metelci.ardunakon.MainActivity
+import com.metelci.ardunakon.ui.screens.ControlScreen
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -20,28 +26,36 @@ import org.junit.runner.RunWith
 class CustomCommandFlowTest {
 
     @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.BLUETOOTH_SCAN,
+        Manifest.permission.BLUETOOTH_CONNECT,
+        Manifest.permission.NEARBY_WIFI_DEVICES,
+        Manifest.permission.POST_NOTIFICATIONS
+    )
 
     @get:Rule(order = 1)
+    val hiltRule = HiltAndroidRule(this)
+
+    @get:Rule(order = 2)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     @Before
     fun setUp() {
         hiltRule.inject()
+        composeTestRule.activityRule.scenario.onActivity {}
+        composeTestRule.setContent {
+            MaterialTheme(colorScheme = darkColorScheme()) {
+                Surface {
+                    ControlScreen()
+                }
+            }
+        }
+        waitForControlScreen()
     }
 
     @Test
     fun customCommandFlow_createNewCommand_success() {
-        // Wait for app to load
-        composeTestRule.waitForIdle()
-
-        // Open settings menu
-        composeTestRule.onNodeWithContentDescription("Settings").performClick()
-        composeTestRule.waitForIdle()
-
-        // Navigate to custom commands
-        composeTestRule.onNodeWithText("Custom Commands").performClick()
-        composeTestRule.waitForIdle()
+        openCustomCommands()
 
         // Click add command button
         composeTestRule.onNodeWithText("Add Command").performClick()
@@ -53,7 +67,7 @@ class CustomCommandFlowTest {
         composeTestRule.onNodeWithText("Payload (Hex)").performTextInput("0102030405")
 
         // Save command
-        composeTestRule.onNodeWithText("Save").performClick()
+        composeTestRule.onNodeWithText("Create").performClick()
         composeTestRule.waitForIdle()
 
         // Verify command appears in list
@@ -117,6 +131,8 @@ class CustomCommandFlowTest {
 
     @Test
     fun customCommandFlow_maxCommandsLimit_disablesAddButton() {
+        openCustomCommands()
+
         // Create 6 commands (max limit)
         repeat(6) { index ->
             composeTestRule.onNodeWithText("Add Command").performClick()
@@ -126,11 +142,26 @@ class CustomCommandFlowTest {
             composeTestRule.onNodeWithText("Payload (Hex)").performTextClearance()
             composeTestRule.onNodeWithText("Payload (Hex)").performTextInput("010203040$index")
 
-            composeTestRule.onNodeWithText("Save").performClick()
+            composeTestRule.onNodeWithText("Create").performClick()
             composeTestRule.waitForIdle()
         }
 
         // Verify add button is disabled
         composeTestRule.onNodeWithText("Add Command").assertIsNotEnabled()
+    }
+
+    private fun waitForControlScreen() {
+        composeTestRule.waitUntil(15_000) {
+            composeTestRule.onAllNodesWithContentDescription("Settings")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun openCustomCommands() {
+        composeTestRule.onNodeWithContentDescription("Settings").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Custom Commands").performClick()
+        composeTestRule.waitForIdle()
     }
 }
