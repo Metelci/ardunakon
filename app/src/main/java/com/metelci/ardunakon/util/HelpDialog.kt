@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -108,7 +109,7 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
                     selectedTabIndex = selectedTab,
                     containerColor = Color(0xFF1E1E2E),
                     contentColor = Color(0xFF74B9FF),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("HelpTabs"),
                     edgePadding = 0.dp
                 ) {
                     tabs.forEachIndexed { index, title ->
@@ -146,6 +147,7 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
                             RoundedCornerShape(8.dp)
                         )
                         .padding(12.dp)
+                        .testTag("HelpLazyColumn")
                 ) {
                     item {
                         Text(

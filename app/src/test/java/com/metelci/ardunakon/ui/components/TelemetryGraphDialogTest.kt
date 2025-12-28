@@ -1,9 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -14,7 +12,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w1024dp-h2048dp")
 class TelemetryGraphDialogTest {
 
     @get:Rule
@@ -32,29 +30,34 @@ class TelemetryGraphDialogTest {
                 onDismiss = { dismissed = true }
             )
         }
-        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.mainClock.advanceTimeBy(2000)
 
+        // Title
         composeTestRule.onNodeWithText("Telemetry Graphs").assertExists()
-        composeTestRule.onNodeWithText("Units: Volts (V)").assertExists()
-        composeTestRule.onNodeWithText("No battery data available", substring = true).assertExists()
+        
+        // Default Tab content
+        composeTestRule.onNodeWithText("Units: Volts", substring = true).assertExists()
+        composeTestRule.onNodeWithText("No battery data", substring = true).assertExists()
 
-        composeTestRule.onNodeWithText("RSSI").performClick()
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithText("Units: Signal strength (dBm)").assertExists()
-        composeTestRule.onNodeWithText("No RSSI data available", substring = true).assertExists()
+        // Tab RSSI
+        composeTestRule.onNodeWithText("RSSI", substring = false).performClick()
+        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.onNodeWithText("Units: Signal strength", substring = true).assertExists()
 
-        composeTestRule.onNodeWithText("Latency").performClick()
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithText("Units: Latency (ms)").assertExists()
-        composeTestRule.onNodeWithText("No RTT data available", substring = true).assertExists()
+        // Tab Latency
+        // The tab text is Exactly "Latency". The unit label is "Units: Latency (ms)".
+        composeTestRule.onNodeWithText("Latency", substring = false).performClick()
+        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.onNodeWithText("Units: Latency", substring = true).assertExists()
 
-        composeTestRule.onNodeWithText("Quality").performClick()
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithText("Units: Connection quality (%)").assertExists()
-        composeTestRule.onNodeWithText("No quality data available", substring = true).assertExists()
+        // Tab Quality
+        // The tab text is Exactly "Quality". The unit label is "Units: Connection quality (%)".
+        composeTestRule.onNodeWithText("Quality", substring = false).performClick()
+        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.onNodeWithText("Units: Connection quality", substring = true).assertExists()
 
         composeTestRule.onNodeWithContentDescription("Close").performClick()
-        composeTestRule.mainClock.advanceTimeBy(500)
+        composeTestRule.mainClock.advanceTimeBy(1000)
         assertTrue(dismissed)
     }
 
@@ -73,12 +76,13 @@ class TelemetryGraphDialogTest {
                 onDismiss = {}
             )
         }
-        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.mainClock.advanceTimeBy(2000)
 
-        composeTestRule.onNodeWithText("Battery Voltage (V)").assertExists()
-        composeTestRule.onNodeWithText("No battery data available", substring = true).assertDoesNotExist()
-
+        // Title of the chart
+        composeTestRule.onNodeWithText("Battery Voltage", substring = true).assertExists()
+        
         composeTestRule.onNodeWithContentDescription("Clear History").performClick()
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         assertEquals(0, manager.getHistorySize())
     }

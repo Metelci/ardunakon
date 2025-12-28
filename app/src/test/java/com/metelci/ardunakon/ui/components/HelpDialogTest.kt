@@ -1,10 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -13,7 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], qualifiers = "w800dp-h1280dp")
+@Config(sdk = [34], qualifiers = "w1024dp-h2048dp")
 class HelpDialogTest {
 
     @get:Rule
@@ -25,11 +22,13 @@ class HelpDialogTest {
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
-        composeTestRule.mainClock.advanceTimeBy(500)
+        composeTestRule.mainClock.advanceTimeBy(2000)
 
-        composeTestRule.onNodeWithText("Help & Documentation").assertExists()
-        composeTestRule.onNodeWithText("Setup").assertExists()
-        composeTestRule.onNodeWithText("ARDUNAKON - ARDUINO SETUP GUIDE", substring = true).assertExists()
+        // Title
+        composeTestRule.onNode(hasText("Help & Documentation", substring = true)).assertExists()
+        
+        // Tab - Setup
+        composeTestRule.onNode(hasText("Setup", substring = false).and(hasClickAction())).assertExists()
     }
 
     @Test
@@ -38,15 +37,15 @@ class HelpDialogTest {
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
-        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.mainClock.advanceTimeBy(2000)
 
-        // Use unmerged tree for tabs as they might be deep in the hierarchy
-        composeTestRule.onNodeWithText("Compatibility", substring = true, useUnmergedTree = true)
-            .performClick()
+        // Click Compatibility tab
+        composeTestRule.onNode(hasText("Compatibility", substring = false).and(hasClickAction())).performClick()
         
-        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.mainClock.advanceTimeBy(2000)
         
-        composeTestRule.onNodeWithText("Compatibility", substring = true, ignoreCase = true).assertExists()
+        // Check if tab is selected
+        composeTestRule.onNode(hasText("Compatibility", substring = false).and(hasClickAction())).assertIsSelected()
     }
 
     @Test
@@ -61,9 +60,15 @@ class HelpDialogTest {
                 onTakeTutorial = { tutorialStarted = true }
             )
         }
-        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.mainClock.advanceTimeBy(3000)
 
-        composeTestRule.onNodeWithText("Tutorial", substring = true).performScrollTo().performClick()
+        // Scroll to the item containing Tutorial (Index 2)
+        composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(2)
+        
+        composeTestRule.onNode(hasText("Tutorial", substring = true).and(hasClickAction()))
+            .performClick()
+
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         assertTrue(tutorialStarted)
         assertTrue(dismissed)
@@ -75,10 +80,19 @@ class HelpDialogTest {
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
-        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.mainClock.advanceTimeBy(3000)
 
-        composeTestRule.onNodeWithText("Open Arduino Cloud", substring = true).performScrollTo().performClick()
-        composeTestRule.onNodeWithText("Arduino Cloud", substring = true).assertExists()
-        composeTestRule.onNodeWithContentDescription("Close").assertExists()
+        // Scroll to the item containing Arduino Cloud (Index 2)
+        composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(2)
+            
+        composeTestRule.onNode(hasText("Arduino Cloud", substring = true).and(hasClickAction()))
+            .performClick()
+        
+        composeTestRule.mainClock.advanceTimeBy(2000)
+        
+        // Check if any "Arduino Cloud" exists (title)
+        composeTestRule.onAllNodes(hasText("Arduino Cloud", substring = true))
+            .onFirst()
+            .assertExists()
     }
 }

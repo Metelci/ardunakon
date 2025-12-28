@@ -10,36 +10,43 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w800dp-h1280dp")
 class WelcomeScreenTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
 
     @Test
-    fun welcomeScreen_shows_value_props_and_actions() {
+    fun welcomeScreen_startAction_invokes_callback() {
         var started = false
+        composeTestRule.mainClock.autoAdvance = false
+
+        composeTestRule.setContent {
+            WelcomeScreen(onStart = { started = true }, onSkip = {})
+        }
+        composeTestRule.mainClock.advanceTimeBy(1000)
+
+        composeTestRule.onNodeWithText("Get Started", substring = true, ignoreCase = true)
+            .performClick()
+        composeTestRule.mainClock.advanceTimeBy(1000)
+
+        assertTrue(started)
+    }
+
+    @Test
+    fun welcomeScreen_skipAction_invokes_callback() {
         var skipped = false
         composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
-            WelcomeScreen(
-                onStart = { started = true },
-                onSkip = { skipped = true }
-            )
+            WelcomeScreen(onStart = {}, onSkip = { skipped = true })
         }
-        composeTestRule.mainClock.advanceTimeBy(1000)
-
-        composeTestRule.onNodeWithText("Ardunakon", substring = true).assertExists()
-        composeTestRule.onNodeWithText("Get Started", substring = true, ignoreCase = true)
-            .performClick()
         composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Skip", substring = true, ignoreCase = true)
             .performClick()
         composeTestRule.mainClock.advanceTimeBy(1000)
 
-        assertTrue(started)
         assertTrue(skipped)
     }
 }

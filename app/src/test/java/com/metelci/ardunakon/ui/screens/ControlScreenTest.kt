@@ -1,10 +1,8 @@
 package com.metelci.ardunakon.ui.screens
 
 import android.content.Context
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithText
-
 import androidx.test.core.app.ApplicationProvider
 import com.metelci.ardunakon.TestCryptoEngine
 import com.metelci.ardunakon.bluetooth.AppBluetoothManager
@@ -22,10 +20,7 @@ import com.metelci.ardunakon.ui.screens.control.ControlViewModel
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiDevice
 import com.metelci.ardunakon.wifi.WifiManager
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockk
-import io.mockk.runs
+import io.mockk.*
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Before
@@ -135,9 +130,13 @@ class ControlScreenTest {
         composeTestRule.setContent {
             ControlScreen(viewModel = handles.viewModel)
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
-        composeTestRule.onNodeWithText("Terminal").assertExists()
-        composeTestRule.onNodeWithText("Device").assertDoesNotExist()
+        // In portrait, StatusCard is not shown in PortraitControlLayout? Let's verify.
+        // Actually, it should be in the header or somewhere.
+        // Looking at PortraitControlLayout, let's see where StatusCard is.
+        composeTestRule.onNodeWithText("Terminal", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Device", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -149,9 +148,10 @@ class ControlScreenTest {
         composeTestRule.setContent {
             ControlScreen(viewModel = handles.viewModel)
         }
+        composeTestRule.mainClock.advanceTimeBy(2000)
 
-        composeTestRule.onNodeWithText("Device").assertExists()
-        composeTestRule.onNodeWithText("Terminal").assertExists()
+        composeTestRule.onNodeWithText("Device", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Terminal", substring = true).assertExists()
     }
 
     @Test
@@ -162,11 +162,14 @@ class ControlScreenTest {
         composeTestRule.setContent {
             ControlScreen(viewModel = handles.viewModel)
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         handles.viewModel.showMessage("Status updated")
         
-        // Advance clock if needed to show snackbar, but assertExists might work without it
-        composeTestRule.onNodeWithText("Status updated").assertExists()
+        // Snackbar needs time to appear
+        composeTestRule.mainClock.advanceTimeBy(2000)
+        
+        composeTestRule.onNodeWithText("Status updated", substring = true).assertExists()
     }
 
     @Test
@@ -177,7 +180,7 @@ class ControlScreenTest {
         composeTestRule.setContent {
             ControlScreen(viewModel = handles.viewModel)
         }
-
+        // Need to set it before advancing clock or wait for recomposition
         handles.combinedState.value = handles.combinedState.value.copy(
             telemetry = Telemetry(
                 batteryVoltage = 12.0f,
@@ -187,6 +190,7 @@ class ControlScreenTest {
                 packetsFailed = 0
             )
         )
+        composeTestRule.mainClock.advanceTimeBy(2000)
 
         composeTestRule.onNodeWithText("Packet Loss Detected", substring = true).assertExists()
     }

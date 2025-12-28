@@ -1,8 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import org.junit.Rule
 import org.junit.Test
@@ -11,7 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w1024dp-h2048dp")
 class HelpDialogAccessibilityTest {
 
     @get:Rule
@@ -23,13 +22,20 @@ class HelpDialogAccessibilityTest {
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
-        composeTestRule.mainClock.advanceTimeBy(1000)
+        composeTestRule.mainClock.advanceTimeBy(3000)
 
-        composeTestRule.onNodeWithText("Help & Documentation").assertExists()
-        composeTestRule.onNodeWithText("Setup", substring = true).assertExists()
-        composeTestRule.onNodeWithText("Compatibility", substring = true).assertExists()
-        composeTestRule.onNodeWithText("Full Guide", substring = true).assertExists()
-        composeTestRule.onNodeWithText("Arduino Cloud", substring = true).assertExists()
+        // Title and tabs
+        composeTestRule.onNode(hasText("Help & Documentation", substring = true)).assertExists()
+        composeTestRule.onNode(hasText("Setup", substring = false).and(hasClickAction())).assertExists()
+        composeTestRule.onNode(hasText("Compatibility", substring = false).and(hasClickAction())).assertExists()
+        
+        // Scroll to the end to ensure everything is composed (only 3 items total)
+        composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(2)
+        
+        // Items in LazyColumn
+        composeTestRule.onNode(hasText("Full Guide", substring = true).and(hasClickAction())).assertExists()
+        composeTestRule.onNode(hasText("Arduino Cloud", substring = true).and(hasClickAction())).assertExists()
+        
         composeTestRule.onNodeWithContentDescription("Close").assertExists()
     }
 
@@ -45,7 +51,7 @@ class HelpDialogAccessibilityTest {
 
         composeTestRule.mainClock.advanceTimeBy(1000)
 
-        composeTestRule.onNodeWithText("Telemetry Graphs").assertExists()
+        composeTestRule.onNode(hasText("Telemetry Graphs", substring = true)).assertExists()
         composeTestRule.onNodeWithContentDescription("Clear History").assertExists()
         composeTestRule.onNodeWithContentDescription("Close").assertExists()
     }

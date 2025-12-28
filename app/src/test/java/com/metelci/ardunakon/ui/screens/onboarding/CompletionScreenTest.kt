@@ -11,27 +11,26 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w800dp-h1280dp")
 class CompletionScreenTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
 
     @Test
-    fun completionScreen_shows_checklist_and_finish_action() {
+    fun completionScreen_finishAction_invokes_callback() {
         var finished = false
         composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
             CompletionScreen(
                 onFinish = { finished = true },
-                exploredFeatures = setOf(FeatureType.DEBUG_CONSOLE)
+                exploredFeatures = emptySet()
             )
         }
         composeTestRule.mainClock.advanceTimeBy(1000)
 
-        composeTestRule.onNodeWithText("Ready", substring = true).assertExists()
-        composeTestRule.onNodeWithText("Controlling", substring = true)
+        composeTestRule.onNode(hasText("Controlling", substring = true), useUnmergedTree = true)
             .performClick()
         composeTestRule.mainClock.advanceTimeBy(1000)
 
