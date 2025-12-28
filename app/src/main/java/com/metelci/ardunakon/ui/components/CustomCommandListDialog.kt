@@ -57,7 +57,7 @@ fun CustomCommandListDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth(if (isLandscape) 0.95f else 0.92f)
-                .fillMaxHeight(if (isLandscape) 0.9f else 0.75f),
+                .fillMaxHeight(if (isLandscape) 0.85f else 0.75f),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
             elevation = CardDefaults.cardElevation(8.dp)
