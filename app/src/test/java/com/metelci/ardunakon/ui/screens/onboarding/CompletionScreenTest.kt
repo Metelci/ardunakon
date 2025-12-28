@@ -31,8 +31,7 @@ class CompletionScreenTest {
         composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Ready", substring = true).assertExists()
-        composeTestRule.onNodeWithText("Controlling", substring = true, useUnmergedTree = true)
-            .performScrollTo()
+        composeTestRule.onNodeWithText("Controlling", substring = true)
             .performClick()
         composeTestRule.mainClock.advanceTimeBy(1000)
 
