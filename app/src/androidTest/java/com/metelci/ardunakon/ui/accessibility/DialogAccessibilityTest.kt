@@ -1,8 +1,8 @@
 package com.metelci.ardunakon.ui.accessibility
 
-import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.metelci.ardunakon.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -205,7 +205,7 @@ class DialogAccessibilityTest {
         composeTestRule.waitForIdle()
         
         composeTestRule.activityRule.scenario.onActivity { activity ->
-            activity.onBackPressed()
+            activity.onBackPressedDispatcher.onBackPressed()
         }
         composeTestRule.waitForIdle()
         
@@ -217,7 +217,7 @@ class DialogAccessibilityTest {
         composeTestRule.waitForIdle()
         
         composeTestRule.activityRule.scenario.onActivity { activity ->
-            activity.onBackPressed()
+            activity.onBackPressedDispatcher.onBackPressed()
         }
         composeTestRule.waitForIdle()
         

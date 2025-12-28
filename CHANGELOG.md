@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.14-alpha] - 2025-12-28
+
+### Added
+- Comprehensive unit test coverage for Bluetooth state management (ConnectionStateManager, ClassicConnectionManager).
+- Robust unit tests for WifiManager auto-reconnect logic and state handling.
+- Verification of 100% pass rate across entire suite (1264 tests).
+
+### Improved
+- Bluetooth state debouncing logic to prevent noisy UI updates.
+- Classic Bluetooth connection handling stability.
+- WiFi auto-reconnect preference persistence reliability.
+
+---
+
 ## [0.2.13-alpha] - 2025-12-26
 
 ### Added

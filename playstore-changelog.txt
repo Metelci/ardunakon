@@ -1,3 +1,15 @@
+Version 0.2.14-alpha - December 28, 2025
+
+IMPROVEMENTS:
+• Test Coverage: Achieved 100% unit test pass rate (1264 tests) covering Bluetooth & WiFi logic
+• WiFi Stability: Enhanced auto-reconnect logic and connection state management
+• Bluetooth: Improved stability and state debouncing for smoother UX
+• Quality: Added comprehensive tests for connection managers
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.13-alpha - December 26, 2025
 
 NEW FEATURES:
