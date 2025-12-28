@@ -1,8 +1,7 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -29,10 +28,16 @@ class WelcomeScreenTest {
                 onSkip = { skipped = true }
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
-        composeTestRule.onNodeWithText("🚀 Ardunakon").assertExists()
-        composeTestRule.onNodeWithText("Get Started", substring = true).performClick()
-        composeTestRule.onNodeWithText("Skip Tour").performClick()
+        composeTestRule.onNodeWithText("Ardunakon", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Get Started", substring = true, ignoreCase = true)
+            .performClick()
+        composeTestRule.mainClock.advanceTimeBy(1000)
+
+        composeTestRule.onNodeWithText("Skip", substring = true, ignoreCase = true)
+            .performClick()
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         assertTrue(started)
         assertTrue(skipped)

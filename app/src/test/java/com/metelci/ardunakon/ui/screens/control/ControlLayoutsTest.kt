@@ -134,6 +134,7 @@ class ControlLayoutsTest {
             orientation = Configuration.ORIENTATION_PORTRAIT
         }
 
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             PortraitControlLayout(
                 viewModel = handles.viewModel,
@@ -160,7 +161,7 @@ class ControlLayoutsTest {
                 exportLogs = {}
             )
         }
-        composeTestRule.mainClock.advanceTimeBy(500)
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Terminal").assertExists()
         composeTestRule.onNodeWithText("Device").assertDoesNotExist()
@@ -174,6 +175,7 @@ class ControlLayoutsTest {
             orientation = Configuration.ORIENTATION_LANDSCAPE
         }
 
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             LandscapeControlLayout(
                 viewModel = handles.viewModel,
@@ -200,7 +202,7 @@ class ControlLayoutsTest {
                 exportLogs = {}
             )
         }
-        composeTestRule.mainClock.advanceTimeBy(500)
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Device", substring = true).assertExists()
         composeTestRule.onNodeWithText("Terminal", substring = true).assertExists()

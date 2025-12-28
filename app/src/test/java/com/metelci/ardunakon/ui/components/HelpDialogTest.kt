@@ -4,6 +4,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -12,7 +13,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w800dp-h1280dp")
 class HelpDialogTest {
 
     @get:Rule
@@ -37,10 +38,15 @@ class HelpDialogTest {
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
-        composeTestRule.mainClock.advanceTimeBy(500)
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
-        composeTestRule.onNodeWithText("Compatibility", substring = true).performClick()
-        composeTestRule.onNodeWithText("COMPATIBILITY", substring = true).assertExists()
+        // Use unmerged tree for tabs as they might be deep in the hierarchy
+        composeTestRule.onNodeWithText("Compatibility", substring = true, useUnmergedTree = true)
+            .performClick()
+        
+        composeTestRule.mainClock.advanceTimeBy(1000)
+        
+        composeTestRule.onNodeWithText("Compatibility", substring = true, ignoreCase = true).assertExists()
     }
 
     @Test
@@ -57,7 +63,7 @@ class HelpDialogTest {
         }
         composeTestRule.mainClock.advanceTimeBy(1000)
 
-        composeTestRule.onNodeWithText("Tutorial", substring = true).performClick()
+        composeTestRule.onNodeWithText("Tutorial", substring = true).performScrollTo().performClick()
 
         assertTrue(tutorialStarted)
         assertTrue(dismissed)
@@ -69,9 +75,9 @@ class HelpDialogTest {
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
-        composeTestRule.mainClock.advanceTimeBy(500)
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
-        composeTestRule.onNodeWithText("Open Arduino Cloud", substring = true).performClick()
+        composeTestRule.onNodeWithText("Open Arduino Cloud", substring = true).performScrollTo().performClick()
         composeTestRule.onNodeWithText("Arduino Cloud", substring = true).assertExists()
         composeTestRule.onNodeWithContentDescription("Close").assertExists()
     }

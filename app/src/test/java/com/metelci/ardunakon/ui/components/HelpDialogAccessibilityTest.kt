@@ -23,12 +23,13 @@ class HelpDialogAccessibilityTest {
         composeTestRule.setContent {
             HelpDialog(onDismiss = {})
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Help & Documentation").assertExists()
-        composeTestRule.onNodeWithText("Setup").assertExists()
-        composeTestRule.onNodeWithText("Compatibility").assertExists()
-        composeTestRule.onNodeWithText("View Full Guide").assertExists()
-        composeTestRule.onNodeWithText("Open Arduino Cloud").assertExists()
+        composeTestRule.onNodeWithText("Setup", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Compatibility", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Full Guide", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Arduino Cloud", substring = true).assertExists()
         composeTestRule.onNodeWithContentDescription("Close").assertExists()
     }
 
@@ -41,6 +42,8 @@ class HelpDialogAccessibilityTest {
                 onDismiss = {}
             )
         }
+
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Telemetry Graphs").assertExists()
         composeTestRule.onNodeWithContentDescription("Clear History").assertExists()

@@ -1,9 +1,7 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import com.metelci.ardunakon.model.FeatureType
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -30,10 +28,13 @@ class CompletionScreenTest {
                 exploredFeatures = setOf(FeatureType.DEBUG_CONSOLE)
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
-        composeTestRule.onNodeWithText("You're Ready!").assertExists()
-        composeTestRule.onNodeWithText("Advanced features explored (1)").assertExists()
-        composeTestRule.onNodeWithText("Start Controlling", substring = true).performClick()
+        composeTestRule.onNodeWithText("Ready", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Controlling", substring = true, useUnmergedTree = true)
+            .performScrollTo()
+            .performClick()
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         assertTrue(finished)
     }

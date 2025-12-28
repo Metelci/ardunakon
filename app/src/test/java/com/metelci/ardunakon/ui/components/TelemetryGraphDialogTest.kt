@@ -39,18 +39,22 @@ class TelemetryGraphDialogTest {
         composeTestRule.onNodeWithText("No battery data available", substring = true).assertExists()
 
         composeTestRule.onNodeWithText("RSSI").performClick()
+        composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Units: Signal strength (dBm)").assertExists()
         composeTestRule.onNodeWithText("No RSSI data available", substring = true).assertExists()
 
         composeTestRule.onNodeWithText("Latency").performClick()
+        composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Units: Latency (ms)").assertExists()
         composeTestRule.onNodeWithText("No RTT data available", substring = true).assertExists()
 
         composeTestRule.onNodeWithText("Quality").performClick()
+        composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Units: Connection quality (%)").assertExists()
         composeTestRule.onNodeWithText("No quality data available", substring = true).assertExists()
 
         composeTestRule.onNodeWithContentDescription("Close").performClick()
+        composeTestRule.mainClock.advanceTimeBy(500)
         assertTrue(dismissed)
     }
 

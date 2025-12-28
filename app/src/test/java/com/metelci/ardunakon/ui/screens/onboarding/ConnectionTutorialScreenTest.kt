@@ -1,9 +1,10 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
+import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.metelci.ardunakon.model.ArduinoType
 import com.metelci.ardunakon.model.ConnectionTutorialStep
 import com.metelci.ardunakon.ui.screens.control.ConnectionMode
@@ -24,7 +25,7 @@ class ConnectionTutorialScreenTest {
 
     @Test
     fun connectionTutorial_chooseArduino_requires_selection_to_continue() {
-        var selected: ArduinoType? = null
+        var selected by mutableStateOf<ArduinoType?>(null)
         var nextTapped = false
         composeTestRule.mainClock.autoAdvance = false
 
@@ -39,10 +40,13 @@ class ConnectionTutorialScreenTest {
                 progress = 0.1f
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Select Your Device", substring = true).assertExists()
         composeTestRule.onNodeWithText(ArduinoType.UNO_Q.displayName).performClick()
+        composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Continue").performClick()
+        composeTestRule.mainClock.advanceTimeBy(500)
 
         assertEquals(ArduinoType.UNO_Q, selected)
         assertTrue(nextTapped)
@@ -50,7 +54,7 @@ class ConnectionTutorialScreenTest {
 
     @Test
     fun connectionTutorial_connectionMode_toggles_and_shows_text() {
-        var mode = ConnectionMode.BLUETOOTH
+        var mode by mutableStateOf(ConnectionMode.BLUETOOTH)
         composeTestRule.mainClock.autoAdvance = false
 
         composeTestRule.setContent {
@@ -66,10 +70,12 @@ class ConnectionTutorialScreenTest {
                 progress = 0.5f
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Connection Mode", substring = true).assertExists()
         composeTestRule.onNodeWithText("Bluetooth mode selected", substring = true).assertExists()
         composeTestRule.onNodeWithText("WiFi").performClick()
+        composeTestRule.mainClock.advanceTimeBy(500)
 
         assertEquals(ConnectionMode.WIFI, mode)
         
@@ -93,9 +99,11 @@ class ConnectionTutorialScreenTest {
                 progress = 1.0f
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Ready to Connect!", substring = true).assertExists()
         composeTestRule.onNodeWithText("Finish").performClick()
+        composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithContentDescription("Finish tutorial").assertExists()
 
         assertTrue(finished)

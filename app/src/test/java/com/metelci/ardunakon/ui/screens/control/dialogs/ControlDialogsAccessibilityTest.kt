@@ -44,6 +44,7 @@ class ControlDialogsAccessibilityTest {
                 view = createView()
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Bluetooth Devices").assertExists()
         composeTestRule.onNodeWithContentDescription("Scan").assertExists()
@@ -63,6 +64,7 @@ class ControlDialogsAccessibilityTest {
                 onDismiss = {}
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Crash Log").assertExists()
         composeTestRule.onNodeWithContentDescription("Share").assertExists()
@@ -71,7 +73,7 @@ class ControlDialogsAccessibilityTest {
     }
 
     @Test
-    fun securityDialogs_have_action_labels() {
+    fun securityErrorDialog_has_action_labels() {
         composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             SecurityErrorDialog(
@@ -80,11 +82,16 @@ class ControlDialogsAccessibilityTest {
                 onDismiss = {}
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Unlock Required").assertExists()
         composeTestRule.onNodeWithText("Open Security Settings").assertExists()
         composeTestRule.onNodeWithText("Close").assertExists()
+    }
 
+    @Test
+    fun encryptionErrorDialog_has_action_labels() {
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             EncryptionErrorDialog(
                 error = EncryptionException.SecurityException("hidden"),
@@ -93,6 +100,7 @@ class ControlDialogsAccessibilityTest {
                 onDismiss = {}
             )
         }
+        composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Security Error").assertExists()
         composeTestRule.onNodeWithText("Continue").assertExists()
