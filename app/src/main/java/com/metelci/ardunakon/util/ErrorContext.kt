@@ -173,7 +173,7 @@ data class ErrorContext(
 
     companion object {
         private const val MAX_STACK_FRAMES = 10
-        private val APP_PACKAGE_PREFIX = "com.metelci.ardunakon"
+        private const val APP_PACKAGE_PREFIX = "com.metelci.ardunakon"
 
         /**
          * Creates an ErrorContext from a Throwable.

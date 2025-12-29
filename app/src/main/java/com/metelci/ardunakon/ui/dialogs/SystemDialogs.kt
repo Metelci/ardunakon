@@ -46,11 +46,7 @@ fun BluetoothOffDialog(onDismiss: () -> Unit, onTurnOn: () -> Unit) {
  * @param onRetry Callback to retry permission request.
  */
 @Composable
-fun NotificationPermissionDialog(
-    onDismiss: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onRetry: () -> Unit
-) {
+fun NotificationPermissionDialog(onDismiss: () -> Unit, onOpenSettings: () -> Unit, onRetry: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Notification Permission Needed") },
@@ -81,11 +77,7 @@ fun NotificationPermissionDialog(
  * @param onOpenSettings Callback to open app settings.
  */
 @Composable
-fun PermissionDeniedDialog(
-    onDismiss: () -> Unit,
-    onRetry: () -> Unit,
-    onOpenSettings: () -> Unit
-) {
+fun PermissionDeniedDialog(onDismiss: () -> Unit, onRetry: () -> Unit, onOpenSettings: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Bluetooth Permissions Required") },

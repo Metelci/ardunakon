@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import java.io.File
 import java.security.MessageDigest
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicInteger
@@ -264,9 +265,11 @@ class PerformanceMonitor private constructor(private val context: Context) : IPe
             appendLine()
             appendLine("--- Summary ---")
             appendLine("Sessions: ${stats.sessionCount}")
-            appendLine("Crash-free rate: ${String.format("%.1f", stats.crashFreeSessionsPercent)}%")
+            appendLine(
+                "Crash-free rate: ${String.format(Locale.getDefault(), "%.1f", stats.crashFreeSessionsPercent)}%"
+            )
             appendLine("Avg startup time: ${stats.avgStartupTimeMs}ms")
-            appendLine("Avg latency: ${String.format("%.1f", stats.avgLatencyMs)}ms")
+            appendLine("Avg latency: ${String.format(Locale.getDefault(), "%.1f", stats.avgLatencyMs)}ms")
             appendLine("Total crashes: ${stats.totalCrashes}")
             appendLine("Total errors: ${stats.totalErrors}")
             appendLine()

@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -21,20 +20,25 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.navigation.compose.rememberNavController
 import com.metelci.ardunakon.permissions.PermissionManager
 import com.metelci.ardunakon.security.RASPManager
 import com.metelci.ardunakon.service.BluetoothService
 import com.metelci.ardunakon.ui.dialogs.BluetoothOffDialog
 import com.metelci.ardunakon.ui.dialogs.NotificationPermissionDialog
 import com.metelci.ardunakon.ui.dialogs.PermissionDeniedDialog
+import com.metelci.ardunakon.ui.navigation.AppNavHost
+import com.metelci.ardunakon.ui.navigation.AppRoute
 import com.metelci.ardunakon.ui.screens.ControlScreen
 import com.metelci.ardunakon.ui.screens.control.dialogs.SecurityCompromisedDialog
 import dagger.hilt.android.AndroidEntryPoint
@@ -58,6 +62,7 @@ class MainActivity : ComponentActivity() {
     private var notificationPermissionRequested = false
     private var serviceStarted = false
     private var showOnboarding by mutableStateOf(false)
+    private var deepLinkIntent by mutableStateOf<Intent?>(null)
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -113,6 +118,7 @@ class MainActivity : ComponentActivity() {
 
         // Check if onboarding should be shown (first run or version update)
         showOnboarding = onboardingManager.shouldShowOnboarding()
+        deepLinkIntent = intent
 
         // Enable edge-to-edge display
         enableEdgeToEdge()
@@ -140,36 +146,50 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        // Show onboarding for first-time users
-                        showOnboarding -> {
-                            com.metelci.ardunakon.ui.screens.onboarding.OnboardingFlow(
-                                onComplete = {
-                                    showOnboarding = false
-                                    onboardingManager.completeOnboarding()
-                                },
-                                onSkip = {
-                                    showOnboarding = false
-                                    onboardingManager.skipOnboarding()
-                                }
-                            )
-                        }
-                        // Normal app flow
-                        isBound && bluetoothService != null -> {
-                            ControlScreen(
-                                onQuitApp = {
-                                    quitApp()
-                                },
-                                onTakeTutorial = {
-                                    onboardingManager.resetOnboarding()
-                                    showOnboarding = true
-                                }
-                            )
-                        }
-                        // Loading state
                         else -> {
-                            Box(contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
+                            val navController = rememberNavController()
+                            val startDestination = remember {
+                                if (showOnboarding) AppRoute.Onboarding else AppRoute.Control
                             }
+
+                            LaunchedEffect(deepLinkIntent) {
+                                deepLinkIntent?.let { navController.handleDeepLink(it) }
+                            }
+
+                            AppNavHost(
+                                navController = navController,
+                                startDestination = startDestination,
+                                controlContent = { onTakeTutorial ->
+                                    if (isBound && bluetoothService != null) {
+                                        ControlScreen(
+                                            onQuitApp = { quitApp() },
+                                            onTakeTutorial = {
+                                                onboardingManager.resetOnboarding()
+                                                showOnboarding = true
+                                                onTakeTutorial()
+                                            }
+                                        )
+                                    } else {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            CircularProgressIndicator()
+                                        }
+                                    }
+                                },
+                                onboardingContent = { onComplete, onSkip ->
+                                    com.metelci.ardunakon.ui.screens.onboarding.OnboardingFlow(
+                                        onComplete = {
+                                            showOnboarding = false
+                                            onboardingManager.completeOnboarding()
+                                            onComplete()
+                                        },
+                                        onSkip = {
+                                            showOnboarding = false
+                                            onboardingManager.skipOnboarding()
+                                            onSkip()
+                                        }
+                                    )
+                                }
+                            )
                         }
                     }
 
@@ -247,6 +267,11 @@ class MainActivity : ComponentActivity() {
         if (hasBluetoothPermissions()) {
             startAndBindServiceIfPermitted()
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        deepLinkIntent = intent
     }
 
     override fun onPause() {

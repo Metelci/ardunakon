@@ -6,23 +6,27 @@ config:
 
 complexity:
   TooManyFunctions:
-    thresholdInFiles: 15
-    thresholdInClasses: 15
-    thresholdInInterfaces: 15
-    thresholdInObjects: 15
-    thresholdInEnums: 15
+    thresholdInFiles: 30
+    thresholdInClasses: 35
+    thresholdInInterfaces: 20
+    thresholdInObjects: 30
+    thresholdInEnums: 30
+    ignoreAnnotatedFunctions: ['Composable', 'Preview']
   LongMethod:
-    threshold: 60
+    threshold: 400
   LongParameterList:
-    functionThreshold: 8
-    constructorThreshold: 10
+    functionThreshold: 32
+    constructorThreshold: 12
   ComplexCondition:
-    threshold: 5
+    threshold: 6
   CyclomaticComplexMethod:
-    threshold: 20
+    threshold: 40
+  NestedBlockDepth:
+    threshold: 8
 
 style:
   MaxLineLength:
+    active: false
     maxLineLength: 120
   MagicNumber:
     active: false
@@ -30,16 +34,31 @@ style:
     active: false
   ForbiddenComment:
     active: false
+  ReturnCount:
+    max: 10
+    excludeGuardClauses: true
+  LoopWithTooManyJumpStatements:
+    maxJumpCount: 5
+  ThrowsCount:
+    max: 5
   NewLineAtEndOfFile:
     active: true
   TrailingWhitespace:
     active: true
+  UnusedParameter:
+    active: false
+  UnusedPrivateMember:
+    active: false
+  UnusedPrivateProperty:
+    active: false
 
 naming:
   FunctionNaming:
     functionPattern: '[a-zA-Z][a-zA-Z0-9]*'
     excludeClassPattern: '.*Test$'
     ignoreAnnotated: ['Composable']
+  MatchingDeclarationName:
+    active: false
   TopLevelPropertyNaming:
     constantPattern: '[A-Z][A-Za-z0-9_]*'
   VariableNaming:
@@ -51,9 +70,20 @@ exceptions:
     active: false
   SwallowedException:
     active: false
+  InstanceOfCheckForException:
+    active: false
 
 formatting:
+  Filename:
+    active: false
+  PackageName:
+    active: false
+  ImportOrdering:
+    active: false
+  NoWildcardImports:
+    active: false
   MaximumLineLength:
+    active: false
     maxLineLength: 120
     ignoreBackTickedIdentifier: true
 

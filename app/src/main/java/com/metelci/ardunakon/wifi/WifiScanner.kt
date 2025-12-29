@@ -161,12 +161,12 @@ class WifiScanner(
             discoveryListener = object : NsdManager.DiscoveryListener {
                 override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) = stopDiscoveryListener()
                 override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) = stopDiscoveryListener()
-                override fun onDiscoveryStarted(serviceType: String) {}
-                override fun onDiscoveryStopped(serviceType: String) {}
+                override fun onDiscoveryStarted(serviceType: String) = Unit
+                override fun onDiscoveryStopped(serviceType: String) = Unit
                 override fun onServiceFound(serviceInfo: NsdServiceInfo) {
                     resolveService(serviceInfo)
                 }
-                override fun onServiceLost(serviceInfo: NsdServiceInfo) {}
+                override fun onServiceLost(serviceInfo: NsdServiceInfo) = Unit
             }
             nsdManager?.discoverServices("_http._tcp", NsdManager.PROTOCOL_DNS_SD, discoveryListener)
         } catch (e: Exception) {
@@ -196,7 +196,7 @@ class WifiScanner(
     private fun resolveService(serviceInfo: NsdServiceInfo) {
         val manager = nsdManager ?: return
         val listener = object : NsdManager.ResolveListener {
-            override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {}
+            override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) = Unit
             override fun onServiceResolved(serviceInfo: NsdServiceInfo) {
                 val ip = getResolvedHostAddress(serviceInfo)
                 if (ip != null) addDevice(serviceInfo.serviceName, ip, serviceInfo.port)

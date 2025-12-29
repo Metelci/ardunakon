@@ -39,7 +39,8 @@ class HapticControllerTest {
 
         HapticController.performHaptic(mockView)
 
-        verify { mockView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
+        val expectedTap = HapticController.defaultTapFeedback()
+        verify { mockView.performHapticFeedback(expectedTap) }
     }
 
     @Test
@@ -88,12 +89,13 @@ class HapticControllerTest {
     }
 
     @Test
-    fun `hapticTap extension calls controller with KEYBOARD_TAP`() {
+    fun `hapticTap extension calls controller with default tap feedback`() {
         HapticController.isEnabled = true
 
         mockView.hapticTap()
 
-        verify { mockView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
+        val expectedTap = HapticController.defaultTapFeedback()
+        verify { mockView.performHapticFeedback(expectedTap) }
     }
 
     @Test
@@ -113,7 +115,8 @@ class HapticControllerTest {
             mockView.hapticTap()
         }
 
-        verify(exactly = 5) { mockView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
+        val expectedTap = HapticController.defaultTapFeedback()
+        verify(exactly = 5) { mockView.performHapticFeedback(expectedTap) }
     }
 
     @Test
@@ -164,7 +167,8 @@ class HapticControllerTest {
         HapticController.performHaptic(mockView)
         HapticController.performHaptic(anotherView)
 
-        verify { mockView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
-        verify { anotherView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
+        val expectedTap = HapticController.defaultTapFeedback()
+        verify { mockView.performHapticFeedback(expectedTap) }
+        verify { anotherView.performHapticFeedback(expectedTap) }
     }
 }

@@ -45,7 +45,7 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     startDestination: AppRoute = AppRoute.Control,
     controlContent: @Composable (onTakeTutorial: () -> Unit) -> Unit,
-    onboardingContent: @Composable (onComplete: () -> Unit, onSkip: () -> Unit) -> Unit,
+    onboardingContent: @Composable (onComplete: () -> Unit, onSkip: () -> Unit) -> Unit
 ) {
     NavHost(
         navController = navController,

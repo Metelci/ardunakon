@@ -79,12 +79,11 @@ class PermissionManager @Inject constructor(
      *
      * @return The notification permission string, or null if not required.
      */
-    fun getNotificationPermission(): String? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.POST_NOTIFICATIONS
-        } else {
-            null
-        }
+    fun getNotificationPermission(): String? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.POST_NOTIFICATIONS
+    } else {
+        null
+    }
 
     /**
      * Returns whether notification permission request is needed for this SDK level.

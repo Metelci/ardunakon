@@ -62,5 +62,5 @@ private fun registerComponentActivity() {
         return
     }
 
-    throw IllegalStateException("Unable to register ComponentActivity with Robolectric package manager.")
+    error("Unable to register ComponentActivity with Robolectric package manager.")
 }

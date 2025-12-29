@@ -1,5 +1,6 @@
 package com.metelci.ardunakon.ui.utils
 
+import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
 
@@ -15,10 +16,38 @@ object HapticController {
     /**
      * Performs haptic feedback if globally enabled.
      */
-    fun performHaptic(view: View, feedbackConstant: Int = HapticFeedbackConstants.KEYBOARD_TAP) {
+    fun performHaptic(view: View, feedbackConstant: Int = defaultTapFeedback()) {
         if (isEnabled) {
             view.performHapticFeedback(feedbackConstant)
         }
+    }
+
+    /**
+     * Performs the standard tap feedback (API-aware).
+     */
+    fun performTap(view: View) {
+        performHaptic(view, defaultTapFeedback())
+    }
+
+    /**
+     * Performs a subtle tick feedback.
+     */
+    fun performTick(view: View) {
+        performHaptic(view, HapticFeedbackConstants.CLOCK_TICK)
+    }
+
+    /**
+     * Performs a long-press feedback.
+     */
+    fun performLongPress(view: View) {
+        performHaptic(view, HapticFeedbackConstants.LONG_PRESS)
+    }
+
+    @Suppress("DEPRECATION")
+    internal fun defaultTapFeedback(): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        HapticFeedbackConstants.CONFIRM
+    } else {
+        HapticFeedbackConstants.KEYBOARD_TAP
     }
 }
 
@@ -26,5 +55,5 @@ object HapticController {
  * Extension function to perform haptic feedback respecting global settings.
  */
 fun View.hapticTap() {
-    HapticController.performHaptic(this, HapticFeedbackConstants.KEYBOARD_TAP)
+    HapticController.performTap(this)
 }

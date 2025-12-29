@@ -199,7 +199,7 @@ private fun HealthScoreCard(stats: PerformanceStats) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "${String.format("%.0f", healthScore)}%",
+                "${String.format(Locale.getDefault(), "%.0f", healthScore)}%",
                 color = healthColor,
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold
@@ -241,7 +241,7 @@ private fun StatsGrid(stats: PerformanceStats) {
         StatCard(
             modifier = Modifier.weight(1f),
             label = "Latency",
-            value = "${String.format("%.0f", stats.avgLatencyMs)}ms",
+            value = "${String.format(Locale.getDefault(), "%.0f", stats.avgLatencyMs)}ms",
             color = Color(0xFF7C4DFF)
         )
         StatCard(

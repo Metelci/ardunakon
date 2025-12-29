@@ -69,7 +69,7 @@ class RetryPolicyTest {
 
         val result = policy.execute {
             attempts++
-            throw IllegalStateException("non-retryable")
+            error("non-retryable")
         }
 
         assertTrue(result.isFailure)

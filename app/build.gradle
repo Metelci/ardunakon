@@ -70,7 +70,7 @@ android {
     lint {
         abortOnError = false
         warningsAsErrors = false
-        checkReleaseBuilds = false
+        checkReleaseBuilds = true
     }
 }
 
@@ -120,6 +120,8 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    detektPlugins(libs.detekt.formatting)
 }
 
 jacoco {
@@ -336,7 +338,8 @@ ktlint {
     }
     filter {
         exclude("**/generated/**")
-        include("**/kotlin/**")
+        include("**/*.kt")
+        include("**/*.kts")
     }
 }
 

@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.telemetry.TelemetryDataPoint
+import java.util.Locale
 import kotlin.math.abs
 
 data class LineChartSeries(val label: String, val data: List<TelemetryDataPoint>, val color: Color)
@@ -294,5 +295,5 @@ private fun DrawScope.drawTimeLabels(width: Float, height: Float, timeRangeMs: L
 private fun formatValue(value: Float): String = if (abs(value) >= 100f) {
     value.toInt().toString()
 } else {
-    String.format("%.1f", value)
+    String.format(Locale.getDefault(), "%.1f", value)
 }

@@ -553,7 +553,7 @@ class ControlViewModel @javax.inject.Inject constructor(
             }
             "CRASH" -> {
                 bluetoothManager.log("Executing Test Crash...", LogType.ERROR)
-                throw RuntimeException("Test Crash triggered by user command")
+                error("Test Crash triggered by user command")
             }
             else -> {
                 // Send raw command to connection

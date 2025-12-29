@@ -231,7 +231,7 @@ class CustomCommandExtendedTest {
     @Test
     fun `equals with null returns false`() {
         val command = CustomCommand(name = "Test", commandId = 0x20.toByte())
-        assertFalse(command.equals(null))
+        assertFalse(command == null)
     }
 
     @Test

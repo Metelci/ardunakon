@@ -47,7 +47,8 @@ object AppModule {
     @Provides
     @Singleton
     fun providePerformanceMonitor(): com.metelci.ardunakon.monitoring.IPerformanceMonitor {
-        return com.metelci.ardunakon.monitoring.PerformanceMonitor.getInstance()
-            ?: throw IllegalStateException("PerformanceMonitor not initialized")
+        return checkNotNull(com.metelci.ardunakon.monitoring.PerformanceMonitor.getInstance()) {
+            "PerformanceMonitor not initialized"
+        }
     }
 }

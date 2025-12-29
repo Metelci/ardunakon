@@ -1,6 +1,9 @@
 package com.metelci.ardunakon
 
 import androidx.compose.ui.test.onNodeWithText
+import com.metelci.ardunakon.ui.dialogs.BluetoothOffDialog
+import com.metelci.ardunakon.ui.dialogs.NotificationPermissionDialog
+import com.metelci.ardunakon.ui.dialogs.PermissionDeniedDialog
 import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import org.junit.Rule
 import org.junit.Test

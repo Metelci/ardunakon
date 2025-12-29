@@ -9,9 +9,7 @@ class TestCryptoEngine : CryptoEngine {
     override fun encrypt(data: String): String = "enc|$data"
 
     override fun decrypt(encryptedData: String): String {
-        if (!encryptedData.startsWith("enc|")) {
-            throw IllegalArgumentException("Invalid test cipher text")
-        }
+        require(encryptedData.startsWith("enc|")) { "Invalid test cipher text" }
         return encryptedData.removePrefix("enc|")
     }
 }

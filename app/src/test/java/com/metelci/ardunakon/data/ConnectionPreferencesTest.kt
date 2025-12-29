@@ -76,6 +76,6 @@ class ConnectionPreferencesTest {
 
     private data object ThrowingCryptoEngine : CryptoEngine {
         override fun encrypt(plainText: String): String = error("encrypt should not be called")
-        override fun decrypt(cipherText: String): String = throw IllegalStateException("boom")
+        override fun decrypt(cipherText: String): String = error("boom")
     }
 }
