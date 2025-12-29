@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.17-alpha] - 2025-12-29
+
+### Changed
+- Help & Documentation dialogs use 90% height in portrait for better readability.
+- Setup and Compatibility docs use a darker gradient background with black text for higher contrast.
+
+---
+
+## [0.2.16-alpha] - 2025-12-29
+
+### Added
+- Type-safe Navigation Compose routes with deep link support (ardunakon://control, ardunakon://onboarding).
+- Detekt static analysis with custom Android/Compose rules.
+
+### Changed
+- System dialogs extracted to ui/dialogs and PermissionManager made injectable for testability.
+- Consolidated util/ and utils/ packages into a single util/ directory.
+
+---
+
+## [0.2.15-alpha] - 2025-12-29
+
+### Fixed
+- Resolved `MainActivity` content collision in 10+ instrumented test classes by migrating to `HiltTestActivity`.
+- Fixed unresolved reference in `ConnectionTutorialScreen` (missing border import).
+- Corrected constant references in `LatencyColorCalculationTest`.
+- Fixed type inference issues in `ScreenshotTestUtils`.
+
+### Verified
+- Exponential backoff policy adherence in `RetryPolicy`.
+- `IBluetoothManager` and `IWifiManager` interface compliance in fake modules.
+- 100% unit test pass rate with `build.gradle` verification.
+
+---
+
+## [0.2.14-alpha] - 2025-12-28
+
+### Added
+- Comprehensive unit test coverage for Bluetooth state management (ConnectionStateManager, ClassicConnectionManager).
+- Robust unit tests for WifiManager auto-reconnect logic and state handling.
+- Verification of 100% pass rate across entire suite (1264 tests).
+
+### Improved
+- Bluetooth state debouncing logic to prevent noisy UI updates.
+- Classic Bluetooth connection handling stability.
+- WiFi auto-reconnect preference persistence reliability.
+
+---
+
 ## [0.2.13-alpha] - 2025-12-26
 
 ### Added

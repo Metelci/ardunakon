@@ -4,6 +4,11 @@
 Ardunakon is an Android application designed to control Arduino RC cars and robots via Bluetooth Classic, BLE, or Wi-Fi UDP. It supports **Arduino UNO Q** (2025), **Arduino UNO R4 WiFi**, and classic Arduino UNO with HC-05/HC-06 or HM-10 modules. The app focuses on stability, clear telemetry, and a customizable interface.
 
 ## Release Info
+### What's New in 0.2.17-alpha
+* Current Alpha: **0.2.17-alpha** (build 47)
+* **Docs Readability**: Setup and Compatibility pages use a darker gradient with black text for improved contrast.
+* **Help & Docs Layout**: Help and documentation dialogs use 90% height in portrait mode.
+
 ### What's New in 0.2.16-alpha
 * Current Alpha: **0.2.16-alpha** (build 46)
 * **Jetpack Navigation Compose**: Added type-safe navigation with `@Serializable` routes and deep link support (`ardunakon://control`, `ardunakon://onboarding`).

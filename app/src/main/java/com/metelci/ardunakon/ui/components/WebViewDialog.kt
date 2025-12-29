@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -35,6 +36,8 @@ fun WebViewDialog(
     onDismiss: () -> Unit
 ) {
     val view = LocalView.current
+    val isPortrait = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+    val dialogHeight = if (isPortrait) 0.9f else 0.95f
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -45,7 +48,7 @@ fun WebViewDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.9f)
+                .fillMaxHeight(dialogHeight)
                 .padding(8.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(

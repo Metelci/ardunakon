@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.17-alpha] - 2025-12-29
+
+### Changed
+- Help & Documentation dialogs use 90% height in portrait for better readability.
+- Setup and Compatibility docs use a darker gradient background with black text for higher contrast.
+
+---
+
+## [0.2.16-alpha] - 2025-12-29
+
+### Added
+- Type-safe Navigation Compose routes with deep link support (ardunakon://control, ardunakon://onboarding).
+- Detekt static analysis with custom Android/Compose rules.
+
+### Changed
+- System dialogs extracted to ui/dialogs and PermissionManager made injectable for testability.
+- Consolidated util/ and utils/ packages into a single util/ directory.
+
+---
+
 ## [0.2.15-alpha] - 2025-12-29
 
 ### Fixed

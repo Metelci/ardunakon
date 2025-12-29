@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,8 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
+    val isPortrait = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+    val dialogHeight = if (isPortrait) 0.9f else 0.95f
 
     val tabs = listOf("Setup", "Compatibility")
     val contentFiles = listOf(
@@ -69,7 +72,7 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.95f),
+                .fillMaxHeight(dialogHeight),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color(0xFF2D3436)

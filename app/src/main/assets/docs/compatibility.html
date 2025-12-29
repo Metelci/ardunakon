@@ -14,8 +14,10 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e0e0e0;
+            background:
+                radial-gradient(1200px 800px at 20% -10%, rgba(15,23,42,0.14), rgba(15,23,42,0.0) 60%),
+                linear-gradient(180deg, #c7cedb 0%, #b6bfcd 45%, #a5afbf 100%);
+            color: #000;
             line-height: 1.6;
             padding: 20px;
             min-height: 100vh;
@@ -36,7 +38,7 @@
 
         .subtitle {
             text-align: center;
-            color: #b0bec5;
+            color: #000;
             margin-bottom: 24px;
             font-size: 14px;
         }
@@ -49,11 +51,11 @@
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #2d3436 0%, #1e272e 100%);
+            background: linear-gradient(135deg, #f3f5f8 0%, #e1e6ee 100%);
             border-radius: 12px;
             padding: 16px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         .stat-value {
@@ -66,17 +68,17 @@
         }
 
         .stat-label {
-            color: #b0bec5;
+            color: #000;
             font-size: 12px;
             margin-top: 4px;
         }
 
         .section {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 16px;
             padding: 20px;
             margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         h2 {
@@ -101,7 +103,7 @@
         }
 
         .module-card {
-            background: linear-gradient(135deg, #2d3436 0%, #1e272e 100%);
+            background: linear-gradient(135deg, #f3f5f8 0%, #e1e6ee 100%);
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 12px;
@@ -116,7 +118,7 @@
         }
 
         .module-name {
-            color: #fff;
+            color: #0f172a;
             font-size: 16px;
             font-weight: 600;
         }
@@ -131,7 +133,7 @@
         }
 
         .module-desc {
-            color: #b0bec5;
+            color: #000;
             font-size: 13px;
             margin-bottom: 8px;
         }
@@ -173,11 +175,11 @@
 
         .uuid-table td {
             padding: 10px 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         .uuid-table tr:nth-child(even) {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(0, 0, 0, 0.03);
         }
 
         .uuid {
@@ -195,9 +197,9 @@
             padding: 8px 0;
             padding-left: 28px;
             position: relative;
-            color: #b0bec5;
+            color: #000;
             font-size: 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         .check-list li::before {
@@ -229,13 +231,13 @@
 
         .feature-comparison td {
             padding: 10px 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
             text-align: center;
         }
 
         .feature-comparison td:first-child {
             text-align: left;
-            color: #e0e0e0;
+            color: #000;
         }
 
         .yes {
@@ -252,7 +254,7 @@
         }
 
         .flow-container {
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(0, 0, 0, 0.04);
             border-radius: 12px;
             padding: 16px;
             margin: 16px 0;
@@ -285,7 +287,7 @@
 
         .flow-text {
             flex: 1;
-            color: #b0bec5;
+            color: #000;
             font-size: 13px;
         }
 
@@ -297,7 +299,7 @@
 
         .flow-arrow {
             text-align: center;
-            color: #636e72;
+            color: #000;
             padding: 4px 0;
             margin-left: 36px;
         }
@@ -318,7 +320,7 @@
         }
 
         .info-box p {
-            color: #e0e0e0;
+            color: #000;
             font-size: 13px;
         }
 
@@ -343,7 +345,7 @@
         .footer {
             text-align: center;
             padding: 24px;
-            color: #636e72;
+            color: #000;
             font-size: 12px;
         }
     </style>
@@ -541,7 +543,7 @@
                     in the next release!</p>
             </div>
 
-            <p style="color: #b0bec5; font-size: 14px; margin-top: 12px;">What to include:</p>
+            <p style="color: #000; font-size: 14px; margin-top: 12px;">What to include:</p>
             <ul class="check-list">
                 <li>Module model/brand name</li>
                 <li>Whether it's Classic (SPP) or BLE</li>
