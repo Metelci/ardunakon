@@ -37,11 +37,13 @@ class BluetoothConfigExtendedTest {
     @Test
     fun `calculateBackoffDelay increases exponentially`() {
         val delays = (0..5).map { BluetoothConfig.calculateBackoffDelay(it) }
-        
+
         for (i in 1 until delays.size) {
             // Each delay should be >= previous (exponential growth until cap)
-            assertTrue("Delay at $i should be >= delay at ${i-1}", 
-                delays[i] >= delays[i - 1])
+            assertTrue(
+                "Delay at $i should be >= delay at ${i - 1}",
+                delays[i] >= delays[i - 1]
+            )
         }
     }
 

@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import androidx.annotation.VisibleForTesting
+import com.metelci.ardunakon.monitoring.PerformanceMonitor
+import com.metelci.ardunakon.monitoring.SeverityLevel
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -29,6 +32,19 @@ class CrashHandler private constructor(
         @Volatile
         private var instance: CrashHandler? = null
 
+        @Volatile
+        private var crashLogWriter: CrashLogWriter = FileCrashLogWriter()
+
+        @VisibleForTesting
+        fun setCrashLogWriterForTest(writer: CrashLogWriter) {
+            crashLogWriter = writer
+        }
+
+        /**
+         * Installs the crash handler as the default uncaught exception handler.
+         *
+         * @param context Application context used for log storage.
+         */
         fun init(context: Context) {
             if (instance == null) {
                 synchronized(this) {
@@ -42,22 +58,51 @@ class CrashHandler private constructor(
             }
         }
 
+        /**
+         * Returns the crash log file location.
+         *
+         * @param context Application context used to resolve files.
+         * @return Crash log file reference.
+         */
         fun getCrashLogFile(context: Context): File = File(context.filesDir, CRASH_LOG_FILE)
 
+        /**
+         * Checks whether a crash log is present and non-empty.
+         *
+         * @param context Application context used to resolve files.
+         * @return True if the crash log exists with content.
+         */
         fun hasCrashLog(context: Context): Boolean =
             getCrashLogFile(context).exists() && getCrashLogFile(context).length() > 0
 
+        /**
+         * Reads the current crash log contents.
+         *
+         * @param context Application context used to resolve files.
+         * @return Crash log contents, or an empty string if missing.
+         */
         fun getCrashLog(context: Context): String {
             val file = getCrashLogFile(context)
             return if (file.exists()) file.readText() else ""
         }
 
+        /**
+         * Clears the stored crash log.
+         *
+         * @param context Application context used to resolve files.
+         */
         fun clearCrashLog(context: Context) {
             try {
                 getCrashLogFile(context).delete()
             } catch (_: Exception) {}
         }
 
+        /**
+         * Builds a share intent with the crash log contents.
+         *
+         * @param context Application context used to read the crash log.
+         * @return Intent for sharing the crash log, or null if no log exists.
+         */
         fun getShareIntent(context: Context): Intent? {
             val crashLog = getCrashLog(context)
             if (crashLog.isEmpty()) return null
@@ -69,31 +114,64 @@ class CrashHandler private constructor(
             }
         }
 
-        fun logException(context: Context, throwable: Throwable, message: String? = null) {
+        /**
+         * Records a non-fatal exception into the crash log and metrics.
+         *
+         * @param context Application context used for log storage.
+         * @param throwable Exception to record.
+         * @param message Optional custom message to include.
+         * @param severity Severity level for monitoring.
+         */
+        fun logException(
+            context: Context,
+            throwable: Throwable,
+            message: String? = null,
+            severity: SeverityLevel = SeverityLevel.ERROR
+        ) {
+            try {
+                // Record to PerformanceMonitor, but do not block log persistence.
+                PerformanceMonitor.getInstance()?.recordCrash(
+                    throwable = throwable,
+                    severity = severity,
+                    isFatal = false
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to record non-fatal exception in monitor", e)
+            }
+
             try {
                 instance?.saveCrashLog(Thread.currentThread(), throwable, message)
-                    ?: run {
-                        // Fallback if instance not initialized (shouldn't happen if init called)
-                        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
-                        val file = getCrashLogFile(context)
-                        FileWriter(file, true).use { writer ->
-                            writer.write("\n=== NON-FATAL ERROR ===\n")
-                            writer.write("Timestamp: $timestamp\n")
-                            if (message != null) writer.write("Message: $message\n")
-                            val sw = java.io.StringWriter()
-                            throwable.printStackTrace(PrintWriter(sw))
-                            writer.write(sw.toString())
-                            writer.write("\n")
-                        }
-                    }
+                    ?: writeFallbackCrashLog(context, throwable, message)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to log non-fatal exception", e)
             }
+        }
+
+        private fun writeFallbackCrashLog(context: Context, throwable: Throwable, message: String? = null) {
+            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+            val crashInfo = buildString {
+                appendLine()
+                appendLine("=== NON-FATAL ERROR ===")
+                appendLine("Timestamp: $timestamp")
+                if (message != null) appendLine("Message: $message")
+                val sw = java.io.StringWriter()
+                throwable.printStackTrace(PrintWriter(sw))
+                appendLine(sw.toString())
+            }
+
+            crashLogWriter.write(context, crashInfo)
         }
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         try {
+            // Record fatal crash to PerformanceMonitor
+            PerformanceMonitor.getInstance()?.recordCrash(
+                throwable = throwable,
+                severity = SeverityLevel.FATAL,
+                isFatal = true
+            )
+
             val crashData = saveCrashLog(thread, throwable)
 
             // Launch Crash Report Activity
@@ -155,9 +233,7 @@ class CrashHandler private constructor(
 
         // Write combined log
         try {
-            FileWriter(file, true).use { writer ->
-                writer.write(crashInfo)
-            }
+            crashLogWriter.write(context, crashInfo)
             Log.d(TAG, "Crash log saved to ${file.absolutePath}")
         } catch (e: Exception) {
             Log.e(TAG, "Error writing crash log", e)
@@ -177,5 +253,18 @@ class CrashHandler private constructor(
         "${pInfo.versionName} ($versionCode)"
     } catch (_: Exception) {
         "Unknown"
+    }
+
+    interface CrashLogWriter {
+        fun write(context: Context, content: String)
+    }
+
+    private class FileCrashLogWriter : CrashLogWriter {
+        override fun write(context: Context, content: String) {
+            val file = getCrashLogFile(context)
+            FileWriter(file, true).use { writer ->
+                writer.write(content)
+            }
+        }
     }
 }

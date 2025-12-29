@@ -134,7 +134,7 @@ class WifiConnectionManagerTest {
     fun `getCurrentWifiRssi uses reflection fallback`() = runTest(testDispatcher) {
         val wm = mockk<android.net.wifi.WifiManager>()
         val info = mockk<android.net.wifi.WifiInfo>()
-        
+
         // Mocking reflection is hard, but we can verify it doesn't crash
         val method = manager.javaClass.getDeclaredMethod(
             "getCurrentWifiRssi",
@@ -142,7 +142,7 @@ class WifiConnectionManagerTest {
             android.net.wifi.WifiManager::class.java
         )
         method.isAccessible = true
-        
+
         // This will likely hit the fallback catch blocks and return null if not perfectly mocked
         val result = method.invoke(manager, null, wm)
         assertNull(result)
@@ -154,12 +154,11 @@ class WifiConnectionManagerTest {
         field.isAccessible = true
         (field.get(manager) as java.util.concurrent.atomic.AtomicBoolean).set(true)
         assertTrue(manager.isEncrypted())
-        
+
         (field.get(manager) as java.util.concurrent.atomic.AtomicBoolean).set(false)
         assertFalse(manager.isEncrypted())
     }
 
-    
     // Note: Testing the full connect() flow with StandardTestDispatcher is complex due to
     // multiple long-running coroutines (ping, timeout monitor, RSSI monitor). Individual
     // components are tested separately.
@@ -176,7 +175,7 @@ class WifiConnectionManagerTest {
             history.add(0, 100L)
             if (history.size > 40) history.removeAt(history.lastIndex)
         }
-        
+
         assertEquals(40, history.size)
     }
 

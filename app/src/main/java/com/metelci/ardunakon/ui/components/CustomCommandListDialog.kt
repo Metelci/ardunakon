@@ -2,18 +2,13 @@
 
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
 import android.content.res.Configuration
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -27,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.metelci.ardunakon.model.CustomCommand
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 /**
  * Dialog showing list of all configured custom commands.
@@ -312,7 +308,9 @@ private fun CustomCommandItem(
                         color = Color.White
                     )
                     Text(
-                        "ID: 0x${"%02X".format(command.commandId)} • ${if (command.isToggle) "Toggle" else "Momentary"}",
+                        "ID: 0x${"%02X".format(
+                            command.commandId
+                        )} • ${if (command.isToggle) "Toggle" else "Momentary"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )

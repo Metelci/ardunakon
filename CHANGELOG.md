@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.15-alpha] - 2025-12-29
+
+### Fixed
+- Resolved `MainActivity` content collision in 10+ instrumented test classes by migrating to `HiltTestActivity`.
+- Fixed unresolved reference in `ConnectionTutorialScreen` (missing border import).
+- Corrected constant references in `LatencyColorCalculationTest`.
+- Fixed type inference issues in `ScreenshotTestUtils`.
+
+### Verified
+- Exponential backoff policy adherence in `RetryPolicy`.
+- `IBluetoothManager` and `IWifiManager` interface compliance in fake modules.
+- 100% unit test pass rate with `build.gradle` verification.
+
+---
+
 ## [0.2.14-alpha] - 2025-12-28
 
 ### Added

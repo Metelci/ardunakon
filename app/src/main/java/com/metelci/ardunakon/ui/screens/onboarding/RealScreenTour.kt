@@ -1,6 +1,7 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -293,9 +294,11 @@ private fun TutorialNavigationCard(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val tutorialBorder = BorderStroke(2.dp, Color(0xFFB300FF))
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
+        border = tutorialBorder,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),

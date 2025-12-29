@@ -14,9 +14,7 @@ import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.R
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
-import com.metelci.ardunakon.wifi.WifiManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.*
@@ -27,10 +25,10 @@ class BluetoothService : Service() {
     private val binder = LocalBinder()
 
     @Inject
-    lateinit var bluetoothManager: AppBluetoothManager
+    lateinit var bluetoothManager: com.metelci.ardunakon.bluetooth.IBluetoothManager
 
     @Inject
-    lateinit var wifiManager: WifiManager
+    lateinit var wifiManager: com.metelci.ardunakon.wifi.IWifiManager
 
     private var wakeLock: PowerManager.WakeLock? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())

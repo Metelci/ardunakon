@@ -1,6 +1,8 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +22,10 @@ import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.model.ArduinoType
 import com.metelci.ardunakon.model.ConnectionTutorialStep
 import com.metelci.ardunakon.ui.screens.control.ConnectionMode
+
+private val TutorialBorderColor = Color(0xFFB300FF)
+private val DeviceSelectionBorderColor = Color(0xFFFFEB3B)
+private val DeviceSelectionBorderWidth = 1.dp
 
 /**
  * Phase 3: Connection Tutorial. Guides the user through choosing device,
@@ -148,11 +154,20 @@ private fun TutorialIndicator(
 @Composable
 private fun ChooseArduinoContent(selectedType: ArduinoType?, onSelect: (ArduinoType) -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "Select Your Device 🤖",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Box(
+            modifier = Modifier
+                .border(
+                    BorderStroke(DeviceSelectionBorderWidth, DeviceSelectionBorderColor),
+                    RoundedCornerShape(8.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Text(
+                text = "Select Your Device 🤖",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "What kind of Arduino are you using?",
@@ -191,14 +206,7 @@ private fun TutorialNextButton(type: ArduinoType, isSelected: Boolean, onClick: 
                 MaterialTheme.colorScheme.surfaceVariant
             }
         ),
-        border = if (isSelected) {
-            androidx.compose.foundation.BorderStroke(
-                2.dp,
-                MaterialTheme.colorScheme.primary
-            )
-        } else {
-            null
-        }
+        border = BorderStroke(DeviceSelectionBorderWidth, DeviceSelectionBorderColor)
     ) {
         Row(
             modifier = Modifier
@@ -254,6 +262,7 @@ private fun ConnectionModeContent(
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.secondaryContainer,
+            border = BorderStroke(2.dp, TutorialBorderColor),
             modifier = Modifier.padding(16.dp)
         ) {
             Column(
@@ -379,6 +388,7 @@ private fun TutorialFooter() {
 
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(2.dp, TutorialBorderColor),
             elevation = CardDefaults.cardElevation(2.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -409,7 +419,8 @@ private fun StepCard(number: Int, text: String) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(2.dp, TutorialBorderColor)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),

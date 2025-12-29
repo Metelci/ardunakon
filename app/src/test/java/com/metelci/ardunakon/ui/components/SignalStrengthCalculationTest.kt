@@ -5,8 +5,8 @@ import org.junit.Test
 
 /**
  * Unit tests for UI component helper calculations.
- * 
- * These tests verify the core logic used in SignalStrengthIcon 
+ *
+ * These tests verify the core logic used in SignalStrengthIcon
  * and LatencySparkline for RSSI-to-bars mapping and latency color thresholds.
  */
 class SignalStrengthCalculationTest {

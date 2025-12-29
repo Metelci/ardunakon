@@ -1,3 +1,15 @@
+Version 0.2.15-alpha - December 29, 2025
+
+IMPROVEMENTS:
+• Test Stability: Resolved all instrumented test environment collisions (HiltTestActivity migration)
+• Reliability: Fixed verification logic for color latency calculations and connection tutorials
+• Robustness: Validated exponential backoff policies and retry mechanisms for Bluetooth/WiFi
+• Code Quality: 100% unit test pass rate maintained with strict type safety fixes
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.14-alpha - December 28, 2025
 
 IMPROVEMENTS:

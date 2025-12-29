@@ -2,10 +2,7 @@
 
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
 import android.content.res.Configuration
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -25,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 /**
  * Settings dialog for app configuration.
@@ -76,7 +74,7 @@ fun SettingsDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth(if (isLandscape) 0.95f else 0.92f)
-                .fillMaxHeight(if (isLandscape) 0.85f else 0.7f),
+                .fillMaxHeight(if (isLandscape) 0.85f else 0.9f),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color(0xFF1E1E2E)
@@ -165,7 +163,11 @@ fun SettingsDialog(
                             SettingsSection(
                                 icon = Icons.Default.Extension,
                                 title = "Custom Commands",
-                                subtitle = if (customCommandCount > 0) "$customCommandCount configured" else "Create custom device commands",
+                                subtitle = if (customCommandCount > 0) {
+                                    "$customCommandCount configured"
+                                } else {
+                                    "Create custom device commands"
+                                },
                                 onClick = {
                                     view.hapticTap()
                                     onShowCustomCommands()
@@ -337,7 +339,11 @@ fun SettingsDialog(
                         SettingsSection(
                             icon = Icons.Default.Extension,
                             title = "Custom Commands",
-                            subtitle = if (customCommandCount > 0) "$customCommandCount configured" else "Create custom device commands",
+                            subtitle = if (customCommandCount > 0) {
+                                "$customCommandCount configured"
+                            } else {
+                                "Create custom device commands"
+                            },
                             onClick = {
                                 view.hapticTap()
                                 onShowCustomCommands()

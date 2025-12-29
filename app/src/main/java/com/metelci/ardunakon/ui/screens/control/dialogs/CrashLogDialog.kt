@@ -1,9 +1,6 @@
 package com.metelci.ardunakon.ui.screens.control.dialogs
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
 import android.content.Intent
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -28,6 +25,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.metelci.ardunakon.crash.CrashHandler
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 /**
  * Dialog to display crash logs with share and clear options.

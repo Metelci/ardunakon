@@ -34,7 +34,7 @@ class TelemetryGraphDialogTest {
 
         // Title
         composeTestRule.onNodeWithText("Telemetry Graphs").assertExists()
-        
+
         // Default Tab content
         composeTestRule.onNodeWithText("Units: Volts", substring = true).assertExists()
         composeTestRule.onNodeWithText("No battery data", substring = true).assertExists()
@@ -80,7 +80,7 @@ class TelemetryGraphDialogTest {
 
         // Title of the chart
         composeTestRule.onNodeWithText("Battery Voltage", substring = true).assertExists()
-        
+
         composeTestRule.onNodeWithContentDescription("Clear History").performClick()
         composeTestRule.mainClock.advanceTimeBy(1000)
 

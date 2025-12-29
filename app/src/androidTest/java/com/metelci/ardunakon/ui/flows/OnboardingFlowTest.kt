@@ -10,11 +10,11 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
-import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.model.InterfaceElement
 import com.metelci.ardunakon.ui.screens.onboarding.OnboardingFlow
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.HiltTestActivity
 import java.util.concurrent.atomic.AtomicBoolean
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -43,7 +43,7 @@ class OnboardingFlowTest {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 2)
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
+    val composeTestRule = createAndroidComposeRule<HiltTestActivity>()
 
     private val onboardingCompleted = AtomicBoolean(false)
     private val onboardingSkipped = AtomicBoolean(false)

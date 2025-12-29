@@ -16,6 +16,8 @@ import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.security.CryptoEngine
 import com.metelci.ardunakon.security.SecurityManager
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
+import com.metelci.ardunakon.util.RecoveryManager
+import com.metelci.ardunakon.util.RetryPolicy
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,9 +36,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 
+/**
+ * Bluetooth connectivity manager for scanning, connections, telemetry, and reconnection.
+ *
+ * @param context Application context.
+ * @param connectionPreferences Persistent connection settings.
+ * @param cryptoEngine Encryption engine for persisted data.
+ * @param scope Coroutine scope for background work.
+ * @param startMonitors When true, starts background monitors.
+ */
 class AppBluetoothManager(
     private val context: Context,
     private val connectionPreferences: ConnectionPreferences,
+    private val recoveryManager: RecoveryManager? = null,
     private val cryptoEngine: CryptoEngine = SecurityManager(),
     private val scope: CoroutineScope =
         CoroutineScope(
@@ -45,7 +57,7 @@ class AppBluetoothManager(
             }
         ),
     private val startMonitors: Boolean = true
-) : ConnectionCallback {
+) : ConnectionCallback, IBluetoothManager {
 
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val adapter: BluetoothAdapter? = bluetoothManager.adapter
@@ -75,26 +87,64 @@ class AppBluetoothManager(
     private var connectionManager: BluetoothConnectionManager? = null
 
     // --- Public State Flows ---
-    val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = scanner.scannedDevices
-    val telemetryHistoryManager: TelemetryHistoryManager = telemetryManager.telemetryHistoryManager
+    /**
+     * Stream of discovered Bluetooth devices.
+     */
+    override val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = scanner.scannedDevices
+
+    /**
+     * Telemetry history manager for charts and stats.
+     */
+    override val telemetryHistoryManager: TelemetryHistoryManager = telemetryManager.telemetryHistoryManager
 
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
-    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
+    /**
+     * Current Bluetooth connection state.
+     */
+    override val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
     // Delegated Flows
-    val rssiValue: StateFlow<Int> = telemetryManager.rssiValue
-    val health: StateFlow<ConnectionHealth> = telemetryManager.health
-    val telemetry: StateFlow<Telemetry?> = telemetryManager.telemetry
-    val rttHistory: StateFlow<List<Long>> = telemetryManager.rttHistory
+    /**
+     * Latest RSSI reading.
+     */
+    override val rssiValue: StateFlow<Int> = telemetryManager.rssiValue
+
+    /**
+     * Connection health metrics.
+     */
+    override val health: StateFlow<ConnectionHealth> = telemetryManager.health
+
+    /**
+     * Latest telemetry sample.
+     */
+    override val telemetry: StateFlow<Telemetry?> = telemetryManager.telemetry
+
+    /**
+     * Rolling RTT history.
+     */
+    override val rttHistory: StateFlow<List<Long>> = telemetryManager.rttHistory
 
     private val _debugLogs = MutableStateFlow<List<LogEntry>>(emptyList())
-    val debugLogs: StateFlow<List<LogEntry>> = _debugLogs.asStateFlow()
+
+    /**
+     * Debug log entries for UI display.
+     */
+    override val debugLogs: StateFlow<List<LogEntry>> = _debugLogs.asStateFlow()
 
     private val _incomingData = MutableStateFlow<ByteArray?>(null)
+
+    /**
+     * Last received raw packet, if any.
+     */
     val incomingData: StateFlow<ByteArray?> = _incomingData.asStateFlow()
 
     private val _isEmergencyStopActive = MutableStateFlow(false)
-    val isEmergencyStopActive: StateFlow<Boolean> = _isEmergencyStopActive.asStateFlow()
+
+    /**
+     * Emergency stop status.
+     */
+    override val isEmergencyStopActive: StateFlow<Boolean> = _isEmergencyStopActive.asStateFlow()
 
     // Battery optimization: foreground/background mode
     private var isForeground = true
@@ -104,8 +154,10 @@ class AppBluetoothManager(
     /**
      * Set foreground/background mode for battery optimization.
      * When in background, monitoring intervals are increased.
+     *
+     * @param foreground True when app is in foreground.
      */
-    fun setForegroundMode(foreground: Boolean) {
+    override fun setForegroundMode(foreground: Boolean) {
         if (isForeground == foreground) return
         isForeground = foreground
         log("App moved to ${if (foreground) "foreground" else "background"} - adjusting monitors", LogType.INFO)
@@ -118,18 +170,33 @@ class AppBluetoothManager(
     }
 
     private val _deviceCapability = MutableStateFlow(DeviceCapabilities.DEFAULT)
+
+    /**
+     * Current device capability snapshot.
+     */
     val deviceCapability: StateFlow<DeviceCapabilities> = _deviceCapability.asStateFlow()
 
     private val _autoReconnectEnabled = MutableStateFlow(false)
-    val autoReconnectEnabled: StateFlow<Boolean> = _autoReconnectEnabled.asStateFlow()
+
+    /**
+     * True when auto-reconnect is enabled.
+     */
+    override val autoReconnectEnabled: StateFlow<Boolean> = _autoReconnectEnabled.asStateFlow()
 
     // Connected device info for UI display
     private val _connectedDeviceInfo = MutableStateFlow<String?>(null)
-    val connectedDeviceInfo: StateFlow<String?> = _connectedDeviceInfo.asStateFlow()
+
+    /**
+     * Connected device name/type for UI display.
+     */
+    override val connectedDeviceInfo: StateFlow<String?> = _connectedDeviceInfo.asStateFlow()
 
     // Combined state flow for optimized UI recomposition
     // Consolidates 7 flows into 1 to reduce overhead by ~40%
-    val combinedState: StateFlow<CombinedConnectionState> = combine(
+    /**
+     * Consolidated state flow for efficient UI recomposition.
+     */
+    override val combinedState: StateFlow<CombinedConnectionState> = combine(
         connectionState,
         rssiValue,
         health,
@@ -173,7 +240,11 @@ class AppBluetoothManager(
     // --- Internal State ---
     private var savedDevice: BluetoothDeviceModel? = null
     private var connectionType: DeviceType? = null
-    var allowReflectionFallback: Boolean = false
+
+    /**
+     * Allows reflection-based fallback for legacy Bluetooth stacks.
+     */
+    override var allowReflectionFallback: Boolean = false
     private var shouldReconnect = false
     private val connectionMutex = Mutex()
     private var keepAliveJob: Job? = null
@@ -222,10 +293,23 @@ class AppBluetoothManager(
 
     // --- Public Actions ---
 
-    fun startScan() = scanner.startScan()
-    fun stopScan() = scanner.stopScan()
+    /**
+     * Starts Bluetooth device discovery.
+     */
+    override fun startScan() = scanner.startScan()
 
-    fun connectToDevice(deviceModel: BluetoothDeviceModel, isAutoReconnect: Boolean = false) {
+    /**
+     * Stops Bluetooth device discovery.
+     */
+    override fun stopScan() = scanner.stopScan()
+
+    /**
+     * Connects to a selected Bluetooth device.
+     *
+     * @param deviceModel Target device model.
+     * @param isAutoReconnect True when invoked from auto-reconnect.
+     */
+    override fun connectToDevice(deviceModel: BluetoothDeviceModel, isAutoReconnect: Boolean) {
         if (_isEmergencyStopActive.value) {
             log("Connect failed: E-STOP ACTIVE", LogType.ERROR)
             return
@@ -303,7 +387,10 @@ class AppBluetoothManager(
         }
     }
 
-    fun disconnect() {
+    /**
+     * Disconnects the active Bluetooth connection and stops auto-reconnect.
+     */
+    override fun disconnect() {
         shouldReconnect = false
         _autoReconnectEnabled.value = false
         BreadcrumbManager.leave("Bluetooth", "Manual disconnect")
@@ -318,17 +405,36 @@ class AppBluetoothManager(
         log(reason, LogType.INFO)
     }
 
-    fun sendData(data: ByteArray, force: Boolean = false) {
+    /**
+     * Sends a data packet to the active connection.
+     *
+     * @param data Packet payload.
+     * @param force True to bypass duplicate suppression or rate limits.
+     */
+    override fun sendData(data: ByteArray, force: Boolean) {
         if (_isEmergencyStopActive.value && !force) return
         connectionManager?.send(data)
     }
 
-    // Legacy aliases
-    fun sendDataToAll(data: ByteArray, force: Boolean = false) = sendData(data, force)
-    fun disconnectForEStop() = performDisconnect("Disconnected due to E-STOP") // also handle estop flags
-    fun disconnectAllForEStop() = disconnectForEStop()
+    /**
+     * Sends data to the active connection (alias for [sendData]).
+     *
+     * @param data Packet payload.
+     * @param force True to bypass duplicate suppression or rate limits.
+     */
+    override fun sendDataToAll(data: ByteArray, force: Boolean) = sendData(data, force)
 
-    fun setEmergencyStop(active: Boolean) {
+    /**
+     * Disconnects and enters E-STOP state.
+     */
+    override fun disconnectAllForEStop() = performDisconnect("Disconnected due to E-STOP") // also handle estop flags
+
+    /**
+     * Enables or disables emergency stop mode.
+     *
+     * @param active True to enable E-STOP.
+     */
+    override fun setEmergencyStop(active: Boolean) {
         _isEmergencyStopActive.value = active
         if (active) {
             log("E-STOP ACTIVATED: Blocking connections", LogType.WARNING)
@@ -339,7 +445,10 @@ class AppBluetoothManager(
         }
     }
 
-    fun requestRssi() {
+    /**
+     * Requests an RSSI update from the active connection.
+     */
+    override fun requestRssi() {
         if (connectionType == DeviceType.LE) {
             connectionManager?.requestRssi()
         } else {
@@ -347,7 +456,12 @@ class AppBluetoothManager(
         }
     }
 
-    fun setAutoReconnectEnabled(enabled: Boolean) {
+    /**
+     * Enables or disables auto-reconnect.
+     *
+     * @param enabled True to enable auto-reconnect.
+     */
+    override fun setAutoReconnectEnabled(enabled: Boolean) {
         _autoReconnectEnabled.value = enabled
         scope.launch { autoReconnectPrefs.saveAutoReconnectState(0, enabled) }
 
@@ -363,7 +477,12 @@ class AppBluetoothManager(
         }
     }
 
-    fun reconnectSavedDevice(): Boolean {
+    /**
+     * Attempts to reconnect to the last saved device.
+     *
+     * @return True when a reconnect attempt was initiated.
+     */
+    override fun reconnectSavedDevice(): Boolean {
         resetCircuitBreaker()
         val device = savedDevice
         if (device != null && _connectionState.value != ConnectionState.CONNECTED) {
@@ -374,7 +493,10 @@ class AppBluetoothManager(
         return false
     }
 
-    fun resetCircuitBreaker() {
+    /**
+     * Resets reconnect backoff state after persistent failures.
+     */
+    override fun resetCircuitBreaker() {
         reconnectAttempts = 0
         nextReconnectAt = 0L
         log("Circuit breaker reset", LogType.INFO)
@@ -382,9 +504,20 @@ class AppBluetoothManager(
 
     // --- Callback Implementation ---
 
+    /**
+     * Connection state callback from [ConnectionCallback].
+     *
+     * @param state New connection state.
+     */
     override fun onStateChanged(state: ConnectionState) {
+        val oldState = _connectionState.value
         updateConnectionState(state)
+
         if (state == ConnectionState.CONNECTED) {
+            reconnectAttempts = 0
+            recoveryManager?.recordSuccess(RecoveryManager.OP_BLE_CONNECT)
+            BreadcrumbManager.leave("Bluetooth", "Connected to ${savedDevice?.name}")
+            startKeepAlivePings()
             telemetryManager.resetHeartbeat()
             resetCircuitBreaker()
             vibrate(BluetoothConfig.VIBRATION_CONNECTED_MS)
@@ -413,9 +546,14 @@ class AppBluetoothManager(
             }
         } else if (state == ConnectionState.DISCONNECTED || state == ConnectionState.ERROR) {
             if (state == ConnectionState.ERROR) {
+                recoveryManager?.recordFailure(RecoveryManager.OP_BLE_CONNECT)
                 vibrate(BluetoothConfig.VIBRATION_ERROR_MS)
             }
             _connectedDeviceInfo.value = null
+        }
+
+        if (state != ConnectionState.CONNECTED && oldState == ConnectionState.CONNECTED) {
+            keepAliveJob?.cancel()
         }
     }
 
@@ -423,6 +561,11 @@ class AppBluetoothManager(
     private var lastRxLogTime = 0L
     private val rxLogThrottleMs = 500L
 
+    /**
+     * Raw data callback from [ConnectionCallback].
+     *
+     * @param data Received payload.
+     */
     override fun onDataReceived(data: ByteArray) {
         _incomingData.value = data
         telemetryManager.recordInbound()
@@ -449,14 +592,32 @@ class AppBluetoothManager(
         }
     }
 
+    /**
+     * Error callback from [ConnectionCallback].
+     *
+     * @param message Error message.
+     * @param type Log severity type.
+     */
     override fun onError(message: String, type: LogType) {
         log(message, type)
     }
 
+    /**
+     * Packet statistics callback from [ConnectionCallback].
+     *
+     * @param sent Total packets sent.
+     * @param dropped Total packets dropped.
+     * @param failed Total packets failed.
+     */
     override fun onPacketStats(sent: Long, dropped: Long, failed: Long) {
         telemetryManager.updatePacketStats(sent, dropped, failed)
     }
 
+    /**
+     * RSSI update callback from [ConnectionCallback].
+     *
+     * @param rssi Latest RSSI in dBm.
+     */
     override fun onRssiUpdated(rssi: Int) {
         telemetryManager.updateRssi(rssi)
         telemetryManager.resetRssiFailures() // Logic moved from Connection to Manager... or coordinated?
@@ -467,6 +628,7 @@ class AppBluetoothManager(
     // --- Private Monitors ---
 
     private fun startReconnectMonitor() {
+        val retryPolicy = RetryPolicy.forBluetooth()
         scope.launch {
             while (isActive) {
                 delay(1000)
@@ -475,17 +637,30 @@ class AppBluetoothManager(
                     if ((state == ConnectionState.DISCONNECTED || state == ConnectionState.ERROR) &&
                         savedDevice != null && System.currentTimeMillis() >= nextReconnectAt
                     ) {
+                        // Check circuit breaker
+                        if (recoveryManager?.shouldAllowOperation(RecoveryManager.OP_BLE_CONNECT) == false) {
+                            log("BLE: Connection circuit breaker TRIPPED, delaying reconnect", LogType.WARNING)
+                            nextReconnectAt = System.currentTimeMillis() + 10000
+                            continue
+                        }
+
                         if (reconnectAttempts >= BluetoothConfig.MAX_RECONNECT_ATTEMPTS) {
-                            log("Circuit breaker: Too many failed attempts", LogType.ERROR)
+                            log("BLE: Max reconnect attempts reached, disarming auto-reconnect", LogType.ERROR)
                             shouldReconnect = false
                             _autoReconnectEnabled.value = false
                         } else {
-                            val backoff = BluetoothConfig.calculateBackoffDelay(reconnectAttempts)
-                            log("Auto-reconnecting... (attempt ${reconnectAttempts + 1})", LogType.WARNING)
+                            val backoff = retryPolicy.calculateDelay(reconnectAttempts)
+                            log("BLE: Auto-reconnecting... (attempt ${reconnectAttempts + 1})", LogType.WARNING)
                             reconnectAttempts++
                             nextReconnectAt = System.currentTimeMillis() + backoff
                             updateConnectionState(ConnectionState.RECONNECTING)
-                            connectToDevice(savedDevice!!, isAutoReconnect = true)
+
+                            try {
+                                connectToDevice(savedDevice!!, isAutoReconnect = true)
+                            } catch (e: Exception) {
+                                recoveryManager?.recordFailure(RecoveryManager.OP_BLE_CONNECT)
+                                log("BLE: Reconnect attempt failed: ${e.message}", LogType.ERROR)
+                            }
                         }
                     }
                 }
@@ -538,7 +713,10 @@ class AppBluetoothManager(
         }
     }
 
-    fun holdOfflineAfterEStopReset() {
+    /**
+     * Holds offline after an E-STOP reset to prevent auto-reconnect churn.
+     */
+    override fun holdOfflineAfterEStopReset() {
         shouldReconnect = false
         _autoReconnectEnabled.value = false
         savedDevice = null
@@ -546,7 +724,10 @@ class AppBluetoothManager(
         log("E-STOP reset: keeping offline until manual connect", LogType.INFO)
     }
 
-    fun cleanup() {
+    /**
+     * Releases resources and cancels background work.
+     */
+    override fun cleanup() {
         scope.launch { deviceNameCache.cleanOldEntries() }
         scanner.cleanup()
         keepAliveJob?.cancel()
@@ -559,7 +740,13 @@ class AppBluetoothManager(
         _connectionState.value = state
     }
 
-    fun log(message: String, type: LogType = LogType.INFO) {
+    /**
+     * Adds a log entry to the debug log stream.
+     *
+     * @param message Log message.
+     * @param type Log severity type.
+     */
+    override fun log(message: String, type: LogType) {
         // Use ArrayDeque for O(1) head removal instead of O(n) list.removeAt(0)
         val deque = java.util.ArrayDeque(_debugLogs.value)
         // Limit to 500 entries to prevent memory leaks

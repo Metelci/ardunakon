@@ -2,14 +2,15 @@
 
 package com.metelci.ardunakon.ui.screens.control
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
+import android.annotation.SuppressLint
 import android.content.Context
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,11 +29,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.SyncDisabled
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.outlined.Info
@@ -51,8 +53,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.UiComposable
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -61,10 +66,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.bluetooth.ConnectionState
-import com.metelci.ardunakon.crash.CrashHandler
-import com.metelci.ardunakon.ui.components.AutoReconnectToggle
 import com.metelci.ardunakon.ui.components.LatencySparkline
 import com.metelci.ardunakon.ui.components.SignalStrengthIcon
+import com.metelci.ardunakon.ui.utils.hapticTap
 import com.metelci.ardunakon.wifi.WifiConnectionState
 
 /**
@@ -73,8 +77,10 @@ import com.metelci.ardunakon.wifi.WifiConnectionState
  * Contains signal indicator, connection button, telemetry graph button,
  * E-STOP button, debug toggle, and overflow menu.
  */
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Suppress("FunctionName")
 @Composable
+@UiComposable
 fun ControlHeaderBar(
     // Connection state
     connectionMode: ConnectionMode,
@@ -109,6 +115,7 @@ fun ControlHeaderBar(
     onShowHelp: () -> Unit,
     onShowAbout: () -> Unit,
     onShowCrashLog: () -> Unit,
+    onShowPerformanceStats: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
     onQuitApp: () -> Unit,
 
@@ -128,9 +135,10 @@ fun ControlHeaderBar(
             .fillMaxWidth()
             .padding(horizontal = if (isLandscape) 8.dp else 4.dp, vertical = 4.dp)
     ) {
-        val actionsCount = if (connectionMode == ConnectionMode.BLUETOOTH) 4 else 3
+        if (connectionMode == ConnectionMode.BLUETOOTH) 4 else 3
+        val containerMaxWidth = maxWidth
 
-        val sideSectionsMaxPossibleWidth = ((maxWidth - eStopSize) / 2f).coerceAtLeast(0.dp)
+        val sideSectionsMaxPossibleWidth = ((containerMaxWidth - eStopSize) / 2f).coerceAtLeast(0.dp)
         val isTight = sideSectionsMaxPossibleWidth < 160.dp && !isLandscape
 
         var itemSpacing = if (isTight) 4.dp else if (isLandscape) 12.dp else 8.dp
@@ -140,11 +148,25 @@ fun ControlHeaderBar(
         var eStopButtonSize = if (isTight) 52.dp else eStopSize
         var widgetHeight = if (isTight) 36.dp else 40.dp
 
-        // Status widget width - same size for SCAN (disconnected) and RSSI (connected)
-        val effectiveStatusWidth = if (isTight) 60.dp else if (isLandscape) 80.dp else 72.dp
+        // Status widget width - match the BLE/WiFi selector's total width
+        val effectiveStatusWidth = (modeSelectorWidth * 2f).coerceAtLeast(0.dp)
+        val sectionSpacing = itemSpacing
+        val sideSectionsAvailableWidth =
+            ((containerMaxWidth - eStopSize - (sectionSpacing * 2f)) / 2f).coerceAtLeast(0.dp)
+        val rightActionsHeight = widgetHeight
+        val rightActionsDividerWidth = 1.dp
+        val rightActionsPreferredWidth = (rightActionsHeight * 1.25f).coerceAtLeast(rightButtonSize * 1.25f)
+        val rightActionsMaxSegmentWidth =
+            ((sideSectionsAvailableWidth - (rightActionsDividerWidth * 3f)) / 4f).coerceAtLeast(0.dp)
+        val rightActionsSegmentWidth = if (rightActionsMaxSegmentWidth > 0.dp) {
+            rightActionsPreferredWidth.coerceAtMost(rightActionsMaxSegmentWidth)
+        } else {
+            rightActionsPreferredWidth
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(itemSpacing),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Left section: [BLE|WiFi] [Signal+RTT+Sparkline]
@@ -244,6 +266,8 @@ fun ControlHeaderBar(
                     onToggleAutoReconnect = onToggleAutoReconnect,
                     rightButtonSize = rightButtonSize,
                     itemSpacing = itemSpacing,
+                    pillHeight = rightActionsHeight,
+                    segmentWidth = rightActionsSegmentWidth,
                     view = view,
                     onTelemetryGraph = onTelemetryGraph,
                     onShowSettings = onShowSettings,
@@ -254,6 +278,7 @@ fun ControlHeaderBar(
                     onShowHelp = onShowHelp,
                     onShowAbout = onShowAbout,
                     onShowCrashLog = onShowCrashLog,
+                    onShowPerformanceStats = onShowPerformanceStats,
                     onOpenArduinoCloud = onOpenArduinoCloud,
                     onQuitApp = onQuitApp
                 )
@@ -270,6 +295,8 @@ private fun HeaderActionsRow(
     onToggleAutoReconnect: (Boolean) -> Unit,
     rightButtonSize: Dp,
     itemSpacing: Dp,
+    pillHeight: Dp,
+    segmentWidth: Dp,
     view: View,
     onTelemetryGraph: () -> Unit,
     onShowSettings: () -> Unit,
@@ -280,134 +307,207 @@ private fun HeaderActionsRow(
     onShowHelp: () -> Unit,
     onShowAbout: () -> Unit,
     onShowCrashLog: () -> Unit,
+    onShowPerformanceStats: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
     onQuitApp: () -> Unit
 ) {
-    val actionIconSize = (rightButtonSize * 0.5f).coerceIn(14.dp, 18.dp)
-    val menuIconSize = (rightButtonSize * 0.45f).coerceIn(14.dp, 16.dp)
+    val actionIconSize = (minOf(pillHeight, segmentWidth) * 0.6f).coerceIn(14.dp, 22.dp)
+    val menuIconSize = (minOf(pillHeight, segmentWidth) * 0.55f).coerceIn(14.dp, 20.dp)
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(itemSpacing)
     ) {
-        if (connectionMode == ConnectionMode.BLUETOOTH) {
-            AutoReconnectToggle(
-                enabled = autoReconnectEnabled,
-                onToggle = onToggleAutoReconnect,
-                size = rightButtonSize
-            )
-        }
+        val dividerWidth = 1.dp
+        val pillShape = CircleShape
+        val pillBorderColor = Color(0xFF00FF00)
+        val pillWidth = (segmentWidth * 4f) + (dividerWidth * 3f)
+        val autoReconnectBackground = if (autoReconnectEnabled) Color(0xFF43A047) else Color.Transparent
+        val autoReconnectTint = if (autoReconnectEnabled) Color.White else Color(0xFFFF5252)
 
-        IconButton(
-            onClick = {
-                view.hapticTap()
-                onTelemetryGraph()
-            },
+        Box(
             modifier = Modifier
-                .size(rightButtonSize)
-                .shadow(2.dp, CircleShape)
-                .background(Color(0xFF455A64), CircleShape)
-                .border(1.dp, Color(0xFF00FF00), CircleShape)
+                .size(width = pillWidth, height = pillHeight)
+                .shadow(2.dp, pillShape)
+                .background(Color(0xFF455A64), pillShape)
+                .border(1.dp, pillBorderColor, pillShape)
         ) {
-            Icon(
-                imageVector = Icons.Default.ShowChart,
-                contentDescription = "Telemetry Graphs",
-                tint = Color(0xFF00FF00),
-                modifier = Modifier.size(actionIconSize)
-            )
-        }
-
-        IconButton(
-            onClick = {
-                view.hapticTap()
-                onShowSettings()
-            },
-            modifier = Modifier
-                .size(rightButtonSize)
-                .shadow(2.dp, CircleShape)
-                .background(Color(0xFF455A64), CircleShape)
-                .border(1.dp, Color(0xFF00C853), CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
-                tint = Color(0xFF00C853),
-                modifier = Modifier.size(actionIconSize)
-            )
-        }
-
-        Box {
-            IconButton(
-                onClick = {
-                    view.hapticTap()
-                    onToggleOverflowMenu()
-                },
-                modifier = Modifier
-                    .size(rightButtonSize)
-                    .shadow(2.dp, CircleShape)
-                    .background(Color(0xFF455A64), CircleShape)
-                    .border(1.dp, Color(0xFF00FF00), CircleShape)
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Help,
-                    contentDescription = "Menu",
+                HeaderActionSegment(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    shape = RoundedCornerShape(topStartPercent = 50, bottomStartPercent = 50),
+                    background = autoReconnectBackground,
+                    icon = if (autoReconnectEnabled) Icons.Filled.Sync else Icons.Filled.SyncDisabled,
+                    iconSize = actionIconSize,
+                    tint = autoReconnectTint,
+                    contentDescription = if (autoReconnectEnabled) {
+                        "Auto-reconnect enabled. Tap to disable automatic reconnection."
+                    } else {
+                        "Auto-reconnect disabled. Tap to enable automatic reconnection."
+                    },
+                    onClick = { onToggleAutoReconnect(!autoReconnectEnabled) },
+                    view = view
+                )
+
+                HeaderActionDivider(color = pillBorderColor, width = dividerWidth)
+
+                HeaderActionSegment(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    shape = RoundedCornerShape(0.dp),
+                    icon = Icons.Default.ShowChart,
+                    iconSize = actionIconSize,
                     tint = Color(0xFF00FF00),
-                    modifier = Modifier.size(menuIconSize)
+                    contentDescription = "Telemetry Graphs",
+                    onClick = onTelemetryGraph,
+                    view = view
                 )
-            }
-            DropdownMenu(
-                expanded = showOverflowMenu,
-                onDismissRequest = onDismissOverflowMenu
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Help") },
-                    leadingIcon = { Icon(Icons.Default.Help, null) },
-                    onClick = {
-                        view.hapticTap()
-                        onShowHelp()
-                        onDismissOverflowMenu()
+
+                HeaderActionDivider(color = pillBorderColor, width = dividerWidth)
+
+                HeaderActionSegment(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    shape = RoundedCornerShape(0.dp),
+                    icon = Icons.Default.Settings,
+                    iconSize = actionIconSize,
+                    tint = Color(0xFF00C853),
+                    contentDescription = "Settings",
+                    onClick = onShowSettings,
+                    view = view
+                )
+
+                HeaderActionDivider(color = pillBorderColor, width = dividerWidth)
+
+                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    HeaderActionSegment(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = RoundedCornerShape(topEndPercent = 50, bottomEndPercent = 50),
+                        icon = Icons.Default.Help,
+                        iconSize = menuIconSize,
+                        tint = Color(0xFF00FF00),
+                        contentDescription = "Help menu",
+                        onClick = { onToggleOverflowMenu() },
+                        view = view
+                    )
+
+                    DropdownMenu(
+                        expanded = showOverflowMenu,
+                        onDismissRequest = onDismissOverflowMenu
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Help") },
+                            leadingIcon = { Icon(Icons.Default.Help, null) },
+                            onClick = {
+                                view.hapticTap()
+                                onShowHelp()
+                                onDismissOverflowMenu()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("About") },
+                            leadingIcon = { Icon(Icons.Outlined.Info, null) },
+                            onClick = {
+                                view.hapticTap()
+                                onShowAbout()
+                                onDismissOverflowMenu()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Crash Log", color = Color(0xFFFF9800)) },
+                            leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
+                            onClick = {
+                                view.hapticTap()
+                                onShowCrashLog()
+                                onDismissOverflowMenu()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Performance Stats") },
+                            leadingIcon = { Icon(Icons.Default.ShowChart, null, tint = Color(0xFF00E5FF)) },
+                            onClick = {
+                                view.hapticTap()
+                                onShowPerformanceStats()
+                                onDismissOverflowMenu()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Open Arduino Cloud") },
+                            leadingIcon = { Icon(Icons.Default.OpenInNew, null, tint = Color(0xFF00FF00)) },
+                            onClick = {
+                                view.hapticTap()
+                                onOpenArduinoCloud()
+                                onDismissOverflowMenu()
+                            }
+                        )
+                        Divider(color = Color(0xFF455A64), thickness = 1.dp)
+                        DropdownMenuItem(
+                            text = { Text("Quit App", color = Color(0xFFFF5252)) },
+                            leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
+                            onClick = {
+                                view.hapticTap()
+                                onQuitApp()
+                                onDismissOverflowMenu()
+                            }
+                        )
                     }
-                )
-                DropdownMenuItem(
-                    text = { Text("About") },
-                    leadingIcon = { Icon(Icons.Outlined.Info, null) },
-                    onClick = {
-                        view.hapticTap()
-                        onShowAbout()
-                        onDismissOverflowMenu()
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("View Crash Log", color = Color(0xFFFF9800)) },
-                    leadingIcon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFFF9800)) },
-                    onClick = {
-                        view.hapticTap()
-                        onShowCrashLog()
-                        onDismissOverflowMenu()
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Open Arduino Cloud") },
-                    leadingIcon = { Icon(Icons.Default.OpenInNew, null, tint = Color(0xFF00FF00)) },
-                    onClick = {
-                        view.hapticTap()
-                        onOpenArduinoCloud()
-                        onDismissOverflowMenu()
-                    }
-                )
-                Divider(color = Color(0xFF455A64), thickness = 1.dp)
-                DropdownMenuItem(
-                    text = { Text("Quit App", color = Color(0xFFFF5252)) },
-                    leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
-                    onClick = {
-                        view.hapticTap()
-                        onQuitApp()
-                        onDismissOverflowMenu()
-                    }
-                )
+                }
             }
         }
     }
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun HeaderActionSegment(
+    modifier: Modifier,
+    shape: Shape,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconSize: Dp,
+    tint: Color,
+    contentDescription: String,
+    onClick: () -> Unit,
+    view: View,
+    enabled: Boolean = true,
+    background: Color = Color.Transparent
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val clickModifier = Modifier.clickable(
+        enabled = enabled,
+        interactionSource = interactionSource,
+        indication = LocalIndication.current
+    ) {
+        view.hapticTap()
+        onClick()
+    }
+
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(background)
+            .then(clickModifier)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun HeaderActionDivider(color: Color, width: Dp) {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(width)
+            .background(color)
+    )
 }
 
 /**

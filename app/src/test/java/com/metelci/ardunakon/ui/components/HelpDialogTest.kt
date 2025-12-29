@@ -26,7 +26,7 @@ class HelpDialogTest {
 
         // Title
         composeTestRule.onNode(hasText("Help & Documentation", substring = true)).assertExists()
-        
+
         // Tab - Setup
         composeTestRule.onNode(hasText("Setup", substring = false).and(hasClickAction())).assertExists()
     }
@@ -41,9 +41,9 @@ class HelpDialogTest {
 
         // Click Compatibility tab
         composeTestRule.onNode(hasText("Compatibility", substring = false).and(hasClickAction())).performClick()
-        
+
         composeTestRule.mainClock.advanceTimeBy(2000)
-        
+
         // Check if tab is selected
         composeTestRule.onNode(hasText("Compatibility", substring = false).and(hasClickAction())).assertIsSelected()
     }
@@ -64,7 +64,7 @@ class HelpDialogTest {
 
         // Scroll to the item containing Tutorial (Index 2)
         composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(2)
-        
+
         composeTestRule.onNode(hasText("Tutorial", substring = true).and(hasClickAction()))
             .performClick()
 
@@ -84,12 +84,12 @@ class HelpDialogTest {
 
         // Scroll to the item containing Arduino Cloud (Index 2)
         composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(2)
-            
+
         composeTestRule.onNode(hasText("Arduino Cloud", substring = true).and(hasClickAction()))
             .performClick()
-        
+
         composeTestRule.mainClock.advanceTimeBy(2000)
-        
+
         // Check if any "Arduino Cloud" exists (title)
         composeTestRule.onAllNodes(hasText("Arduino Cloud", substring = true))
             .onFirst()

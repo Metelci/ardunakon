@@ -14,7 +14,7 @@ class OnboardingStepTest {
     fun `Welcome is singleton`() {
         val step1 = OnboardingStep.Welcome
         val step2 = OnboardingStep.Welcome
-        
+
         assertSame(step1, step2)
     }
 
@@ -22,7 +22,7 @@ class OnboardingStepTest {
     fun `Completion is singleton`() {
         val step1 = OnboardingStep.Completion
         val step2 = OnboardingStep.Completion
-        
+
         assertSame(step1, step2)
     }
 
@@ -30,7 +30,7 @@ class OnboardingStepTest {
     fun `Finished is singleton`() {
         val step1 = OnboardingStep.Finished
         val step2 = OnboardingStep.Finished
-        
+
         assertSame(step1, step2)
     }
 
@@ -38,7 +38,7 @@ class OnboardingStepTest {
     fun `InterfaceTour with same element are equal`() {
         val step1 = OnboardingStep.InterfaceTour(InterfaceElement.ESTOP)
         val step2 = OnboardingStep.InterfaceTour(InterfaceElement.ESTOP)
-        
+
         assertEquals(step1, step2)
     }
 
@@ -46,7 +46,7 @@ class OnboardingStepTest {
     fun `InterfaceTour with different elements are not equal`() {
         val step1 = OnboardingStep.InterfaceTour(InterfaceElement.ESTOP)
         val step2 = OnboardingStep.InterfaceTour(InterfaceElement.LEFT_JOYSTICK)
-        
+
         assertNotEquals(step1, step2)
     }
 
@@ -54,7 +54,7 @@ class OnboardingStepTest {
     fun `ConnectionTutorial with same step are equal`() {
         val step1 = OnboardingStep.ConnectionTutorial(ConnectionTutorialStep.CHOOSE_ARDUINO)
         val step2 = OnboardingStep.ConnectionTutorial(ConnectionTutorialStep.CHOOSE_ARDUINO)
-        
+
         assertEquals(step1, step2)
     }
 
@@ -62,7 +62,7 @@ class OnboardingStepTest {
     fun `ConnectionTutorial with different steps are not equal`() {
         val step1 = OnboardingStep.ConnectionTutorial(ConnectionTutorialStep.CHOOSE_ARDUINO)
         val step2 = OnboardingStep.ConnectionTutorial(ConnectionTutorialStep.SETUP_FINAL)
-        
+
         assertNotEquals(step1, step2)
     }
 
@@ -134,7 +134,7 @@ class OnboardingStepTest {
     fun `tourOrder is consistent`() {
         val order1 = InterfaceElement.tourOrder()
         val order2 = InterfaceElement.tourOrder()
-        
+
         assertEquals(order1, order2)
     }
 
@@ -248,7 +248,7 @@ class OnboardingStepTest {
             OnboardingStep.Completion,
             OnboardingStep.Finished
         )
-        
+
         assertEquals(5, steps.size)
         for (step in steps) {
             assertTrue(step is OnboardingStep)
@@ -264,7 +264,7 @@ class OnboardingStepTest {
             OnboardingStep.Completion,
             OnboardingStep.Finished
         )
-        
+
         for (step in steps) {
             val name = when (step) {
                 is OnboardingStep.Welcome -> "Welcome"

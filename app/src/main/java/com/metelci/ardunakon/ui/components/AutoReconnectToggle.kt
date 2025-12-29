@@ -1,8 +1,5 @@
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
@@ -21,6 +18,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 /**
  * Toggle for auto-reconnect feature (defaults to WCAG 48dp touch target).

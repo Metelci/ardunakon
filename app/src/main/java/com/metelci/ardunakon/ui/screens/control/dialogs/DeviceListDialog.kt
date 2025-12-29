@@ -2,9 +2,6 @@
 
 package com.metelci.ardunakon.ui.screens.control.dialogs
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +46,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.BluetoothDeviceModel
+import com.metelci.ardunakon.ui.utils.hapticTap
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

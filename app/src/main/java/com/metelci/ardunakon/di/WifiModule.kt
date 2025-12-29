@@ -1,8 +1,6 @@
 package com.metelci.ardunakon.di
 
 import android.content.Context
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
-import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.wifi.WifiManager
 import dagger.Module
 import dagger.Provides
@@ -19,21 +17,16 @@ object WifiModule {
     @Singleton
     fun provideWifiManager(
         @ApplicationContext context: Context,
-        bluetoothManager: AppBluetoothManager,
-        connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences
-    ): WifiManager {
+        bluetoothManager: com.metelci.ardunakon.bluetooth.IBluetoothManager,
+        connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
+        recoveryManager: com.metelci.ardunakon.util.RecoveryManager
+    ): com.metelci.ardunakon.wifi.IWifiManager {
         return WifiManager(
             context = context,
             connectionPreferences = connectionPreferences,
-            onLog = { msg ->
-                val logType = when {
-                    msg.contains("Connected", ignoreCase = true) || msg.startsWith("✓") -> LogType.SUCCESS
-                    msg.contains("Error", ignoreCase = true) ||
-                        msg.contains("Failed", ignoreCase = true) -> LogType.ERROR
-                    msg.contains("Warning", ignoreCase = true) -> LogType.WARNING
-                    else -> LogType.INFO
-                }
-                bluetoothManager.log(msg, logType)
+            recoveryManager = recoveryManager,
+            onLog = { msg, type ->
+                bluetoothManager.log(msg, type)
             }
         )
     }

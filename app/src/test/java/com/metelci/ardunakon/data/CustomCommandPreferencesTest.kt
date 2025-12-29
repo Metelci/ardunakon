@@ -139,4 +139,3 @@ class CustomCommandPreferencesTest {
         override fun decrypt(cipherText: String): String = cipherText
     }
 }
-

@@ -2,9 +2,6 @@
 
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -31,6 +28,7 @@ import androidx.compose.ui.window.Dialog
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("FunctionName")

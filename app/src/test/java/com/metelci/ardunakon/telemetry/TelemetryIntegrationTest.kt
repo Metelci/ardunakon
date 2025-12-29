@@ -6,7 +6,7 @@ import org.junit.Test
 
 /**
  * Integration-style tests for Telemetry package.
- * 
+ *
  * Tests telemetry recording, history management, and quality metrics flows.
  */
 class TelemetryIntegrationTest {
@@ -23,9 +23,9 @@ class TelemetryIntegrationTest {
     @Test
     fun `recordBattery stores value`() {
         historyManager.recordBattery(12.5f)
-        
+
         val history = historyManager.getBatteryHistory()
-        
+
         assertTrue(history.isNotEmpty())
         assertEquals(12.5f, history.last().value, 0.001f)
     }
@@ -35,9 +35,9 @@ class TelemetryIntegrationTest {
         historyManager.recordBattery(10.0f)
         historyManager.recordBattery(11.0f)
         historyManager.recordBattery(12.0f)
-        
+
         val history = historyManager.getBatteryHistory()
-        
+
         assertEquals(3, history.size)
         assertEquals(10.0f, history[0].value, 0.001f)
         assertEquals(11.0f, history[1].value, 0.001f)
@@ -47,7 +47,7 @@ class TelemetryIntegrationTest {
     @Test
     fun `getBatteryHistory returns empty list initially`() {
         val history = historyManager.getBatteryHistory()
-        
+
         assertTrue(history.isEmpty())
     }
 
@@ -56,9 +56,9 @@ class TelemetryIntegrationTest {
     @Test
     fun `recordRssi stores value`() {
         historyManager.recordRssi(-65)
-        
+
         val history = historyManager.getRssiHistory()
-        
+
         assertTrue(history.isNotEmpty())
         assertEquals(-65f, history.last().value, 0.001f)
     }
@@ -68,9 +68,9 @@ class TelemetryIntegrationTest {
         historyManager.recordRssi(-50)
         historyManager.recordRssi(-60)
         historyManager.recordRssi(-70)
-        
+
         val history = historyManager.getRssiHistory()
-        
+
         assertEquals(3, history.size)
         assertEquals(-50f, history[0].value, 0.001f)
         assertEquals(-70f, history[2].value, 0.001f)
@@ -81,9 +81,9 @@ class TelemetryIntegrationTest {
     @Test
     fun `recordRtt stores value`() {
         historyManager.recordRtt(15L)
-        
+
         val history = historyManager.getRttHistory()
-        
+
         assertTrue(history.isNotEmpty())
         assertEquals(15f, history.last().value, 0.001f)
     }
@@ -93,16 +93,16 @@ class TelemetryIntegrationTest {
         historyManager.recordRtt(10L)
         historyManager.recordRtt(20L)
         historyManager.recordRtt(30L)
-        
+
         val history = historyManager.getRttHistory()
-        
+
         assertEquals(3, history.size)
     }
 
     @Test
     fun `getRttHistory returns empty list initially`() {
         val history = historyManager.getRttHistory()
-        
+
         assertTrue(history.isEmpty())
     }
 
@@ -111,9 +111,9 @@ class TelemetryIntegrationTest {
     @Test
     fun `recordPacketLoss stores data`() {
         historyManager.recordPacketLoss(100, 95, 5, 0)
-        
+
         val history = historyManager.getPacketLossHistory()
-        
+
         assertTrue(history.isNotEmpty())
         assertEquals(100, history.last().packetsSent)
         assertEquals(95, history.last().packetsReceived)
@@ -123,9 +123,9 @@ class TelemetryIntegrationTest {
     @Test
     fun `recordPacketLoss calculates loss percentage`() {
         historyManager.recordPacketLoss(100, 90, 5, 5)
-        
+
         val history = historyManager.getPacketLossHistory()
-        
+
         // 10 dropped/failed out of 100 = 10%
         assertEquals(10f, history.last().lossPercent, 0.1f)
     }
@@ -133,9 +133,9 @@ class TelemetryIntegrationTest {
     @Test
     fun `recordPacketLoss handles zero sent packets`() {
         historyManager.recordPacketLoss(0, 0, 0, 0)
-        
+
         val history = historyManager.getPacketLossHistory()
-        
+
         assertEquals(0f, history.last().lossPercent, 0.001f)
     }
 
@@ -144,26 +144,26 @@ class TelemetryIntegrationTest {
     @Test
     fun `history is limited to max size`() {
         val manager = TelemetryHistoryManager(maxHistorySize = 10)
-        
+
         repeat(20) { i ->
             manager.recordBattery(i.toFloat())
         }
-        
+
         val history = manager.getBatteryHistory()
-        
+
         assertEquals(10, history.size)
     }
 
     @Test
     fun `older entries are removed when limit reached`() {
         val manager = TelemetryHistoryManager(maxHistorySize = 5)
-        
+
         repeat(10) { i ->
             manager.recordBattery(i.toFloat())
         }
-        
+
         val history = manager.getBatteryHistory()
-        
+
         // Should only have last 5 entries (5, 6, 7, 8, 9)
         assertEquals(5, history.size)
         assertEquals(5f, history.first().value, 0.001f)
@@ -177,9 +177,9 @@ class TelemetryIntegrationTest {
         historyManager.recordRssi(-65)
         historyManager.recordRtt(15L)
         historyManager.recordPacketLoss(100, 90, 10, 0)
-        
+
         historyManager.clearAllHistory()
-        
+
         assertTrue(historyManager.getBatteryHistory().isEmpty())
         assertTrue(historyManager.getRssiHistory().isEmpty())
         assertTrue(historyManager.getRttHistory().isEmpty())
@@ -193,16 +193,16 @@ class TelemetryIntegrationTest {
         historyManager.recordBattery(12.0f)
         historyManager.recordBattery(12.5f)
         historyManager.recordRssi(-65)
-        
+
         val size = historyManager.getHistorySize()
-        
+
         assertEquals(2, size) // Battery has 2 entries, RSSI has 1
     }
 
     @Test
     fun `getHistorySize returns 0 when empty`() {
         val size = historyManager.getHistorySize()
-        
+
         assertEquals(0, size)
     }
 
@@ -213,10 +213,10 @@ class TelemetryIntegrationTest {
         historyManager.recordBattery(10.0f)
         Thread.sleep(100)
         historyManager.recordBattery(11.0f)
-        
+
         // Get data from last 50ms only
         val recentHistory = historyManager.getBatteryHistory(50)
-        
+
         // Should only have the most recent entry
         assertTrue(recentHistory.size <= 2) // May have 1 or 2 depending on timing
     }
@@ -226,9 +226,9 @@ class TelemetryIntegrationTest {
         historyManager.recordPacketLoss(100, 90, 10, 0)
         Thread.sleep(100)
         historyManager.recordPacketLoss(200, 190, 10, 0)
-        
+
         val recentHistory = historyManager.getPacketLossHistory(50)
-        
+
         assertTrue(recentHistory.size <= 2)
     }
 
@@ -239,9 +239,9 @@ class TelemetryIntegrationTest {
         historyManager.recordRssi(-50)
         historyManager.recordRtt(20L)
         historyManager.recordPacketLoss(100, 98, 2, 0)
-        
+
         val quality = historyManager.getConnectionQualityHistory()
-        
+
         assertTrue(quality.isNotEmpty())
         // Good RSSI, low RTT, low loss should give high quality
         assertTrue(quality.first().value > 50f)
@@ -250,7 +250,7 @@ class TelemetryIntegrationTest {
     @Test
     fun `getConnectionQualityHistory returns empty for no data`() {
         val quality = historyManager.getConnectionQualityHistory()
-        
+
         assertTrue(quality.isEmpty())
     }
 
@@ -260,7 +260,7 @@ class TelemetryIntegrationTest {
     fun `cleanupAllStaleData does not crash`() {
         historyManager.recordBattery(12.0f)
         historyManager.recordRssi(-65)
-        
+
         // Should not crash
         historyManager.cleanupAllStaleData()
     }
@@ -272,9 +272,9 @@ class TelemetryIntegrationTest {
         val before = System.currentTimeMillis()
         historyManager.recordBattery(12.0f)
         val after = System.currentTimeMillis()
-        
+
         val history = historyManager.getBatteryHistory()
-        
+
         assertTrue(history.first().timestamp >= before)
         assertTrue(history.first().timestamp <= after)
     }
@@ -284,11 +284,11 @@ class TelemetryIntegrationTest {
     @Test
     fun `historyUpdated flow emits on record`() {
         val initialValue = historyManager.historyUpdated.value
-        
+
         historyManager.recordBattery(12.0f)
-        
+
         val newValue = historyManager.historyUpdated.value
-        
+
         assertTrue(newValue >= initialValue)
     }
 
@@ -297,7 +297,7 @@ class TelemetryIntegrationTest {
     @Test
     fun `TelemetryDataPoint data class works correctly`() {
         val point = TelemetryDataPoint(123456789L, 12.5f)
-        
+
         assertEquals(123456789L, point.timestamp)
         assertEquals(12.5f, point.value, 0.001f)
     }
@@ -312,7 +312,7 @@ class TelemetryIntegrationTest {
             packetsFailed = 2,
             lossPercent = 5.0f
         )
-        
+
         assertEquals(123456789L, point.timestamp)
         assertEquals(100, point.packetsSent)
         assertEquals(95, point.packetsReceived)

@@ -18,8 +18,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.ui.components.CustomCommandButtonRow
@@ -34,7 +34,7 @@ import com.metelci.ardunakon.wifi.WifiConnectionState
 @Composable
 fun PortraitControlLayout(
     viewModel: ControlViewModel,
-    bluetoothManager: AppBluetoothManager,
+    bluetoothManager: IBluetoothManager,
     connectionState: ConnectionState,
     wifiState: WifiConnectionState,
     rssiValue: Int,
@@ -80,19 +80,20 @@ fun PortraitControlLayout(
             buttonSize = 32.dp,
             eStopSize = 56.dp,
             onScanDevices = { viewModel.showDeviceList = true },
-                onReconnectDevice = {
-                    val reconnected = bluetoothManager.reconnectSavedDevice()
-                    if (!reconnected) viewModel.showDeviceList = true
-                },
-                onSwitchToWifi = { viewModel.switchToWifi() },
-                onSwitchToBluetooth = { viewModel.switchToBluetooth() },
-                onConfigureWifi = { viewModel.showWifiConfig = true },
-                onTelemetryGraph = { viewModel.showTelemetryGraph = true },
-                onToggleEStop = { viewModel.toggleEStop(view) },
-                onShowSettings = { viewModel.showSettingsDialog = true },
+            onReconnectDevice = {
+                val reconnected = bluetoothManager.reconnectSavedDevice()
+                if (!reconnected) viewModel.showDeviceList = true
+            },
+            onSwitchToWifi = { viewModel.switchToWifi() },
+            onSwitchToBluetooth = { viewModel.switchToBluetooth() },
+            onConfigureWifi = { viewModel.showWifiConfig = true },
+            onTelemetryGraph = { viewModel.showTelemetryGraph = true },
+            onToggleEStop = { viewModel.toggleEStop(view) },
+            onShowSettings = { viewModel.showSettingsDialog = true },
             onShowHelp = { viewModel.showHelpDialog = true },
             onShowAbout = { viewModel.showAboutDialog = true },
             onShowCrashLog = { viewModel.showCrashLog = true },
+            onShowPerformanceStats = { viewModel.showPerformanceStats = true },
             onOpenArduinoCloud = {
                 val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                 context.startActivity(intent)

@@ -16,6 +16,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.verify
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -26,7 +27,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
-import java.io.File
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -100,13 +100,18 @@ class ControlViewModelTest {
         val customCommandRegistry = mockk<com.metelci.ardunakon.protocol.CustomCommandRegistry>(relaxed = true)
         every { customCommandRegistry.commands } returns MutableStateFlow(emptyList())
 
+        val raspManager = mockk<com.metelci.ardunakon.security.RASPManager>(relaxed = true)
+        every { raspManager.securityViolations } returns MutableStateFlow(emptyList())
+        every { raspManager.isSecurityCompromised } returns MutableStateFlow(false)
+
         return ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
             connectionPreferences = connectionPreferences,
             onboardingManager = onboardingManager,
             customCommandRegistry = customCommandRegistry,
-            hapticPreferences = hapticPreferences
+            hapticPreferences = hapticPreferences,
+            raspManager = raspManager
         ).also { it.setForegroundActive(false) }
     }
 
@@ -237,13 +242,18 @@ class ControlViewModelTest {
         val customCommandRegistry = mockk<com.metelci.ardunakon.protocol.CustomCommandRegistry>(relaxed = true)
         every { customCommandRegistry.commands } returns MutableStateFlow(emptyList())
 
+        val raspManager = mockk<com.metelci.ardunakon.security.RASPManager>(relaxed = true)
+        every { raspManager.securityViolations } returns MutableStateFlow(emptyList())
+        every { raspManager.isSecurityCompromised } returns MutableStateFlow(false)
+
         val viewModel = ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
             connectionPreferences = connectionPreferences,
             onboardingManager = onboardingManagerMock,
             customCommandRegistry = customCommandRegistry,
-            hapticPreferences = hapticPreferences
+            hapticPreferences = hapticPreferences,
+            raspManager = raspManager
         ).also { it.setForegroundActive(false) }
 
         viewModel.resetTutorial()

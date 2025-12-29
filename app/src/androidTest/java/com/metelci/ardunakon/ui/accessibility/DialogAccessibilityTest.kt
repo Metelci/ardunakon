@@ -8,10 +8,10 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
-import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.ui.screens.ControlScreen
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.HiltTestActivity
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -41,7 +41,7 @@ class DialogAccessibilityTest {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 2)
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
+    val composeTestRule = createAndroidComposeRule<HiltTestActivity>()
 
     @Before
     fun setUp() {
@@ -237,12 +237,12 @@ class DialogAccessibilityTest {
         // Test settings dialog
         composeTestRule.onNodeWithContentDescription("Settings").performClick()
         composeTestRule.waitForIdle()
-        
+
         composeTestRule.activityRule.scenario.onActivity { activity ->
             activity.onBackPressedDispatcher.onBackPressed()
         }
         composeTestRule.waitForIdle()
-        
+
         // Verify dialog is closed
         composeTestRule.onNode(hasText("Settings")).assertDoesNotExist()
 
@@ -251,12 +251,12 @@ class DialogAccessibilityTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Help").performClick()
         composeTestRule.waitForIdle()
-        
+
         composeTestRule.activityRule.scenario.onActivity { activity ->
             activity.onBackPressedDispatcher.onBackPressed()
         }
         composeTestRule.waitForIdle()
-        
+
         // Verify dialog is closed
         composeTestRule.onNode(hasText("Help & Documentation")).assertDoesNotExist()
     }

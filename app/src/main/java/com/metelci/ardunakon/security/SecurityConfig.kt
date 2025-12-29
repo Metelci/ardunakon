@@ -67,6 +67,29 @@ object SecurityConfig {
     const val MIN_SECURITY_API_LEVEL = 26 // Android 8.0
 
     /**
+     * Expected APK signature hash for integrity verification (SHA-256).
+     *
+     * SECURITY: Set this to the SHA-256 hash of your APK's signing certificate.
+     * Leave empty to disable integrity checks (not recommended for production).
+     */
+    const val EXPECTED_APK_SIGNATURE_HASH = ""
+
+    /**
+     * Whether to enable runtime application self-protection (RASP).
+     */
+    const val ENABLE_RASP = true
+
+    /**
+     * RASP monitoring interval in milliseconds.
+     */
+    const val RASP_MONITORING_INTERVAL_MS = 30000L
+
+    /**
+     * Whether to block connections when security is compromised.
+     */
+    const val BLOCK_CONNECTIONS_ON_SECURITY_VIOLATION = true
+
+    /**
      * Default PSK for Arduino R4 WiFi devices (for compatibility).
      *
      * SECURITY: This should be changed in production or device-specific PSKs should be used.

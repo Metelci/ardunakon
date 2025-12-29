@@ -18,10 +18,10 @@ class TelemetryParserInstrumentedTest {
     fun parseTelemetryPacket_validPacket_extractsData() {
         // Standard telemetry format: "BAT:7.4V|RSSI:-65|LAT:25ms"
         val packet = "BAT:7.4V|RSSI:-65|LAT:25ms"
-        
+
         // Parse should not throw
         val parsed = parseTelemetryData(packet)
-        
+
         assertTrue("Should parse battery", parsed.containsKey("BAT"))
         assertTrue("Should parse RSSI", parsed.containsKey("RSSI"))
     }
@@ -29,19 +29,19 @@ class TelemetryParserInstrumentedTest {
     @Test
     fun parseTelemetryPacket_emptyPacket_handlesGracefully() {
         val packet = ""
-        
+
         val parsed = parseTelemetryData(packet)
-        
+
         assertTrue("Empty packet should return empty result", parsed.isEmpty())
     }
 
     @Test
     fun parseTelemetryPacket_malformedPacket_handlesGracefully() {
         val packet = "not a valid packet format"
-        
+
         // Should not throw
         val parsed = parseTelemetryData(packet)
-        
+
         // May have partial data or be empty
         assertNotNull(parsed)
     }
@@ -49,20 +49,20 @@ class TelemetryParserInstrumentedTest {
     @Test
     fun parseTelemetryPacket_partialData_extractsAvailable() {
         val packet = "BAT:8.2V"
-        
+
         val parsed = parseTelemetryData(packet)
-        
+
         assertTrue("Should parse available data", parsed.containsKey("BAT") || parsed.isEmpty())
     }
 
     private fun parseTelemetryData(packet: String): Map<String, String> {
         if (packet.isEmpty()) return emptyMap()
-        
+
         return try {
             packet.split("|")
                 .filter { it.contains(":") }
-                .associate { 
-                    val parts = it.split(":", limit = 2)
+                .associate { entry ->
+                    val parts = entry.split(":", limit = 2)
                     parts[0] to parts.getOrElse(1) { "" }
                 }
         } catch (e: Exception) {

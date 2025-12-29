@@ -2,7 +2,6 @@ package com.metelci.ardunakon.ui.screens.onboarding
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import com.metelci.ardunakon.model.FeatureType
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test

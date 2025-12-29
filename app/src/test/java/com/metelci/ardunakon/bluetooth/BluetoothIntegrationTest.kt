@@ -20,7 +20,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Integration-style tests for Bluetooth functionality.
- * 
+ *
  * These tests focus on public API behavior and end-to-end flows
  * without requiring complex mocking of Android Bluetooth internals.
  */
@@ -110,11 +110,11 @@ class BluetoothIntegrationTest {
     @Test
     fun `emergency stop blocks connection attempts`() = runTest(testDispatcher) {
         bluetoothManager.setEmergencyStop(true)
-        
+
         val device = BluetoothDeviceModel("Test", "00:11:22:33:44:55", DeviceType.LE)
         bluetoothManager.connectToDevice(device)
         testDispatcher.scheduler.runCurrent()
-        
+
         // Should remain disconnected due to E-STOP
         assertEquals(ConnectionState.DISCONNECTED, bluetoothManager.connectionState.value)
         assertTrue(bluetoothManager.debugLogs.value.any { it.message.contains("E-STOP") })
@@ -123,7 +123,7 @@ class BluetoothIntegrationTest {
     @Test
     fun `emergency stop blocks data transmission`() = runTest(testDispatcher) {
         bluetoothManager.setEmergencyStop(true)
-        
+
         // Should not crash, just be silently ignored
         bluetoothManager.sendData(byteArrayOf(0x01, 0x02, 0x03))
     }
@@ -132,11 +132,11 @@ class BluetoothIntegrationTest {
     fun `holdOfflineAfterEStopReset disables auto-reconnect`() = runTest(testDispatcher) {
         bluetoothManager.setAutoReconnectEnabled(true)
         bluetoothManager.holdOfflineAfterEStopReset()
-        
+
         assertFalse(bluetoothManager.autoReconnectEnabled.value)
-        assertTrue(bluetoothManager.debugLogs.value.any { 
-            it.message.contains("E-STOP reset") 
-        })
+        assertTrue(
+            bluetoothManager.debugLogs.value.any { it.message.contains("E-STOP reset") }
+        )
     }
 
     // ==================== Auto-Reconnect Flow ====================
@@ -144,22 +144,22 @@ class BluetoothIntegrationTest {
     @Test
     fun `enabling auto-reconnect updates state and logs`() = runTest(testDispatcher) {
         bluetoothManager.setAutoReconnectEnabled(true)
-        
+
         assertTrue(bluetoothManager.autoReconnectEnabled.value)
-        assertTrue(bluetoothManager.debugLogs.value.any { 
-            it.message.contains("Auto-reconnect ARMED") 
-        })
+        assertTrue(
+            bluetoothManager.debugLogs.value.any { it.message.contains("Auto-reconnect ARMED") }
+        )
     }
 
     @Test
     fun `disabling auto-reconnect updates state and logs`() = runTest(testDispatcher) {
         bluetoothManager.setAutoReconnectEnabled(true)
         bluetoothManager.setAutoReconnectEnabled(false)
-        
+
         assertFalse(bluetoothManager.autoReconnectEnabled.value)
-        assertTrue(bluetoothManager.debugLogs.value.any { 
-            it.message.contains("Auto-reconnect DISABLED") 
-        })
+        assertTrue(
+            bluetoothManager.debugLogs.value.any { it.message.contains("Auto-reconnect DISABLED") }
+        )
     }
 
     // ==================== Data Processing Flow ====================
@@ -167,9 +167,9 @@ class BluetoothIntegrationTest {
     @Test
     fun `onDataReceived updates incoming data flow`() = runTest(testDispatcher) {
         val testData = byteArrayOf(0x01, 0x02, 0x03)
-        
+
         bluetoothManager.onDataReceived(testData)
-        
+
         assertArrayEquals(testData, bluetoothManager.incomingData.value)
     }
 
@@ -177,15 +177,23 @@ class BluetoothIntegrationTest {
     fun `capability packet updates deviceCapability flow`() = runTest(testDispatcher) {
         // Capability packet: AA 01 05 [ID] [TYPE] [FLAGS...] 55
         val capPacket = byteArrayOf(
-            0xAA.toByte(), 0x01, 0x05,
-            0x01, // ID
-            0x04, // Type
-            0x01, 0x00, 0x00, 0x00, // Flags
+            0xAA.toByte(),
+            0x01,
+            0x05,
+            // ID
+            0x01,
+            // Type
+            0x04,
+            // Flags
+            0x01,
+            0x00,
+            0x00,
+            0x00,
             0x55
         )
-        
+
         bluetoothManager.onDataReceived(capPacket)
-        
+
         val caps = bluetoothManager.deviceCapability.value
         assertNotEquals(DeviceCapabilities.DEFAULT, caps)
     }
@@ -195,41 +203,41 @@ class BluetoothIntegrationTest {
     @Test
     fun `onStateChanged CONNECTED updates connectedDeviceInfo`() = runTest(testDispatcher) {
         val device = BluetoothDeviceModel("Test BLE", "00:11:22:33:44:55", DeviceType.LE)
-        
+
         // Inject saved device via reflection
         val field = AppBluetoothManager::class.java.getDeclaredField("savedDevice")
         field.isAccessible = true
         field.set(bluetoothManager, device)
-        
+
         bluetoothManager.onStateChanged(ConnectionState.CONNECTED)
-        
+
         assertEquals("Test BLE (BLE)", bluetoothManager.connectedDeviceInfo.value)
     }
 
     @Test
     fun `onStateChanged CONNECTED for Classic device shows correct type`() = runTest(testDispatcher) {
         val device = BluetoothDeviceModel("Test Classic", "00:11:22:33:44:55", DeviceType.CLASSIC)
-        
+
         val field = AppBluetoothManager::class.java.getDeclaredField("savedDevice")
         field.isAccessible = true
         field.set(bluetoothManager, device)
-        
+
         bluetoothManager.onStateChanged(ConnectionState.CONNECTED)
-        
+
         assertEquals("Test Classic (Classic)", bluetoothManager.connectedDeviceInfo.value)
     }
 
     @Test
     fun `onStateChanged DISCONNECTED clears connectedDeviceInfo`() = runTest(testDispatcher) {
         bluetoothManager.onStateChanged(ConnectionState.DISCONNECTED)
-        
+
         assertNull(bluetoothManager.connectedDeviceInfo.value)
     }
 
     @Test
     fun `onStateChanged ERROR updates state`() = runTest(testDispatcher) {
         bluetoothManager.onStateChanged(ConnectionState.ERROR)
-        
+
         assertEquals(ConnectionState.ERROR, bluetoothManager.connectionState.value)
     }
 
@@ -238,10 +246,10 @@ class BluetoothIntegrationTest {
     @Test
     fun `onError logs error message`() = runTest(testDispatcher) {
         bluetoothManager.onError("Test error message", LogType.ERROR)
-        
-        assertTrue(bluetoothManager.debugLogs.value.any { 
-            it.message.contains("Test error message") 
-        })
+
+        assertTrue(
+            bluetoothManager.debugLogs.value.any { it.message.contains("Test error message") }
+        )
     }
 
     @Test
@@ -257,7 +265,7 @@ class BluetoothIntegrationTest {
         repeat(510) { i ->
             bluetoothManager.onError("Message $i", LogType.INFO)
         }
-        
+
         assertEquals(500, bluetoothManager.debugLogs.value.size)
         assertFalse(bluetoothManager.debugLogs.value.any { it.message == "Message 0" })
         assertTrue(bluetoothManager.debugLogs.value.any { it.message == "Message 509" })
@@ -268,10 +276,10 @@ class BluetoothIntegrationTest {
     @Test
     fun `resetCircuitBreaker logs reset`() = runTest(testDispatcher) {
         bluetoothManager.resetCircuitBreaker()
-        
-        assertTrue(bluetoothManager.debugLogs.value.any { 
-            it.message.contains("Circuit breaker reset") 
-        })
+
+        assertTrue(
+            bluetoothManager.debugLogs.value.any { it.message.contains("Circuit breaker reset") }
+        )
     }
 
     // ==================== Cleanup Flow ====================
@@ -280,14 +288,14 @@ class BluetoothIntegrationTest {
     fun `cleanup is safe to call multiple times`() = runTest(testDispatcher) {
         bluetoothManager.cleanup()
         bluetoothManager.cleanup()
-        
+
         // Should not crash
     }
 
     @Test
     fun `disconnect when not connected is safe`() = runTest(testDispatcher) {
         bluetoothManager.disconnect()
-        
+
         assertEquals(ConnectionState.DISCONNECTED, bluetoothManager.connectionState.value)
     }
 
@@ -296,32 +304,36 @@ class BluetoothIntegrationTest {
     @Test
     fun `connectToDevice with BLE device logs something`() = runTest(testDispatcher) {
         val device = BluetoothDeviceModel("BLE Device", "AA:BB:CC:DD:EE:FF", DeviceType.LE)
-        
+
         bluetoothManager.connectToDevice(device)
         testDispatcher.scheduler.runCurrent()
-        
+
         // Should log either connection attempt or error (e.g., Bluetooth off)
-        assertTrue(bluetoothManager.debugLogs.value.any { 
-            it.message.contains("Connecting") || 
-            it.message.contains("BLE Device") ||
-            it.message.contains("Bluetooth") ||
-            it.message.contains("Connect failed")
-        })
+        assertTrue(
+            bluetoothManager.debugLogs.value.any {
+                it.message.contains("Connecting") ||
+                    it.message.contains("BLE Device") ||
+                    it.message.contains("Bluetooth") ||
+                    it.message.contains("Connect failed")
+            }
+        )
     }
 
     @Test
     fun `connectToDevice with Classic device logs something`() = runTest(testDispatcher) {
         val device = BluetoothDeviceModel("Classic Device", "11:22:33:44:55:66", DeviceType.CLASSIC)
-        
+
         bluetoothManager.connectToDevice(device)
         testDispatcher.scheduler.runCurrent()
-        
+
         // Should log either connection attempt or error (e.g., Bluetooth off)
-        assertTrue(bluetoothManager.debugLogs.value.any { 
-            it.message.contains("Connecting") || 
-            it.message.contains("Classic Device") ||
-            it.message.contains("Bluetooth") ||
-            it.message.contains("Connect failed")
-        })
+        assertTrue(
+            bluetoothManager.debugLogs.value.any {
+                it.message.contains("Connecting") ||
+                    it.message.contains("Classic Device") ||
+                    it.message.contains("Bluetooth") ||
+                    it.message.contains("Connect failed")
+            }
+        )
     }
 }

@@ -1,10 +1,10 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
-import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createComposeRule
 import com.metelci.ardunakon.model.ArduinoType
 import com.metelci.ardunakon.model.ConnectionTutorialStep
 import com.metelci.ardunakon.ui.screens.control.ConnectionMode
@@ -78,7 +78,7 @@ class ConnectionTutorialScreenTest {
         composeTestRule.mainClock.advanceTimeBy(500)
 
         assertEquals(ConnectionMode.WIFI, mode)
-        
+
         // Advance slightly if needed for state change to reflect in UI
         composeTestRule.onNodeWithText("WiFi mode selected", substring = true).assertExists()
     }

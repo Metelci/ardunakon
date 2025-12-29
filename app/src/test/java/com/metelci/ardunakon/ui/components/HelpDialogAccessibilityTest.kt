@@ -28,14 +28,14 @@ class HelpDialogAccessibilityTest {
         composeTestRule.onNode(hasText("Help & Documentation", substring = true)).assertExists()
         composeTestRule.onNode(hasText("Setup", substring = false).and(hasClickAction())).assertExists()
         composeTestRule.onNode(hasText("Compatibility", substring = false).and(hasClickAction())).assertExists()
-        
+
         // Scroll to the end to ensure everything is composed (only 3 items total)
         composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(2)
-        
+
         // Items in LazyColumn
         composeTestRule.onNode(hasText("Full Guide", substring = true).and(hasClickAction())).assertExists()
         composeTestRule.onNode(hasText("Arduino Cloud", substring = true).and(hasClickAction())).assertExists()
-        
+
         composeTestRule.onNodeWithContentDescription("Close").assertExists()
     }
 

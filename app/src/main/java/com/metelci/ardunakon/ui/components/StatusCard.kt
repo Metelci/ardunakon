@@ -1,8 +1,5 @@
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -25,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 @Suppress("FunctionName")
 @Composable

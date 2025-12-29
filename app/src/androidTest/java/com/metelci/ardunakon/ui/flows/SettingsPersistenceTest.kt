@@ -13,13 +13,13 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
-import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.data.AutoReconnectPreferences
 import com.metelci.ardunakon.data.ConnectionPreferences
 import com.metelci.ardunakon.data.HapticPreferences
 import com.metelci.ardunakon.ui.screens.ControlScreen
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.HiltTestActivity
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,7 +49,7 @@ class SettingsPersistenceTest {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 2)
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
+    val composeTestRule = createAndroidComposeRule<HiltTestActivity>()
 
     private lateinit var context: Context
 
@@ -57,7 +57,7 @@ class SettingsPersistenceTest {
     fun setUp() {
         hiltRule.inject()
         context = ApplicationProvider.getApplicationContext()
-        
+
         // Clear all preferences before each test
         context.deleteFile("connection_prefs.json")
         context.deleteFile("auto_reconnect_prefs.json")
@@ -100,7 +100,7 @@ class SettingsPersistenceTest {
 
         // Enter IP address
         composeTestRule.onNodeWithText("IP Address").performTextInput("192.168.1.100")
-        
+
         // Enter port
         composeTestRule.onNodeWithText("Port").performTextClearance()
         composeTestRule.onNodeWithText("Port").performTextInput("8080")

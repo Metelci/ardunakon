@@ -2,7 +2,6 @@ package com.metelci.ardunakon.crash
 
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -107,7 +106,7 @@ class BreadcrumbManagerTest {
     @Test
     fun leave_dropsOldestWhenCapacityExceeded() {
         BreadcrumbManager.clear()
-        
+
         // Add more than MAX_BREADCRUMBS (50)
         repeat(55) { i ->
             BreadcrumbManager.leave("TAG", "Message $i")

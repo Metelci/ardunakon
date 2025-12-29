@@ -34,8 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.metelci.ardunakon.security.RASPManager
 import com.metelci.ardunakon.service.BluetoothService
 import com.metelci.ardunakon.ui.screens.ControlScreen
+import com.metelci.ardunakon.ui.screens.control.dialogs.SecurityCompromisedDialog
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -126,6 +128,15 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     when {
+                        // Critical Security Violation
+                        RASPManager.getInstance(this).isSecurityCompromised.collectAsState().value -> {
+                            SecurityCompromisedDialog(
+                                onQuitApp = {
+                                    RASPManager.getInstance(this).wipeSensitiveData()
+                                    quitApp()
+                                }
+                            )
+                        }
                         // Show onboarding for first-time users
                         showOnboarding -> {
                             com.metelci.ardunakon.ui.screens.onboarding.OnboardingFlow(

@@ -5,7 +5,7 @@ import org.junit.Test
 
 /**
  * Extended unit tests for CustomCommand data class.
- * 
+ *
  * Adds comprehensive coverage for edge cases, boundary conditions,
  * and additional validation scenarios.
  */
@@ -23,8 +23,8 @@ class CustomCommandExtendedTest {
     @Test
     fun `all reserved keys lowercase are also rejected`() {
         for (key in CustomCommand.RESERVED_KEYS) {
-            assertFalse("Key ${key.lowercaseChar()} should be rejected", 
-                CustomCommand.isValidShortcut(key.lowercaseChar()))
+            val message = "Key ${key.lowercaseChar()} should be rejected"
+            assertFalse(message, CustomCommand.isValidShortcut(key.lowercaseChar()))
         }
     }
 
@@ -65,8 +65,8 @@ class CustomCommandExtendedTest {
     @Test
     fun `valid command ID range has 32 values`() {
         // 0x20 to 0x3F inclusive = 32 values
-        val validCount = (0x20..0x3F).count { 
-            CustomCommand.isValidCommandId(it.toByte()) 
+        val validCount = (0x20..0x3F).count {
+            CustomCommand.isValidCommandId(it.toByte())
         }
         assertEquals(32, validCount)
     }
@@ -122,9 +122,9 @@ class CustomCommandExtendedTest {
             name = "Original",
             commandId = 0x20.toByte()
         )
-        
+
         val copy = original.copy(name = "Modified")
-        
+
         assertEquals("Original", original.name)
         assertEquals("Modified", copy.name)
         assertEquals("original", copy.id)
@@ -137,20 +137,20 @@ class CustomCommandExtendedTest {
             commandId = 0x20.toByte(),
             payload = byteArrayOf(1, 2, 3, 4, 5)
         )
-        
+
         // Create a copy of the payload before passing to copy()
         val newPayload = byteArrayOf(5, 4, 3, 2, 1)
         val copy = original.copy(payload = newPayload)
-        
+
         // Verify copy has the new payload values
         assertEquals(5.toByte(), copy.payload[0])
         assertEquals(4.toByte(), copy.payload[1])
-        
+
         // Note: data class copy() uses reference semantics for arrays
         // If we need independent copies, we should use payload.copyOf()
         val independentCopy = original.copy(payload = newPayload.copyOf())
         newPayload[0] = 99.toByte()
-        
+
         // The independently copied version still has original values
         assertEquals(5.toByte(), independentCopy.payload[0])
     }
@@ -162,7 +162,7 @@ class CustomCommandExtendedTest {
         val command1 = CustomCommand(name = "Red", commandId = 0x20.toByte(), colorHex = 0xFFFF0000)
         val command2 = CustomCommand(name = "Blue", commandId = 0x20.toByte(), colorHex = 0xFF0000FF)
         val command3 = CustomCommand(name = "Transparent", commandId = 0x20.toByte(), colorHex = 0x00000000)
-        
+
         assertEquals(0xFFFF0000, command1.colorHex)
         assertEquals(0xFF0000FF, command2.colorHex)
         assertEquals(0x00000000, command3.colorHex)
@@ -174,7 +174,7 @@ class CustomCommandExtendedTest {
     fun `toggle and momentary commands are distinct`() {
         val toggle = CustomCommand(name = "Toggle", commandId = 0x20.toByte(), isToggle = true)
         val momentary = CustomCommand(name = "Momentary", commandId = 0x20.toByte(), isToggle = false)
-        
+
         assertTrue(toggle.isToggle)
         assertFalse(momentary.isToggle)
     }
@@ -199,7 +199,7 @@ class CustomCommandExtendedTest {
     fun `auto generated IDs are unique`() {
         val command1 = CustomCommand(name = "Test1", commandId = 0x20.toByte())
         val command2 = CustomCommand(name = "Test2", commandId = 0x20.toByte())
-        
+
         assertNotEquals(command1.id, command2.id)
     }
 

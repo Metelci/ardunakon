@@ -8,14 +8,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.ui.components.SettingsDialog
 import com.metelci.ardunakon.ui.components.TelemetryGraphDialog
 import com.metelci.ardunakon.ui.components.TerminalDialog
 import com.metelci.ardunakon.ui.components.WifiConfigDialog
 import com.metelci.ardunakon.ui.screens.control.ControlViewModel
-import com.metelci.ardunakon.wifi.WifiManager
+import com.metelci.ardunakon.wifi.IWifiManager
 
 /**
  * Container for all dialogs used in ControlScreen.
@@ -25,8 +25,8 @@ import com.metelci.ardunakon.wifi.WifiManager
 @Composable
 fun ControlScreenDialogs(
     viewModel: ControlViewModel,
-    bluetoothManager: AppBluetoothManager,
-    wifiManager: WifiManager,
+    bluetoothManager: IBluetoothManager,
+    wifiManager: IWifiManager,
     view: View,
     onExportLogs: () -> Unit,
     onTakeTutorial: (() -> Unit)? = null
@@ -93,6 +93,14 @@ fun ControlScreenDialogs(
             onShare = { /* Share handled internally */ },
             onClear = { viewModel.showCrashLog = false },
             onDismiss = { viewModel.showCrashLog = false }
+        )
+    }
+
+    // Performance Stats Dialog
+    if (viewModel.showPerformanceStats) {
+        PerformanceStatsDialog(
+            view = view,
+            onDismiss = { viewModel.showPerformanceStats = false }
         )
     }
 

@@ -5,10 +5,10 @@ import android.content.Intent
 import android.os.Looper
 import android.os.PowerManager
 import androidx.test.core.app.ApplicationProvider
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.di.TestBluetoothState
-import com.metelci.ardunakon.wifi.WifiManager
+import com.metelci.ardunakon.wifi.IWifiManager
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
@@ -42,9 +42,9 @@ class BluetoothServiceTest {
     @get:Rule
     val hiltRule = HiltAndroidRule(this)
 
-    @javax.inject.Inject lateinit var bluetoothManager: AppBluetoothManager
+    @javax.inject.Inject lateinit var bluetoothManager: IBluetoothManager
 
-    @javax.inject.Inject lateinit var wifiManager: WifiManager
+    @javax.inject.Inject lateinit var wifiManager: IWifiManager
 
     @Before
     fun setUp() {

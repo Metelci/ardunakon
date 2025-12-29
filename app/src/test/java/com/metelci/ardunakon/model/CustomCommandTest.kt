@@ -53,4 +53,3 @@ class CustomCommandTest {
         assertFalse(a.hashCode() == b.hashCode())
     }
 }
-

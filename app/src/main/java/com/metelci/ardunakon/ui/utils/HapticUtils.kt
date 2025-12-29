@@ -1,7 +1,5 @@
 package com.metelci.ardunakon.ui.utils
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
 import android.view.HapticFeedbackConstants
 import android.view.View
 

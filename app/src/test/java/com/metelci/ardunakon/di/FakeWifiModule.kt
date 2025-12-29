@@ -1,7 +1,7 @@
 package com.metelci.ardunakon.di
 
+import com.metelci.ardunakon.wifi.IWifiManager
 import com.metelci.ardunakon.wifi.WifiConnectionState
-import com.metelci.ardunakon.wifi.WifiManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
@@ -20,8 +20,8 @@ object FakeWifiModule {
 
     @Provides
     @Singleton
-    fun provideWifiManager(): WifiManager {
-        val mock = mockk<WifiManager>(relaxed = true)
+    fun provideWifiManager(): IWifiManager {
+        val mock = mockk<IWifiManager>(relaxed = true)
         every { mock.connectionState } returns MutableStateFlow(WifiConnectionState.DISCONNECTED)
         return mock
     }

@@ -244,13 +244,13 @@ class TelemetryManagerTest {
     fun recordInbound_calculatesRtt() {
         val startTime = System.currentTimeMillis()
         telemetryManager.onHeartbeatSent(1)
-        
+
         Thread.sleep(100) // Simulate network delay
-        
+
         telemetryManager.recordInbound()
 
         val health = telemetryManager.health.value
-        
+
         // RTT should be approximately 100ms
         assertTrue(health.lastRttMs >= 100L)
         assertTrue(health.lastRttMs < 200L) // With some tolerance

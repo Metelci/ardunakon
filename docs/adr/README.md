@@ -22,6 +22,13 @@ Architecture Decision Records (ADRs) are lightweight documents that capture impo
 | [002](./002-secure-error-handling.md) | Secure Error Handling Implementation | Accepted | Dec 15, 2025 | Information disclosure prevention through secure error handling |
 | [003](./003-centralized-security-config.md) | Centralized Security Configuration System | Accepted | Dec 15, 2025 | Security configuration centralization and management |
 
+### Documentation Architecture Decisions
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [004](./004-kdoc-standards.md) | KDoc Standards for Public APIs | Accepted | Dec 29, 2025 | Standardized KDoc coverage for public APIs |
+| [005](./005-adr-governance.md) | ADR Governance and Review Process | Accepted | Dec 29, 2025 | Record and review architectural decisions consistently |
+
 ## ADR Template
 
 When creating new ADRs, use the following structure:

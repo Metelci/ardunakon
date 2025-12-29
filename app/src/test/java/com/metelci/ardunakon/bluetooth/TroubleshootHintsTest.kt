@@ -43,4 +43,3 @@ class TroubleshootHintsTest {
         assertEquals("→ Explanation. Solution", formatted)
     }
 }
-

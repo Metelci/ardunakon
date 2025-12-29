@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build.VERSION_CODES
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertFalse
@@ -13,7 +14,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import android.os.Build.VERSION_CODES
 
 @RunWith(RobolectricTestRunner::class)
 class AndroidSystemServicesTest {

@@ -80,7 +80,7 @@ class SecurityConfigTest {
     @Test
     fun defaultR4WifiPsk_hasCorrectLength() {
         val psk = SecurityConfig.DEFAULT_R4_WIFI_PSK
-        
+
         assertNotNull(psk)
         assertTrue("PSK should be at least 16 bytes", psk.size >= 16)
         assertEquals(32, psk.size) // AES-256 requires 32 bytes
@@ -89,7 +89,7 @@ class SecurityConfigTest {
     @Test
     fun defaultR4WifiPsk_isNotEmpty() {
         val psk = SecurityConfig.DEFAULT_R4_WIFI_PSK
-        
+
         assertTrue(psk.isNotEmpty())
         psk.forEach { byte ->
             assertNotEquals("PSK should not contain null bytes", 0.toByte(), byte)
@@ -107,7 +107,7 @@ class SecurityConfigTest {
     @Test
     fun warnings_plaintextTransmission_isNotEmpty() {
         val warning = SecurityConfig.Warnings.PLAINTEXT_TRANSMISSION
-        
+
         assertFalse(warning.isEmpty())
         assertTrue(warning.contains("Warning") || warning.contains("⚠️"))
     }
@@ -115,7 +115,7 @@ class SecurityConfigTest {
     @Test
     fun warnings_encryptionRequired_isNotEmpty() {
         val warning = SecurityConfig.Warnings.ENCRYPTION_REQUIRED
-        
+
         assertFalse(warning.isEmpty())
         assertTrue(warning.contains("Security") || warning.contains("🔒"))
     }
@@ -123,7 +123,7 @@ class SecurityConfigTest {
     @Test
     fun warnings_handshakeFailed_isNotEmpty() {
         val warning = SecurityConfig.Warnings.HANDSHAKE_FAILED
-        
+
         assertFalse(warning.isEmpty())
         assertTrue(warning.contains("Security") || warning.contains("🔒"))
     }
@@ -131,7 +131,7 @@ class SecurityConfigTest {
     @Test
     fun warnings_developmentMode_isNotEmpty() {
         val warning = SecurityConfig.Warnings.DEVELOPMENT_MODE
-        
+
         assertFalse(warning.isEmpty())
         assertTrue(warning.contains("Development") || warning.contains("⚠️"))
     }
@@ -139,7 +139,7 @@ class SecurityConfigTest {
     @Test
     fun secureErrorMessages_genericSecurityError_doesNotLeakInfo() {
         val message = SecurityConfig.SecureErrorMessages.GENERIC_SECURITY_ERROR
-        
+
         assertFalse(message.isEmpty())
         assertFalse("Should not leak implementation details", message.contains("stack"))
         assertFalse("Should not leak implementation details", message.contains("exception"))
@@ -148,7 +148,7 @@ class SecurityConfigTest {
     @Test
     fun secureErrorMessages_deviceVerificationFailed_doesNotLeakInfo() {
         val message = SecurityConfig.SecureErrorMessages.DEVICE_VERIFICATION_FAILED
-        
+
         assertFalse(message.isEmpty())
         assertTrue(message.contains("verification") || message.contains("failed"))
     }
@@ -156,7 +156,7 @@ class SecurityConfigTest {
     @Test
     fun secureErrorMessages_encryptionUnavailable_doesNotLeakInfo() {
         val message = SecurityConfig.SecureErrorMessages.ENCRYPTION_UNAVAILABLE
-        
+
         assertFalse(message.isEmpty())
         assertFalse("Should not leak crypto details", message.contains("AES"))
         assertFalse("Should not leak crypto details", message.contains("key"))
@@ -165,7 +165,7 @@ class SecurityConfigTest {
     @Test
     fun secureErrorMessages_handshakeTimeout_isGeneric() {
         val message = SecurityConfig.SecureErrorMessages.HANDSHAKE_TIMEOUT
-        
+
         assertFalse(message.isEmpty())
         assertTrue(message.contains("timeout") || message.contains("handshake"))
     }

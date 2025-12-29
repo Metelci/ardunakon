@@ -2,10 +2,7 @@
 
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
 import android.content.res.Configuration
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,10 +26,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.metelci.ardunakon.model.CustomCommand
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 /**
  * Dialog for creating or editing a custom command.
@@ -439,11 +436,7 @@ fun CustomCommandDialog(
 
 @Suppress("FunctionName")
 @Composable
-private fun CommandIdSelector(
-    selectedId: Byte,
-    availableIds: List<Byte>,
-    onIdSelected: (Byte) -> Unit
-) {
+private fun CommandIdSelector(selectedId: Byte, availableIds: List<Byte>, onIdSelected: (Byte) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
 
     Column {
@@ -508,21 +501,28 @@ private fun CommandIdSelector(
 
 @Suppress("FunctionName")
 @Composable
-private fun ColorPicker(
-    selectedColor: Long,
-    onColorSelected: (Long) -> Unit
-) {
+private fun ColorPicker(selectedColor: Long, onColorSelected: (Long) -> Unit) {
     val colors = listOf(
-        0xFF2196F3L, // Blue
-        0xFF4CAF50L, // Green
-        0xFFF44336L, // Red
-        0xFFFF9800L, // Orange
-        0xFF9C27B0L, // Purple
-        0xFF00BCD4L, // Cyan
-        0xFFFFEB3BL, // Yellow
-        0xFF607D8BL, // Blue Grey
-        0xFFE91E63L, // Pink
-        0xFF795548L  // Brown
+        // Blue
+        0xFF2196F3L,
+        // Green
+        0xFF4CAF50L,
+        // Red
+        0xFFF44336L,
+        // Orange
+        0xFFFF9800L,
+        // Purple
+        0xFF9C27B0L,
+        // Cyan
+        0xFF00BCD4L,
+        // Yellow
+        0xFFFFEB3BL,
+        // Blue Grey
+        0xFF607D8BL,
+        // Pink
+        0xFFE91E63L,
+        // Brown
+        0xFF795548L
     )
 
     Column {
@@ -558,10 +558,7 @@ private fun ColorPicker(
 
 @Suppress("FunctionName")
 @Composable
-private fun IconPicker(
-    selectedIconName: String,
-    onIconSelected: (String) -> Unit
-) {
+private fun IconPicker(selectedIconName: String, onIconSelected: (String) -> Unit) {
     val icons = mapOf(
         "Build" to Icons.Default.Build,
         "Lightbulb" to Icons.Default.Lightbulb,
@@ -590,8 +587,11 @@ private fun IconPicker(
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            if (name == selectedIconName) Color(0xFF00C853).copy(alpha = 0.3f)
-                            else Color(0xFF2A2A3E),
+                            if (name == selectedIconName) {
+                                Color(0xFF00C853).copy(alpha = 0.3f)
+                            } else {
+                                Color(0xFF2A2A3E)
+                            },
                             RoundedCornerShape(8.dp)
                         )
                 ) {
@@ -609,10 +609,7 @@ private fun IconPicker(
 
 @Suppress("FunctionName")
 @Composable
-private fun ShortcutPicker(
-    selectedShortcut: Char?,
-    onShortcutSelected: (Char?) -> Unit
-) {
+private fun ShortcutPicker(selectedShortcut: Char?, onShortcutSelected: (Char?) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val availableKeys = CustomCommand.AVAILABLE_SHORTCUT_KEYS
 

@@ -2,9 +2,6 @@
 
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -31,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.BuildConfig
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 /**
  * About dialog showing app information, version, and links.

@@ -6,7 +6,7 @@ import org.junit.Test
 
 /**
  * Unit tests for StatusCard state text and color mapping logic.
- * 
+ *
  * These tests verify the ConnectionState-to-text and color mapping.
  */
 class StatusCardLogicTest {
@@ -160,7 +160,7 @@ class StatusCardLogicTest {
         val label = "Bluetooth"
         val state = ConnectionState.CONNECTED
         val formatted = "$label: ${getStateText(state)}"
-        
+
         assertEquals("Bluetooth: Connected", formatted)
     }
 
@@ -169,7 +169,7 @@ class StatusCardLogicTest {
         val label = "WiFi"
         val state = ConnectionState.DISCONNECTED
         val formatted = "$label: ${getStateText(state)}"
-        
+
         assertEquals("WiFi: Disconnected", formatted)
     }
 }

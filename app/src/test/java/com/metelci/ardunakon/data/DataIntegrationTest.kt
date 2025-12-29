@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Integration-style tests for Data/Preferences package.
- * 
+ *
  * Tests preference storage, loading, and encryption flows.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -31,7 +31,7 @@ class DataIntegrationTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         val cryptoEngine = TestCryptoEngine()
-        
+
         connectionPreferences = ConnectionPreferences(context, cryptoEngine)
         autoReconnectPreferences = AutoReconnectPreferences(context, cryptoEngine)
         deviceNameCache = DeviceNameCache(context, cryptoEngine)
@@ -46,9 +46,9 @@ class DataIntegrationTest {
             btAddress = "AA:BB:CC:DD:EE:FF",
             btType = "LE"
         )
-        
+
         val loaded = connectionPreferences.loadLastConnection()
-        
+
         assertEquals("BLUETOOTH", loaded.type)
         assertEquals("AA:BB:CC:DD:EE:FF", loaded.btAddress)
         assertEquals("LE", loaded.btType)
@@ -62,9 +62,9 @@ class DataIntegrationTest {
             wifiPort = 8080,
             wifiPsk = "secret123"
         )
-        
+
         val loaded = connectionPreferences.loadLastConnection()
-        
+
         assertEquals("WIFI", loaded.type)
         assertEquals("192.168.1.100", loaded.wifiIp)
         assertEquals(8080, loaded.wifiPort)
@@ -76,9 +76,9 @@ class DataIntegrationTest {
         // Clear any existing data
         context.getSharedPreferences("connection_prefs", Context.MODE_PRIVATE)
             .edit().clear().apply()
-        
+
         val loaded = connectionPreferences.loadLastConnection()
-        
+
         assertNull(loaded.type)
         assertNull(loaded.btAddress)
     }
@@ -91,9 +91,9 @@ class DataIntegrationTest {
             btType = "CLASSIC",
             joystickSensitivity = 0.75f
         )
-        
+
         val loaded = connectionPreferences.loadLastConnection()
-        
+
         assertEquals(0.75f, loaded.joystickSensitivity, 0.001f)
     }
 
@@ -105,9 +105,9 @@ class DataIntegrationTest {
             wifiPort = 9000,
             autoReconnectWifi = true
         )
-        
+
         val loaded = connectionPreferences.loadLastConnection()
-        
+
         assertTrue(loaded.autoReconnectWifi)
     }
 
@@ -116,9 +116,9 @@ class DataIntegrationTest {
     @Test
     fun `saveAutoReconnectState and loadAutoReconnectState round-trip`() = runTest {
         autoReconnectPreferences.saveAutoReconnectState(0, true)
-        
+
         val loaded = autoReconnectPreferences.loadAutoReconnectState()
-        
+
         assertTrue(loaded[0])
     }
 
@@ -126,9 +126,9 @@ class DataIntegrationTest {
     fun `saveAutoReconnectState handles multiple slots`() = runTest {
         autoReconnectPreferences.saveAutoReconnectState(0, true)
         autoReconnectPreferences.saveAutoReconnectState(1, false)
-        
+
         val loaded = autoReconnectPreferences.loadAutoReconnectState()
-        
+
         assertTrue(loaded[0])
         assertFalse(loaded[1])
     }
@@ -138,9 +138,9 @@ class DataIntegrationTest {
         // Clear any existing data
         context.getSharedPreferences("auto_reconnect_prefs", Context.MODE_PRIVATE)
             .edit().clear().apply()
-        
+
         val loaded = autoReconnectPreferences.loadAutoReconnectState()
-        
+
         // All slots should default to false
         loaded.forEach { assertFalse(it) }
     }
@@ -151,30 +151,30 @@ class DataIntegrationTest {
     fun `saveName and getName round-trip`() = runTest {
         val address = "AA:BB:CC:DD:EE:FF"
         val name = "My Arduino"
-        
+
         deviceNameCache.saveName(address, name, com.metelci.ardunakon.bluetooth.DeviceType.LE)
-        
+
         val loaded = deviceNameCache.getName(address)
-        
+
         assertEquals(name, loaded)
     }
 
     @Test
     fun `getName returns null for unknown address`() = runTest {
         val loaded = deviceNameCache.getName("00:00:00:00:00:00")
-        
+
         assertNull(loaded)
     }
 
     @Test
     fun `saveName updates existing entry`() = runTest {
         val address = "11:22:33:44:55:66"
-        
+
         deviceNameCache.saveName(address, "Old Name", com.metelci.ardunakon.bluetooth.DeviceType.CLASSIC)
         deviceNameCache.saveName(address, "New Name", com.metelci.ardunakon.bluetooth.DeviceType.CLASSIC)
-        
+
         val loaded = deviceNameCache.getName(address)
-        
+
         assertEquals("New Name", loaded)
     }
 
@@ -183,7 +183,7 @@ class DataIntegrationTest {
         deviceNameCache.saveName("AA:AA:AA:AA:AA:AA", "Device A", com.metelci.ardunakon.bluetooth.DeviceType.LE)
         deviceNameCache.saveName("BB:BB:BB:BB:BB:BB", "Device B", com.metelci.ardunakon.bluetooth.DeviceType.LE)
         deviceNameCache.saveName("CC:CC:CC:CC:CC:CC", "Device C", com.metelci.ardunakon.bluetooth.DeviceType.CLASSIC)
-        
+
         assertEquals("Device A", deviceNameCache.getName("AA:AA:AA:AA:AA:AA"))
         assertEquals("Device B", deviceNameCache.getName("BB:BB:BB:BB:BB:BB"))
         assertEquals("Device C", deviceNameCache.getName("CC:CC:CC:CC:CC:CC"))
@@ -193,7 +193,7 @@ class DataIntegrationTest {
     fun `cleanOldEntries does not crash`() = runTest {
         // Add some entries
         deviceNameCache.saveName("DD:DD:DD:DD:DD:DD", "Old Device", com.metelci.ardunakon.bluetooth.DeviceType.LE)
-        
+
         // Should not crash
         deviceNameCache.cleanOldEntries()
     }
@@ -212,7 +212,7 @@ class DataIntegrationTest {
             autoReconnectWifi = false,
             joystickSensitivity = 1.0f
         )
-        
+
         val conn2 = ConnectionPreferences.LastConnection(
             type = "BLUETOOTH",
             btAddress = "AA:BB:CC:DD:EE:FF",
@@ -223,7 +223,7 @@ class DataIntegrationTest {
             autoReconnectWifi = false,
             joystickSensitivity = 1.0f
         )
-        
+
         assertEquals(conn1, conn2)
     }
 
@@ -239,9 +239,9 @@ class DataIntegrationTest {
             autoReconnectWifi = false,
             joystickSensitivity = 1.0f
         )
-        
+
         val modified = original.copy(type = "WIFI", wifiIp = "192.168.1.1")
-        
+
         assertEquals("WIFI", modified.type)
         assertEquals("192.168.1.1", modified.wifiIp)
         // Original unchanged

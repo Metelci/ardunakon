@@ -8,10 +8,10 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
-import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.ui.screens.ControlScreen
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.HiltTestActivity
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -37,7 +37,7 @@ class CustomCommandFlowTest {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 2)
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
+    val composeTestRule = createAndroidComposeRule<HiltTestActivity>()
 
     @Before
     fun setUp() {

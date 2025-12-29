@@ -20,13 +20,58 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlinx.coroutines.*
 
+/**
+ * Callback interface for WiFi connection events and telemetry updates.
+ */
 interface WifiConnectionCallback {
+    /**
+     * Reports WiFi connection state changes.
+     *
+     * @param state New WiFi connection state.
+     */
     fun onStateChanged(state: WifiConnectionState)
+
+    /**
+     * Delivers raw packet data received from the socket.
+     *
+     * @param data Byte payload received.
+     */
     fun onDataReceived(data: ByteArray)
+
+    /**
+     * Reports round-trip time updates and recent history.
+     *
+     * @param rtt Latest round-trip time in milliseconds.
+     * @param history Recent RTT samples.
+     */
     fun onRttUpdated(rtt: Long, history: List<Long>)
+
+    /**
+     * Reports the latest telemetry snapshot.
+     *
+     * @param telemetry Telemetry data from the device.
+     */
     fun onTelemetryUpdated(telemetry: Telemetry)
+
+    /**
+     * Logs informational messages from the connection manager.
+     *
+     * @param message Log message.
+     */
     fun onLog(message: String)
+
+    /**
+     * Reports encryption errors during handshake or transmission.
+     *
+     * @param error Encryption exception detail.
+     */
     fun onEncryptionError(error: EncryptionException)
+
+    /**
+     * Reports RSSI updates from the network.
+     *
+     * @param rssi Signal strength in dBm.
+     */
     fun onRssiUpdated(rssi: Int)
 }
 

@@ -109,13 +109,18 @@ class ControlScreenTest {
         val customCommandRegistry = mockk<CustomCommandRegistry>(relaxed = true)
         every { customCommandRegistry.commands } returns MutableStateFlow(emptyList())
 
+        val raspManager = mockk<com.metelci.ardunakon.security.RASPManager>(relaxed = true)
+        every { raspManager.securityViolations } returns MutableStateFlow(emptyList())
+        every { raspManager.isSecurityCompromised } returns MutableStateFlow(false)
+
         val viewModel = ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
             connectionPreferences = connectionPreferences,
             onboardingManager = onboardingManager,
             customCommandRegistry = customCommandRegistry,
-            hapticPreferences = hapticPreferences
+            hapticPreferences = hapticPreferences,
+            raspManager = raspManager
         )
 
         return ControlScreenHandles(viewModel = viewModel, combinedState = combinedState)
@@ -165,10 +170,10 @@ class ControlScreenTest {
         composeTestRule.mainClock.advanceTimeBy(1000)
 
         handles.viewModel.showMessage("Status updated")
-        
+
         // Snackbar needs time to appear
         composeTestRule.mainClock.advanceTimeBy(2000)
-        
+
         composeTestRule.onNodeWithText("Status updated", substring = true).assertExists()
     }
 

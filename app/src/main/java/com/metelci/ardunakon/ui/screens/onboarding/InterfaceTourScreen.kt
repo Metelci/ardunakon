@@ -1,6 +1,7 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -152,11 +153,13 @@ fun TutorialCard(
     showBackButton: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val tutorialBorder = BorderStroke(2.dp, Color(0xFFB300FF))
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(8.dp),
         shape = RoundedCornerShape(20.dp),
+        border = tutorialBorder,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),

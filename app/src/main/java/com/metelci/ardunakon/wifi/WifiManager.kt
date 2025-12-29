@@ -4,27 +4,44 @@ package com.metelci.ardunakon.wifi
 
 import android.content.Context
 import android.util.Base64
+import androidx.annotation.VisibleForTesting
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.data.WifiEncryptionPreferences
+import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.security.EncryptionException
+import com.metelci.ardunakon.util.RecoveryManager
+import com.metelci.ardunakon.util.RetryPolicy
 import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicReference
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/**
+ * Manages WiFi discovery, connection, encryption, and telemetry state.
+ *
+ * @param context Application context.
+ * @param connectionPreferences Persistent connection settings.
+ * @param onLog Callback for log messages.
+ * @param ioDispatcher Dispatcher for IO-bound work.
+ * @param encryptionPreferences Storage for encryption state.
+ * @param scope Coroutine scope for background work.
+ * @param startMonitors When true, starts reconnect monitoring.
+ */
 class WifiManager(
     private val context: Context,
     private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
-    private val onLog: (String) -> Unit = {},
+    private val recoveryManager: RecoveryManager? = null,
+    private val onLog: (String, LogType) -> Unit = { _, _ -> },
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val encryptionPreferences: WifiEncryptionPreferences = WifiEncryptionPreferences(context),
     private val scope: CoroutineScope = CoroutineScope(ioDispatcher + SupervisorJob()),
     private val startMonitors: Boolean = true
-) : WifiConnectionCallback {
+) : WifiConnectionCallback, IWifiManager {
     private val secureRandom = SecureRandom()
     private val sessionKey = AtomicReference<ByteArray?>(null)
     private val discoveryNonce = AtomicReference<String?>(null)
@@ -32,7 +49,7 @@ class WifiManager(
     private val scanner = WifiScanner(
         context,
         scope,
-        onLog,
+        { msg -> onLog(msg, LogType.INFO) },
         ::buildDiscoveryMessage,
         ::verifySignature,
         { sessionKey.get() },
@@ -49,40 +66,91 @@ class WifiManager(
 
     // Connection State (Binary compatible with UI)
     private val _connectionState = MutableStateFlow(WifiConnectionState.DISCONNECTED)
-    val connectionState = _connectionState.asStateFlow()
+
+    /**
+     * Current WiFi connection state.
+     */
+    override val connectionState = _connectionState.asStateFlow()
 
     private val _autoReconnectEnabled = MutableStateFlow(false)
-    val autoReconnectEnabled = _autoReconnectEnabled.asStateFlow()
+
+    /**
+     * True when auto-reconnect is enabled.
+     */
+    override val autoReconnectEnabled = _autoReconnectEnabled.asStateFlow()
     private var shouldReconnect = false
     private var reconnectAttempts = 0
     private var nextReconnectAt = 0L
 
     private val _rssi = MutableStateFlow(0)
-    val rssi = _rssi.asStateFlow()
+
+    /**
+     * Latest RSSI reading.
+     */
+    override val rssi = _rssi.asStateFlow()
 
     private val _rtt = MutableStateFlow(0L)
-    val rtt = _rtt.asStateFlow()
+
+    /**
+     * Latest RTT reading.
+     */
+    override val rtt = _rtt.asStateFlow()
 
     private val _rttHistory = MutableStateFlow<List<Long>>(emptyList())
-    val rttHistory = _rttHistory.asStateFlow()
+
+    /**
+     * Rolling RTT history.
+     */
+    override val rttHistory = _rttHistory.asStateFlow()
 
     private val _incomingData = MutableStateFlow<ByteArray?>(null)
-    val incomingData = _incomingData.asStateFlow()
 
-    val scannedDevices = scanner.scannedDevices
-    val isScanning = scanner.isScanning
+    /**
+     * Last received raw packet, if any.
+     */
+    override val incomingData = _incomingData.asStateFlow()
+
+    /**
+     * Discovered WiFi devices broadcast results.
+     */
+    override val scannedDevices: StateFlow<List<WifiDevice>> = scanner.scannedDevices
+
+    /**
+     * True while discovery is active.
+     */
+    override val isScanning: StateFlow<Boolean> = scanner.isScanning
 
     private val _telemetry = MutableStateFlow<Telemetry?>(null)
-    val telemetry = _telemetry.asStateFlow()
+
+    /**
+     * Latest telemetry sample received from the device.
+     */
+    override val telemetry = _telemetry.asStateFlow()
 
     private val _encryptionError = MutableStateFlow<EncryptionException?>(null)
-    val encryptionError = _encryptionError.asStateFlow()
+
+    /**
+     * Latest encryption error, if any.
+     */
+    override val encryptionError = _encryptionError.asStateFlow()
 
     private val _isEncrypted = MutableStateFlow(false)
-    val isEncrypted = _isEncrypted.asStateFlow()
+
+    /**
+     * True when the current connection is encrypted.
+     */
+    override val isEncrypted = _isEncrypted.asStateFlow()
 
     private var targetIp: String = "192.168.4.1"
     private var targetPort: Int = 8888
+
+    @VisibleForTesting
+    fun buildDiscoveryMessageForTest(): Pair<ByteArray, String?> = buildDiscoveryMessage()
+
+    @VisibleForTesting
+    fun setSessionKeyForTest(key: ByteArray?) {
+        sessionKey.set(key)
+    }
 
     init {
         scope.launch {
@@ -101,18 +169,36 @@ class WifiManager(
         }
     }
 
-    fun setAutoReconnectEnabled(enabled: Boolean) {
+    /**
+     * Enables or disables auto-reconnect for WiFi.
+     *
+     * @param enabled True to enable auto-reconnect.
+     */
+    override fun setAutoReconnectEnabled(enabled: Boolean) {
         _autoReconnectEnabled.value = enabled
         shouldReconnect = enabled
         scope.launch { connectionPreferences.saveLastConnection(autoReconnectWifi = enabled) }
         reconnectAttempts = 0
-        onLog(if (enabled) "WiFi Auto-reconnect ARMED" else "WiFi Auto-reconnect DISABLED")
+        log(if (enabled) "WiFi Auto-reconnect ARMED" else "WiFi Auto-reconnect DISABLED")
     }
 
-    fun startDiscovery() = scanner.startDiscovery()
-    fun stopDiscovery() = scanner.stopDiscovery()
+    /**
+     * Starts WiFi discovery broadcasts.
+     */
+    override fun startDiscovery() = scanner.startDiscovery()
 
-    fun connect(ip: String, port: Int) {
+    /**
+     * Stops WiFi discovery.
+     */
+    override fun stopDiscovery() = scanner.stopDiscovery()
+
+    /**
+     * Connects to a WiFi device and persists the target.
+     *
+     * @param ip Target IP address.
+     * @param port Target port.
+     */
+    override fun connect(ip: String, port: Int) {
         targetIp = ip
         targetPort = port
         BreadcrumbManager.leave("WiFi", "Connect: $ip:$port")
@@ -128,61 +214,129 @@ class WifiManager(
         }
     }
 
-    fun disconnect() {
+    /**
+     * Disconnects the current WiFi connection and stops auto-reconnect.
+     */
+    override fun disconnect() {
         shouldReconnect = false
         BreadcrumbManager.leave("WiFi", "Manual disconnect")
         connectionManager.disconnect()
     }
 
-    fun sendData(data: ByteArray) = connectionManager.sendData(data)
+    /**
+     * Sends raw data over the active WiFi connection.
+     *
+     * @param data Payload to transmit.
+     */
+    override fun sendData(data: ByteArray) = connectionManager.sendData(data)
 
-    fun cleanup() {
+    /**
+     * Stops discovery, disconnects, and cancels background work.
+     */
+    override fun cleanup() {
         scanner.stopDiscovery()
         connectionManager.disconnect()
         scope.cancel()
     }
 
-    fun setRequireEncryption(required: Boolean) = connectionManager.setRequireEncryption(required)
-    fun isEncryptionRequired(): Boolean = true // Now mandatory by default in Manager
-    fun clearEncryptionError() {
+    /**
+     * Toggles whether encryption is required by the connection manager.
+     *
+     * @param required True when encryption is required.
+     */
+    override fun setRequireEncryption(required: Boolean) = connectionManager.setRequireEncryption(required)
+
+    /**
+     * Indicates whether encryption is required (mandatory by default).
+     *
+     * @return True if encryption is required.
+     */
+    override fun isEncryptionRequired(): Boolean = true // Now mandatory by default in Manager
+
+    /**
+     * Clears the latest encryption error.
+     */
+    override fun clearEncryptionError() {
         _encryptionError.value = null
     }
 
     // --- WifiConnectionCallback ---
 
+    /**
+     * Connection state callback from [WifiConnectionCallback].
+     *
+     * @param state New connection state.
+     */
     override fun onStateChanged(state: WifiConnectionState) {
         _connectionState.value = state
         if (state == WifiConnectionState.CONNECTED) {
             reconnectAttempts = 0
             _isEncrypted.value = connectionManager.isEncrypted()
+            recoveryManager?.recordSuccess(RecoveryManager.OP_WIFI_CONNECT)
             BreadcrumbManager.leave("WiFi", "Connected (encrypted: ${_isEncrypted.value})")
         } else if (state == WifiConnectionState.ERROR) {
+            recoveryManager?.recordFailure(RecoveryManager.OP_WIFI_CONNECT)
             BreadcrumbManager.leave("WiFi", "Connection error")
         }
     }
 
+    /**
+     * Raw data callback from [WifiConnectionCallback].
+     *
+     * @param data Received payload.
+     */
     override fun onDataReceived(data: ByteArray) {
         _incomingData.value = data
     }
 
+    /**
+     * RTT update callback from [WifiConnectionCallback].
+     *
+     * @param rtt Latest RTT in milliseconds.
+     * @param history Updated RTT history list.
+     */
     override fun onRttUpdated(rtt: Long, history: List<Long>) {
         _rtt.value = rtt
         _rttHistory.value = history
     }
 
+    /**
+     * Telemetry update callback from [WifiConnectionCallback].
+     *
+     * @param telemetry Latest telemetry payload.
+     */
     override fun onTelemetryUpdated(telemetry: Telemetry) {
         _telemetry.value = telemetry
     }
 
+    /**
+     * RSSI update callback from [WifiConnectionCallback].
+     *
+     * @param rssi Latest RSSI in dBm.
+     */
     override fun onRssiUpdated(rssi: Int) {
         _rssi.value = rssi
     }
 
-    override fun onLog(message: String) = onLog.invoke(message)
+    /**
+     * Log callback from [WifiConnectionCallback].
+     *
+     * @param message Log message.
+     */
+    override fun onLog(message: String) = onLog.invoke(message, LogType.INFO)
 
+    /**
+     * Encryption error callback from [WifiConnectionCallback].
+     *
+     * @param error Encryption error.
+     */
     override fun onEncryptionError(error: EncryptionException) {
         _encryptionError.value = error
-        onLog("WiFi: Encryption error - ${error.message}")
+        log("WiFi: Encryption error - ${error.message}", LogType.ERROR)
+    }
+
+    override fun log(message: String, type: LogType) {
+        onLog.invoke(message, type)
     }
 
     // --- Private Helpers ---
@@ -215,6 +369,7 @@ class WifiManager(
     }
 
     private fun startReconnectMonitor() {
+        val retryPolicy = RetryPolicy.forNetwork()
         scope.launch {
             while (isActive) {
                 delay(2000)
@@ -224,14 +379,33 @@ class WifiManager(
                         )
                 ) {
                     if (System.currentTimeMillis() >= nextReconnectAt) {
-                        if (reconnectAttempts >= 3) {
+                        // Check circuit breaker
+                        if (recoveryManager?.shouldAllowOperation(RecoveryManager.OP_WIFI_CONNECT) == false) {
+                            log("WiFi: Connection circuit breaker TRIPPED, delaying reconnect", LogType.WARNING)
+                            nextReconnectAt = System.currentTimeMillis() + 10000
+                            continue
+                        }
+
+                        if (reconnectAttempts >= 5) { // Increased from 3
+                            log("WiFi: Max reconnect attempts reached, disarming auto-reconnect", LogType.ERROR)
                             setAutoReconnectEnabled(false)
                         } else {
-                            val backoff = (reconnectAttempts * 2000L).coerceAtMost(10000L)
-                            onLog("WiFi: Auto-reconnecting to $targetIp... (attempt ${reconnectAttempts + 1})")
+                            val backoff = retryPolicy.calculateDelay(reconnectAttempts)
+                            log(
+                                "WiFi: Auto-reconnecting to $targetIp... (attempt ${reconnectAttempts + 1})",
+                                LogType.INFO
+                            )
                             reconnectAttempts++
                             nextReconnectAt = System.currentTimeMillis() + backoff
-                            connect(targetIp, targetPort)
+
+                            try {
+                                connect(targetIp, targetPort)
+                                // We don't record success here as connect() is fire-and-forget,
+                                // success is recorded in onStateChanged
+                            } catch (e: Exception) {
+                                recoveryManager?.recordFailure(RecoveryManager.OP_WIFI_CONNECT)
+                                log("WiFi: Reconnect attempt failed: ${e.message}", LogType.ERROR)
+                            }
                         }
                     }
                 }

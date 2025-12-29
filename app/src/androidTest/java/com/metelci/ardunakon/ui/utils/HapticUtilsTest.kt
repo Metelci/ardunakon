@@ -27,7 +27,7 @@ class HapticUtilsTest {
         composeRule.setContent {
             MaterialTheme {
                 val view = androidx.compose.ui.platform.LocalView.current
-                
+
                 androidx.compose.material3.Button(
                     onClick = {
                         view.hapticTap()
@@ -47,11 +47,11 @@ class HapticUtilsTest {
         composeRule.setContent {
             MaterialTheme {
                 val view = androidx.compose.ui.platform.LocalView.current
-                
+
                 androidx.compose.material3.Button(
                     onClick = {
                         repeat(5) {
-                           view.hapticTap()
+                            view.hapticTap()
                         }
                     }
                 ) {
@@ -69,7 +69,7 @@ class HapticUtilsTest {
         composeRule.setContent {
             MaterialTheme {
                 val view = androidx.compose.ui.platform.LocalView.current
-                
+
                 androidx.compose.material3.Button(
                     onClick = {
                         view.hapticTap()
@@ -84,7 +84,7 @@ class HapticUtilsTest {
         repeat(10) {
             composeRule.onNodeWithText("Rapid Test").performClick()
         }
-        
+
         composeRule.waitForIdle()
     }
 }

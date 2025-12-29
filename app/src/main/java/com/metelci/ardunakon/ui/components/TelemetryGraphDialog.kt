@@ -2,9 +2,6 @@
 
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 enum class GraphTab {
     BATTERY,
@@ -36,11 +34,11 @@ enum class GraphTab {
  */
 private fun getTabColor(tab: GraphTab, isSelected: Boolean): Color {
     return when (tab) {
-        GraphTab.BATTERY -> if (isSelected) Color(0xFF4CAF50) else Color(0xFF81C784)      // Green (power/energy)
-        GraphTab.RSSI -> if (isSelected) Color(0xFF2196F3) else Color(0xFF64B5F6)         // Blue (signal)
-        GraphTab.RTT -> if (isSelected) Color(0xFF00BCD4) else Color(0xFF4DD0E1)          // Cyan (speed/time)
-        GraphTab.PACKET_LOSS -> if (isSelected) Color(0xFFFF9800) else Color(0xFFFFB74D)  // Orange (warning)
-        GraphTab.QUALITY -> if (isSelected) Color(0xFF9C27B0) else Color(0xFFBA68C8)      // Purple (quality)
+        GraphTab.BATTERY -> if (isSelected) Color(0xFF4CAF50) else Color(0xFF81C784) // Green (power/energy)
+        GraphTab.RSSI -> if (isSelected) Color(0xFF2196F3) else Color(0xFF64B5F6) // Blue (signal)
+        GraphTab.RTT -> if (isSelected) Color(0xFF00BCD4) else Color(0xFF4DD0E1) // Cyan (speed/time)
+        GraphTab.PACKET_LOSS -> if (isSelected) Color(0xFFFF9800) else Color(0xFFFFB74D) // Orange (warning)
+        GraphTab.QUALITY -> if (isSelected) Color(0xFF9C27B0) else Color(0xFFBA68C8) // Purple (quality)
     }
 }
 

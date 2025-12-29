@@ -40,7 +40,7 @@ class LogEntryTest {
     @Test
     fun `LogEntry with explicit timestamp`() {
         val entry = LogEntry(timestamp = 12345L, type = LogType.INFO, message = "Test")
-        
+
         assertEquals(12345L, entry.timestamp)
         assertEquals(LogType.INFO, entry.type)
         assertEquals("Test", entry.message)
@@ -49,14 +49,14 @@ class LogEntryTest {
     @Test
     fun `LogEntry with default timestamp is non-zero`() {
         val entry = LogEntry(type = LogType.INFO, message = "Test")
-        
+
         assertTrue(entry.timestamp > 0)
     }
 
     @Test
     fun `LogEntry with empty message`() {
         val entry = LogEntry(type = LogType.WARNING, message = "")
-        
+
         assertEquals("", entry.message)
     }
 
@@ -64,7 +64,7 @@ class LogEntryTest {
     fun `LogEntry with long message`() {
         val longMessage = "A".repeat(1000)
         val entry = LogEntry(type = LogType.ERROR, message = longMessage)
-        
+
         assertEquals(1000, entry.message.length)
     }
 
@@ -74,7 +74,7 @@ class LogEntryTest {
     fun `equal LogEntries are equal`() {
         val entry1 = LogEntry(timestamp = 100L, type = LogType.INFO, message = "Test")
         val entry2 = LogEntry(timestamp = 100L, type = LogType.INFO, message = "Test")
-        
+
         assertEquals(entry1, entry2)
     }
 
@@ -82,7 +82,7 @@ class LogEntryTest {
     fun `different timestamps are not equal`() {
         val entry1 = LogEntry(timestamp = 100L, type = LogType.INFO, message = "Test")
         val entry2 = LogEntry(timestamp = 200L, type = LogType.INFO, message = "Test")
-        
+
         assertNotEquals(entry1, entry2)
     }
 
@@ -90,7 +90,7 @@ class LogEntryTest {
     fun `different types are not equal`() {
         val entry1 = LogEntry(timestamp = 100L, type = LogType.INFO, message = "Test")
         val entry2 = LogEntry(timestamp = 100L, type = LogType.ERROR, message = "Test")
-        
+
         assertNotEquals(entry1, entry2)
     }
 
@@ -98,7 +98,7 @@ class LogEntryTest {
     fun `different messages are not equal`() {
         val entry1 = LogEntry(timestamp = 100L, type = LogType.INFO, message = "Test1")
         val entry2 = LogEntry(timestamp = 100L, type = LogType.INFO, message = "Test2")
-        
+
         assertNotEquals(entry1, entry2)
     }
 
@@ -108,7 +108,7 @@ class LogEntryTest {
     fun `copy preserves values`() {
         val original = LogEntry(timestamp = 100L, type = LogType.INFO, message = "Test")
         val copy = original.copy()
-        
+
         assertEquals(original, copy)
     }
 
@@ -116,7 +116,7 @@ class LogEntryTest {
     fun `copy with modified message`() {
         val original = LogEntry(timestamp = 100L, type = LogType.INFO, message = "Original")
         val modified = original.copy(message = "Modified")
-        
+
         assertEquals("Modified", modified.message)
         assertEquals("Original", original.message)
     }
@@ -125,7 +125,7 @@ class LogEntryTest {
     fun `copy with modified type`() {
         val original = LogEntry(timestamp = 100L, type = LogType.INFO, message = "Test")
         val modified = original.copy(type = LogType.ERROR)
-        
+
         assertEquals(LogType.ERROR, modified.type)
         assertEquals(LogType.INFO, original.type)
     }
@@ -145,7 +145,7 @@ class LogEntryTest {
     @Test
     fun `LogEntry toString contains message`() {
         val entry = LogEntry(type = LogType.INFO, message = "Test message")
-        
+
         val str = entry.toString()
         assertTrue(str.contains("Test message"))
     }
@@ -153,7 +153,7 @@ class LogEntryTest {
     @Test
     fun `LogEntry toString contains type`() {
         val entry = LogEntry(type = LogType.ERROR, message = "Test")
-        
+
         val str = entry.toString()
         assertTrue(str.contains("ERROR"))
     }

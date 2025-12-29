@@ -36,7 +36,7 @@ class CrashHandlerInstrumentedTest {
         val file = CrashHandler.getCrashLogFile(context)
         assertTrue("Log file should exist", file.exists())
         assertTrue("File should have content", file.length() > 0)
-        
+
         val log = CrashHandler.getCrashLog(context)
         assertTrue("Log should contain custom message", log.contains("Custom error message"))
     }
@@ -48,7 +48,7 @@ class CrashHandlerInstrumentedTest {
 
         val file = CrashHandler.getCrashLogFile(context)
         assertTrue("Log file should exist", file.exists())
-        
+
         val log = CrashHandler.getCrashLog(context)
         assertTrue("Log should not be empty", log.isNotEmpty())
         assertTrue("Log should contain first error", log.contains("Error 1"))
@@ -61,7 +61,7 @@ class CrashHandlerInstrumentedTest {
 
         val file = CrashHandler.getCrashLogFile(context)
         assertTrue("Log file should exist", file.exists())
-        
+
         val log = CrashHandler.getCrashLog(context)
         assertTrue("Log should not be empty", log.isNotEmpty())
     }
@@ -70,10 +70,10 @@ class CrashHandlerInstrumentedTest {
     fun logException_appendsMultipleLogs() {
         CrashHandler.logException(context, Exception("first"))
         val firstLen = CrashHandler.getCrashLogFile(context).length()
-        
+
         CrashHandler.logException(context, Exception("second"))
         val secondLen = CrashHandler.getCrashLogFile(context).length()
-        
+
         assertTrue("Second log should make file larger", secondLen > firstLen)
     }
 
@@ -84,7 +84,7 @@ class CrashHandlerInstrumentedTest {
 
         val file = CrashHandler.getCrashLogFile(context)
         assertTrue("Log file should exist", file.exists())
-        
+
         val log = CrashHandler.getCrashLog(context)
         assertTrue("Log should not be empty", log.isNotEmpty())
     }

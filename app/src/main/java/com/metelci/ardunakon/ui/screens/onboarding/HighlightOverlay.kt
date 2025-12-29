@@ -1,6 +1,7 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -190,10 +191,12 @@ fun TourInfoCard(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        val tutorialBorder = BorderStroke(2.dp, Color(0xFFB300FF))
         // Info card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
+            border = tutorialBorder,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),

@@ -1,6 +1,5 @@
 package com.metelci.ardunakon.ui.screens.control
 
-import com.metelci.ardunakon.bluetooth.ConnectionState
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -75,10 +74,10 @@ class ConnectionModeTest {
     @Test
     fun `connection mode can be toggled`() {
         var mode = ConnectionMode.BLUETOOTH
-        
+
         mode = if (mode == ConnectionMode.BLUETOOTH) ConnectionMode.WIFI else ConnectionMode.BLUETOOTH
         assertEquals(ConnectionMode.WIFI, mode)
-        
+
         mode = if (mode == ConnectionMode.BLUETOOTH) ConnectionMode.WIFI else ConnectionMode.BLUETOOTH
         assertEquals(ConnectionMode.BLUETOOTH, mode)
     }
@@ -86,7 +85,7 @@ class ConnectionModeTest {
     @Test
     fun `connection mode in when expression`() {
         val modes = listOf(ConnectionMode.BLUETOOTH, ConnectionMode.WIFI)
-        
+
         for (mode in modes) {
             val label = when (mode) {
                 ConnectionMode.BLUETOOTH -> "BT"

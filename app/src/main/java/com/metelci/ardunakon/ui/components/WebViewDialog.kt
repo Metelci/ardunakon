@@ -1,9 +1,6 @@
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
 import android.os.Build
-import android.view.HapticFeedbackConstants
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -23,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 /**
  * WebView dialog for displaying web content inside the app.

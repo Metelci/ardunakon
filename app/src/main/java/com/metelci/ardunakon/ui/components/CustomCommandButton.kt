@@ -2,9 +2,6 @@
 
 package com.metelci.ardunakon.ui.components
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,13 +13,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.model.CustomCommand
+import com.metelci.ardunakon.ui.utils.hapticTap
 
 /** Electric yellow color for glowing border effect */
 private val ElectricYellow = Color(0xFFFFFF00)
@@ -41,9 +38,9 @@ fun CustomCommandButton(
     modifier: Modifier = Modifier
 ) {
     val buttonColor = Color(command.colorHex)
-    
+
     val buttonShape = RoundedCornerShape(12.dp)
-    
+
     Box(
         modifier = modifier
             .size(size)
@@ -67,7 +64,7 @@ fun CustomCommandButton(
                 tint = Color.White,
                 modifier = Modifier.size(if (command.keyboardShortcut != null) 18.dp else 24.dp)
             )
-            
+
             // Shortcut label
             command.keyboardShortcut?.let { shortcut ->
                 Text(
@@ -86,12 +83,9 @@ fun CustomCommandButton(
  */
 @Suppress("FunctionName")
 @Composable
-fun CustomCommandPlaceholder(
-    size: Dp = 56.dp,
-    modifier: Modifier = Modifier
-) {
+fun CustomCommandPlaceholder(size: Dp = 56.dp, modifier: Modifier = Modifier) {
     val placeholderShape = RoundedCornerShape(12.dp)
-    
+
     Box(
         modifier = modifier
             .size(size)
@@ -118,7 +112,7 @@ fun CustomCommandButtonRow(
     modifier: Modifier = Modifier
 ) {
     val displayCommands = commands.take(maxButtons)
-    
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp),

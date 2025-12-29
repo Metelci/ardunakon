@@ -106,7 +106,7 @@ class CrashHandlerBranchTest {
     }
     // Tests moved to CrashHandlerInstrumentedTest.kt:
     // - logException_includesCustomMessage
-    // - logException_writesMultipleExceptionsToSameFile  
+    // - logException_writesMultipleExceptionsToSameFile
     // - logException_writesToFile
     // (These require real Android file system)
 

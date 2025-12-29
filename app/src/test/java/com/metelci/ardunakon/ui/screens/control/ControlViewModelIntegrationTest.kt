@@ -27,7 +27,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Extended integration tests for ControlViewModel.
- * 
+ *
  * Focuses on public API behavior and state management flows.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -44,7 +44,7 @@ class ControlViewModelIntegrationTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        
+
         connectionPreferences = mockk(relaxed = true)
         hapticPreferences = mockk(relaxed = true)
         onboardingManager = mockk(relaxed = true)
@@ -60,7 +60,7 @@ class ControlViewModelIntegrationTest {
             autoReconnectWifi = false,
             joystickSensitivity = 1.0f
         )
-        
+
         coEvery { hapticPreferences.isHapticEnabled() } returns true
         every { customCommandRegistry.getAvailableCommandIds() } returns listOf(0x20, 0x21, 0x22)
     }
@@ -69,13 +69,18 @@ class ControlViewModelIntegrationTest {
         bluetoothManager: AppBluetoothManager = createMockBluetoothManager(),
         wifiManager: WifiManager = createMockWifiManager()
     ): ControlViewModel {
+        val raspManager = mockk<com.metelci.ardunakon.security.RASPManager>(relaxed = true)
+        every { raspManager.securityViolations } returns MutableStateFlow(emptyList())
+        every { raspManager.isSecurityCompromised } returns MutableStateFlow(false)
+
         return ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
             connectionPreferences = connectionPreferences,
             onboardingManager = onboardingManager,
             customCommandRegistry = customCommandRegistry,
-            hapticPreferences = hapticPreferences
+            hapticPreferences = hapticPreferences,
+            raspManager = raspManager
         ).also { it.setForegroundActive(false) }
     }
 
@@ -96,7 +101,9 @@ class ControlViewModelIntegrationTest {
 
     private fun createMockWifiManager(): WifiManager {
         val manager = mockk<WifiManager>(relaxed = true)
-        every { manager.connectionState } returns MutableStateFlow(com.metelci.ardunakon.wifi.WifiConnectionState.DISCONNECTED)
+        every { manager.connectionState } returns MutableStateFlow(
+            com.metelci.ardunakon.wifi.WifiConnectionState.DISCONNECTED
+        )
         every { manager.isScanning } returns MutableStateFlow(false)
         every { manager.rssi } returns MutableStateFlow(0)
         every { manager.encryptionError } returns MutableStateFlow(null)
@@ -112,9 +119,9 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `updateJoystick updates state`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.updateJoystick(0.5f, -0.3f)
-        
+
         val (x, y) = viewModel.leftJoystick
         assertEquals(0.5f, x, 0.001f)
         assertEquals(-0.3f, y, 0.001f)
@@ -123,7 +130,7 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `joystick starts at center position`() = runTest {
         val viewModel = createViewModel()
-        
+
         val (x, y) = viewModel.leftJoystick
         assertEquals(0f, x, 0.001f)
         assertEquals(0f, y, 0.001f)
@@ -134,9 +141,9 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `updateServo updates state`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.updateServo(0.25f, 0.5f, 0.75f)
-        
+
         assertEquals(0.25f, viewModel.servoX, 0.001f)
         assertEquals(0.5f, viewModel.servoY, 0.001f)
         assertEquals(0.75f, viewModel.servoZ, 0.001f)
@@ -145,7 +152,7 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `servo starts at center position`() = runTest {
         val viewModel = createViewModel()
-        
+
         assertEquals(0f, viewModel.servoX, 0.001f)
         assertEquals(0f, viewModel.servoY, 0.001f)
         assertEquals(0f, viewModel.servoZ, 0.001f)
@@ -158,9 +165,9 @@ class ControlViewModelIntegrationTest {
         val bluetoothManager = createMockBluetoothManager()
         val viewModel = createViewModel(bluetoothManager = bluetoothManager)
         val mockView = mockk<View>(relaxed = true)
-        
+
         viewModel.toggleEStop(mockView)
-        
+
         verify { bluetoothManager.setEmergencyStop(any()) }
     }
 
@@ -169,35 +176,35 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `initial connection mode is BLUETOOTH`() = runTest {
         val viewModel = createViewModel()
-        
+
         assertEquals(ConnectionMode.BLUETOOTH, viewModel.connectionMode)
     }
 
     @Test
     fun `toggleConnectionMode switches to WiFi`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.toggleConnectionMode()
-        
+
         assertEquals(ConnectionMode.WIFI, viewModel.connectionMode)
     }
 
     @Test
     fun `toggleConnectionMode switches back to Bluetooth`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.toggleConnectionMode()
         viewModel.toggleConnectionMode()
-        
+
         assertEquals(ConnectionMode.BLUETOOTH, viewModel.connectionMode)
     }
 
     @Test
     fun `switchToWifi sets WiFi mode`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.switchToWifi()
-        
+
         assertEquals(ConnectionMode.WIFI, viewModel.connectionMode)
     }
 
@@ -205,9 +212,9 @@ class ControlViewModelIntegrationTest {
     fun `switchToBluetooth sets Bluetooth mode`() = runTest {
         val viewModel = createViewModel()
         viewModel.switchToWifi()
-        
+
         viewModel.switchToBluetooth()
-        
+
         assertEquals(ConnectionMode.BLUETOOTH, viewModel.connectionMode)
     }
 
@@ -216,16 +223,16 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `updateJoystickSensitivity updates state`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.updateJoystickSensitivity(0.75f)
-        
+
         assertEquals(0.75f, viewModel.joystickSensitivity, 0.001f)
     }
 
     @Test
     fun `initial joystick sensitivity is 1_0`() = runTest {
         val viewModel = createViewModel()
-        
+
         assertEquals(1.0f, viewModel.joystickSensitivity, 0.001f)
     }
 
@@ -234,16 +241,16 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `updateHapticEnabled updates state`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.updateHapticEnabled(false)
-        
+
         assertFalse(viewModel.isHapticEnabled)
     }
 
     @Test
     fun `haptic is enabled by default`() = runTest {
         val viewModel = createViewModel()
-        
+
         assertTrue(viewModel.isHapticEnabled)
     }
 
@@ -252,16 +259,16 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `updateAllowReflection updates state`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.updateAllowReflection(true)
-        
+
         assertTrue(viewModel.allowReflection)
     }
 
     @Test
     fun `reflection is disabled by default`() = runTest {
         val viewModel = createViewModel()
-        
+
         assertFalse(viewModel.allowReflection)
     }
 
@@ -270,9 +277,9 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `showMessage emits message event`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.showMessage("Test message")
-        
+
         val message = viewModel.userMessage.first()
         assertEquals("Test message", message)
     }
@@ -282,9 +289,9 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `resetTutorial calls onboarding manager`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.resetTutorial()
-        
+
         verify { onboardingManager.resetOnboarding() }
     }
 
@@ -294,9 +301,9 @@ class ControlViewModelIntegrationTest {
     fun `toggleWifiAutoReconnect calls manager`() = runTest {
         val wifiManager = createMockWifiManager()
         val viewModel = createViewModel(wifiManager = wifiManager)
-        
+
         viewModel.toggleWifiAutoReconnect(true)
-        
+
         verify { wifiManager.setAutoReconnectEnabled(true) }
     }
 
@@ -305,16 +312,16 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `updateRequireEncryption updates state`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.updateRequireEncryption(true)
-        
+
         assertTrue(viewModel.requireEncryption)
     }
 
     @Test
     fun `encryption is not required by default`() = runTest {
         val viewModel = createViewModel()
-        
+
         assertFalse(viewModel.requireEncryption)
     }
 
@@ -323,9 +330,9 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `getAvailableCommandIds returns valid IDs`() = runTest {
         val viewModel = createViewModel()
-        
+
         val ids = viewModel.getAvailableCommandIds()
-        
+
         assertTrue(ids.isNotEmpty())
     }
 
@@ -335,9 +342,9 @@ class ControlViewModelIntegrationTest {
     fun `setForegroundActive calls bluetooth manager`() = runTest {
         val bluetoothManager = createMockBluetoothManager()
         val viewModel = createViewModel(bluetoothManager = bluetoothManager)
-        
+
         viewModel.setForegroundActive(false)
-        
+
         verify { bluetoothManager.setForegroundMode(false) }
     }
 
@@ -346,43 +353,43 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `handleServoCommand W moves forward`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.handleServoCommand("W")
-        
+
         assertEquals(1f, viewModel.servoY, 0.001f)
     }
 
     @Test
     fun `handleServoCommand B moves backward`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.handleServoCommand("B")
-        
+
         assertEquals(-1f, viewModel.servoY, 0.001f)
     }
 
     @Test
     fun `handleServoCommand L moves left`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.handleServoCommand("L")
-        
+
         assertEquals(-1f, viewModel.servoX, 0.001f)
     }
 
     @Test
     fun `handleServoCommand R moves right`() = runTest {
         val viewModel = createViewModel()
-        
+
         viewModel.handleServoCommand("R")
-        
+
         assertEquals(1f, viewModel.servoX, 0.001f)
     }
 
     @Test
     fun `handleServoCommand handles unknown command`() = runTest {
         val viewModel = createViewModel()
-        
+
         // Should not crash, just forward to connection
         viewModel.handleServoCommand("UNKNOWN")
     }
@@ -393,11 +400,11 @@ class ControlViewModelIntegrationTest {
     fun `reconnectBluetoothDevice calls manager`() = runTest {
         val bluetoothManager = createMockBluetoothManager()
         every { bluetoothManager.reconnectSavedDevice() } returns true
-        
+
         val viewModel = createViewModel(bluetoothManager = bluetoothManager)
-        
+
         val result = viewModel.reconnectBluetoothDevice()
-        
+
         verify { bluetoothManager.reconnectSavedDevice() }
         assertTrue(result)
     }
@@ -407,9 +414,9 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `showDeviceList state toggles`() = runTest {
         val viewModel = createViewModel()
-        
+
         assertFalse(viewModel.showDeviceList)
-        
+
         viewModel.showDeviceList = true
         assertTrue(viewModel.showDeviceList)
     }
@@ -417,9 +424,9 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `showDebugConsole state toggles`() = runTest {
         val viewModel = createViewModel()
-        
+
         assertFalse(viewModel.showDebugConsole)
-        
+
         viewModel.showDebugConsole = true
         assertTrue(viewModel.showDebugConsole)
     }
@@ -427,9 +434,9 @@ class ControlViewModelIntegrationTest {
     @Test
     fun `showWifiConfig state toggles`() = runTest {
         val viewModel = createViewModel()
-        
+
         assertFalse(viewModel.showWifiConfig)
-        
+
         viewModel.showWifiConfig = true
         assertTrue(viewModel.showWifiConfig)
     }

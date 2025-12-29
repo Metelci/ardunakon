@@ -114,13 +114,18 @@ class ControlLayoutsTest {
         val customCommandRegistry = mockk<CustomCommandRegistry>(relaxed = true)
         every { customCommandRegistry.commands } returns MutableStateFlow(emptyList())
 
+        val raspManager = mockk<com.metelci.ardunakon.security.RASPManager>(relaxed = true)
+        every { raspManager.securityViolations } returns MutableStateFlow(emptyList())
+        every { raspManager.isSecurityCompromised } returns MutableStateFlow(false)
+
         val viewModel = ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
             connectionPreferences = connectionPreferences,
             onboardingManager = onboardingManager,
             customCommandRegistry = customCommandRegistry,
-            hapticPreferences = hapticPreferences
+            hapticPreferences = hapticPreferences,
+            raspManager = raspManager
         ).also { it.setForegroundActive(false) }
 
         return LayoutHandles(viewModel = viewModel, bluetoothManager = bluetoothManager, wifiManager = wifiManager)

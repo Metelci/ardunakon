@@ -8,8 +8,6 @@ import com.metelci.ardunakon.data.WifiEncryptionPreferences
 import com.metelci.ardunakon.security.CryptoEngine
 import com.metelci.ardunakon.security.EncryptionException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -117,22 +115,17 @@ class WifiManagerTest {
 
     @Test
     fun `buildDiscoveryMessage reflects sessionKey presence`() = runTest(testDispatcher) {
-        val buildMethod = manager.javaClass.getDeclaredMethod("buildDiscoveryMessage")
-        buildMethod.isAccessible = true
-
         // Case 1: No session key
-        val (msg1, nonce1) = buildMethod.invoke(manager) as Pair<ByteArray, String?>
+        val (msg1, nonce1) = manager.buildDiscoveryMessageForTest()
         val str1 = String(msg1)
         assertEquals("ARDUNAKON_DISCOVER", str1)
         assertNull(nonce1)
 
         // Case 2: With session key
         val key = ByteArray(16) { 0x01.toByte() }
-        val sessionKeyField = manager.javaClass.getDeclaredField("sessionKey")
-        sessionKeyField.isAccessible = true
-        (sessionKeyField.get(manager) as java.util.concurrent.atomic.AtomicReference<ByteArray?>).set(key)
+        manager.setSessionKeyForTest(key)
 
-        val (msg2, nonce2) = buildMethod.invoke(manager) as Pair<ByteArray, String?>
+        val (msg2, nonce2) = manager.buildDiscoveryMessageForTest()
         val str2 = String(msg2)
         assertTrue(str2.startsWith("ARDUNAKON_DISCOVER|"))
         assertNotNull(nonce2)
@@ -141,12 +134,17 @@ class WifiManagerTest {
 
     @Test
     fun `verifySignature validates correctly`() = runTest(testDispatcher) {
-        val verifyMethod = manager.javaClass.getDeclaredMethod("verifySignature", String::class.java, String::class.java, ByteArray::class.java)
+        val verifyMethod = manager.javaClass.getDeclaredMethod(
+            "verifySignature",
+            String::class.java,
+            String::class.java,
+            ByteArray::class.java
+        )
         verifyMethod.isAccessible = true
 
         val key = "secret".toByteArray()
         val nonce = android.util.Base64.encodeToString("nonce".toByteArray(), android.util.Base64.NO_WRAP)
-        
+
         // We need a real signature from hmac
         val hmacMethod = manager.javaClass.getDeclaredMethod("hmac", ByteArray::class.java, ByteArray::class.java)
         hmacMethod.isAccessible = true
@@ -173,7 +171,7 @@ class WifiManagerTest {
             autoReconnectWifi = true,
             joystickSensitivity = 1.0f
         )
-        
+
         val localManager = WifiManager(
             context = context,
             connectionPreferences = mockPrefs,
@@ -182,9 +180,9 @@ class WifiManagerTest {
             scope = testScope,
             startMonitors = false
         )
-        
+
         testDispatcher.scheduler.runCurrent()
-        
+
         // Use reflection to check private targetIp
         val ipField = localManager.javaClass.getDeclaredField("targetIp")
         ipField.isAccessible = true
@@ -198,21 +196,22 @@ class WifiManagerTest {
         val localManager = WifiManager(
             context = context,
             connectionPreferences = ConnectionPreferences(context, TestCryptoEngine()),
-            onLog = { logMessage = it },
+            onLog = { msg, _ -> logMessage = msg },
             ioDispatcher = testDispatcher,
             encryptionPreferences = prefs,
             scope = testScope,
             startMonitors = false
         )
-        
+
         val error = EncryptionException.HandshakeFailedException("oops")
         localManager.onEncryptionError(error)
-        
+
         assertEquals(error, localManager.encryptionError.value)
         assertTrue(logMessage?.contains("Encryption error") == true)
     }
 
-    
+    // Test helpers now provided via @VisibleForTesting methods.
+
     // Note: Testing reconnection monitor flow with StandardTestDispatcher is complex due to
     // long-running coroutines with delays. The reconnection logic in WifiManager uses
     // a delay loop which doesn't work reliably with test dispatchers. Individual

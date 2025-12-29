@@ -19,8 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.crash.CrashHandler
 import com.metelci.ardunakon.model.LogType
@@ -37,7 +37,7 @@ import com.metelci.ardunakon.wifi.WifiConnectionState
 @Composable
 fun LandscapeControlLayout(
     viewModel: ControlViewModel,
-    bluetoothManager: AppBluetoothManager,
+    bluetoothManager: IBluetoothManager,
     connectionState: ConnectionState,
     wifiState: WifiConnectionState,
     rssiValue: Int,
@@ -103,6 +103,7 @@ fun LandscapeControlLayout(
                 onShowHelp = { viewModel.showHelpDialog = true },
                 onShowAbout = { viewModel.showAboutDialog = true },
                 onShowCrashLog = { viewModel.showCrashLog = true },
+                onShowPerformanceStats = { viewModel.showPerformanceStats = true },
                 onOpenArduinoCloud = {
                     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                     context.startActivity(intent)

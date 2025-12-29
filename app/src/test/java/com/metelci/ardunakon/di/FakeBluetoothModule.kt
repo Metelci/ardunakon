@@ -1,6 +1,6 @@
 package com.metelci.ardunakon.di
 
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
+import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import dagger.Module
 import dagger.Provides
@@ -19,8 +19,8 @@ object FakeBluetoothModule {
 
     @Provides
     @Singleton
-    fun provideAppBluetoothManager(): AppBluetoothManager {
-        val mock = mockk<AppBluetoothManager>(relaxed = true)
+    fun provideBluetoothManager(): IBluetoothManager {
+        val mock = mockk<IBluetoothManager>(relaxed = true)
         every { mock.connectionState } returns TestBluetoothState.connectionState
         every { mock.rssiValue } returns TestBluetoothState.rssiValue
         every { mock.health } returns TestBluetoothState.health

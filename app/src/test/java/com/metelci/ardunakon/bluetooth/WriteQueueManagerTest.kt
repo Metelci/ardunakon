@@ -1,13 +1,13 @@
 package com.metelci.ardunakon.bluetooth
 
 import com.metelci.ardunakon.model.LogType
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Unit tests for WriteQueueManager.
@@ -28,7 +28,8 @@ class WriteQueueManagerTest {
     fun setup() {
         testScope = TestScope()
         queueManager = WriteQueueManager(
-            capacity = 10, // Small capacity for easier testing
+            // Small capacity for easier testing
+            capacity = 10,
             scope = testScope,
             tag = "TestQueue"
         )
@@ -82,7 +83,10 @@ class WriteQueueManagerTest {
     @Test
     fun `queue stops processing when stopped`() = testScope.runTest {
         queueManager.start(
-            performWrite = { writtenPackets.add(it); true },
+            performWrite = {
+                writtenPackets.add(it)
+                true
+            },
             writeDelayMs = 10L,
             initialDelayMs = 0L
         )

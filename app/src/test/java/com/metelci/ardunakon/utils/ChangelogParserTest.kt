@@ -211,4 +211,3 @@ class ChangelogParserTest {
         assertEquals("Fix Z", notes[4])
     }
 }
-

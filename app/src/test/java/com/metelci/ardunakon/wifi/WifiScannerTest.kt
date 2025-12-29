@@ -3,8 +3,8 @@ package com.metelci.ardunakon.wifi
 import android.Manifest
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import kotlinx.coroutines.*
 import io.mockk.mockk
+import kotlinx.coroutines.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -70,7 +70,6 @@ class WifiScannerTest {
         )
     }
 
-
     // Note: Testing isScanning state with StandardTestDispatcher is problematic because
     // the discovery loop runs synchronously when runCurrent() is called and completes
     // immediately, setting isScanning back to false. The important discovery functionality
@@ -86,7 +85,6 @@ class WifiScannerTest {
 
         assertFalse("Should not be scanning without permission", scanner.isScanning.value)
     }
-
 
     @Test
     fun `addDevice avoids duplicates and merges info`() = runTest(testDispatcher) {
@@ -123,7 +121,7 @@ class WifiScannerTest {
 
         // if lock is null, maybe startDiscovery returned early due to missing permission in shadow
         // but we grant it in setUp.
-        
+
         scanner.stopDiscovery()
         testDispatcher.scheduler.runCurrent()
 
@@ -134,7 +132,7 @@ class WifiScannerTest {
     fun `getBroadcastAddress handles exceptions`() = runTest(testDispatcher) {
         val method = scanner.javaClass.getDeclaredMethod("getBroadcastAddress")
         method.isAccessible = true
-        
+
         // This will likely return null in Robolectric unless connectivity is mocked
         val result = method.invoke(scanner)
         // We just want to ensure it doesn't crash
@@ -144,7 +142,7 @@ class WifiScannerTest {
     fun `UDP discovery loop handles timeout and continues`() = runTest(testDispatcher) {
         val mockSocket = mockk<java.net.DatagramSocket>(relaxed = true)
         io.mockk.every { socketFactory.createDiscoverySocket() } returns mockSocket
-        
+
         // Throws timeout then succeeds
         io.mockk.every { mockSocket.receive(any()) } throws java.net.SocketTimeoutException() andThen {
             val responseData = "ARDUNAKON_DEVICE:Delayed|192.168.1.51|8888".toByteArray()
@@ -153,11 +151,11 @@ class WifiScannerTest {
             packet.length = responseData.size
             packet.address = java.net.InetAddress.getByName("192.168.1.51")
         } andThenThrows java.net.SocketException("Closed")
-        
+
         scanner.startDiscovery()
         testDispatcher.scheduler.advanceTimeBy(100)
         testDispatcher.scheduler.runCurrent()
-        
+
         val devices = scanner.scannedDevices.value
         assertTrue("Should discover device after a timeout", devices.any { it.name == "Delayed" })
     }
@@ -166,7 +164,7 @@ class WifiScannerTest {
     fun `UDP discovery loop ignores malformed responses`() = runTest(testDispatcher) {
         val mockSocket = mockk<java.net.DatagramSocket>(relaxed = true)
         io.mockk.every { socketFactory.createDiscoverySocket() } returns mockSocket
-        
+
         val responseData = "INVALID_PREFIX:Device|1.2.3.4|8888".toByteArray()
         io.mockk.every { mockSocket.receive(any()) } answers {
             val packet = firstArg<java.net.DatagramPacket>()
@@ -174,11 +172,11 @@ class WifiScannerTest {
             packet.length = responseData.size
             packet.address = java.net.InetAddress.getByName("1.2.3.4")
         } andThenThrows java.net.SocketException("Done")
-        
+
         scanner.startDiscovery()
         testDispatcher.scheduler.advanceTimeBy(100)
         testDispatcher.scheduler.runCurrent()
-        
+
         // Should only contain the default AP mode device
         assertEquals(1, scanner.scannedDevices.value.size)
     }
@@ -187,7 +185,7 @@ class WifiScannerTest {
     fun `UDP discovery loop handles trusted devices with signature`() = runTest(testDispatcher) {
         val mockSocket = mockk<java.net.DatagramSocket>(relaxed = true)
         io.mockk.every { socketFactory.createDiscoverySocket() } returns mockSocket
-        
+
         // Mock scanner with key and nonce
         val scannerWithKey = WifiScanner(
             context = context,
@@ -207,11 +205,11 @@ class WifiScannerTest {
             packet.length = responseData.size
             packet.address = java.net.InetAddress.getByName("192.168.1.100")
         } andThenThrows java.net.SocketException("Closed")
-        
+
         scannerWithKey.startDiscovery()
         testDispatcher.scheduler.advanceTimeBy(100)
         testDispatcher.scheduler.runCurrent()
-        
+
         val devices = scannerWithKey.scannedDevices.value
         val device = devices.find { it.name == "SecureDevice" }
         assertNotNull(device)
@@ -222,13 +220,14 @@ class WifiScannerTest {
     fun `UDP discovery loop marks as untrusted if signature fails`() = runTest(testDispatcher) {
         val mockSocket = mockk<java.net.DatagramSocket>(relaxed = true)
         io.mockk.every { socketFactory.createDiscoverySocket() } returns mockSocket
-        
+
         val scannerWithKey = WifiScanner(
             context = context,
             scope = testScope,
             onLog = {},
             buildDiscoveryMessage = { "DISCOVER".toByteArray() to "NONCE" },
-            verifySignature = { _, _, _ -> false }, // Fail signature
+            // Fail signature
+            verifySignature = { _, _, _ -> false },
             getSessionKey = { byteArrayOf(1) },
             getDiscoveryNonce = { "NONCE" },
             socketFactory = socketFactory
@@ -241,11 +240,11 @@ class WifiScannerTest {
             packet.length = responseData.size
             packet.address = java.net.InetAddress.getByName("192.168.1.101")
         } andThenThrows java.net.SocketException("Closed")
-        
+
         scannerWithKey.startDiscovery()
         testDispatcher.scheduler.advanceTimeBy(100)
         testDispatcher.scheduler.runCurrent()
-        
+
         val devices = scannerWithKey.scannedDevices.value
         val device = devices.find { it.name == "InsecureDevice" }
         assertNotNull(device)

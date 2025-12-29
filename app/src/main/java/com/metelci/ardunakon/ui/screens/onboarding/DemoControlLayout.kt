@@ -7,11 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,8 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.metelci.ardunakon.model.InterfaceElement
 import com.metelci.ardunakon.ui.components.JoystickControl
-import com.metelci.ardunakon.ui.components.LatencySparkline
-import com.metelci.ardunakon.ui.components.SignalStrengthIcon
 
 /**
  * Demo version of the control layout for onboarding tutorial.
@@ -56,7 +54,13 @@ fun DemoControlLayout(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 60.dp), // Extra top padding for Interface Tour bar
+                // Extra top padding for Interface Tour bar
+                .padding(
+                    start = 8.dp,
+                    end = 8.dp,
+                    bottom = 8.dp,
+                    top = 60.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Demo Header Bar (Always at top)
@@ -175,31 +179,12 @@ private fun DemoHeaderBar(highlightedElement: InterfaceElement?, modifier: Modif
             modifier = Modifier.align(Alignment.Center)
         )
 
-        // Right side buttons (matching current app: Chart, Settings, Help)
-        Row(
+        // Right side pill actions (Auto-reconnect, Telemetry, Settings, Help)
+        DemoHeaderActionsPill(
             modifier = Modifier.align(Alignment.CenterEnd),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            DemoIconButton(
-                icon = Icons.AutoMirrored.Filled.ShowChart,
-                contentDescription = "Telemetry",
-                borderColor = Color(0xFF00FF00),
-                size = 32.dp
-            )
-            DemoIconButton(
-                icon = Icons.Default.Settings,
-                contentDescription = "Settings",
-                borderColor = Color(0xFF00C853),
-                size = 32.dp
-            )
-            DemoIconButton(
-                icon = Icons.AutoMirrored.Filled.Help,
-                contentDescription = "Help Menu",
-                borderColor = Color(0xFF00FF00),
-                size = 32.dp
-            )
-        }
+            height = 40.dp,
+            segmentWidth = 38.dp
+        )
     }
 }
 
@@ -333,6 +318,106 @@ private fun DemoIconButton(
             )
         }
     }
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun DemoHeaderActionsPill(
+    modifier: Modifier = Modifier,
+    height: androidx.compose.ui.unit.Dp,
+    segmentWidth: androidx.compose.ui.unit.Dp
+) {
+    val dividerWidth = 1.dp
+    val pillWidth = (segmentWidth * 4f) + (dividerWidth * 3f)
+    val iconSize = (minOf(height, segmentWidth) * 0.55f).coerceIn(14.dp, 20.dp)
+
+    Box(
+        modifier = modifier
+            .size(width = pillWidth, height = height)
+            .shadow(2.dp, CircleShape)
+            .background(Color(0xFF455A64), CircleShape)
+            .border(1.dp, Color(0xFF00FF00), CircleShape)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            DemoActionSegment(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                shape = RoundedCornerShape(topStartPercent = 50, bottomStartPercent = 50),
+                background = Color(0xFF43A047),
+                icon = Icons.Default.Sync,
+                tint = Color.White,
+                iconSize = iconSize
+            )
+
+            DemoActionDivider()
+
+            DemoActionSegment(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                shape = RoundedCornerShape(0.dp),
+                icon = Icons.AutoMirrored.Filled.ShowChart,
+                tint = Color(0xFF00FF00),
+                iconSize = iconSize
+            )
+
+            DemoActionDivider()
+
+            DemoActionSegment(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                shape = RoundedCornerShape(0.dp),
+                icon = Icons.Default.Settings,
+                tint = Color(0xFF00C853),
+                iconSize = iconSize
+            )
+
+            DemoActionDivider()
+
+            DemoActionSegment(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                shape = RoundedCornerShape(topEndPercent = 50, bottomEndPercent = 50),
+                icon = Icons.AutoMirrored.Filled.Help,
+                tint = Color(0xFF00FF00),
+                iconSize = iconSize
+            )
+        }
+    }
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun DemoActionSegment(
+    modifier: Modifier,
+    shape: RoundedCornerShape,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    iconSize: androidx.compose.ui.unit.Dp,
+    background: Color = Color.Transparent
+) {
+    Box(
+        modifier = modifier
+            .background(background, shape)
+            .border(0.dp, Color.Transparent, shape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun DemoActionDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(1.dp)
+            .background(Color(0xFF00FF00))
+    )
 }
 
 @Suppress("FunctionName")

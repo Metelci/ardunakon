@@ -5,6 +5,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/**
+ * Stores recent telemetry samples and exposes history for charts.
+ *
+ * @param maxHistorySize Max samples retained per series (defaults to ~10 minutes at 4s interval).
+ */
 class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 minutes at 4s intervals
     // Single device circular buffers
     private val batteryHistory = ConcurrentLinkedDeque<TelemetryDataPoint>()
@@ -17,20 +22,47 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
 
     // StateFlow for UI reactivity
     private val _historyUpdated = MutableStateFlow(0L)
+
+    /**
+     * Emits a timestamp whenever history is updated, for UI refresh.
+     */
     val historyUpdated: StateFlow<Long> = _historyUpdated.asStateFlow()
 
+    /**
+     * Records a battery voltage sample.
+     *
+     * @param voltage Battery voltage in volts.
+     */
     fun recordBattery(voltage: Float) {
         addDataPoint(batteryHistory, voltage)
     }
 
+    /**
+     * Records an RSSI sample.
+     *
+     * @param rssi RSSI in dBm.
+     */
     fun recordRssi(rssi: Int) {
         addDataPoint(rssiHistory, rssi.toFloat())
     }
 
+    /**
+     * Records an RTT sample.
+     *
+     * @param rtt Round-trip time in milliseconds.
+     */
     fun recordRtt(rtt: Long) {
         addDataPoint(rttHistory, rtt.toFloat())
     }
 
+    /**
+     * Records packet loss statistics.
+     *
+     * @param packetsSent Total packets sent.
+     * @param packetsReceived Total packets received.
+     * @param packetsDropped Total packets dropped.
+     * @param packetsFailed Total packets failed.
+     */
     fun recordPacketLoss(packetsSent: Int, packetsReceived: Int, packetsDropped: Int, packetsFailed: Int) {
         val totalLoss = packetsDropped + packetsFailed
         val lossPercent = if (packetsSent > 0) {
@@ -101,6 +133,9 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
      * Manually trigger cleanup of all stale data across all buffers.
      * Useful when reconnecting or on session start.
      */
+    /**
+     * Manually removes stale data across all telemetry buffers.
+     */
     fun cleanupAllStaleData() {
         cleanupStaleData(batteryHistory)
         cleanupStaleData(rssiHistory)
@@ -109,14 +144,38 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
         _historyUpdated.value = System.currentTimeMillis()
     }
 
+    /**
+     * Returns battery history optionally filtered to a time range.
+     *
+     * @param timeRangeMs Optional window size in milliseconds.
+     * @return List of telemetry points.
+     */
     fun getBatteryHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> =
         filterByTimeRange(batteryHistory, timeRangeMs)
 
+    /**
+     * Returns RSSI history optionally filtered to a time range.
+     *
+     * @param timeRangeMs Optional window size in milliseconds.
+     * @return List of telemetry points.
+     */
     fun getRssiHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> =
         filterByTimeRange(rssiHistory, timeRangeMs)
 
+    /**
+     * Returns RTT history optionally filtered to a time range.
+     *
+     * @param timeRangeMs Optional window size in milliseconds.
+     * @return List of telemetry points.
+     */
     fun getRttHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> = filterByTimeRange(rttHistory, timeRangeMs)
 
+    /**
+     * Returns packet loss history optionally filtered to a time range.
+     *
+     * @param timeRangeMs Optional window size in milliseconds.
+     * @return List of packet loss points.
+     */
     fun getPacketLossHistory(timeRangeMs: Long? = null): List<PacketLossDataPoint> {
         if (timeRangeMs == null) return packetLossHistory.toList()
         val cutoff = System.currentTimeMillis() - timeRangeMs
@@ -128,6 +187,12 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
      * - RSSI weight: 40% (signal strength)
      * - RTT weight: 30% (latency)
      * - Packet loss weight: 30% (reliability)
+     */
+    /**
+     * Returns a derived connection quality history series.
+     *
+     * @param timeRangeMs Optional window size in milliseconds.
+     * @return List of quality score points (0-100%).
      */
     fun getConnectionQualityHistory(timeRangeMs: Long? = null): List<TelemetryDataPoint> {
         val rssiData = getRssiHistory(timeRangeMs)
@@ -186,6 +251,9 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
         return buffer.filter { it.timestamp >= cutoff }
     }
 
+    /**
+     * Clears all stored telemetry history.
+     */
     fun clearAllHistory() {
         batteryHistory.clear()
         rssiHistory.clear()
@@ -194,6 +262,11 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
         _historyUpdated.value = System.currentTimeMillis()
     }
 
+    /**
+     * Returns the maximum size across all telemetry buffers.
+     *
+     * @return Maximum history size across all series.
+     */
     fun getHistorySize(): Int = maxOf(
         batteryHistory.size,
         rssiHistory.size,
@@ -204,6 +277,13 @@ class TelemetryHistoryManager(private val maxHistorySize: Int = 150) { // 10 min
 
 /**
  * Data point for packet loss tracking.
+ *
+ * @property timestamp Sample timestamp in milliseconds.
+ * @property packetsSent Total packets sent.
+ * @property packetsReceived Total packets received.
+ * @property packetsDropped Total packets dropped.
+ * @property packetsFailed Total packets failed.
+ * @property lossPercent Packet loss percentage (0-100).
  */
 data class PacketLossDataPoint(
     val timestamp: Long,

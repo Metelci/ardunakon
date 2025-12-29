@@ -12,7 +12,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowBluetoothAdapter
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -30,7 +29,7 @@ class ClassicConnectionManagerTest {
         mockAdapter = mockk(relaxed = true)
         mockCallback = mockk(relaxed = true)
         mockDevice = mockk(relaxed = true)
-        
+
         manager = ClassicConnectionManager(context, mockAdapter, mockCallback)
     }
 
@@ -47,7 +46,7 @@ class ClassicConnectionManagerTest {
     @Test
     fun `disconnect cleans up threads and updates state`() {
         manager.disconnect()
-        
+
         verify { mockCallback.onStateChanged(ConnectionState.DISCONNECTED) }
     }
 
@@ -61,10 +60,10 @@ class ClassicConnectionManagerTest {
         assertEquals(1L, stats.dropped)
     }
 
-    /* 
-     * Note: Testing the actual socket connection logic (ConnectThread/ConnectedThread) 
-     * is difficult in unit tests because they use blocking IO and native Android Bluetooth APIs 
-     * that are final/hard to mock deeply without instrumentation. 
+    /*
+     * Note: Testing the actual socket connection logic (ConnectThread/ConnectedThread)
+     * is difficult in unit tests because they use blocking IO and native Android Bluetooth APIs
+     * that are final/hard to mock deeply without instrumentation.
      * We focus on the manager logic here.
      */
 }

@@ -55,7 +55,7 @@ class BluetoothModelsTest {
             address = "AA:BB:CC:DD:EE:FF",
             type = DeviceType.LE
         )
-        
+
         assertEquals("Test Device", device.name)
         assertEquals("AA:BB:CC:DD:EE:FF", device.address)
         assertEquals(DeviceType.LE, device.type)
@@ -70,7 +70,7 @@ class BluetoothModelsTest {
             type = DeviceType.CLASSIC,
             rssi = -65
         )
-        
+
         assertEquals(-65, device.rssi)
     }
 
@@ -78,7 +78,7 @@ class BluetoothModelsTest {
     fun `BluetoothDeviceModel equality`() {
         val device1 = BluetoothDeviceModel("Test", "AA:BB:CC:DD:EE:FF", DeviceType.LE, -50)
         val device2 = BluetoothDeviceModel("Test", "AA:BB:CC:DD:EE:FF", DeviceType.LE, -50)
-        
+
         assertEquals(device1, device2)
     }
 
@@ -86,7 +86,7 @@ class BluetoothModelsTest {
     fun `BluetoothDeviceModel inequality by address`() {
         val device1 = BluetoothDeviceModel("Test", "AA:BB:CC:DD:EE:FF", DeviceType.LE)
         val device2 = BluetoothDeviceModel("Test", "11:22:33:44:55:66", DeviceType.LE)
-        
+
         assertNotEquals(device1, device2)
     }
 
@@ -94,7 +94,7 @@ class BluetoothModelsTest {
     fun `BluetoothDeviceModel inequality by type`() {
         val device1 = BluetoothDeviceModel("Test", "AA:BB:CC:DD:EE:FF", DeviceType.LE)
         val device2 = BluetoothDeviceModel("Test", "AA:BB:CC:DD:EE:FF", DeviceType.CLASSIC)
-        
+
         assertNotEquals(device1, device2)
     }
 
@@ -102,7 +102,7 @@ class BluetoothModelsTest {
     fun `BluetoothDeviceModel copy`() {
         val original = BluetoothDeviceModel("Test", "AA:BB:CC:DD:EE:FF", DeviceType.LE, -50)
         val copy = original.copy(rssi = -30)
-        
+
         assertEquals(-50, original.rssi)
         assertEquals(-30, copy.rssi)
         assertEquals(original.address, copy.address)
@@ -113,7 +113,7 @@ class BluetoothModelsTest {
     @Test
     fun `ConnectionHealth default values`() {
         val health = ConnectionHealth()
-        
+
         assertEquals(0L, health.lastPacketAt)
         assertEquals(0, health.rssiFailureCount)
         assertEquals(0, health.lastHeartbeatSeq)
@@ -130,7 +130,7 @@ class BluetoothModelsTest {
             lastHeartbeatAt = 12340L,
             lastRttMs = 25L
         )
-        
+
         assertEquals(12345L, health.lastPacketAt)
         assertEquals(3, health.rssiFailureCount)
         assertEquals(100, health.lastHeartbeatSeq)
@@ -142,7 +142,7 @@ class BluetoothModelsTest {
     fun `ConnectionHealth equality`() {
         val health1 = ConnectionHealth(100L, 1, 50, 90L, 10L)
         val health2 = ConnectionHealth(100L, 1, 50, 90L, 10L)
-        
+
         assertEquals(health1, health2)
     }
 
@@ -150,7 +150,7 @@ class BluetoothModelsTest {
     fun `ConnectionHealth copy`() {
         val original = ConnectionHealth(100L, 1, 50, 90L, 10L)
         val copy = original.copy(lastRttMs = 20L)
-        
+
         assertEquals(10L, original.lastRttMs)
         assertEquals(20L, copy.lastRttMs)
     }

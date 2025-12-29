@@ -1,10 +1,7 @@
 package com.metelci.ardunakon.ui.screens.control
 
-import com.metelci.ardunakon.ui.utils.hapticTap
-
 import android.content.Context
 import android.content.Intent
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,12 +9,12 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.metelci.ardunakon.bluetooth.AppBluetoothManager
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.security.EncryptionException
+import com.metelci.ardunakon.ui.utils.hapticTap
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiManager
 import java.io.File
@@ -47,41 +44,88 @@ enum class ConnectionMode {
  *
  * This extracts state management from the composable to improve testability,
  * reduce recomposition, and separate concerns.
+ *
+ * @param bluetoothManager Bluetooth manager dependency.
+ * @param wifiManager WiFi manager dependency.
+ * @param connectionPreferences Persisted connection preferences.
+ * @param onboardingManager Onboarding state manager.
+ * @param customCommandRegistry Custom command registry.
+ * @param hapticPreferences Haptic preference storage.
+ * @param raspManager Runtime application self-protection manager.
  */
 @dagger.hilt.android.lifecycle.HiltViewModel
 class ControlViewModel @javax.inject.Inject constructor(
-    val bluetoothManager: AppBluetoothManager,
-    val wifiManager: WifiManager,
+    val bluetoothManager: com.metelci.ardunakon.bluetooth.IBluetoothManager,
+    val wifiManager: com.metelci.ardunakon.wifi.IWifiManager,
     private val connectionPreferences: com.metelci.ardunakon.data.ConnectionPreferences,
     private val onboardingManager: com.metelci.ardunakon.data.OnboardingManager,
     val customCommandRegistry: com.metelci.ardunakon.protocol.CustomCommandRegistry,
-    private val hapticPreferences: com.metelci.ardunakon.data.HapticPreferences
+    private val hapticPreferences: com.metelci.ardunakon.data.HapticPreferences,
+    private val raspManager: com.metelci.ardunakon.security.RASPManager
 ) : ViewModel() {
 
     private val transmissionDispatcher: CoroutineDispatcher = Dispatchers.Default
 
+    /** Controls device list dialog visibility. */
     var showDeviceList by mutableStateOf(false)
+
+    /** Controls debug console dialog visibility. */
     var showDebugConsole by mutableStateOf(false)
+
+    /** Controls help dialog visibility. */
     var showHelpDialog by mutableStateOf(false)
+
+    /** Controls about dialog visibility. */
     var showAboutDialog by mutableStateOf(false)
+
+    /** Controls overflow menu visibility. */
     var showOverflowMenu by mutableStateOf(false)
+
+    /** Controls telemetry graph dialog visibility. */
     var showTelemetryGraph by mutableStateOf(false)
+
+    /** Controls embedded debug panel visibility. */
     var isDebugPanelVisible by mutableStateOf(true)
+
+    /** Controls maximized debug panel visibility. */
     var showMaximizedDebug by mutableStateOf(false)
+
+    /** Controls WiFi configuration dialog visibility. */
     var showWifiConfig by mutableStateOf(false)
+
+    /** Controls crash log dialog visibility. */
     var showCrashLog by mutableStateOf(false)
+
+    /** Controls performance stats dialog visibility. */
+    var showPerformanceStats by mutableStateOf(false)
+
+    /** Controls settings dialog visibility. */
     var showSettingsDialog by mutableStateOf(false)
+
+    /** Controls header menu visibility. */
     var showHeaderMenu by mutableStateOf(false)
 
     // Custom Commands
+    /** Controls custom commands list dialog visibility. */
     var showCustomCommandsDialog by mutableStateOf(false)
+
+    /** Controls custom command editor visibility. */
     var showCustomCommandEditor by mutableStateOf(false)
+
+    /** Currently edited custom command, if any. */
     var editingCommand by mutableStateOf<com.metelci.ardunakon.model.CustomCommand?>(null)
 
     // User Feedback (Snackbars)
     private val _userMessage = Channel<String>(Channel.CONFLATED)
+
+    /** User-facing message stream for snackbars. */
     val userMessage = _userMessage.receiveAsFlow()
 
+    /**
+     * Emits a user-facing message to the snackbar stream.
+     *
+     * @param message Message text to display.
+     */
     fun showMessage(message: String) {
         viewModelScope.launch {
             _userMessage.trySend(message)
@@ -100,26 +144,48 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     // ========== Connection State ==========
+    /** Currently selected connection mode. */
     var connectionMode by mutableStateOf(ConnectionMode.BLUETOOTH)
+
+    /** Enables reflection-based fallback for legacy stacks. */
     var allowReflection by mutableStateOf(false)
 
     // WiFi Auto-Reconnect State (Delegated to Manager)
+    /** WiFi auto-reconnect state from [WifiManager]. */
     val wifiAutoReconnectEnabled = wifiManager.autoReconnectEnabled
 
+    /** Latest security-related error message for dialogs. */
     var securityErrorMessage by mutableStateOf<String?>(null)
 
+    // ========== RASP Security State ==========
+    /** Current list of security violations from RASP. */
+    val securityViolations = raspManager.securityViolations
+
+    /** True when security is compromised per RASP. */
+    val isSecurityCompromised = raspManager.isSecurityCompromised
+
     // ========== Encryption State ==========
+    /** Latest encryption error, if any. */
     var encryptionError by mutableStateOf<EncryptionException?>(null)
+
+    /** True when encryption is required for the session. */
     var requireEncryption by mutableStateOf(false)
 
     // Haptic feedback state
+    /** True when haptic feedback is enabled. */
     var isHapticEnabled by mutableStateOf(true)
         private set
 
     // Sensitivity state
+    /** Current joystick sensitivity multiplier. */
     var joystickSensitivity by mutableStateOf(1.0f)
         private set
 
+    /**
+     * Updates joystick sensitivity and persists it for future sessions.
+     *
+     * @param sensitivity Sensitivity multiplier for joystick input.
+     */
     fun updateJoystickSensitivity(sensitivity: Float) {
         joystickSensitivity = sensitivity
         viewModelScope.launch {
@@ -127,6 +193,11 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
+    /**
+     * Enables or disables haptic feedback and persists the preference.
+     *
+     * @param enabled True to enable haptics, false to disable.
+     */
     fun updateHapticEnabled(enabled: Boolean) {
         isHapticEnabled = enabled
         com.metelci.ardunakon.ui.utils.HapticController.isEnabled = enabled
@@ -136,9 +207,16 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     // ========== Control State ==========
+    /** Current left joystick position (x, y). */
     var leftJoystick by mutableStateOf(Pair(0f, 0f))
+
+    /** Current servo X position. */
     var servoX by mutableStateOf(0f)
+
+    /** Current servo Y position. */
     var servoY by mutableStateOf(0f)
+
+    /** Current servo Z position. */
     var servoZ by mutableStateOf(0f)
 
     // ========== Transmission ==========
@@ -156,6 +234,11 @@ class ControlViewModel @javax.inject.Inject constructor(
     private fun sendJoystickNow(force: Boolean) {
         if (!isForegroundActive) return
         if (bluetoothManager.isEmergencyStopActive.value) return
+        if (com.metelci.ardunakon.security.SecurityConfig.BLOCK_CONNECTIONS_ON_SECURITY_VIOLATION &&
+            raspManager.isSecurityCompromised.value
+        ) {
+            return
+        }
 
         val auxBits = computeAuxBits()
         val inputActive =
@@ -223,6 +306,11 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
+    /**
+     * Updates foreground state to start or stop the transmission loop.
+     *
+     * @param active True when the UI is in the foreground.
+     */
     fun setForegroundActive(active: Boolean) {
         if (isForegroundActive == active) return
         isForegroundActive = active
@@ -235,6 +323,11 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
+    /**
+     * Enables reflection-based fallback for Bluetooth compatibility.
+     *
+     * @param enabled True to allow reflection fallback.
+     */
     fun updateAllowReflection(enabled: Boolean) {
         allowReflection = enabled
         bluetoothManager.allowReflectionFallback = enabled
@@ -365,6 +458,8 @@ class ControlViewModel @javax.inject.Inject constructor(
 
     /**
      * Updates the encryption requirement setting.
+     *
+     * @param required True to require encryption for WiFi connections.
      */
     fun updateRequireEncryption(required: Boolean) {
         requireEncryption = required
@@ -372,6 +467,11 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     // ========== E-Stop Handling ==========
+    /**
+     * Toggles the emergency stop state and sends the appropriate command.
+     *
+     * @param view View used for triggering haptic feedback.
+     */
     fun toggleEStop(view: View) {
         view.hapticTap()
         val isActive = bluetoothManager.isEmergencyStopActive.value
@@ -387,6 +487,12 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     // ========== Joystick/Servo Updates ==========
+    /**
+     * Updates the joystick position using the current sensitivity multiplier.
+     *
+     * @param x Normalized X input.
+     * @param y Normalized Y input.
+     */
     fun updateJoystick(x: Float, y: Float) {
         leftJoystick = Pair(
             x * joystickSensitivity,
@@ -394,6 +500,13 @@ class ControlViewModel @javax.inject.Inject constructor(
         )
     }
 
+    /**
+     * Updates servo axes and flushes an immediate packet when Z changes.
+     *
+     * @param x Normalized X axis.
+     * @param y Normalized Y axis.
+     * @param z Normalized Z axis.
+     */
     fun updateServo(x: Float, y: Float, z: Float) {
         val previousZ = servoZ
         servoX = x
@@ -407,6 +520,11 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     // ========== Servo Command Handler (from debug terminal) ==========
+    /**
+     * Handles a debug command string and applies servo changes or raw transmission.
+     *
+     * @param cmd Command string entered in the debug terminal.
+     */
     fun handleServoCommand(cmd: String) {
         when (cmd.uppercase().trim()) {
             "W" -> {
@@ -452,6 +570,9 @@ class ControlViewModel @javax.inject.Inject constructor(
     }
 
     // ========== Connection Mode ==========
+    /**
+     * Toggles the active connection mode between Bluetooth and WiFi.
+     */
     fun toggleConnectionMode() {
         if (connectionMode == ConnectionMode.BLUETOOTH) {
             switchToWifi()
@@ -460,6 +581,9 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
+    /**
+     * Switches to WiFi mode and persists the preference.
+     */
     fun switchToWifi() {
         if (connectionMode == ConnectionMode.BLUETOOTH) {
             bluetoothManager.log("Switching from Bluetooth to WiFi mode", LogType.INFO)
@@ -473,6 +597,9 @@ class ControlViewModel @javax.inject.Inject constructor(
         BreadcrumbManager.leave("Mode", "Switched to WiFi")
     }
 
+    /**
+     * Switches to Bluetooth mode and persists the preference.
+     */
     fun switchToBluetooth() {
         if (connectionMode == ConnectionMode.WIFI) {
             bluetoothManager.log("Switching from WiFi to Bluetooth mode", LogType.INFO)
@@ -486,13 +613,28 @@ class ControlViewModel @javax.inject.Inject constructor(
         BreadcrumbManager.leave("Mode", "Switched to Bluetooth")
     }
 
+    /**
+     * Updates WiFi auto-reconnect preference on the manager.
+     *
+     * @param enabled True to enable auto-reconnect.
+     */
     fun toggleWifiAutoReconnect(enabled: Boolean) {
         wifiManager.setAutoReconnectEnabled(enabled)
     }
 
+    /**
+     * Attempts to reconnect to the last saved Bluetooth device.
+     *
+     * @return True if a reconnect attempt was started.
+     */
     fun reconnectBluetoothDevice(): Boolean = bluetoothManager.reconnectSavedDevice()
 
     // ========== Custom Commands ==========
+    /**
+     * Sends a custom command packet over the active connection.
+     *
+     * @param command Command definition to serialize and transmit.
+     */
     fun sendCustomCommand(command: com.metelci.ardunakon.model.CustomCommand) {
         val packet = ProtocolManager.formatCustomCommandData(
             command.commandId,
@@ -505,6 +647,11 @@ class ControlViewModel @javax.inject.Inject constructor(
         bluetoothManager.log("Sent custom command: ${command.name}", LogType.INFO)
     }
 
+    /**
+     * Persists a custom command and closes the editor.
+     *
+     * @param command Command to create or update.
+     */
     fun saveCustomCommand(command: com.metelci.ardunakon.model.CustomCommand) {
         viewModelScope.launch {
             if (editingCommand != null) {
@@ -519,6 +666,11 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
+    /**
+     * Deletes a custom command by ID.
+     *
+     * @param id Command ID to remove.
+     */
     fun deleteCustomCommand(id: String) {
         viewModelScope.launch {
             val command = customCommandRegistry.getCommand(id)
@@ -527,9 +679,19 @@ class ControlViewModel @javax.inject.Inject constructor(
         }
     }
 
+    /**
+     * Returns available command IDs for new custom commands.
+     *
+     * @return List of available IDs.
+     */
     fun getAvailableCommandIds(): List<Byte> = customCommandRegistry.getAvailableCommandIds()
 
     // ========== Log Export ==========
+    /**
+     * Builds a debug log file and launches a share intent.
+     *
+     * @param context Android context used for file and share operations.
+     */
     fun exportLogs(context: Context) {
         val debugLogs = bluetoothManager.debugLogs.value
         val telemetry = bluetoothManager.telemetry.value

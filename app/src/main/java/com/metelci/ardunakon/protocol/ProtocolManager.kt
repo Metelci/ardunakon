@@ -2,6 +2,11 @@ package com.metelci.ardunakon.protocol
 
 import kotlin.experimental.xor
 
+/**
+ * Formats and parses protocol packets exchanged with Arduino firmware.
+ *
+ * Packet layout: [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END].
+ */
 object ProtocolManager {
 
     // Packet Structure: [START, DEV_ID, CMD, D1, D2, D3, D4, D5, CHECKSUM, END]
@@ -9,31 +14,58 @@ object ProtocolManager {
     private const val END_BYTE: Byte = 0x55.toByte()
     private const val PACKET_SIZE = 10
 
-    // Commands
+    /** Command ID for joystick payload packets. */
     const val CMD_JOYSTICK: Byte = 0x01
+
+    /** Command ID for button press/release packets. */
     const val CMD_BUTTON: Byte = 0x02
+
+    /** Command ID for heartbeat packets. */
     const val CMD_HEARTBEAT: Byte = 0x03
+
+    /** Command ID for emergency stop packets. */
     const val CMD_ESTOP: Byte = 0x04
+
+    /** Command ID for capability announcement packets. */
     const val CMD_ANNOUNCE_CAPABILITIES: Byte = 0x05
+
+    /** Command ID for servo Z control packets. */
     const val CMD_SERVO_Z: Byte = 0x06
 
-    // Custom command range (user-defined commands)
+    /** First command ID reserved for custom, user-defined commands. */
     const val CMD_CUSTOM_RANGE_START: Byte = 0x20
+
+    /** Last command ID reserved for custom, user-defined commands. */
     const val CMD_CUSTOM_RANGE_END: Byte = 0x3F
 
-    // Aux bits (mirrors Arduino ArdunakonProtocol.h)
+    /** Aux bit used for servo Z positive direction. */
     const val AUX_W: Byte = 0x01 // Used for A button -> servo Z +
+
+    /** Aux bit used for A button state. */
     const val AUX_A: Byte = 0x02
+
+    /** Aux bit used for L button state. */
     const val AUX_L: Byte = 0x04
+
+    /** Aux bit used for R button state. */
     const val AUX_R: Byte = 0x08
+
+    /** Aux bit used for servo Z negative direction. */
     const val AUX_B: Byte = 0x02 // Used for Z button -> servo Z -
 
-    // Encryption Handshake Commands
+    /** Command ID for encryption handshake request. */
     const val CMD_HANDSHAKE_REQUEST: Byte = 0x10
+
+    /** Command ID for encryption handshake response. */
     const val CMD_HANDSHAKE_RESPONSE: Byte = 0x11
+
+    /** Command ID for encryption handshake completion acknowledgement. */
     const val CMD_HANDSHAKE_COMPLETE: Byte = 0x12
+
+    /** Command ID for encryption handshake failure notification. */
     const val CMD_HANDSHAKE_FAILED: Byte = 0x13
 
+    /** Default device ID used when a per-device ID is not specified. */
     const val DEFAULT_DEVICE_ID: Byte = 0x01
 
     // ========== Network Efficiency: Duplicate Suppression & Rate Limiting ==========
@@ -47,10 +79,13 @@ object ProtocolManager {
     @Volatile private var lastSendTime = 0L
 
     /**
-     * Check if a joystick packet should be sent.
-     * Returns false if:
-     * 1. Packet is identical to last sent packet (duplicate suppression)
-     * 2. Packet sent too recently (rate limiting - 60fps cap)
+     * Determines whether a joystick packet should be transmitted.
+     *
+     * Returns false when the payload is identical to the last sent packet (duplicate suppression)
+     * or when the send interval is below the configured minimum (rate limiting).
+     *
+     * @param packet Full joystick packet payload.
+     * @return True when the packet should be sent, false when it should be skipped.
      */
     fun shouldSendJoystickPacket(packet: ByteArray): Boolean {
         val now = System.currentTimeMillis()
@@ -81,7 +116,7 @@ object ProtocolManager {
     }
 
     /**
-     * Reset packet cache (call on disconnect or mode change)
+     * Resets the duplicate suppression cache and rate-limiter timer.
      */
     fun resetPacketCache() {
         lastJoystickPacket = null
@@ -95,6 +130,16 @@ object ProtocolManager {
         return mapped.toByte()
     }
 
+    /**
+     * Formats a joystick packet payload.
+     *
+     * @param leftX Left joystick X axis (-1.0 to 1.0).
+     * @param leftY Left joystick Y axis (-1.0 to 1.0).
+     * @param rightX Right joystick X axis (-1.0 to 1.0).
+     * @param rightY Right joystick Y axis (-1.0 to 1.0).
+     * @param auxBits Auxiliary bitfield for buttons/servo Z.
+     * @return Protocol packet ready to send.
+     */
     fun formatJoystickData(leftX: Float, leftY: Float, rightX: Float, rightY: Float, auxBits: Byte = 0): ByteArray {
         val packet = ByteArray(PACKET_SIZE)
         packet[0] = START_BYTE
@@ -111,6 +156,12 @@ object ProtocolManager {
         return packet
     }
 
+    /**
+     * Formats a servo Z control packet.
+     *
+     * @param servoZ Servo Z position (-1.0 to 1.0).
+     * @return Protocol packet ready to send.
+     */
     fun formatServoZData(servoZ: Float): ByteArray {
         val packet = ByteArray(PACKET_SIZE)
         packet[0] = START_BYTE
@@ -126,6 +177,13 @@ object ProtocolManager {
         return packet
     }
 
+    /**
+     * Formats a button press/release packet.
+     *
+     * @param buttonId Logical button ID.
+     * @param pressed True if pressed, false if released.
+     * @return Protocol packet ready to send.
+     */
     fun formatButtonData(buttonId: Int, pressed: Boolean): ByteArray {
         val packet = ByteArray(PACKET_SIZE)
         packet[0] = START_BYTE
@@ -141,6 +199,11 @@ object ProtocolManager {
         return packet
     }
 
+    /**
+     * Formats an emergency stop packet.
+     *
+     * @return Protocol packet ready to send.
+     */
     fun formatEStopData(): ByteArray {
         val packet = ByteArray(PACKET_SIZE)
         packet[0] = START_BYTE
@@ -153,6 +216,13 @@ object ProtocolManager {
         return packet
     }
 
+    /**
+     * Formats a heartbeat packet with sequence and uptime information.
+     *
+     * @param sequence Sequence counter used for staleness detection.
+     * @param uptime Timestamp or uptime value in milliseconds.
+     * @return Protocol packet ready to send.
+     */
     fun formatHeartbeatData(sequence: Int, uptime: Long = System.currentTimeMillis()): ByteArray {
         val packet = ByteArray(PACKET_SIZE)
         packet[0] = START_BYTE
@@ -177,8 +247,13 @@ object ProtocolManager {
     }
 
     /**
-     * Format handshake request packet with app nonce.
-     * Payload: NONCE_0..NONCE_15 in extended packet format (21 bytes total)
+     * Formats a handshake request packet with an app nonce.
+     *
+     * Payload: NONCE_0..NONCE_15 in extended packet format (21 bytes total).
+     *
+     * @param nonce 16-byte nonce.
+     * @return Extended handshake request packet.
+     * @throws IllegalArgumentException when nonce length is not 16 bytes.
      */
     fun formatHandshakeRequest(nonce: ByteArray): ByteArray {
         require(nonce.size == 16) { "Nonce must be 16 bytes" }
@@ -196,8 +271,10 @@ object ProtocolManager {
     }
 
     /**
-     * Parse handshake response packet.
-     * Returns (deviceNonce, signature) or null if invalid.
+     * Parses a handshake response packet.
+     *
+     * @param data Raw packet data.
+     * @return Pair of (deviceNonce, signature) or null if invalid.
      */
     fun parseHandshakeResponse(data: ByteArray): Pair<ByteArray, ByteArray>? {
         // Expected: START, DEV_ID, CMD, NONCE[16], SIG[32], CHECKSUM, END
@@ -218,7 +295,9 @@ object ProtocolManager {
     }
 
     /**
-     * Format handshake complete acknowledgment.
+     * Formats a handshake completion acknowledgement packet.
+     *
+     * @return Protocol packet ready to send.
      */
     fun formatHandshakeComplete(): ByteArray {
         val packet = ByteArray(PACKET_SIZE)

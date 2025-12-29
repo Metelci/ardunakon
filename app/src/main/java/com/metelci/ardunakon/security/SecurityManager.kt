@@ -12,6 +12,12 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+/**
+ * Thrown when encrypted storage requires user authentication or secure hardware is unavailable.
+ *
+ * @param message Human-readable message suitable for user-facing flows.
+ * @param cause Optional underlying exception.
+ */
 class AuthRequiredException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /**
@@ -19,10 +25,28 @@ class AuthRequiredException(message: String, cause: Throwable? = null) : Excepti
  * touching the Android keystore.
  */
 interface CryptoEngine {
+    /**
+     * Encrypts plaintext into a Base64 payload.
+     *
+     * @param data Plaintext string to encrypt.
+     * @return Base64-encoded payload containing IV and ciphertext.
+     * @throws AuthRequiredException when secure storage is unavailable or authentication is required.
+     */
     fun encrypt(data: String): String
+
+    /**
+     * Decrypts a Base64 payload back into plaintext.
+     *
+     * @param encryptedData Base64 payload produced by [encrypt].
+     * @return Decrypted plaintext string.
+     * @throws AuthRequiredException when secure storage is unavailable or payload is invalid.
+     */
     fun decrypt(encryptedData: String): String
 }
 
+/**
+ * Android Keystore-backed implementation of [CryptoEngine] using AES/GCM.
+ */
 class SecurityManager : CryptoEngine {
 
     private val provider = "AndroidKeyStore"
@@ -69,6 +93,13 @@ class SecurityManager : CryptoEngine {
         return keyStore.getKey(alias, null) as SecretKey
     }
 
+    /**
+     * Encrypts data using AES/GCM and stores the IV with the ciphertext.
+     *
+     * @param data Plaintext string to encrypt.
+     * @return Base64-encoded IV + ciphertext payload.
+     * @throws AuthRequiredException when keystore access fails.
+     */
     override fun encrypt(data: String): String {
         try {
             val cipher = Cipher.getInstance(transformation)
@@ -93,6 +124,13 @@ class SecurityManager : CryptoEngine {
         }
     }
 
+    /**
+     * Decrypts data produced by [encrypt].
+     *
+     * @param encryptedData Base64 payload containing IV + ciphertext.
+     * @return Decrypted plaintext string.
+     * @throws AuthRequiredException when keystore access fails or payload is invalid.
+     */
     override fun decrypt(encryptedData: String): String {
         try {
             val combined = Base64.decode(encryptedData, Base64.DEFAULT)

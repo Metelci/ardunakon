@@ -1,7 +1,23 @@
 package com.metelci.ardunakon.bluetooth
 
 /**
- * Device Capabilities - Announced by Arduino on connect
+ * Device capabilities announced by Arduino on connect.
+ *
+ * @property hasServoX True when servo X is supported.
+ * @property hasServoY True when servo Y is supported.
+ * @property hasMotor True when motor output is supported.
+ * @property hasLedMatrix True when LED matrix is supported.
+ * @property hasBuzzer True when buzzer output is supported.
+ * @property hasWiFi True when WiFi transport is supported.
+ * @property hasBLE True when BLE transport is supported.
+ * @property hasModulinoPixels True when Modulino Pixels is attached.
+ * @property hasModulinoThermo True when Modulino Thermo is attached.
+ * @property hasModulinoDistance True when Modulino Distance is attached.
+ * @property hasModulinoBuzzer True when Modulino Buzzer is attached.
+ * @property hasModulinoButtons True when Modulino Buttons is attached.
+ * @property hasModulinoKnob True when Modulino Knob is attached.
+ * @property hasModulinoMovement True when Modulino Movement is attached.
+ * @property boardType Detected board type.
  */
 data class DeviceCapabilities(
     // Core hardware
@@ -26,12 +42,19 @@ data class DeviceCapabilities(
     val boardType: BoardType = BoardType.UNKNOWN
 ) {
     companion object {
-        // Default - assume all capabilities (legacy devices)
+        /**
+         * Default capabilities used for legacy devices without announcements.
+         */
         val DEFAULT = DeviceCapabilities()
 
         /**
-         * Parse capabilities from announcement packet
-         * Format: [CAP1][CAP2][CAP3][CAP4][CAP5]
+         * Parses capabilities from an announcement packet.
+         *
+         * Format: [CAP1][CAP2][CAP3][CAP4][CAP5].
+         *
+         * @param data Raw packet data.
+         * @param offset Start offset of the capability bytes.
+         * @return Parsed [DeviceCapabilities], or [DEFAULT] if data is too short.
          */
         fun fromPacket(data: ByteArray, offset: Int = 0): DeviceCapabilities {
             if (data.size < offset + 3) return DEFAULT
@@ -62,6 +85,11 @@ data class DeviceCapabilities(
         }
     }
 
+    /**
+     * Formats a human-readable summary of the enabled features.
+     *
+     * @return Comma-separated feature list or "Basic" when none are set.
+     */
     fun toDisplayString(): String {
         val features = mutableListOf<String>()
         if (hasServoX || hasServoY) features.add("Servo")
@@ -77,6 +105,11 @@ data class DeviceCapabilities(
     }
 }
 
+/**
+ * Known board types announced by the device.
+ *
+ * @property displayName Human-readable board name.
+ */
 enum class BoardType(val displayName: String) {
     UNKNOWN("Unknown"),
     UNO("Arduino UNO"),
@@ -85,6 +118,12 @@ enum class BoardType(val displayName: String) {
     ESP32("ESP32");
 
     companion object {
+        /**
+         * Maps a raw byte value to the corresponding [BoardType].
+         *
+         * @param value Raw board type byte.
+         * @return Matched [BoardType] or [UNKNOWN].
+         */
         fun fromByte(value: Int): BoardType = when (value) {
             0x01 -> UNO
             0x02 -> UNO_R4_WIFI

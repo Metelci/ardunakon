@@ -50,8 +50,7 @@ data class CustomCommand(
         val AVAILABLE_SHORTCUT_KEYS = ('A'..'Z').filter { it !in RESERVED_KEYS }
 
         /** Validate command ID is in allowed range */
-        fun isValidCommandId(id: Byte): Boolean =
-            id in COMMAND_ID_RANGE_START..COMMAND_ID_RANGE_END
+        fun isValidCommandId(id: Byte): Boolean = id in COMMAND_ID_RANGE_START..COMMAND_ID_RANGE_END
 
         /** Validate keyboard shortcut is allowed */
         fun isValidShortcut(key: Char?): Boolean =

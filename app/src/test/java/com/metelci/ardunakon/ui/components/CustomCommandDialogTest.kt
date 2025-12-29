@@ -14,9 +14,9 @@ class CustomCommandDialogTest {
     fun `validation passes with valid name and payload`() {
         val name = "Test Command"
         val payloadHex = "0102030405"
-        
+
         val isValid = name.isNotBlank() && payloadHex.length == 10
-        
+
         assertTrue(isValid)
     }
 
@@ -24,9 +24,9 @@ class CustomCommandDialogTest {
     fun `validation fails with blank name`() {
         val name = ""
         val payloadHex = "0102030405"
-        
+
         val isValid = name.isNotBlank() && payloadHex.length == 10
-        
+
         assertFalse(isValid)
     }
 
@@ -34,9 +34,9 @@ class CustomCommandDialogTest {
     fun `validation fails with whitespace-only name`() {
         val name = "   "
         val payloadHex = "0102030405"
-        
+
         val isValid = name.isNotBlank() && payloadHex.length == 10
-        
+
         assertFalse(isValid)
     }
 
@@ -44,9 +44,9 @@ class CustomCommandDialogTest {
     fun `validation fails with short payload`() {
         val name = "Test Command"
         val payloadHex = "010203"
-        
+
         val isValid = name.isNotBlank() && payloadHex.length == 10
-        
+
         assertFalse(isValid)
     }
 
@@ -54,9 +54,9 @@ class CustomCommandDialogTest {
     fun `validation fails with long payload`() {
         val name = "Test Command"
         val payloadHex = "01020304050607"
-        
+
         val isValid = name.isNotBlank() && payloadHex.length == 10
-        
+
         assertFalse(isValid)
     }
 
@@ -64,7 +64,7 @@ class CustomCommandDialogTest {
     fun `payload hex filtering removes invalid characters`() {
         val input = "01G2H3I4J5"
         val filtered = input.uppercase().filter { it in '0'..'9' || it in 'A'..'F' }
-        
+
         assertEquals("012345", filtered)
     }
 
@@ -72,7 +72,7 @@ class CustomCommandDialogTest {
     fun `payload hex filtering preserves valid hex characters`() {
         val input = "0123456789ABCDEF"
         val filtered = input.uppercase().filter { it in '0'..'9' || it in 'A'..'F' }
-        
+
         assertEquals("0123456789ABCDEF", filtered)
     }
 
@@ -80,7 +80,7 @@ class CustomCommandDialogTest {
     fun `payload hex filtering converts lowercase to uppercase`() {
         val input = "abcdef"
         val filtered = input.uppercase().filter { it in '0'..'9' || it in 'A'..'F' }
-        
+
         assertEquals("ABCDEF", filtered)
     }
 
@@ -88,7 +88,7 @@ class CustomCommandDialogTest {
     fun `payload hex is truncated to 10 characters`() {
         val input = "0123456789ABCDEF"
         val filtered = input.uppercase().filter { it in '0'..'9' || it in 'A'..'F' }.take(10)
-        
+
         assertEquals("0123456789", filtered)
     }
 
@@ -96,7 +96,7 @@ class CustomCommandDialogTest {
     fun `name is truncated to 20 characters`() {
         val input = "This is a very long command name that exceeds the limit"
         val truncated = input.take(20)
-        
+
         assertEquals("This is a very long ", truncated)
         assertEquals(20, truncated.length)
     }
@@ -108,7 +108,7 @@ class CustomCommandDialogTest {
             .chunked(2)
             .map { it.toInt(16).toByte() }
             .toByteArray()
-        
+
         assertEquals(5, payload.size)
         assertEquals(0x01.toByte(), payload[0])
         assertEquals(0x02.toByte(), payload[1])
@@ -124,7 +124,7 @@ class CustomCommandDialogTest {
             .chunked(2)
             .map { it.toInt(16).toByte() }
             .toByteArray()
-        
+
         assertEquals(5, payload.size)
         assertEquals(0x01.toByte(), payload[0])
         assertEquals(0x02.toByte(), payload[1])
@@ -137,7 +137,7 @@ class CustomCommandDialogTest {
     fun `default command ID is first available or 0x20`() {
         val availableIds = listOf<Byte>(0x30, 0x31, 0x32)
         val defaultId = availableIds.firstOrNull() ?: 0x20.toByte()
-        
+
         assertEquals(0x30.toByte(), defaultId)
     }
 
@@ -145,35 +145,35 @@ class CustomCommandDialogTest {
     fun `default command ID is 0x20 when no IDs available`() {
         val availableIds = emptyList<Byte>()
         val defaultId = availableIds.firstOrNull() ?: 0x20.toByte()
-        
+
         assertEquals(0x20.toByte(), defaultId)
     }
 
     @Test
     fun `default color is blue`() {
         val defaultColor = 0xFF2196F3L
-        
+
         assertEquals(0xFF2196F3L, defaultColor)
     }
 
     @Test
     fun `default icon is Build`() {
         val defaultIcon = "Build"
-        
+
         assertEquals("Build", defaultIcon)
     }
 
     @Test
     fun `default toggle mode is false`() {
         val defaultToggle = false
-        
+
         assertFalse(defaultToggle)
     }
 
     @Test
     fun `default keyboard shortcut is null`() {
         val defaultShortcut: Char? = null
-        
+
         assertNull(defaultShortcut)
     }
 
@@ -189,7 +189,7 @@ class CustomCommandDialogTest {
             iconName = "Lightbulb",
             keyboardShortcut = 'H'
         )
-        
+
         assertEquals("Test Command", existingCommand.name)
         assertEquals(0x30.toByte(), existingCommand.commandId)
         assertEquals(0xFFF44336L, existingCommand.colorHex)
@@ -202,7 +202,7 @@ class CustomCommandDialogTest {
     fun `payload hex formatting displays correctly`() {
         val payload = byteArrayOf(0x01, 0x02, 0x03, 0x04, 0x05)
         val hexString = payload.joinToString("") { "%02X".format(it) }
-        
+
         assertEquals("0102030405", hexString)
     }
 
@@ -210,7 +210,7 @@ class CustomCommandDialogTest {
     fun `payload hex formatting handles zero bytes`() {
         val payload = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)
         val hexString = payload.joinToString("") { "%02X".format(it) }
-        
+
         assertEquals("0000000000", hexString)
     }
 
@@ -218,7 +218,7 @@ class CustomCommandDialogTest {
     fun `payload hex formatting handles max bytes`() {
         val payload = byteArrayOf(0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte())
         val hexString = payload.joinToString("") { "%02X".format(it) }
-        
+
         assertEquals("FFFFFFFFFF", hexString)
     }
 
@@ -226,25 +226,35 @@ class CustomCommandDialogTest {
     fun `command ID formatting displays as hex`() {
         val commandId = 0x30.toByte()
         val formatted = "0x%02X".format(commandId)
-        
+
         assertEquals("0x30", formatted)
     }
 
     @Test
     fun `available colors list contains 10 colors`() {
         val colors = listOf(
-            0xFF2196F3L, // Blue
-            0xFF4CAF50L, // Green
-            0xFFF44336L, // Red
-            0xFFFF9800L, // Orange
-            0xFF9C27B0L, // Purple
-            0xFF00BCD4L, // Cyan
-            0xFFFFEB3BL, // Yellow
-            0xFF607D8BL, // Blue Grey
-            0xFFE91E63L, // Pink
-            0xFF795548L  // Brown
+            // Blue
+            0xFF2196F3L,
+            // Green
+            0xFF4CAF50L,
+            // Red
+            0xFFF44336L,
+            // Orange
+            0xFFFF9800L,
+            // Purple
+            0xFF9C27B0L,
+            // Cyan
+            0xFF00BCD4L,
+            // Yellow
+            0xFFFFEB3BL,
+            // Blue Grey
+            0xFF607D8BL,
+            // Pink
+            0xFFE91E63L,
+            // Brown
+            0xFF795548L
         )
-        
+
         assertEquals(10, colors.size)
     }
 
@@ -260,7 +270,7 @@ class CustomCommandDialogTest {
             "Bolt" to "Bolt",
             "Star" to "Star"
         )
-        
+
         assertEquals(8, icons.size)
     }
 
@@ -268,7 +278,7 @@ class CustomCommandDialogTest {
     fun `getIconByName returns correct icon for valid name`() {
         val iconName = "Lightbulb"
         val icon = getIconByName(iconName)
-        
+
         assertNotNull(icon)
     }
 
@@ -276,7 +286,7 @@ class CustomCommandDialogTest {
     fun `getIconByName returns Build icon for invalid name`() {
         val iconName = "InvalidIcon"
         val icon = getIconByName(iconName)
-        
+
         // Should default to Build icon
         assertNotNull(icon)
     }

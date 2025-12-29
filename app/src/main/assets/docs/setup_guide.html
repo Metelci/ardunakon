@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Guide - Ardunakon</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #74b9ff;
+            font-size: 28px;
+            text-align: center;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #b0bec5;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        
+        .quick-nav {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .quick-nav-title {
+            color: #81c784;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .nav-link {
+            background: linear-gradient(135deg, #2d3436 0%, #1e272e 100%);
+            color: #74b9ff;
+            text-decoration: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: center;
+            border: 1px solid rgba(116,185,255,0.2);
+            transition: all 0.2s;
+        }
+        
+        .nav-link:active {
+            background: #74b9ff;
+            color: #1a1a2e;
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        
+        h2 {
+            color: #74b9ff;
+            font-size: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        h2 .icon {
+            font-size: 24px;
+        }
+        
+        h3 {
+            color: #81c784;
+            font-size: 16px;
+            margin: 16px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(129,199,132,0.2);
+        }
+        
+        .board-card {
+            background: linear-gradient(135deg, #2d3436 0%, #1e272e 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-left: 4px solid #74b9ff;
+        }
+        
+        .board-card.recommended {
+            border-left-color: #81c784;
+            background: linear-gradient(135deg, #1e3a2f 0%, #1e272e 100%);
+        }
+        
+        .board-name {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .board-chip {
+            color: #b0bec5;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+        
+        .badge-ble {
+            background: rgba(116,185,255,0.2);
+            color: #74b9ff;
+        }
+        
+        .badge-classic {
+            background: rgba(255,193,7,0.2);
+            color: #ffc107;
+        }
+        
+        .badge-wifi {
+            background: rgba(129,199,132,0.2);
+            color: #81c784;
+        }
+        
+        .steps {
+            counter-reset: step;
+        }
+        
+        .step {
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 16px;
+        }
+        
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .step-title {
+            color: #fff;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .step-desc {
+            color: #b0bec5;
+            font-size: 14px;
+        }
+        
+        .wiring-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+        
+        .wiring-table th {
+            background: rgba(116,185,255,0.15);
+            color: #74b9ff;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .wiring-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .wiring-table tr:nth-child(even) {
+            background: rgba(255,255,255,0.02);
+        }
+        
+        .pin {
+            font-family: 'SF Mono', Consolas, monospace;
+            background: rgba(129,199,132,0.15);
+            color: #81c784;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .warning {
+            background: rgba(255,152,0,0.15);
+            border-left: 4px solid #ff9800;
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+        }
+        
+        .warning-title {
+            color: #ff9800;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .warning p {
+            color: #e0e0e0;
+            font-size: 13px;
+        }
+        
+        .tip {
+            background: rgba(129,199,132,0.1);
+            border-left: 4px solid #81c784;
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+        }
+        
+        .tip-title {
+            color: #81c784;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .tip p {
+            color: #e0e0e0;
+            font-size: 13px;
+        }
+        
+        .troubleshoot-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .problem {
+            color: #ff7675;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        
+        .solution {
+            color: #81c784;
+            font-size: 13px;
+        }
+        
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 24px;
+            color: #636e72;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Setup Guide</h1>
+        <p class="subtitle">Get your Arduino connected in minutes</p>
+        
+        <div class="quick-nav">
+            <div class="quick-nav-title">⚡ Quick Navigation</div>
+            <div class="nav-grid">
+                <a href="#uno-q" class="nav-link">UNO Q (2025)</a>
+                <a href="#r4-wifi" class="nav-link">UNO R4 WiFi</a>
+                <a href="#classic" class="nav-link">Classic UNO</a>
+                <a href="#troubleshoot" class="nav-link">Troubleshooting</a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">📋</span> Supported Hardware</h2>
+            
+            <div class="board-card recommended" id="uno-q">
+                <div class="board-name">Arduino UNO Q</div>
+                <div class="board-chip">Qualcomm QRB2210 + STM32U585</div>
+                <span class="badge badge-ble">Bluetooth 5.1 BLE</span>
+                <span class="badge badge-wifi">WiFi Built-in</span>
+            </div>
+            
+            <div class="board-card recommended" id="r4-wifi">
+                <div class="board-name">Arduino UNO R4 WiFi</div>
+                <div class="board-chip">Renesas RA4M1 + ESP32-S3</div>
+                <span class="badge badge-ble">BLE Built-in</span>
+                <span class="badge badge-wifi">WiFi Built-in</span>
+            </div>
+            
+            <div class="board-card" id="classic">
+                <div class="board-name">Classic Arduino UNO / Nano</div>
+                <div class="board-chip">ATmega328P</div>
+                <span class="badge badge-classic">Requires HC-05/06</span>
+            </div>
+            
+            <div class="board-card">
+                <div class="board-name">Arduino Mega 2560</div>
+                <div class="board-chip">ATmega2560</div>
+                <span class="badge badge-classic">Requires HC-05/06</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">⚙️</span> UNO Q / R4 WiFi Setup</h2>
+            <p style="color: #b0bec5; margin-bottom: 16px;">The easiest option — no external modules needed!</p>
+            
+            <h3>What You Need</h3>
+            <ul style="color: #b0bec5; padding-left: 20px; margin-bottom: 16px;">
+                <li>Arduino UNO Q or R4 WiFi board</li>
+                <li>USB-C cable</li>
+                <li>Motor driver (L298N) or servos</li>
+            </ul>
+            
+            <h3>Installation Steps</h3>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-title">Install Arduino IDE 2.x</div>
+                    <div class="step-desc">Download from arduino.cc/software</div>
+                </div>
+                <div class="step">
+                    <div class="step-title">Install ArduinoBLE Library</div>
+                    <div class="step-desc">Tools → Manage Libraries → Search "ArduinoBLE" → Install</div>
+                </div>
+                <div class="step">
+                    <div class="step-title">Open the Sketch</div>
+                    <div class="step-desc">ArdunakonUnoQ.ino or ArdunakonR4WiFi.ino</div>
+                </div>
+                <div class="step">
+                    <div class="step-title">Select Board &amp; Upload</div>
+                    <div class="step-desc">Tools → Board → Your board → Click Upload</div>
+                </div>
+                <div class="step">
+                    <div class="step-title">Connect via Ardunakon</div>
+                    <div class="step-desc">Tap "Dev 1" → Select "ArdunakonQ" or "ArdunakonR4"</div>
+                </div>
+            </div>
+            
+            <h3>Motor Driver Wiring</h3>
+            <table class="wiring-table">
+                <tr>
+                    <th>Arduino Pin</th>
+                    <th>L298N</th>
+                    <th>Function</th>
+                </tr>
+                <tr>
+                    <td><span class="pin">Pin 9</span></td>
+                    <td>ENA</td>
+                    <td>Left Motor Speed</td>
+                </tr>
+                <tr>
+                    <td><span class="pin">Pin 8</span></td>
+                    <td>IN1</td>
+                    <td>Left Motor Dir 1</td>
+                </tr>
+                <tr>
+                    <td><span class="pin">Pin 7</span></td>
+                    <td>IN2</td>
+                    <td>Left Motor Dir 2</td>
+                </tr>
+                <tr>
+                    <td><span class="pin">Pin 6</span></td>
+                    <td>ENB</td>
+                    <td>Right Motor Speed</td>
+                </tr>
+                <tr>
+                    <td><span class="pin">Pin 5</span></td>
+                    <td>IN3</td>
+                    <td>Right Motor Dir 1</td>
+                </tr>
+                <tr>
+                    <td><span class="pin">Pin 4</span></td>
+                    <td>IN4</td>
+                    <td>Right Motor Dir 2</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">🔌</span> Classic UNO + HC-05/06</h2>
+            <p style="color: #b0bec5; margin-bottom: 16px;">For classic Arduino boards with external Bluetooth</p>
+            
+            <h3>HC-05/HC-06 Wiring</h3>
+            <table class="wiring-table">
+                <tr>
+                    <th>Arduino</th>
+                    <th>HC-05/06</th>
+                    <th>Notes</th>
+                </tr>
+                <tr>
+                    <td><span class="pin">5V</span></td>
+                    <td>VCC</td>
+                    <td>Power</td>
+                </tr>
+                <tr>
+                    <td><span class="pin">GND</span></td>
+                    <td>GND</td>
+                    <td>Ground</td>
+                </tr>
+                <tr>
+                    <td><span class="pin">Pin 10</span></td>
+                    <td>TX</td>
+                    <td>Arduino receives</td>
+                </tr>
+                <tr>
+                    <td><span class="pin">Pin 11</span></td>
+                    <td>RX</td>
+                    <td>Arduino sends*</td>
+                </tr>
+            </table>
+            
+            <div class="warning">
+                <div class="warning-title">⚠️ Voltage Divider Required</div>
+                <p>Some HC-05/06 modules need 3.3V on RX. Use a voltage divider: 1kΩ from Pin 11, then 2kΩ to GND.</p>
+            </div>
+            
+            <div class="tip">
+                <div class="tip-title">💡 Quick Test</div>
+                <p>After powering on, the HC-05/06 LED should blink rapidly. A solid LED means it's connected or stuck in AT mode.</p>
+            </div>
+        </div>
+
+        <div class="section" id="troubleshoot">
+            <h2><span class="icon">🔧</span> Troubleshooting</h2>
+            
+            <div class="troubleshoot-item">
+                <div class="problem">❌ Device not appearing in scan</div>
+                <div class="solution">✓ Ensure Bluetooth &amp; Location are enabled on your phone<br>
+                ✓ Reset the Arduino board<br>
+                ✓ Check if LED is blinking (not solid)</div>
+            </div>
+            
+            <div class="troubleshoot-item">
+                <div class="problem">❌ Connection fails repeatedly</div>
+                <div class="solution">✓ Wait 15-20 seconds — the app tries 17 methods automatically<br>
+                ✓ For HC-06: Check TX/RX wiring (crossed correctly)<br>
+                ✓ Verify baud rate is 9600 in both sketch and module</div>
+            </div>
+            
+            <div class="troubleshoot-item">
+                <div class="problem">❌ Receiving garbage data</div>
+                <div class="solution">✓ Baud rate mismatch — reconfigure to 9600<br>
+                ✓ Add voltage divider if module needs 3.3V</div>
+            </div>
+            
+            <div class="troubleshoot-item">
+                <div class="problem">❌ BLE not starting on R4 WiFi</div>
+                <div class="solution">✓ Install ArduinoBLE library (Tools → Manage Libraries)<br>
+                ✓ Check Serial Monitor for error messages</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">🛡️</span> Safety Features</h2>
+            <p style="color: #b0bec5; margin-bottom: 12px;">All sketches include built-in protection:</p>
+            <ul style="color: #81c784; padding-left: 20px;">
+                <li>✓ Checksum validation — rejects corrupted packets</li>
+                <li>✓ Timeout protection — stops motors after 2 seconds of no data</li>
+                <li>✓ Emergency stop — instant motor cutoff button</li>
+                <li>✓ Heartbeat monitoring — detects lost connections</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            Ardunakon Setup Guide • Version 0.2.x<br>
+            For full documentation, visit GitHub
+        </div>
+    </div>
+    
+    <button class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+</body>
+</html>

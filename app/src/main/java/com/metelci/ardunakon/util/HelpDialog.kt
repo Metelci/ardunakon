@@ -20,9 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.metelci.ardunakon.util.AssetReader
 
@@ -42,11 +40,11 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
 
     val tabs = listOf("Setup", "Compatibility")
     val contentFiles = listOf(
-        "docs/setup_guide.txt",
-        "docs/compatibility.txt"
+        "docs/setup_guide.html",
+        "docs/compatibility.html"
     )
 
-    // Load content for selected tab
+    // Load HTML content for selected tab
     val content = remember(selectedTab) {
         AssetReader.readAssetFile(context, contentFiles[selectedTab])
     }
@@ -151,12 +149,20 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
                 ) {
                     item {
                         Text(
-                            text = content,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp,
-                            color = Color(0xFFE0E0E0),
-                            lineHeight = 16.sp,
-                            modifier = Modifier.fillMaxWidth()
+                            text = when (selectedTab) {
+                                0 ->
+                                    "Step-by-step instructions for wiring your Arduino, " +
+                                        "configuring Bluetooth modules, and troubleshooting connections."
+                                1 ->
+                                    "Detailed report on supported Bluetooth protocols, UUIDs, " +
+                                        "and hardware version compatibility for various modules."
+                                else -> ""
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFB0BEC5),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 8.dp)
                         )
                     }
 
@@ -248,99 +254,15 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
     // In-app web view handling
     webUrlToOpen?.let { urlString ->
         if (urlString.startsWith("http")) {
-            com.metelci.ardunakon.ui.components.WebViewDialog(
+            WebViewDialog(
                 url = urlString,
                 title = "Arduino Cloud",
                 onDismiss = { webUrlToOpen = null }
             )
         } else {
-            // Generate HTML for the text content with proper anchor link support
-            val bgColor = "#1E1E2E"
-            val textColor = "#E0E0E0"
-            val linkColor = "#74B9FF"
-
-            // Escape HTML in content but preserve anchor tags
-            // Render content as HTML directly.
-            // Note: Manual escaping of literal < and > in text files is required.
-            // We use simple replacements for basic text file compatibility if needed,
-            // but for full HTML support we pass content largely as-is.
-
-            val processedContent = content
-                // Re-enable specific anchor tags if they were escaped in source (compatibility)
-                // or just pass through if source is correct.
-                // Since we rely on the source being correct HTML-friendly text:
-                .trim()
-
-            val htmlContent = """
-                <html>
-                <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                body {
-                    background-color: $bgColor;
-                    color: $textColor;
-                    font-family: monospace;
-                    padding: 16px;
-                    padding-right: 60px;
-                    white-space: pre-wrap;
-                    font-size: 14px;
-                    line-height: 1.5;
-                    word-wrap: break-word;
-                }
-                a {
-                    color: $linkColor;
-                    text-decoration: underline;
-                    cursor: pointer;
-                }
-                a:visited {
-                    color: $linkColor;
-                }
-                #backToTop {
-                    position: fixed;
-                    bottom: 20px;
-                    right: 20px;
-                    width: 48px;
-                    height: 48px;
-                    background-color: $linkColor;
-                    color: white;
-                    border: none;
-                    border-radius: 50%;
-                    font-size: 24px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-                    z-index: 1000;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: all 0.3s ease;
-                }
-                #backToTop:hover {
-                    background-color: #90CAF9;
-                    transform: scale(1.1);
-                }
-                #backToTop:active {
-                    transform: scale(0.95);
-                }
-                </style>
-                <script>
-                function scrollToTop() {
-                    window.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
-                }
-                </script>
-                </head>
-                <body>
-                $processedContent
-                <button id="backToTop" onclick="scrollToTop()" aria-label="Back to top">↑</button>
-                </body>
-                </html>
-            """.trimIndent()
-
-            com.metelci.ardunakon.ui.components.WebViewDialog(
-                htmlContent = htmlContent,
+            // Load HTML directly from asset file
+            WebViewDialog(
+                htmlContent = content,
                 title = "${tabs[selectedTab]} Guide",
                 onDismiss = { webUrlToOpen = null }
             )

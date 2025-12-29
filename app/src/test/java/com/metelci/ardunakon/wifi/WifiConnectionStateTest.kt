@@ -121,7 +121,7 @@ class WifiConnectionStateTest {
             WifiConnectionState.CONNECTING,
             WifiConnectionState.CONNECTED
         )
-        
+
         assertEquals(3, flow.size)
         assertEquals(WifiConnectionState.DISCONNECTED, flow[0])
         assertEquals(WifiConnectionState.CONNECTING, flow[1])
@@ -138,7 +138,7 @@ class WifiConnectionStateTest {
             WifiConnectionState.CONNECTING,
             WifiConnectionState.CONNECTED
         )
-        
+
         assertEquals(5, flow.size)
     }
 }
