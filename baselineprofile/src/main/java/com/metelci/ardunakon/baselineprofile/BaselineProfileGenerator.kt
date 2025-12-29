@@ -3,7 +3,7 @@ package com.metelci.ardunakon.baselineprofile
 import android.Manifest
 import android.content.Context
 import android.os.Build
-import androidx.benchmark.macro.BaselineProfileRule
+import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
