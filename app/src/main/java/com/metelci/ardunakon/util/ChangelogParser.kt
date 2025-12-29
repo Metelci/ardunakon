@@ -1,4 +1,4 @@
-package com.metelci.ardunakon.utils
+package com.metelci.ardunakon.util
 
 /**
  * Parser for CHANGELOG.md to extract release notes for a specific version.

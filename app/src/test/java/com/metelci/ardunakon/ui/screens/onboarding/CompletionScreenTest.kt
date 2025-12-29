@@ -1,7 +1,7 @@
 package com.metelci.ardunakon.ui.screens.onboarding
 
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 class CompletionScreenTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createRegisteredComposeRule()
 
     @Test
     fun completionScreen_finishAction_invokes_callback() {

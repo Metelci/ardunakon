@@ -1,4 +1,4 @@
-package com.metelci.ardunakon.utils
+package com.metelci.ardunakon.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

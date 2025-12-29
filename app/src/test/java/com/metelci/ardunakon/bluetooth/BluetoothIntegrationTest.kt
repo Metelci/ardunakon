@@ -212,6 +212,8 @@ class BluetoothIntegrationTest {
         bluetoothManager.onStateChanged(ConnectionState.CONNECTED)
 
         assertEquals("Test BLE (BLE)", bluetoothManager.connectedDeviceInfo.value)
+        // Cancel keep-alive loop started on connect so the test dispatcher can go idle.
+        bluetoothManager.onStateChanged(ConnectionState.DISCONNECTED)
     }
 
     @Test
@@ -225,6 +227,8 @@ class BluetoothIntegrationTest {
         bluetoothManager.onStateChanged(ConnectionState.CONNECTED)
 
         assertEquals("Test Classic (Classic)", bluetoothManager.connectedDeviceInfo.value)
+        // Cancel keep-alive loop started on connect so the test dispatcher can go idle.
+        bluetoothManager.onStateChanged(ConnectionState.DISCONNECTED)
     }
 
     @Test

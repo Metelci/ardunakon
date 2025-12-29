@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.detekt)
     id 'jacoco'
     id 'org.jlleitschuh.gradle.ktlint' version '12.1.2'
     alias(libs.plugins.owasp.dependencycheck)
@@ -17,8 +19,8 @@ android {
         applicationId = "com.metelci.ardunakon"
         minSdk = 26
         targetSdk = 35
-        versionCode = 45
-        versionName = "0.2.15-alpha"
+        versionCode = 46
+        versionName = "0.2.16-alpha"
 
         // Use custom test runner for Hilt
         testInstrumentationRunner = "com.metelci.ardunakon.ArdunakonTestRunner"
@@ -88,9 +90,10 @@ dependencies {
 
     implementation(libs.androidx.security.crypto)
 
-    // Hilt Dependencies
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit4)
@@ -139,6 +142,9 @@ tasks.withType(Test).configureEach {
     // Robolectric currently emits warnings and may behave unpredictably on SDKs requiring Java 21+; pin to SDK 34 for Java 17.
     systemProperty "robolectric.sdk", "34"
     systemProperty "robolectric.enabledSdks", "34"
+    def roboManifest = file("src/test/AndroidManifest.xml").path
+    systemProperty "robolectric.manifest", roboManifest
+    systemProperty "android.manifest", roboManifest
 
     // Test executor stability settings to prevent socket connection errors
     maxParallelForks = 1  // Run tests sequentially to avoid socket contention
@@ -345,5 +351,17 @@ dependencyCheck {
         assemblyEnabled = false  // Disable .NET analyzer
         nuspecEnabled = false
         nodeEnabled = false
+    }
+}
+
+// Detekt configuration
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    parallel = true
+    ignoreFailures = false
+    reports {
+        html.required = true
+        xml.required = true
     }
 }

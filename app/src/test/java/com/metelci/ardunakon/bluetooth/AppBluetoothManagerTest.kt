@@ -177,6 +177,8 @@ class AppBluetoothManagerTest {
         appBluetoothManager.onStateChanged(ConnectionState.CONNECTED)
 
         assertEquals("Test BLE (BLE)", appBluetoothManager.connectedDeviceInfo.value)
+        // Cancel keep-alive loop started on connect so the test dispatcher can go idle.
+        appBluetoothManager.onStateChanged(ConnectionState.DISCONNECTED)
     }
 
     @Test

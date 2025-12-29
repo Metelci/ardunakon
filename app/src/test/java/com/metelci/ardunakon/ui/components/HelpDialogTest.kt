@@ -1,7 +1,7 @@
 package com.metelci.ardunakon.ui.components
 
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 class HelpDialogTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createRegisteredComposeRule()
 
     @Test
     fun helpDialog_shows_setup_content_by_default() {

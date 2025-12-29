@@ -1,22 +1,21 @@
 package com.metelci.ardunakon.ui.components
 
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class WebViewDialogTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createRegisteredComposeRule()
 
     @Test
     fun webViewDialog_shows_title_and_closes() {

@@ -1,20 +1,19 @@
 package com.metelci.ardunakon.ui.components
 
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
+import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w1024dp-h2048dp")
 class HelpDialogAccessibilityTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createRegisteredComposeRule()
 
     @Test
     fun helpDialog_exposes_tab_and_action_labels() {

@@ -150,7 +150,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                                 val changelog = context.assets.open("CHANGELOG.md")
                                     .bufferedReader()
                                     .use { it.readText() }
-                                com.metelci.ardunakon.utils.ChangelogParser.parseLatestRelease(
+                                com.metelci.ardunakon.util.ChangelogParser.parseLatestRelease(
                                     changelog,
                                     BuildConfig.VERSION_NAME
                                 )

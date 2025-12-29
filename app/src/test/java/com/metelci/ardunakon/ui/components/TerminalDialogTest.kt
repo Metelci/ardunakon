@@ -3,7 +3,6 @@ package com.metelci.ardunakon.ui.components
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -11,6 +10,7 @@ import androidx.compose.ui.test.performTextInput
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -18,13 +18,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class TerminalDialogTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createRegisteredComposeRule()
 
     @Test
     fun terminalDialog_shows_logs_and_actions() {

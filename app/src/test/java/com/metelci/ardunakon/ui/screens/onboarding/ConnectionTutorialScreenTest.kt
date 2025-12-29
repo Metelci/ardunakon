@@ -4,10 +4,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import com.metelci.ardunakon.model.ArduinoType
 import com.metelci.ardunakon.model.ConnectionTutorialStep
 import com.metelci.ardunakon.ui.screens.control.ConnectionMode
+import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -15,13 +15,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w800dp-h1280dp")
 class ConnectionTutorialScreenTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createRegisteredComposeRule()
 
     @Test
     fun connectionTutorial_chooseArduino_requires_selection_to_continue() {

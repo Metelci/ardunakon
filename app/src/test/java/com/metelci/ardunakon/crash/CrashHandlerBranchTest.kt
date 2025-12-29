@@ -1,5 +1,6 @@
 package com.metelci.ardunakon.crash
 
+import android.content.Context
 import android.content.Intent
 import java.io.File
 import org.junit.After
@@ -8,15 +9,30 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-
 @RunWith(RobolectricTestRunner::class)
 class CrashHandlerBranchTest {
 
     private val context = RuntimeEnvironment.getApplication()
+
+    private class TestCrashLogWriter : CrashHandler.CrashLogWriter {
+        override fun write(context: Context, content: String) {
+            val file = CrashHandler.getCrashLogFile(context)
+            file.parentFile?.mkdirs()
+            file.appendText(content)
+        }
+    }
+
+    @Before
+    fun setUp() {
+        CrashHandler.setCrashLogWriterForTest(TestCrashLogWriter())
+        CrashHandler.init(context)
+        CrashHandler.getCrashLogFile(context).parentFile?.mkdirs()
+    }
 
     @After
     fun tearDown() {

@@ -1,25 +1,24 @@
 package com.metelci.ardunakon.ui.screens.control.dialogs
 
 import android.view.View
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import com.metelci.ardunakon.bluetooth.BluetoothDeviceModel
 import com.metelci.ardunakon.bluetooth.DeviceType
 import com.metelci.ardunakon.security.EncryptionException
+import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ControlDialogsAccessibilityTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createRegisteredComposeRule()
 
     private fun createView(): View {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()

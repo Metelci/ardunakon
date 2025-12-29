@@ -1,9 +1,9 @@
 package com.metelci.ardunakon.ui.screens.control
 
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import com.metelci.ardunakon.bluetooth.ConnectionState
+import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import io.mockk.mockk
 import org.junit.Rule
@@ -11,13 +11,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ControlHeaderBarTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createRegisteredComposeRule()
 
     @Test
     fun `E-STOP button shows STOP when inactive`() {

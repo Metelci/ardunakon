@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.res.Configuration
 import android.view.View
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import com.metelci.ardunakon.TestCryptoEngine
@@ -18,6 +17,7 @@ import com.metelci.ardunakon.data.OnboardingManager
 import com.metelci.ardunakon.data.OnboardingPreferences
 import com.metelci.ardunakon.protocol.CustomCommandRegistry
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
+import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import com.metelci.ardunakon.wifi.WifiConnectionState
 import com.metelci.ardunakon.wifi.WifiDevice
 import com.metelci.ardunakon.wifi.WifiManager
@@ -33,13 +33,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ControlLayoutsTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createRegisteredComposeRule()
 
     private lateinit var context: Context
     private lateinit var connectionPreferences: ConnectionPreferences

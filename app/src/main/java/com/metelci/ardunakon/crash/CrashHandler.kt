@@ -142,6 +142,10 @@ class CrashHandler private constructor(
             try {
                 instance?.saveCrashLog(Thread.currentThread(), throwable, message)
                     ?: writeFallbackCrashLog(context, throwable, message)
+                val file = getCrashLogFile(context)
+                if (!file.exists() || file.length() == 0L) {
+                    writeFallbackCrashLog(context, throwable, message)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to log non-fatal exception", e)
             }
@@ -262,6 +266,7 @@ class CrashHandler private constructor(
     private class FileCrashLogWriter : CrashLogWriter {
         override fun write(context: Context, content: String) {
             val file = getCrashLogFile(context)
+            file.parentFile?.mkdirs()
             FileWriter(file, true).use { writer ->
                 writer.write(content)
             }
