@@ -1,3 +1,13 @@
+Version 0.2.17-alpha-hotfix1 - December 29, 2025
+
+BUG FIXES:
+• Servo Z (A/Z): Aligned AUX bit mapping between app and Arduino so A/Z reliably move Servo Z
+• Protocol: Added dedicated AUX_Z bit instead of reusing the A/B bit
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.17-alpha - December 29, 2025
 
 IMPROVEMENTS:

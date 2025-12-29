@@ -226,8 +226,8 @@ class ControlViewModel @javax.inject.Inject constructor(
 
     private fun computeAuxBits(): Byte {
         var auxBits = 0
-        if (servoZ < -inputEpsilon) auxBits = auxBits or (ProtocolManager.AUX_W.toInt() and 0xFF)
-        if (servoZ > inputEpsilon) auxBits = auxBits or (ProtocolManager.AUX_B.toInt() and 0xFF)
+        if (servoZ < -inputEpsilon) auxBits = auxBits or (ProtocolManager.AUX_A.toInt() and 0xFF)
+        if (servoZ > inputEpsilon) auxBits = auxBits or (ProtocolManager.AUX_Z.toInt() and 0xFF)
         return auxBits.toByte()
     }
 

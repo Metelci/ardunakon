@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.17-alpha-hotfix1] - 2025-12-29
+
+### Fixed
+- Aligned AUX bit constants between app and Arduino protocol to restore A/Z servo Z control.
+- Added a dedicated AUX_Z bit and stopped reusing the A/B bit for Z.
+
+---
+
 ## [0.2.17-alpha] - 2025-12-29
 
 ### Changed

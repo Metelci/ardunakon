@@ -29,7 +29,8 @@ public:
     static const uint8_t AUX_A = 0x02; // Alternate
     static const uint8_t AUX_L = 0x04; // Left
     static const uint8_t AUX_R = 0x08; // Right
-    static const uint8_t AUX_B = 0x02; // Back (same as A on default layout)
+    static const uint8_t AUX_B = 0x10; // Back
+    static const uint8_t AUX_Z = 0x20; // Z
 
     // Structures
     struct ControlPacket {

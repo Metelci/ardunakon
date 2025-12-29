@@ -38,8 +38,8 @@ object ProtocolManager {
     /** Last command ID reserved for custom, user-defined commands. */
     const val CMD_CUSTOM_RANGE_END: Byte = 0x3F
 
-    /** Aux bit used for servo Z positive direction. */
-    const val AUX_W: Byte = 0x01 // Used for A button -> servo Z +
+    /** Aux bit used for W button state. */
+    const val AUX_W: Byte = 0x01
 
     /** Aux bit used for A button state. */
     const val AUX_A: Byte = 0x02
@@ -50,8 +50,11 @@ object ProtocolManager {
     /** Aux bit used for R button state. */
     const val AUX_R: Byte = 0x08
 
-    /** Aux bit used for servo Z negative direction. */
-    const val AUX_B: Byte = 0x02 // Used for Z button -> servo Z -
+    /** Aux bit used for B button state. */
+    const val AUX_B: Byte = 0x10
+
+    /** Aux bit used for Z button state. */
+    const val AUX_Z: Byte = 0x20
 
     /** Command ID for encryption handshake request. */
     const val CMD_HANDSHAKE_REQUEST: Byte = 0x10
