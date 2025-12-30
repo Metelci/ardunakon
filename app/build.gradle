@@ -20,8 +20,8 @@ android {
         applicationId = "com.metelci.ardunakon"
         minSdk = 26
         targetSdk = 35
-        versionCode = 47
-        versionName = "0.2.17-alpha"
+        versionCode = 48
+        versionName = "0.2.17-alpha-hotfix1"
 
         // Use custom test runner for Hilt
         testInstrumentationRunner = "com.metelci.ardunakon.ArdunakonTestRunner"
