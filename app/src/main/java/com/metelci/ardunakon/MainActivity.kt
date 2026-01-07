@@ -22,15 +22,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.metelci.ardunakon.permissions.PermissionManager
 import com.metelci.ardunakon.security.RASPManager
@@ -133,16 +133,19 @@ class MainActivity : ComponentActivity() {
         // Start and Bind Service
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
+                val raspManager = remember { RASPManager.getInstance(this@MainActivity) }
+                val isSecurityCompromised by raspManager.isSecurityCompromised.collectAsStateWithLifecycle()
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     when {
                         // Critical Security Violation
-                        RASPManager.getInstance(this).isSecurityCompromised.collectAsState().value -> {
+                        isSecurityCompromised -> {
                             SecurityCompromisedDialog(
                                 onQuitApp = {
-                                    RASPManager.getInstance(this).wipeSensitiveData()
+                                    raspManager.wipeSensitiveData()
                                     quitApp()
                                 }
                             )

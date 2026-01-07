@@ -33,13 +33,13 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -63,9 +63,9 @@ import java.util.Locale
 @Composable
 fun PerformanceStatsDialog(view: View, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val monitor = PerformanceMonitor.getInstance()
-    val stats by monitor?.stats?.collectAsState() ?: return
-    val crashes by monitor.recentCrashes.collectAsState()
+    val monitor = PerformanceMonitor.getInstance() ?: return
+    val stats by monitor.stats.collectAsStateWithLifecycle()
+    val crashes by monitor.recentCrashes.collectAsStateWithLifecycle()
 
     AlertDialog(
         onDismissRequest = onDismiss,

@@ -13,11 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.bluetooth.Telemetry
@@ -129,7 +129,7 @@ fun PortraitControlLayout(
         }
 
         // Servo Buttons with Custom Command Buttons on sides
-        val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
+        val customCommands by viewModel.customCommandRegistry.commands.collectAsStateWithLifecycle()
         val leftCommands = customCommands.take(3)
         val rightCommands = customCommands.drop(3).take(3)
 

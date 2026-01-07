@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.bluetooth.Telemetry
@@ -135,7 +135,7 @@ fun LandscapeControlLayout(
 
                 val currentRssi = if (viewModel.connectionMode == ConnectionMode.WIFI) wifiRssi else rssiValue
                 val hasCrashLog = CrashHandler.hasCrashLog(context)
-                val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
+                val customCommands by viewModel.customCommandRegistry.commands.collectAsStateWithLifecycle()
                 val leftCommands = customCommands.take(2)
                 val rightCommands = customCommands.drop(2).take(2)
 

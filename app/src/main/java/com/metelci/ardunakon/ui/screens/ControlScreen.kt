@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -22,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.metelci.ardunakon.ui.screens.control.ControlViewModel
 import com.metelci.ardunakon.ui.screens.control.LandscapeControlLayout
@@ -50,17 +50,17 @@ fun ControlScreen(
     val wifiManager = viewModel.wifiManager
 
     // Combined Bluetooth state (optimized - reduces recompositions by ~40%)
-    val btCombined by bluetoothManager.combinedState.collectAsState()
-    val debugLogs by bluetoothManager.debugLogs.collectAsState()
+    val btCombined by bluetoothManager.combinedState.collectAsStateWithLifecycle()
+    val debugLogs by bluetoothManager.debugLogs.collectAsStateWithLifecycle()
 
     // State collections - WiFi
-    val wifiState by wifiManager.connectionState.collectAsState()
-    val wifiRssi by wifiManager.rssi.collectAsState()
-    val wifiRtt by wifiManager.rtt.collectAsState()
-    val wifiRttHistory by wifiManager.rttHistory.collectAsState()
-    val wifiTelemetry by wifiManager.telemetry.collectAsState()
-    val isWifiEncrypted by wifiManager.isEncrypted.collectAsState()
-    val btConnectedDeviceInfo by bluetoothManager.connectedDeviceInfo.collectAsState()
+    val wifiState by wifiManager.connectionState.collectAsStateWithLifecycle()
+    val wifiRssi by wifiManager.rssi.collectAsStateWithLifecycle()
+    val wifiRtt by wifiManager.rtt.collectAsStateWithLifecycle()
+    val wifiRttHistory by wifiManager.rttHistory.collectAsStateWithLifecycle()
+    val wifiTelemetry by wifiManager.telemetry.collectAsStateWithLifecycle()
+    val isWifiEncrypted by wifiManager.isEncrypted.collectAsStateWithLifecycle()
+    val btConnectedDeviceInfo by bluetoothManager.connectedDeviceInfo.collectAsStateWithLifecycle()
 
     // Compute connected device info (WiFi or BT)
     val connectedDeviceInfo = if (wifiState == WifiConnectionState.CONNECTED) {

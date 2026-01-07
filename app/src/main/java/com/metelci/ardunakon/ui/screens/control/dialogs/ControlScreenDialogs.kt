@@ -4,10 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.view.View
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.ui.components.SettingsDialog
@@ -32,10 +32,10 @@ fun ControlScreenDialogs(
     onTakeTutorial: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    val debugLogs by bluetoothManager.debugLogs.collectAsState()
-    val telemetry by bluetoothManager.telemetry.collectAsState()
-    val scannedDevices by bluetoothManager.scannedDevices.collectAsState()
-    val wifiScannedDevices by wifiManager.scannedDevices.collectAsState()
+    val debugLogs by bluetoothManager.debugLogs.collectAsStateWithLifecycle()
+    val telemetry by bluetoothManager.telemetry.collectAsStateWithLifecycle()
+    val scannedDevices by bluetoothManager.scannedDevices.collectAsStateWithLifecycle()
+    val wifiScannedDevices by wifiManager.scannedDevices.collectAsStateWithLifecycle()
 
     // Debug Console Dialog
     if (viewModel.showDebugConsole) {
@@ -144,7 +144,7 @@ fun ControlScreenDialogs(
 
     // Settings Dialog
     if (viewModel.showSettingsDialog) {
-        val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
+        val customCommands by viewModel.customCommandRegistry.commands.collectAsStateWithLifecycle()
         SettingsDialog(
             onDismiss = { viewModel.showSettingsDialog = false },
             view = view,
@@ -167,7 +167,7 @@ fun ControlScreenDialogs(
 
     // Custom Commands List Dialog
     if (viewModel.showCustomCommandsDialog) {
-        val customCommands by viewModel.customCommandRegistry.commands.collectAsState()
+        val customCommands by viewModel.customCommandRegistry.commands.collectAsStateWithLifecycle()
         com.metelci.ardunakon.ui.components.CustomCommandListDialog(
             commands = customCommands,
             view = view,
@@ -204,7 +204,7 @@ fun ControlScreenDialogs(
         val prefs = context.getSharedPreferences("ArdunakonPrefs", Context.MODE_PRIVATE)
         val savedIp = remember { prefs.getString("last_wifi_ip", "192.168.4.1") ?: "192.168.4.1" }
         val savedPort = remember { prefs.getInt("last_wifi_port", 8888) }
-        val isEncrypted by wifiManager.isEncrypted.collectAsState()
+        val isEncrypted by wifiManager.isEncrypted.collectAsStateWithLifecycle()
 
         WifiConfigDialog(
             initialIp = savedIp,

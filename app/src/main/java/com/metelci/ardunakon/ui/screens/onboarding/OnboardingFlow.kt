@@ -8,10 +8,10 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metelci.ardunakon.model.OnboardingStep
 
 /**
@@ -29,7 +29,7 @@ fun OnboardingFlow(
     modifier: Modifier = Modifier,
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
-    val currentStep by viewModel.currentStep.collectAsState()
+    val currentStep by viewModel.currentStep.collectAsStateWithLifecycle()
 
     // Handle finished state
     if (currentStep is OnboardingStep.Finished) {

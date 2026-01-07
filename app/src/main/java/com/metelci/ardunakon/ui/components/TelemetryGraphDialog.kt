@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import com.metelci.ardunakon.ui.utils.hapticTap
 
@@ -51,7 +52,7 @@ fun TelemetryGraphDialog(telemetryHistoryManager: TelemetryHistoryManager, onDis
 
     // Force recomposition when history updates
     @Suppress("UNUSED_VARIABLE")
-    val historyUpdated by telemetryHistoryManager.historyUpdated.collectAsState()
+    val historyUpdated by telemetryHistoryManager.historyUpdated.collectAsStateWithLifecycle()
 
     Dialog(
         onDismissRequest = onDismiss,
