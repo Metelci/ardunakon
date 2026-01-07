@@ -17,6 +17,9 @@ interface IBluetoothManager {
     /** Stream of discovered Bluetooth devices. */
     val scannedDevices: StateFlow<List<BluetoothDeviceModel>>
 
+    /** True when Bluetooth scanning is active. */
+    val isScanning: StateFlow<Boolean>
+
     /** Current Bluetooth connection state. */
     val connectionState: StateFlow<ConnectionState>
 

@@ -96,6 +96,7 @@ class ControlViewModelIntegrationTest {
         every { manager.telemetry } returns MutableStateFlow(null)
         every { manager.rttHistory } returns MutableStateFlow(emptyList())
         every { manager.scannedDevices } returns MutableStateFlow(emptyList())
+        every { manager.isScanning } returns MutableStateFlow(false)
         return manager
     }
 
@@ -110,6 +111,7 @@ class ControlViewModelIntegrationTest {
         every { manager.rttHistory } returns MutableStateFlow(emptyList())
         every { manager.telemetry } returns MutableStateFlow(null)
         every { manager.scannedDevices } returns MutableStateFlow(emptyList())
+        every { manager.connectedDeviceInfo } returns MutableStateFlow(null)
         every { manager.autoReconnectEnabled } returns MutableStateFlow(false)
         return manager
     }

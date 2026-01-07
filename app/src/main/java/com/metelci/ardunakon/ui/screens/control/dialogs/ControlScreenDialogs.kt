@@ -35,7 +35,9 @@ fun ControlScreenDialogs(
     val debugLogs by bluetoothManager.debugLogs.collectAsStateWithLifecycle()
     val telemetry by bluetoothManager.telemetry.collectAsStateWithLifecycle()
     val scannedDevices by bluetoothManager.scannedDevices.collectAsStateWithLifecycle()
+    val isBluetoothScanning by bluetoothManager.isScanning.collectAsStateWithLifecycle()
     val wifiScannedDevices by wifiManager.scannedDevices.collectAsStateWithLifecycle()
+    val isWifiScanning by wifiManager.isScanning.collectAsStateWithLifecycle()
 
     // Debug Console Dialog
     if (viewModel.showDebugConsole) {
@@ -108,12 +110,18 @@ fun ControlScreenDialogs(
     if (viewModel.showDeviceList) {
         DeviceListDialog(
             scannedDevices = scannedDevices,
-            onScan = { bluetoothManager.startScan() },
+            isScanning = isBluetoothScanning,
+            onStartScan = { bluetoothManager.startScan() },
+            onStopScan = { bluetoothManager.stopScan() },
             onDeviceSelected = { device ->
+                bluetoothManager.stopScan()
                 bluetoothManager.connectToDevice(device)
                 viewModel.showDeviceList = false
             },
-            onDismiss = { viewModel.showDeviceList = false },
+            onDismiss = {
+                bluetoothManager.stopScan()
+                viewModel.showDeviceList = false
+            },
             view = view
         )
     }
@@ -211,8 +219,13 @@ fun ControlScreenDialogs(
             initialPort = savedPort,
             scannedDevices = wifiScannedDevices,
             isEncrypted = isEncrypted,
-            onScan = { wifiManager.startDiscovery() },
-            onDismiss = { viewModel.showWifiConfig = false },
+            isScanning = isWifiScanning,
+            onStartScan = { wifiManager.startDiscovery() },
+            onStopScan = { wifiManager.stopDiscovery() },
+            onDismiss = {
+                wifiManager.stopDiscovery()
+                viewModel.showWifiConfig = false
+            },
             onSave = { ip, port ->
                 viewModel.showWifiConfig = false
                 prefs.edit().putString("last_wifi_ip", ip).putInt("last_wifi_port", port).apply()

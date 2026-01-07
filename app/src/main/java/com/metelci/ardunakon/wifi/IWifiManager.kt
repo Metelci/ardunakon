@@ -24,6 +24,9 @@ interface IWifiManager {
     /** True when WiFi discovery/scanning is active. */
     val isScanning: StateFlow<Boolean>
 
+    /** Connected device info for UI display (name/IP). */
+    val connectedDeviceInfo: StateFlow<String?>
+
     /** True when auto-reconnect is enabled. */
     val autoReconnectEnabled: StateFlow<Boolean>
 

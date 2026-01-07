@@ -53,6 +53,9 @@ class BluetoothScanner(
     private val _scannedDevices = MutableStateFlow<List<BluetoothDeviceModel>>(emptyList())
     val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = _scannedDevices.asStateFlow()
 
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
     // Device name cache for resolved names
     private val deviceNameCache = DeviceNameCache(context, cryptoEngine)
 
@@ -158,14 +161,17 @@ class BluetoothScanner(
     @SuppressLint("MissingPermission")
     fun startScan() {
         if (!checkBluetoothPermission()) {
+            _isScanning.value = false
             callbacks.onScanLog("Scan failed: Missing permissions", LogType.ERROR)
             return
         }
         if (adapter == null) {
+            _isScanning.value = false
             callbacks.onScanLog("Scan failed: Bluetooth adapter unavailable", LogType.ERROR)
             return
         }
         if (!adapter.isEnabled) {
+            _isScanning.value = false
             callbacks.onScanLog("Scan failed: Bluetooth is turned off", LogType.WARNING)
             return
         }
@@ -175,6 +181,7 @@ class BluetoothScanner(
 
         // Clear previous results
         _scannedDevices.value = emptyList()
+        _isScanning.value = true
 
         try {
             // Start Classic discovery
@@ -191,9 +198,11 @@ class BluetoothScanner(
                 stopScan()
             }
         } catch (e: SecurityException) {
+            _isScanning.value = false
             Log.e("BluetoothScanner", "Permission missing for scan", e)
             callbacks.onScanLog("Scan failed: Permission missing", LogType.ERROR)
         } catch (e: Exception) {
+            _isScanning.value = false
             Log.e("BluetoothScanner", "Scan failed", e)
         }
     }
@@ -203,11 +212,13 @@ class BluetoothScanner(
      */
     @SuppressLint("MissingPermission")
     fun stopScan() {
+        scanJob?.cancel()
+        scanJob = null
+        _isScanning.value = false
         if (!checkBluetoothPermission()) {
             callbacks.onScanLog("Stop scan skipped: Missing permissions", LogType.WARNING)
             return
         }
-        scanJob?.cancel()
         adapter?.cancelDiscovery()
         try {
             leScanner?.stopScan(leScanCallback)

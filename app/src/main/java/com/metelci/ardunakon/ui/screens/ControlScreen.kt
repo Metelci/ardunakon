@@ -37,7 +37,6 @@ import com.metelci.ardunakon.wifi.WifiConnectionState
 @Suppress("FunctionName")
 @Composable
 fun ControlScreen(
-    onQuitApp: () -> Unit = {},
     onTakeTutorial: (() -> Unit)? = null,
     viewModel: ControlViewModel = hiltViewModel()
 ) {
@@ -60,14 +59,16 @@ fun ControlScreen(
     val wifiRttHistory by wifiManager.rttHistory.collectAsStateWithLifecycle()
     val wifiTelemetry by wifiManager.telemetry.collectAsStateWithLifecycle()
     val isWifiEncrypted by wifiManager.isEncrypted.collectAsStateWithLifecycle()
+    val wifiConnectedDeviceInfo by wifiManager.connectedDeviceInfo.collectAsStateWithLifecycle()
     val btConnectedDeviceInfo by bluetoothManager.connectedDeviceInfo.collectAsStateWithLifecycle()
 
     // Compute connected device info (WiFi or BT)
-    val connectedDeviceInfo = if (wifiState == WifiConnectionState.CONNECTED) {
-        "WiFi Device" // WiFi doesn't have a device name exposed currently
-    } else {
-        btConnectedDeviceInfo
-    }
+    val connectedDeviceInfo =
+        when (wifiState) {
+            WifiConnectionState.CONNECTED,
+            WifiConnectionState.CONNECTING -> wifiConnectedDeviceInfo
+            else -> btConnectedDeviceInfo
+        }
 
     // Active Telemetry (Bluetooth or WiFi based on connection)
     val telemetry = if (wifiState == WifiConnectionState.CONNECTED) wifiTelemetry else btCombined.telemetry
@@ -201,7 +202,6 @@ fun ControlScreen(
                     orientationConfig = orientationConfig,
                     view = view,
                     context = context,
-                    onQuitApp = onQuitApp,
                     exportLogs = exportLogs
                 )
             } else {
@@ -226,7 +226,6 @@ fun ControlScreen(
                     orientationConfig = orientationConfig,
                     view = view,
                     context = context,
-                    onQuitApp = onQuitApp,
                     exportLogs = exportLogs
                 )
             }

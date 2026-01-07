@@ -83,14 +83,14 @@ class ControlHeaderBarScreenshotTest {
                             onShowSettings = {},
                             onShowHelp = {},
                             onShowAbout = {},
-                            onShowCrashLog = {},
-                            onShowPerformanceStats = {},
-                            onOpenArduinoCloud = {},
-                            onQuitApp = {},
-                            context = context,
-                            view = view,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                             onShowCrashLog = {},
+                             onShowPerformanceStats = {},
+                             onOpenArduinoCloud = {},
+                             onDisconnect = {},
+                             context = context,
+                             view = view,
+                             modifier = Modifier.fillMaxWidth()
+                         )
                     }
                 }
             }

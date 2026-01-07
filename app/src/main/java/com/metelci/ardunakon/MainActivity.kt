@@ -166,7 +166,6 @@ class MainActivity : ComponentActivity() {
                                 controlContent = { onTakeTutorial ->
                                     if (isBound && bluetoothService != null) {
                                         ControlScreen(
-                                            onQuitApp = { quitApp() },
                                             onTakeTutorial = {
                                                 onboardingManager.resetOnboarding()
                                                 showOnboarding = true

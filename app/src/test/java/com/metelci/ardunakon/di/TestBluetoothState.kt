@@ -6,6 +6,7 @@ import com.metelci.ardunakon.bluetooth.Telemetry
 import kotlinx.coroutines.flow.MutableStateFlow
 
 object TestBluetoothState {
+    val isScanning = MutableStateFlow(false)
     val connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val rssiValue = MutableStateFlow(0)
     val health = MutableStateFlow(ConnectionHealth())

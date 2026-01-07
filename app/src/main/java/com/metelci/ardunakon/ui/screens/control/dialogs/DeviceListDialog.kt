@@ -35,11 +35,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -47,8 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.BluetoothDeviceModel
 import com.metelci.ardunakon.ui.utils.hapticTap
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * Dialog for displaying and selecting Bluetooth devices.
@@ -57,15 +50,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun DeviceListDialog(
     scannedDevices: List<BluetoothDeviceModel>,
-    onScan: () -> Unit,
+    isScanning: Boolean,
+    onStartScan: () -> Unit,
+    onStopScan: () -> Unit,
     onDeviceSelected: (BluetoothDeviceModel) -> Unit,
     onDismiss: () -> Unit,
     view: View,
     modifier: Modifier = Modifier
 ) {
-    var isScanning by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier.fillMaxWidth(0.95f),
@@ -107,31 +99,24 @@ fun DeviceListDialog(
                     OutlinedButton(
                         onClick = {
                             view.hapticTap()
-                            isScanning = true
-                            onScan()
-                            // Auto-stop scanning indication after 5 seconds
-                            coroutineScope.launch {
-                                delay(5000)
-                                isScanning = false
-                            }
+                            if (isScanning) onStopScan() else onStartScan()
                         },
-                        modifier = Modifier.height(32.dp),
+                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color(0xFF00FF00)
                         ),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00FF00)),
-                        enabled = !isScanning,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Bluetooth,
-                            contentDescription = "Scan",
+                            contentDescription = if (isScanning) "Stop scanning" else "Scan",
                             tint = Color(0xFF00FF00),
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            if (isScanning) "Scanning..." else "Scan",
+                            if (isScanning) "Stop" else "Scan",
                             style = MaterialTheme.typography.labelMedium
                         )
                     }
@@ -176,7 +161,7 @@ fun DeviceListDialog(
                                     color = Color(0xFF757575)
                                 )
                                 Text(
-                                    "Tap 'Scan for Devices' to search",
+                                    "Tap Scan to search",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color(0xFF9E9E9E)
                                 )
@@ -189,7 +174,7 @@ fun DeviceListDialog(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(min = 10.dp)
+                                    .heightIn(min = 56.dp)
                                     .clickable {
                                         view.hapticTap()
                                         onDeviceSelected(device)
@@ -203,7 +188,7 @@ fun DeviceListDialog(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -250,10 +235,8 @@ fun DeviceListDialog(
             TextButton(
                 onClick = onDismiss,
                 modifier = Modifier
-                    .defaultMinSize(minHeight = 12.dp, minWidth = 0.dp)
-                    .height(12.dp)
-                    .padding(vertical = 0.dp),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                    .defaultMinSize(minHeight = 48.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
                     "Close",

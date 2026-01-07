@@ -21,6 +21,7 @@ object FakeBluetoothModule {
     @Singleton
     fun provideBluetoothManager(): IBluetoothManager {
         val mock = mockk<IBluetoothManager>(relaxed = true)
+        every { mock.isScanning } returns TestBluetoothState.isScanning
         every { mock.connectionState } returns TestBluetoothState.connectionState
         every { mock.rssiValue } returns TestBluetoothState.rssiValue
         every { mock.health } returns TestBluetoothState.health

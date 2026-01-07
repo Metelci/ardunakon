@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Settings
@@ -117,7 +118,7 @@ fun ControlHeaderBar(
     onShowCrashLog: () -> Unit,
     onShowPerformanceStats: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
-    onQuitApp: () -> Unit,
+    onDisconnect: () -> Unit,
 
     // Context for crash log check
     context: Context,
@@ -280,7 +281,7 @@ fun ControlHeaderBar(
                     onShowCrashLog = onShowCrashLog,
                     onShowPerformanceStats = onShowPerformanceStats,
                     onOpenArduinoCloud = onOpenArduinoCloud,
-                    onQuitApp = onQuitApp
+                    onDisconnect = onDisconnect
                 )
             }
         }
@@ -309,7 +310,7 @@ private fun HeaderActionsRow(
     onShowCrashLog: () -> Unit,
     onShowPerformanceStats: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
-    onQuitApp: () -> Unit
+    onDisconnect: () -> Unit
 ) {
     val actionIconSize = (minOf(pillHeight, segmentWidth) * 0.6f).coerceIn(14.dp, 22.dp)
     val menuIconSize = (minOf(pillHeight, segmentWidth) * 0.55f).coerceIn(14.dp, 20.dp)
@@ -440,11 +441,11 @@ private fun HeaderActionsRow(
                     )
                     Divider(color = Color(0xFF455A64), thickness = 1.dp)
                     DropdownMenuItem(
-                        text = { Text("Quit App", color = Color(0xFFFF5252)) },
-                        leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
+                        text = { Text("Disconnect", color = Color(0xFFFF5252)) },
+                        leadingIcon = { Icon(Icons.Default.LinkOff, null, tint = Color(0xFFFF5252)) },
                         onClick = {
                             view.hapticTap()
-                            onQuitApp()
+                            onDisconnect()
                             onDismissOverflowMenu()
                         }
                     )
@@ -569,11 +570,11 @@ private fun HeaderActionsRow(
                             )
                             Divider(color = Color(0xFF455A64), thickness = 1.dp)
                             DropdownMenuItem(
-                                text = { Text("Quit App", color = Color(0xFFFF5252)) },
-                                leadingIcon = { Icon(Icons.Default.Close, null, tint = Color(0xFFFF5252)) },
+                                text = { Text("Disconnect", color = Color(0xFFFF5252)) },
+                                leadingIcon = { Icon(Icons.Default.LinkOff, null, tint = Color(0xFFFF5252)) },
                                 onClick = {
                                     view.hapticTap()
-                                    onQuitApp()
+                                    onDisconnect()
                                     onDismissOverflowMenu()
                                 }
                             )
@@ -674,7 +675,17 @@ fun ConnectionStatusWidget(
         }
     }
 
-    Box(modifier = modifier) {
+    BoxWithConstraints(modifier = modifier) {
+        val isCompact = maxWidth < 96.dp || maxHeight < 48.dp
+        val contentPaddingH = if (isCompact) 4.dp else 6.dp
+        val contentPaddingV = if (isCompact) 2.dp else 4.dp
+        val rowSpacing = if (isCompact) 2.dp else 4.dp
+        val lockIconSize = if (isCompact) 10.dp else 14.dp
+        val signalIconSize = if (isCompact) 16.dp else 18.dp
+        val rttFontSize = if (isCompact) 9.sp else 11.sp
+        val sparklineHeight = if (isCompact) 8.dp else 10.dp
+        val scanFontSize = if (isCompact) 11.sp else 12.sp
+
         // Determine if connected
         val isConnected = when (connectionMode) {
             ConnectionMode.BLUETOOTH -> btState == ConnectionState.CONNECTED
@@ -684,6 +695,17 @@ fun ConnectionStatusWidget(
             ConnectionMode.BLUETOOTH -> btState == ConnectionState.CONNECTING || btState == ConnectionState.RECONNECTING
             ConnectionMode.WIFI -> wifiState == WifiConnectionState.CONNECTING
         }
+
+        val connectionLabel = if (connectionMode == ConnectionMode.WIFI) "WiFi" else "Bluetooth"
+        val statusDescription =
+            when {
+                isConnected -> {
+                    val encryptionLabel = if (isEncrypted) ", encrypted" else ""
+                    "$connectionLabel status: connected$encryptionLabel, RTT ${lastRtt} milliseconds. Tap for options."
+                }
+                isConnecting -> "$connectionLabel status: connecting. Tap for options."
+                else -> "$connectionLabel status: disconnected. Tap to ${if (connectionMode == ConnectionMode.BLUETOOTH) "scan" else "configure"}."
+            }
 
         Surface(
             onClick = {
@@ -702,10 +724,13 @@ fun ConnectionStatusWidget(
             shape = CircleShape,
             color = Color(0xFF455A64),
             border = BorderStroke(1.dp, stateColor),
-            modifier = Modifier.matchParentSize()
+            modifier =
+                Modifier
+                    .matchParentSize()
+                    .semantics { contentDescription = statusDescription }
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                modifier = Modifier.padding(horizontal = contentPaddingH, vertical = contentPaddingV),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -713,7 +738,7 @@ fun ConnectionStatusWidget(
                     // Connected: Show RSSI + latency info
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        horizontalArrangement = Arrangement.spacedBy(rowSpacing)
                     ) {
                         // Lock icon when encrypted
                         if (isEncrypted) {
@@ -721,7 +746,7 @@ fun ConnectionStatusWidget(
                                 imageVector = Icons.Default.Lock,
                                 contentDescription = "Encrypted connection",
                                 tint = Color(0xFF4CAF50),
-                                modifier = Modifier.size(10.dp)
+                                modifier = Modifier.size(lockIconSize)
                             )
                         }
                         SignalStrengthIcon(
@@ -729,18 +754,18 @@ fun ConnectionStatusWidget(
                             color = stateColor,
                             isWifi = connectionMode == ConnectionMode.WIFI,
                             showLabels = false,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(signalIconSize)
                         )
                         Text(
                             text = "${lastRtt}ms",
-                            fontSize = 9.sp,
+                            fontSize = rttFontSize,
                             color = stateColor,
                             fontWeight = FontWeight.Medium
                         )
                     }
                     LatencySparkline(
                         rttValues = rttHistory,
-                        modifier = Modifier.fillMaxWidth().height(8.dp)
+                        modifier = Modifier.fillMaxWidth().height(sparklineHeight)
                     )
                 } else if (isConnecting) {
                     // Connecting: Show connecting indicator
@@ -754,7 +779,7 @@ fun ConnectionStatusWidget(
                     // Disconnected: Show SCAN button
                     Text(
                         text = "SCAN",
-                        fontSize = 11.sp,
+                        fontSize = scanFontSize,
                         color = Color(0xFF64B5F6),
                         fontWeight = FontWeight.Bold
                     )

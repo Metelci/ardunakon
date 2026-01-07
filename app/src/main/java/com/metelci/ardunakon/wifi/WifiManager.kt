@@ -120,6 +120,10 @@ class WifiManager(
      */
     override val isScanning: StateFlow<Boolean> = scanner.isScanning
 
+    private val _connectedDeviceInfo = MutableStateFlow<String?>(null)
+
+    override val connectedDeviceInfo: StateFlow<String?> = _connectedDeviceInfo.asStateFlow()
+
     private val _telemetry = MutableStateFlow<Telemetry?>(null)
 
     /**
@@ -201,6 +205,7 @@ class WifiManager(
     override fun connect(ip: String, port: Int) {
         targetIp = ip
         targetPort = port
+        _connectedDeviceInfo.value = buildConnectedDeviceInfo(ip, port)
         BreadcrumbManager.leave("WiFi", "Connect: $ip:$port")
         connectionManager.connect(ip, port) { psk ->
             scope.launch {
@@ -219,6 +224,7 @@ class WifiManager(
      */
     override fun disconnect() {
         shouldReconnect = false
+        _connectedDeviceInfo.value = null
         BreadcrumbManager.leave("WiFi", "Manual disconnect")
         connectionManager.disconnect()
     }
@@ -272,11 +278,17 @@ class WifiManager(
         if (state == WifiConnectionState.CONNECTED) {
             reconnectAttempts = 0
             _isEncrypted.value = connectionManager.isEncrypted()
+            _connectedDeviceInfo.value = buildConnectedDeviceInfo(targetIp, targetPort)
             recoveryManager?.recordSuccess(RecoveryManager.OP_WIFI_CONNECT)
             BreadcrumbManager.leave("WiFi", "Connected (encrypted: ${_isEncrypted.value})")
+        } else if (state == WifiConnectionState.CONNECTING) {
+            _connectedDeviceInfo.value = buildConnectedDeviceInfo(targetIp, targetPort)
         } else if (state == WifiConnectionState.ERROR) {
             recoveryManager?.recordFailure(RecoveryManager.OP_WIFI_CONNECT)
             BreadcrumbManager.leave("WiFi", "Connection error")
+            _connectedDeviceInfo.value = null
+        } else if (state == WifiConnectionState.DISCONNECTED) {
+            _connectedDeviceInfo.value = null
         }
     }
 
@@ -392,7 +404,7 @@ class WifiManager(
                         } else {
                             val backoff = retryPolicy.calculateDelay(reconnectAttempts)
                             log(
-                                "WiFi: Auto-reconnecting to $targetIp... (attempt ${reconnectAttempts + 1})",
+                                "WiFi: Auto-reconnecting to $targetIp:$targetPort... (attempt ${reconnectAttempts + 1})",
                                 LogType.INFO
                             )
                             reconnectAttempts++
@@ -411,5 +423,11 @@ class WifiManager(
                 }
             }
         }
+    }
+
+    private fun buildConnectedDeviceInfo(ip: String, port: Int): String {
+        val name = scannedDevices.value.firstOrNull { it.ip == ip && it.port == port }?.name?.takeIf { it.isNotBlank() }
+        val endpoint = if (port == 8888) ip else "$ip:$port"
+        return name?.let { "$it • $endpoint" } ?: endpoint
     }
 }

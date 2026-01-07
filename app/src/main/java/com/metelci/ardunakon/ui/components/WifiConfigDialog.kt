@@ -32,13 +32,22 @@ fun WifiConfigDialog(
     initialPort: Int,
     scannedDevices: List<com.metelci.ardunakon.wifi.WifiDevice>,
     isEncrypted: Boolean = false,
-    onScan: () -> Unit,
+    isScanning: Boolean,
+    onStartScan: () -> Unit,
+    onStopScan: () -> Unit,
     onDismiss: () -> Unit,
     onSave: (String, Int) -> Unit
 ) {
     var ipAddress by remember(initialIp) { mutableStateOf(initialIp) }
     var port by remember(initialPort) { mutableStateOf(initialPort.toString()) }
-    var isScanning by remember { mutableStateOf(false) }
+
+    val ipError by remember {
+        derivedStateOf { validateIpv4Address(ipAddress) }
+    }
+    val portError by remember {
+        derivedStateOf { validatePort(port) }
+    }
+    val canConnect = ipError == null && portError == null
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -103,6 +112,10 @@ fun WifiConfigDialog(
                         onValueChange = { ipAddress = it },
                         label = { Text("IP Address", color = Color(0xFFB0BEC5), fontSize = 11.sp) },
                         modifier = Modifier.weight(1.5f),
+                        isError = ipError != null,
+                        supportingText = ipError?.let { msg ->
+                            { Text(msg, color = Color(0xFFFF5252), fontSize = 10.sp) }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF00FF00),
                             unfocusedBorderColor = Color(0xFF455A64),
@@ -111,7 +124,7 @@ fun WifiConfigDialog(
                         ),
                         singleLine = true,
                         textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
 
                     OutlinedTextField(
@@ -119,6 +132,10 @@ fun WifiConfigDialog(
                         onValueChange = { port = it.filter { char -> char.isDigit() } },
                         label = { Text("Port", color = Color(0xFFB0BEC5), fontSize = 11.sp) },
                         modifier = Modifier.weight(0.8f),
+                        isError = portError != null,
+                        supportingText = portError?.let { msg ->
+                            { Text(msg, color = Color(0xFFFF5252), fontSize = 10.sp) }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF00FF00),
                             unfocusedBorderColor = Color(0xFF455A64),
@@ -145,27 +162,29 @@ fun WifiConfigDialog(
                         color = Color(0xFFB0BEC5)
                     )
 
-                    if (isScanning) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = Color(0xFF00FF00),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isScanning) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color(0xFF00FF00),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
                         OutlinedButton(
-                            onClick = {
-                                isScanning = true
-                                onScan()
-                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                    isScanning = false
-                                }, 5000)
-                            },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            onClick = { if (isScanning) onStopScan() else onStartScan() },
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                             modifier = Modifier
-                                .height(32.dp)
-                                .semantics { contentDescription = "Scan for WiFi devices" }
+                                .defaultMinSize(minHeight = 48.dp)
+                                .semantics {
+                                    contentDescription = if (isScanning) {
+                                        "Stop scanning for WiFi devices"
+                                    } else {
+                                        "Scan for WiFi devices"
+                                    }
+                                }
                         ) {
-                            Text("Scan", fontSize = 12.sp)
+                            Text(if (isScanning) "Stop" else "Scan", fontSize = 12.sp)
                         }
                     }
                 }
@@ -195,34 +214,66 @@ fun WifiConfigDialog(
                     } else {
                         // Show all devices with scrolling
                         scannedDevices.forEach { device ->
+                            val selectedPort = port.toIntOrNull()
+                            val isSelected =
+                                device.ip == ipAddress && (selectedPort == null || device.port == selectedPort)
+                            val isLastConnected = device.ip == initialIp && device.port == initialPort
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .background(
+                                        when {
+                                            isSelected -> Color(0x332196F3)
+                                            isLastConnected -> Color(0x1A00FF00)
+                                            else -> Color.Transparent
+                                        },
+                                        RoundedCornerShape(6.dp)
+                                    )
                                     .clickable {
                                         ipAddress = device.ip
                                         port = device.port.toString()
                                     }
                                     .semantics {
-                                        contentDescription = "Select ${device.name} at ${device.ip}"
+                                        contentDescription =
+                                            buildString {
+                                                append("Select ${device.name} at ${device.ip}:${device.port}")
+                                                if (isLastConnected) append(". Last connected")
+                                                if (isSelected) append(". Selected")
+                                            }
                                     }
-                                    .padding(vertical = 4.dp),
+                                    .padding(horizontal = 8.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text(
-                                        device.name,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            device.name,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                        if (isLastConnected) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                "Last connected",
+                                                color = Color(0xFF4CAF50),
+                                                fontSize = 10.sp,
+                                                modifier = Modifier
+                                                    .background(Color(0x332E7D32), RoundedCornerShape(10.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
                                     Text(device.ip, color = Color(0xFFB0BEC5), fontSize = 10.sp)
                                 }
                                 Icon(
                                     imageVector = Icons.Default.Wifi,
                                     contentDescription = "WiFi device available",
                                     tint = Color(0xFF00FF00),
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
@@ -238,20 +289,28 @@ fun WifiConfigDialog(
                 ) {
                     TextButton(
                         onClick = onDismiss,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        modifier = Modifier.semantics { contentDescription = "Cancel and close dialog" }
+                        modifier =
+                            Modifier
+                                .defaultMinSize(minHeight = 48.dp)
+                                .semantics { contentDescription = "Cancel and close dialog" },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                     ) {
                         Text("Cancel", color = Color(0xFFB0BEC5), fontSize = 13.sp)
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     Button(
                         onClick = {
-                            val portInt = port.toIntOrNull() ?: 8888
-                            onSave(ipAddress, portInt)
+                            val ip = ipAddress.trim()
+                            val portInt = port.trim().toInt()
+                            onSave(ip, portInt)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier.semantics { contentDescription = "Connect to WiFi device" }
+                        enabled = canConnect,
+                        modifier =
+                            Modifier
+                                .defaultMinSize(minHeight = 48.dp)
+                                .semantics { contentDescription = "Connect to WiFi device" },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                     ) {
                         Text("Connect", fontSize = 13.sp)
                     }
@@ -259,4 +318,26 @@ fun WifiConfigDialog(
             }
         }
     }
+}
+
+private fun validateIpv4Address(input: String): String? {
+    val trimmed = input.trim()
+    if (trimmed.isEmpty()) return "IP address required"
+
+    val parts = trimmed.split('.')
+    if (parts.size != 4) return "Enter a valid IPv4 address"
+    if (parts.any { it.isEmpty() }) return "Enter a valid IPv4 address"
+
+    for (part in parts) {
+        val value = part.toIntOrNull() ?: return "Enter a valid IPv4 address"
+        if (value !in 0..255) return "Enter a valid IPv4 address"
+    }
+    return null
+}
+
+private fun validatePort(input: String): String? {
+    val trimmed = input.trim()
+    if (trimmed.isEmpty()) return "Port required"
+    val value = trimmed.toIntOrNull() ?: return "Enter a valid port"
+    return if (value in 1..65535) null else "Port must be 1–65535"
 }

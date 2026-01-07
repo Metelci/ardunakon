@@ -53,7 +53,6 @@ fun PortraitControlLayout(
     orientationConfig: Configuration,
     view: android.view.View,
     context: Context,
-    onQuitApp: () -> Unit,
     exportLogs: () -> Unit
 ) {
     Column(
@@ -98,7 +97,12 @@ fun PortraitControlLayout(
                 val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                 context.startActivity(intent)
             },
-            onQuitApp = onQuitApp,
+            onDisconnect = {
+                when (viewModel.connectionMode) {
+                    ConnectionMode.WIFI -> viewModel.wifiManager.disconnect()
+                    ConnectionMode.BLUETOOTH -> bluetoothManager.disconnect()
+                }
+            },
             context = context,
             view = view
         )

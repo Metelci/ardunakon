@@ -23,6 +23,7 @@ object FakeWifiModule {
     fun provideWifiManager(): IWifiManager {
         val mock = mockk<IWifiManager>(relaxed = true)
         every { mock.connectionState } returns MutableStateFlow(WifiConnectionState.DISCONNECTED)
+        every { mock.connectedDeviceInfo } returns MutableStateFlow(null)
         return mock
     }
 }

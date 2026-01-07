@@ -1,6 +1,10 @@
 package com.metelci.ardunakon.ui.screens.control.dialogs
 
 import android.view.View
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -31,9 +35,15 @@ class DeviceListDialogTest {
         var scanCount = 0
 
         composeTestRule.setContent {
+            var isScanning by remember { mutableStateOf(false) }
             DeviceListDialog(
                 scannedDevices = emptyList(),
-                onScan = { scanCount += 1 },
+                isScanning = isScanning,
+                onStartScan = {
+                    scanCount += 1
+                    isScanning = true
+                },
+                onStopScan = { isScanning = false },
                 onDeviceSelected = {},
                 onDismiss = {},
                 view = createView()
@@ -43,7 +53,7 @@ class DeviceListDialogTest {
         composeTestRule.onNodeWithText("Bluetooth Devices").assertExists()
         composeTestRule.onNodeWithText("No devices found").assertExists()
         composeTestRule.onNodeWithText("Scan").performClick()
-        composeTestRule.onNodeWithText("Scanning...").assertExists()
+        composeTestRule.onNodeWithText("Stop").assertExists()
 
         composeTestRule.runOnIdle {
             assertEquals(1, scanCount)
@@ -63,7 +73,9 @@ class DeviceListDialogTest {
         composeTestRule.setContent {
             DeviceListDialog(
                 scannedDevices = listOf(device),
-                onScan = {},
+                isScanning = false,
+                onStartScan = {},
+                onStopScan = {},
                 onDeviceSelected = { selected = it },
                 onDismiss = {},
                 view = createView()

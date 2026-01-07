@@ -37,7 +37,9 @@ class ControlDialogsAccessibilityTest {
         composeTestRule.setContent {
             DeviceListDialog(
                 scannedDevices = listOf(device),
-                onScan = {},
+                isScanning = false,
+                onStartScan = {},
+                onStopScan = {},
                 onDeviceSelected = {},
                 onDismiss = {},
                 view = createView()

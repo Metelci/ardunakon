@@ -92,6 +92,8 @@ class AppBluetoothManager(
      */
     override val scannedDevices: StateFlow<List<BluetoothDeviceModel>> = scanner.scannedDevices
 
+    override val isScanning: StateFlow<Boolean> = scanner.isScanning
+
     /**
      * Telemetry history manager for charts and stats.
      */

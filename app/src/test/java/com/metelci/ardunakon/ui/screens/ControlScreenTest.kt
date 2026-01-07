@@ -78,6 +78,7 @@ class ControlScreenTest {
         every { bluetoothManager.telemetry } returns MutableStateFlow(null)
         every { bluetoothManager.connectedDeviceInfo } returns MutableStateFlow(null)
         every { bluetoothManager.scannedDevices } returns MutableStateFlow(emptyList())
+        every { bluetoothManager.isScanning } returns MutableStateFlow(false)
         every { bluetoothManager.telemetryHistoryManager } returns TelemetryHistoryManager()
         every { bluetoothManager.connectionState } returns MutableStateFlow(ConnectionState.DISCONNECTED)
         every { bluetoothManager.isEmergencyStopActive } returns MutableStateFlow(false)
@@ -99,6 +100,8 @@ class ControlScreenTest {
         every { wifiManager.encryptionError } returns MutableStateFlow(null)
         every { wifiManager.isEncrypted } returns MutableStateFlow(false)
         every { wifiManager.scannedDevices } returns MutableStateFlow<List<WifiDevice>>(emptyList())
+        every { wifiManager.isScanning } returns MutableStateFlow(false)
+        every { wifiManager.connectedDeviceInfo } returns MutableStateFlow(null)
         every { wifiManager.setRequireEncryption(any()) } just runs
         every { wifiManager.clearEncryptionError() } just runs
         every { wifiManager.sendData(any()) } just runs
