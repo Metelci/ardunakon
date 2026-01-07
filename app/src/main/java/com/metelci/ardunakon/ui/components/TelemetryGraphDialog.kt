@@ -91,8 +91,7 @@ fun TelemetryGraphDialog(telemetryHistoryManager: TelemetryHistoryManager, onDis
                             onClick = {
                                 view.hapticTap()
                                 telemetryHistoryManager.clearAllHistory()
-                            },
-                            modifier = Modifier.size(36.dp)
+                            }
                         ) {
                             Icon(
                                 Icons.Default.Delete,
@@ -105,8 +104,7 @@ fun TelemetryGraphDialog(telemetryHistoryManager: TelemetryHistoryManager, onDis
                             onClick = {
                                 view.hapticTap()
                                 onDismiss()
-                            },
-                            modifier = Modifier.size(36.dp)
+                            }
                         ) {
                             Icon(
                                 Icons.Default.Close,

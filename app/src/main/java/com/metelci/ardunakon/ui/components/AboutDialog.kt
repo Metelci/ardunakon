@@ -70,8 +70,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         onClick = {
                             view.hapticTap()
                             onDismiss()
-                        },
-                        modifier = Modifier.size(32.dp)
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,

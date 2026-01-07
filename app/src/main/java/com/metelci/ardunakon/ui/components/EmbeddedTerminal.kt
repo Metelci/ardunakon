@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
@@ -56,6 +57,7 @@ fun EmbeddedTerminal(
     // Search and Filter State
     var searchQuery by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
+    var showActionsMenu by remember { mutableStateOf(false) }
     var selectedFilters by remember {
         mutableStateOf(
             setOf(LogType.INFO, LogType.SUCCESS, LogType.WARNING, LogType.ERROR)
@@ -112,8 +114,7 @@ fun EmbeddedTerminal(
                             view.hapticTap()
                             onExportLogs()
                             // Also clear logs via long press ideally, but let's keep simple
-                        },
-                        modifier = Modifier.size(28.dp)
+                        }
                     ) {
                         Icon(Icons.Default.Share, "Export", tint = Color(0xFF00C853), modifier = Modifier.size(16.dp))
                     }
@@ -123,8 +124,7 @@ fun EmbeddedTerminal(
                             view.hapticTap()
                             showSearch = !showSearch
                             if (!showSearch) searchQuery = ""
-                        },
-                        modifier = Modifier.size(28.dp)
+                        }
                     ) {
                         Icon(
                             // Need Search Icon
@@ -138,40 +138,53 @@ fun EmbeddedTerminal(
                             modifier = Modifier.size(16.dp)
                         )
                     }
-                    // Clear button
-                    IconButton(
-                        onClick = {
-                            view.hapticTap()
-                            onClearLogs()
-                        },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(Icons.Default.Delete, "Clear", tint = Color(0xFFB0BEC5), modifier = Modifier.size(16.dp))
-                    }
-                    // Maximize button
-                    IconButton(
-                        onClick = {
-                            view.hapticTap()
-                            onMaximize()
-                        },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.OpenInNew,
-                            "Maximize",
-                            tint = Color(0xFF90CAF9),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    // Minimize/Hide button
-                    IconButton(
-                        onClick = {
-                            view.hapticTap()
-                            onMinimize()
-                        },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(Icons.Default.Close, "Hide", tint = Color(0xFFB0BEC5), modifier = Modifier.size(16.dp))
+                    Box {
+                        IconButton(
+                            onClick = {
+                                view.hapticTap()
+                                showActionsMenu = true
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                "More actions",
+                                tint = Color(0xFFB0BEC5),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showActionsMenu,
+                            onDismissRequest = { showActionsMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Clear logs") },
+                                leadingIcon = { Icon(Icons.Default.Delete, null) },
+                                onClick = {
+                                    view.hapticTap()
+                                    showActionsMenu = false
+                                    onClearLogs()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Maximize") },
+                                leadingIcon = { Icon(Icons.Default.OpenInNew, null) },
+                                onClick = {
+                                    view.hapticTap()
+                                    showActionsMenu = false
+                                    onMaximize()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Hide") },
+                                leadingIcon = { Icon(Icons.Default.Close, null) },
+                                onClick = {
+                                    view.hapticTap()
+                                    showActionsMenu = false
+                                    onMinimize()
+                                }
+                            )
+                        }
                     }
                 }
             }

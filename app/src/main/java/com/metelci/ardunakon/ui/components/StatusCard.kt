@@ -1,10 +1,10 @@
 package com.metelci.ardunakon.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -68,33 +68,27 @@ fun StatusCard(
     }
 
     androidx.compose.material3.Surface(
+        onClick = {
+            view.hapticTap()
+            onClick()
+        },
         color = containerColor,
         contentColor = contentColor,
         // Fully rounded like Button
         shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
         border = BorderStroke(1.dp, borderColor),
         modifier = Modifier
-            .height(36.dp)
+            .heightIn(min = 48.dp)
             .semantics { contentDescription = "$label status: $stateText" }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(start = 12.dp, end = if (hasCrashLog) 4.dp else 12.dp)
         ) {
-            // Main status text - clickable
-            Row(
-                modifier = Modifier
-                    .clickable {
-                        view.hapticTap()
-                        onClick()
-                    },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "$label: $stateText",
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
+            Text(
+                text = "$label: $stateText",
+                style = MaterialTheme.typography.labelMedium
+            )
 
             if (hasCrashLog) {
                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
@@ -103,8 +97,7 @@ fun StatusCard(
                         view.hapticTap()
                         onCrashLogClick()
                     },
-                    // Slightly larger touch target
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     androidx.compose.material3.Icon(
                         imageVector = androidx.compose.material.icons.Icons.Default.Warning,
