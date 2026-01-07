@@ -3,6 +3,7 @@ package com.metelci.ardunakon.wifi
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.wifi.WifiInfo
+import android.os.Build
 import android.util.Log
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.bluetooth.TelemetryParser
@@ -376,18 +377,19 @@ class WifiConnectionManager(
         wifiManager: android.net.wifi.WifiManager?
     ): Int? {
         // Preferred: ConnectivityManager + NetworkCapabilities TransportInfo (avoids deprecated WifiManager.connectionInfo).
-        try {
-            val network = connectivityManager?.activeNetwork ?: return null
-            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return null
-            val transportInfo = capabilities.transportInfo
-            val wifiInfo = transportInfo as? WifiInfo
-            if (wifiInfo != null) {
-                val rssi = wifiInfo.rssi
-                // Typical RSSI range is about -127..0. Treat other values as unknown.
-                if (rssi in -127..0) return rssi
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                val network = connectivityManager?.activeNetwork ?: return null
+                val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return null
+                val wifiInfo = capabilities.transportInfo as? WifiInfo
+                if (wifiInfo != null) {
+                    val rssi = wifiInfo.rssi
+                    // Typical RSSI range is about -127..0. Treat other values as unknown.
+                    if (rssi in -127..0) return rssi
+                }
+            } catch (_: Exception) {
+                // Fall back below.
             }
-        } catch (_: Exception) {
-            // Fall back below.
         }
 
         // Fallback: reflection (legacy devices / stacks).

@@ -130,8 +130,10 @@ fun WebViewDialog(
                     factory = { context ->
                         WebView(context).apply {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                WebView.startSafeBrowsing(context, null)
                                 settings.safeBrowsingEnabled = true
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                                    WebView.startSafeBrowsing(context, null)
+                                }
                             }
                             webViewClient = object : WebViewClient() {
                                 override fun onPageFinished(view: WebView?, url: String?) {

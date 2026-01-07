@@ -179,12 +179,12 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 *   **HC-06 on Xiaomi/MIUI**: Automatically handled! The app now auto-enables reflection fallback and stream initialization delays for Xiaomi/Redmi/Poco devices.
 
 ### Comprehensive Guides
-*   **[Quick Reference Card](QUICK_REFERENCE.md)** - One-page cheat sheet for common issues
-*   **[HC-06 Clone Troubleshooting](HC06_TROUBLESHOOTING.md)** - 17 connection methods explained
-*   **[HC-08 Troubleshooting](HC08_TROUBLESHOOTING.md)** - Complete HC-08 BLE module guide
-*   **[HM-10 Troubleshooting](HM10_TROUBLESHOOTING.md)** - 7 UUID variants, all clones covered
-*   **[Android Manufacturer Guide](ANDROID_MANUFACTURERS_GUIDE.md)** - Samsung, Xiaomi, Huawei-specific fixes
-*   **[Dependency Analysis](DEPENDENCY_ANALYSIS.md)** - Zero dependency hell, full compatibility report
+*   **[Board Guides](docs/board_guides/README.md)** - Wiring and setup by board/module
+*   **[Classic UNO/Nano Guide](docs/board_guides/CLASSIC_UNO_NANO.md)** - HC-05/HC-06 + HM-10 wiring and AT commands
+*   **[UNO R4 WiFi Guide](docs/board_guides/UNO_R4_WIFI.md)** - BLE + WiFi setup notes
+*   **[UNO Q Guide](docs/board_guides/UNO_Q.md)** - Built-in BLE setup
+*   **[Testing Scenarios](docs/testing/CONNECTION_FLOW_SCENARIOS.md)** - Connection and recovery flows
+*   **[Architecture](docs/ARCHITECTURE.md)** - Component and data-flow diagrams
 *   **In-App Help** - Tap Menu > Help for offline documentation with 4 detailed guides
 
 ## Contributors

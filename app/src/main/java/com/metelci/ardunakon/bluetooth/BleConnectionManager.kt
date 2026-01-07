@@ -3,6 +3,7 @@ package com.metelci.ardunakon.bluetooth
 import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.metelci.ardunakon.model.LogType
@@ -537,18 +538,32 @@ class BleConnectionManager(
                     val char = txCharacteristic
 
                     if (gatt != null && char != null) {
+                        if (
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                            context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) !=
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            packetsDropped.incrementAndGet()
+                            continue
+                        }
+
                         // Write
                         val writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
 
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            gatt.writeCharacteristic(char, data, writeType)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            char.value = data
-                            @Suppress("DEPRECATION")
-                            char.writeType = writeType
-                            @Suppress("DEPRECATION")
-                            gatt.writeCharacteristic(char)
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                gatt.writeCharacteristic(char, data, writeType)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                char.value = data
+                                @Suppress("DEPRECATION")
+                                char.writeType = writeType
+                                @Suppress("DEPRECATION")
+                                gatt.writeCharacteristic(char)
+                            }
+                        } catch (_: SecurityException) {
+                            packetsFailed.incrementAndGet()
+                            continue
                         }
                         packetsSent.incrementAndGet()
                     }
