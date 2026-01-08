@@ -250,10 +250,10 @@ fun JoystickControl(
 
             // Draw Deadzone Circle (faint inner circle)
             drawCircle(
-                color = Color.White.copy(alpha = 0.3f),
+                color = Color.White.copy(alpha = 0.5f),
                 radius = deadzoneRadius,
                 center = center,
-                style = Stroke(width = 1.dp.toPx())
+                style = Stroke(width = 2.dp.toPx())
             )
 
             // Draw Stick/Knob
