@@ -66,7 +66,7 @@ fun JoystickControl(
         with(density) { Offset(size.toPx() / 2, size.toPx() / 2) }
     }
     val radius = remember(size, dotSize, density) {
-        with(density) { (size.toPx() / 2) - (dotSize.toPx() / 2) }
+        with(density) { ((size.toPx() / 2) - (dotSize.toPx() / 2)).coerceAtLeast(0f) }
     }
 
     // Initialize position at center
@@ -215,7 +215,7 @@ fun JoystickControl(
             qualityRingColor?.let { ringColor ->
                 drawCircle(
                     color = ringColor.copy(alpha = 0.7f),
-                    radius = sizePx / 2 - ringWidth / 2,
+                    radius = (sizePx / 2 - ringWidth / 2).coerceAtLeast(0f),
                     center = center,
                     style = Stroke(width = ringWidth)
                 )
@@ -224,7 +224,7 @@ fun JoystickControl(
             // Draw Base (main background)
             drawCircle(
                 color = backgroundColor,
-                radius = sizePx / 2 - (if (qualityRingColor != null) ringWidth + 2.dp.toPx() else 0f),
+                radius = (sizePx / 2 - (if (qualityRingColor != null) ringWidth + 2.dp.toPx() else 0f)).coerceAtLeast(0f),
                 center = center
             )
 
