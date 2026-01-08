@@ -56,6 +56,7 @@ fun LandscapeControlLayout(
     orientationConfig: Configuration,
     view: android.view.View,
     context: Context,
+    onQuitApp: () -> Unit,
     exportLogs: () -> Unit
 ) {
     Row(
@@ -107,6 +108,7 @@ fun LandscapeControlLayout(
                     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                     context.startActivity(intent)
                 },
+                onQuitApp = onQuitApp,
                 context = context,
                 view = view
             )

@@ -202,6 +202,7 @@ fun ControlScreen(
                     orientationConfig = orientationConfig,
                     view = view,
                     context = context,
+                    onQuitApp = { currentActivity?.finish() },
                     exportLogs = exportLogs
                 )
             } else {
@@ -226,6 +227,7 @@ fun ControlScreen(
                     orientationConfig = orientationConfig,
                     view = view,
                     context = context,
+                    onQuitApp = { currentActivity?.finish() },
                     exportLogs = exportLogs
                 )
             }
