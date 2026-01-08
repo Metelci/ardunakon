@@ -14,57 +14,50 @@ object ChangelogParser {
      */
     fun parseLatestRelease(changelog: String, currentVersion: String): List<String> {
         val lines = changelog.lines()
-        val versionHeader = "## [$currentVersion]"
-
+        
+        // Match "## 0.2.20-alpha" or "## 0.2.20-alpha (Build 51)"
+        // We look for a line that starts with "## currentVersion"
+        val startHeaderPrefix = "## $currentVersion"
+        
         // Find the start of the current version section
-        val startIndex = lines.indexOfFirst { it.trim().startsWith(versionHeader) }
+        val startIndex = lines.indexOfFirst { line -> 
+            line.trim().startsWith(startHeaderPrefix) 
+        }
+        
         if (startIndex == -1) {
             return listOf("Release notes for version $currentVersion not found in CHANGELOG")
         }
 
-        // Find the end (next version header or end of file)
+        // Find the end (next version header starting with "## " or end of file)
         val endIndex = lines
             .drop(startIndex + 1)
-            .indexOfFirst { it.trim().startsWith("## [") }
+            .indexOfFirst { it.trim().startsWith("## ") }
             .let { offset -> if (offset == -1) lines.size else startIndex + 1 + offset }
 
         // Extract the version section
         val versionSection = lines.subList(startIndex, endIndex)
 
-        // Parse feature bullets from Added/Changed/Fixed sections
+        // Parse bullet points
         val features = mutableListOf<String>()
-        var inRelevantSection = false
 
         for (line in versionSection) {
             val trimmed = line.trim()
+            
+            if (trimmed.startsWith("- ")) {
+                // Extract the bullet point, clean up formatting
+                val feature = trimmed.substring(2).trim()
+                    .replace("**", "") // Remove bold markdown
+                    .replace("`", "") // Remove code markdown
 
-            // Check if we're entering a relevant section
-            when {
-                trimmed.startsWith("### Added") ||
-                    trimmed.startsWith("### Changed") ||
-                    trimmed.startsWith("### Fixed") -> {
-                    inRelevantSection = true
-                }
-                trimmed.startsWith("### ") -> {
-                    // Other sections like "Removed" - skip
-                    inRelevantSection = false
-                }
-                inRelevantSection && trimmed.startsWith("- ") -> {
-                    // Extract the bullet point, clean up formatting
-                    val feature = trimmed.substring(2).trim()
-                        .replace("**", "") // Remove bold markdown
-                        .replace("`", "") // Remove code markdown
-
-                    // Skip overly long bullets or sub-bullets
-                    if (feature.isNotEmpty() && !feature.startsWith("  ")) {
-                        features.add(feature)
-                    }
+                // Skip overly long bullets or sub-bullets
+                if (feature.isNotEmpty()) {
+                    features.add(feature)
                 }
             }
         }
 
         return if (features.isEmpty()) {
-            listOf("No detailed changes listed for version $currentVersion")
+            listOf("No details found for this version.")
         } else {
             features.take(8) // Limit to 8 items for UI
         }

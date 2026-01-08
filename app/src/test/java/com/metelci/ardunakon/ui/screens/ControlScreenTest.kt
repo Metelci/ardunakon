@@ -122,7 +122,8 @@ class ControlScreenTest {
             onboardingManager = onboardingManager,
             customCommandRegistry = customCommandRegistry,
             hapticPreferences = hapticPreferences,
-            raspManager = raspManager
+            raspManager = raspManager,
+            context = context
         )
 
         return ControlScreenHandles(viewModel = viewModel, combinedState = combinedState)

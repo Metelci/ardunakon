@@ -80,7 +80,8 @@ class ControlViewModelIntegrationTest {
             onboardingManager = onboardingManager,
             customCommandRegistry = customCommandRegistry,
             hapticPreferences = hapticPreferences,
-            raspManager = raspManager
+            raspManager = raspManager,
+            context = context
         ).also { it.setForegroundActive(false) }
     }
 
