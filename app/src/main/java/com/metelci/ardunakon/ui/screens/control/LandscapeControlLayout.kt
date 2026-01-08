@@ -107,12 +107,6 @@ fun LandscapeControlLayout(
                     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://cloud.arduino.cc"))
                     context.startActivity(intent)
                 },
-                onDisconnect = {
-                    when (viewModel.connectionMode) {
-                        ConnectionMode.WIFI -> viewModel.wifiManager.disconnect()
-                        ConnectionMode.BLUETOOTH -> bluetoothManager.disconnect()
-                    }
-                },
                 context = context,
                 view = view
             )

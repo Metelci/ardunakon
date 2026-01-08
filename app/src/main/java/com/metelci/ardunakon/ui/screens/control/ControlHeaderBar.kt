@@ -123,7 +123,7 @@ fun ControlHeaderBar(
     onShowCrashLog: () -> Unit,
     onShowPerformanceStats: () -> Unit,
     onOpenArduinoCloud: () -> Unit,
-    onQuitApp: () -> Unit,
+    onQuitApp: () -> Unit = {},
 
     // Context for crash log check
     context: Context,
