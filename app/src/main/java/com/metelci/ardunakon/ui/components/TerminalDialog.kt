@@ -126,6 +126,8 @@ fun TerminalDialog(
                                 LogType.SUCCESS -> Color(0xFF00C853)
                                 LogType.WARNING -> Color(0xFFFFD54F)
                                 LogType.ERROR -> Color(0xFFFF7675)
+                                LogType.SENT -> Color(0xFF00FF00)
+                                LogType.RECEIVED -> Color.White
                             }
                             Text(
                                 text = "> ${log.message}",

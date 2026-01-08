@@ -415,6 +415,19 @@ class AppBluetoothManager(
      */
     override fun sendData(data: ByteArray, force: Boolean) {
         if (_isEmergencyStopActive.value && !force) return
+
+        // Throttled debug for TX
+        val now = System.currentTimeMillis()
+        if (now - lastTxLogTime >= txLogThrottleMs) {
+            lastTxLogTime = now
+            scope.launch(Dispatchers.Default) {
+                val hex = data.joinToString("") { "%02X".format(it) }
+                withContext(Dispatchers.Main) {
+                    log("TX: $hex", LogType.SENT)
+                }
+            }
+        }
+
         connectionManager?.send(data)
     }
 
@@ -563,6 +576,10 @@ class AppBluetoothManager(
     private var lastRxLogTime = 0L
     private val rxLogThrottleMs = 500L
 
+    // Throttling for debug TX logging
+    private var lastTxLogTime = 0L
+    private val txLogThrottleMs = 500L
+
     /**
      * Raw data callback from [ConnectionCallback].
      *
@@ -579,7 +596,7 @@ class AppBluetoothManager(
             scope.launch(Dispatchers.Default) {
                 val hex = data.joinToString("") { "%02X".format(it) }
                 withContext(Dispatchers.Main) {
-                    log("RX: $hex", LogType.INFO)
+                    log("RX: $hex", LogType.RECEIVED)
                 }
             }
         }

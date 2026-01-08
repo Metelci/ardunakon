@@ -60,7 +60,7 @@ fun EmbeddedTerminal(
     var showActionsMenu by remember { mutableStateOf(false) }
     var selectedFilters by remember {
         mutableStateOf(
-            setOf(LogType.INFO, LogType.SUCCESS, LogType.WARNING, LogType.ERROR)
+            setOf(LogType.INFO, LogType.SUCCESS, LogType.WARNING, LogType.ERROR, LogType.SENT, LogType.RECEIVED)
         )
     }
 
@@ -233,7 +233,9 @@ fun EmbeddedTerminal(
                                 LogType.INFO -> Color(0xFF90CAF9)
                                 LogType.SUCCESS -> Color(0xFF00C853)
                                 LogType.WARNING -> Color(0xFFFFD54F)
-                                LogType.ERROR -> Color(0xFFFF7675)
+                                LogType.ERROR -> Color(0xFFFF5252)
+                                LogType.SENT -> Color(0xFF00FF00)
+                                LogType.RECEIVED -> Color.White
                             }
                             FilterChip(
                                 selected = isSelected,
@@ -286,10 +288,12 @@ fun EmbeddedTerminal(
                         key = { index, log -> "${index}_${log.timestamp}_${log.message.hashCode()}" }
                     ) { _, log ->
                         val color = when (log.type) {
-                            LogType.INFO -> Color(0xFF90CAF9)
-                            LogType.SUCCESS -> Color(0xFF00C853)
-                            LogType.WARNING -> Color(0xFFFFD54F)
-                            LogType.ERROR -> Color(0xFFFF7675)
+                            LogType.INFO -> Color(0xFF90CAF9)      // Blue
+                            LogType.SUCCESS -> Color(0xFF00C853)   // Green
+                            LogType.WARNING -> Color(0xFFFFD54F)   // Yellow
+                            LogType.ERROR -> Color(0xFFFF5252)     // Red
+                            LogType.SENT -> Color(0xFF00FF00)      // Bright Green for sent
+                            LogType.RECEIVED -> Color.White        // White for received
                         }
 
                         Column(

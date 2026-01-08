@@ -529,27 +529,27 @@ class ControlViewModel @javax.inject.Inject constructor(
         when (cmd.uppercase().trim()) {
             "W" -> {
                 servoY = if (servoY == 1f) 0f else 1f
-                bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.INFO)
+                bluetoothManager.log("Servo: ${if (servoY == 1f) "FORWARD" else "CENTER"} (W)", LogType.SENT)
             }
             "B" -> {
                 servoY = if (servoY == -1f) 0f else -1f
-                bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.INFO)
+                bluetoothManager.log("Servo: ${if (servoY == -1f) "BACKWARD" else "CENTER"} (B)", LogType.SENT)
             }
             "L" -> {
                 servoX = if (servoX == -1f) 0f else -1f
-                bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.INFO)
+                bluetoothManager.log("Servo: ${if (servoX == -1f) "LEFT" else "CENTER"} (L)", LogType.SENT)
             }
             "R" -> {
                 servoX = if (servoX == 1f) 0f else 1f
-                bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.INFO)
+                bluetoothManager.log("Servo: ${if (servoX == 1f) "RIGHT" else "CENTER"} (R)", LogType.SENT)
             }
             "A" -> {
                 servoZ = if (servoZ == -1f) 0f else -1f
-                bluetoothManager.log("Servo Z: ${if (servoZ == -1f) "MIN" else "CENTER"} (A)", LogType.INFO)
+                bluetoothManager.log("Servo Z: ${if (servoZ == -1f) "MIN" else "CENTER"} (A)", LogType.SENT)
             }
             "Z" -> {
                 servoZ = if (servoZ == 1f) 0f else 1f
-                bluetoothManager.log("Servo Z: ${if (servoZ == 1f) "MAX" else "CENTER"} (Z)", LogType.INFO)
+                bluetoothManager.log("Servo Z: ${if (servoZ == 1f) "MAX" else "CENTER"} (Z)", LogType.SENT)
             }
             "CRASH" -> {
                 bluetoothManager.log("Executing Test Crash...", LogType.ERROR)
@@ -560,10 +560,10 @@ class ControlViewModel @javax.inject.Inject constructor(
                 val bytes = "$cmd\n".toByteArray()
                 if (connectionMode == ConnectionMode.WIFI) {
                     wifiManager.sendData(bytes)
-                    bluetoothManager.log("TX (WiFi): $cmd", LogType.INFO)
+                    bluetoothManager.log("TX (WiFi): $cmd", LogType.SENT)
                 } else {
                     bluetoothManager.sendDataToAll(bytes, force = true)
-                    bluetoothManager.log("TX (BT): $cmd", LogType.INFO)
+                    bluetoothManager.log("TX (BT): $cmd", LogType.SENT)
                 }
             }
         }
@@ -644,7 +644,7 @@ class ControlViewModel @javax.inject.Inject constructor(
             ConnectionMode.WIFI -> wifiManager.sendData(packet)
             ConnectionMode.BLUETOOTH -> bluetoothManager.sendDataToAll(packet)
         }
-        bluetoothManager.log("Sent custom command: ${command.name}", LogType.INFO)
+        bluetoothManager.log("Sent custom command: ${command.name}", LogType.SENT)
     }
 
     /**
