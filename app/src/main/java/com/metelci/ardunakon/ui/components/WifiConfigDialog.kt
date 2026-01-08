@@ -114,7 +114,9 @@ fun WifiConfigDialog(
                         modifier = Modifier.weight(1.5f),
                         isError = ipError != null,
                         supportingText = ipError?.let { msg ->
-                            { Text(msg, color = Color(0xFFFF5252), fontSize = 10.sp) }
+                            {
+                                Text(msg, color = Color(0xFFFF5252), fontSize = 10.sp)
+                            }
                         },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF00FF00),
@@ -134,7 +136,9 @@ fun WifiConfigDialog(
                         modifier = Modifier.weight(0.8f),
                         isError = portError != null,
                         supportingText = portError?.let { msg ->
-                            { Text(msg, color = Color(0xFFFF5252), fontSize = 10.sp) }
+                            {
+                                Text(msg, color = Color(0xFFFF5252), fontSize = 10.sp)
+                            }
                         },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF00FF00),
@@ -290,10 +294,10 @@ fun WifiConfigDialog(
                     TextButton(
                         onClick = onDismiss,
                         modifier =
-                            Modifier
-                                .defaultMinSize(minHeight = 48.dp)
-                                .semantics { contentDescription = "Cancel and close dialog" },
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .semantics { contentDescription = "Cancel and close dialog" },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                     ) {
                         Text("Cancel", color = Color(0xFFB0BEC5), fontSize = 13.sp)
                     }
@@ -307,10 +311,10 @@ fun WifiConfigDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
                         enabled = canConnect,
                         modifier =
-                            Modifier
-                                .defaultMinSize(minHeight = 48.dp)
-                                .semantics { contentDescription = "Connect to WiFi device" },
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .semantics { contentDescription = "Connect to WiFi device" },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                     ) {
                         Text("Connect", fontSize = 13.sp)
                     }

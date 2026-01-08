@@ -103,11 +103,7 @@ class BleConnectionManager(
 
             // Connection attempt
             val gattCallback = BleGattCallback()
-            bluetoothGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-            } else {
-                device.connectGatt(context, false, gattCallback)
-            }
+            bluetoothGatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
         }
 
         // Timeout: require the GATT link to come up; service discovery can be slow on some stacks.
@@ -207,15 +203,13 @@ class BleConnectionManager(
                 gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
 
                 // BLE 5.0 PHY Optimization: Use 2M PHY for faster data transfer
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    gatt.setPreferredPhy(
-                        // TX: 2M for speed
-                        BluetoothDevice.PHY_LE_2M_MASK,
-                        // RX: 2M for speed
-                        BluetoothDevice.PHY_LE_2M_MASK,
-                        BluetoothDevice.PHY_OPTION_NO_PREFERRED
-                    )
-                }
+                gatt.setPreferredPhy(
+                    // TX: 2M for speed
+                    BluetoothDevice.PHY_LE_2M_MASK,
+                    // RX: 2M for speed
+                    BluetoothDevice.PHY_LE_2M_MASK,
+                    BluetoothDevice.PHY_OPTION_NO_PREFERRED
+                )
 
                 // Request maximum MTU for better throughput (BLE 5.0 supports up to 517)
                 gatt.requestMtu(517)

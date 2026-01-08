@@ -222,17 +222,19 @@ fun JoystickControl(
             }
 
             // Draw Base (main background)
+            val ringPadding = if (qualityRingColor != null) ringWidth + 2.dp.toPx() else 0f
+            val baseRadius = (sizePx / 2 - ringPadding).coerceAtLeast(0f)
             drawCircle(
                 color = backgroundColor,
-                radius = (sizePx / 2 - (if (qualityRingColor != null) ringWidth + 2.dp.toPx() else 0f)).coerceAtLeast(0f),
+                radius = baseRadius,
                 center = center
             )
 
             // Draw Crosshair Lines (subtle guide lines through center)
             val crosshairColor = Color.White.copy(alpha = 0.15f)
             val crosshairWidth = 1.dp.toPx()
-            val innerRadius = sizePx / 2 - (if (qualityRingColor != null) ringWidth + 2.dp.toPx() else 0f)
-            
+            val innerRadius = baseRadius
+
             // Horizontal line
             drawLine(
                 color = crosshairColor,

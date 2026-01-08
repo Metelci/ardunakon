@@ -1,5 +1,6 @@
 package com.metelci.ardunakon.security
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -329,6 +330,7 @@ class RASPManager(private val context: Context) {
     )
 
     companion object {
+        @SuppressLint("StaticFieldLeak")
         private var instance: RASPManager? = null
 
         /**

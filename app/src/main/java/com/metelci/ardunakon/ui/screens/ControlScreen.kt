@@ -36,10 +36,7 @@ import com.metelci.ardunakon.wifi.WifiConnectionState
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("FunctionName")
 @Composable
-fun ControlScreen(
-    onTakeTutorial: (() -> Unit)? = null,
-    viewModel: ControlViewModel = hiltViewModel()
-) {
+fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current

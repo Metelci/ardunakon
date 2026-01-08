@@ -375,3 +375,9 @@ detekt {
         xml.required = true
     }
 }
+
+tasks.named("check") {
+    dependsOn("testDebugUnitTest")
+    dependsOn("ktlintCheck")
+    dependsOn("detekt")
+}

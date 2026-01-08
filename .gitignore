@@ -79,6 +79,9 @@ lint/tmp/
 .claude/plan.md
 build_log.txt
 build_log_2.txt
+last_build_log.txt
+test_compile_log*.txt
+mcp_config.json
 
 # Dependency tree snapshot (generate via `./gradlew :app:dependencies`)
 dependency_tree.txt

@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Crash in `JoystickControl` on small screens/resolutions by ensuring non-negative radius calculations.
 
+### Improved
+- Build quality gates: `:app:check` now includes unit tests, `ktlintCheck`, and `detekt`.
+- Updated Compose unit tests for current `ControlHeaderBar` API and stabilized timing-based assertions.
+- Reduced lint noise for minSdk 26 and safe singleton patterns.
+
 ---
 
 ## [0.2.17-alpha-hotfix1] - 2025-12-29
@@ -501,4 +506,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-**Last Updated:** December 17, 2025
+**Last Updated:** January 9, 2026

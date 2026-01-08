@@ -45,7 +45,7 @@ class ControlHeaderBarTest {
                 onShowCrashLog = {},
                 onShowPerformanceStats = {},
                 onOpenArduinoCloud = {},
-                onDisconnect = {},
+                onQuitApp = {},
                 context = mockk(relaxed = true),
                 view = mockk(relaxed = true)
             )
@@ -81,7 +81,7 @@ class ControlHeaderBarTest {
                 onShowCrashLog = {},
                 onShowPerformanceStats = {},
                 onOpenArduinoCloud = {},
-                onDisconnect = {},
+                onQuitApp = {},
                 context = mockk(relaxed = true),
                 view = mockk(relaxed = true)
             )
@@ -117,12 +117,12 @@ class ControlHeaderBarTest {
                 onShowCrashLog = {},
                 onShowPerformanceStats = {},
                 onOpenArduinoCloud = {},
-                onDisconnect = {},
+                onQuitApp = {},
                 context = mockk(relaxed = true),
                 view = mockk(relaxed = true)
             )
         }
 
-        composeTestRule.onNodeWithContentDescription("Connection mode: Bluetooth", substring = true).assertExists()
+        composeTestRule.onNodeWithContentDescription("Bluetooth").assertExists()
     }
 }

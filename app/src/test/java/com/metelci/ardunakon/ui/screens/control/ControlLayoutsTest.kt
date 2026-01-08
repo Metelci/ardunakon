@@ -161,12 +161,13 @@ class ControlLayoutsTest {
                 isWifiEncrypted = false,
                 connectedDeviceInfo = null,
                 safeDrawingPadding = PaddingValues(),
-                 orientationConfig = orientationConfig,
-                 view = View(context),
-                 context = context,
-                 exportLogs = {}
-             )
-         }
+                orientationConfig = orientationConfig,
+                view = View(context),
+                context = context,
+                onQuitApp = {},
+                exportLogs = {}
+            )
+        }
         composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Terminal").assertExists()
@@ -201,12 +202,13 @@ class ControlLayoutsTest {
                 isWifiEncrypted = false,
                 connectedDeviceInfo = null,
                 safeDrawingPadding = PaddingValues(),
-                 orientationConfig = orientationConfig,
-                 view = View(context),
-                 context = context,
-                 exportLogs = {}
-             )
-         }
+                orientationConfig = orientationConfig,
+                view = View(context),
+                context = context,
+                onQuitApp = {},
+                exportLogs = {}
+            )
+        }
         composeTestRule.mainClock.advanceTimeBy(1000)
 
         composeTestRule.onNodeWithText("Device", substring = true).assertExists()

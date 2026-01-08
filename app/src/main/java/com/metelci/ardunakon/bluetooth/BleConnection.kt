@@ -197,11 +197,9 @@ class BleConnection(
                     gattRetryAttempt = 0
 
                     // Request MTU and high priority
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        val mtuRequested = gatt.requestMtu(512)
-                        if (mtuRequested) {
-                            callbacks.log("BLE MTU negotiation requested (512 bytes)", LogType.INFO)
-                        }
+                    val mtuRequested = gatt.requestMtu(512)
+                    if (mtuRequested) {
+                        callbacks.log("BLE MTU negotiation requested (512 bytes)", LogType.INFO)
                     }
                     gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
                     callbacks.log("BLE High priority connection requested", LogType.INFO)

@@ -3,14 +3,11 @@ package com.metelci.ardunakon.ui.screens.control
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.metelci.ardunakon.ui.components.PrecisionSlider
 import com.metelci.ardunakon.ui.components.ServoButtonControl
 
 /**
@@ -23,7 +20,6 @@ import com.metelci.ardunakon.ui.components.ServoButtonControl
  * @param onServoMove Callback when servo position changes
  * @param onLog Callback to log servo actions
  * @param buttonSize Size of each button
- * @param showPrecisionSlider Whether to show the horizontal precision slider
  * @param modifier Optional modifier for the container Box
  * @param contentAlignment Alignment within the container
  */
@@ -36,7 +32,6 @@ fun ServoPanel(
     onServoMove: (x: Float, y: Float, z: Float) -> Unit,
     onLog: (String) -> Unit = {},
     buttonSize: Dp = 56.dp,
-    showPrecisionSlider: Boolean = true,
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.Center
 ) {
@@ -56,19 +51,6 @@ fun ServoPanel(
                 buttonSize = buttonSize,
                 onLog = onLog
             )
-
-            // Precision slider below servo buttons
-            if (showPrecisionSlider) {
-                Spacer(modifier = Modifier.height(8.dp))
-                PrecisionSlider(
-                    value = servoZ,
-                    onValueChange = { z -> onServoMove(servoX, servoY, z) },
-                    label = "Z",
-                    height = 160.dp,
-                    width = 60.dp,
-                    thumbSize = 40.dp
-                )
-            }
         }
     }
 }

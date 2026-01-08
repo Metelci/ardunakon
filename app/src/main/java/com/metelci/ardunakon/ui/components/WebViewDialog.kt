@@ -129,11 +129,9 @@ fun WebViewDialog(
                 AndroidView(
                     factory = { context ->
                         WebView(context).apply {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                settings.safeBrowsingEnabled = true
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-                                    WebView.startSafeBrowsing(context, null)
-                                }
+                            settings.safeBrowsingEnabled = true
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                                WebView.startSafeBrowsing(context, null)
                             }
                             webViewClient = object : WebViewClient() {
                                 override fun onPageFinished(view: WebView?, url: String?) {
@@ -150,11 +148,7 @@ fun WebViewDialog(
                                     // Only handle main frame errors (not subresource errors)
                                     if (request?.isForMainFrame == true) {
                                         isLoading = false
-                                        val errorDesc = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                            error?.description?.toString() ?: "Unknown error"
-                                        } else {
-                                            "Page load failed"
-                                        }
+                                        val errorDesc = error?.description?.toString() ?: "Unknown error"
                                         errorMessage = errorDesc
                                     }
                                 }

@@ -1,5 +1,6 @@
 package com.metelci.ardunakon.crash
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -30,6 +31,7 @@ class CrashHandler private constructor(
         private const val MAX_CRASH_LOGS = 5
 
         @Volatile
+        @SuppressLint("StaticFieldLeak")
         private var instance: CrashHandler? = null
 
         @Volatile

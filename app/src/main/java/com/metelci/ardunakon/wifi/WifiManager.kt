@@ -403,8 +403,9 @@ class WifiManager(
                             setAutoReconnectEnabled(false)
                         } else {
                             val backoff = retryPolicy.calculateDelay(reconnectAttempts)
+                            val attemptNumber = reconnectAttempts + 1
                             log(
-                                "WiFi: Auto-reconnecting to $targetIp:$targetPort... (attempt ${reconnectAttempts + 1})",
+                                "WiFi: Auto-reconnecting to $targetIp:$targetPort... (attempt $attemptNumber)",
                                 LogType.INFO
                             )
                             reconnectAttempts++

@@ -5,6 +5,12 @@ package com.metelci.ardunakon.ui.screens.control
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -51,12 +57,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.UiComposable
@@ -152,7 +152,7 @@ fun ControlHeaderBar(
         var statusWidgetWidth = if (isTight) 48.dp else if (isLandscape) 64.dp else 56.dp
         var rightButtonSize = if (isTight) 48.dp else buttonSize
         var eStopButtonSize = if (isTight) 56.dp else eStopSize
-        var widgetHeight = 48.dp  // 48dp minimum for accessibility
+        var widgetHeight = 48.dp // 48dp minimum for accessibility
 
         // Status widget width - match the BLE/WiFi selector's total width
         val effectiveStatusWidth = (modeSelectorWidth * 2f).coerceAtLeast(0.dp)
@@ -244,7 +244,7 @@ fun ControlHeaderBar(
                         )
                         .border(
                             1.dp,
-                            Color(0xFFFF0000),  // Electric red border
+                            Color(0xFFFF0000),
                             CircleShape
                         )
                 ) {
@@ -712,16 +712,16 @@ fun ConnectionModeSelector(
 
     // Calculate Bluetooth icon color based on connection state and RSSI
     val btIconColor = when {
-        btConnectionState == ConnectionState.DISCONNECTED -> 
+        btConnectionState == ConnectionState.DISCONNECTED ->
             Color(0xFFFF5252).copy(alpha = if (selectedMode == ConnectionMode.BLUETOOTH) blinkAlpha else 0.5f)
         btConnectionState == ConnectionState.CONNECTING || btConnectionState == ConnectionState.RECONNECTING ->
-            Color(0xFFFFD600)  // Yellow for connecting
+            Color(0xFFFFD600) // Yellow for connecting
         btConnectionState == ConnectionState.ERROR ->
-            Color(0xFFFF5252)  // Red for error
-        btRssi > -60 -> Color(0xFF00E676)  // Green - excellent
-        btRssi > -75 -> Color(0xFFFFD600)  // Yellow - good
-        btRssi > -85 -> Color(0xFFFF9800)  // Orange - fair
-        else -> Color(0xFFFF5252)  // Red - poor
+            Color(0xFFFF5252) // Red for error
+        btRssi > -60 -> Color(0xFF00E676) // Green - excellent
+        btRssi > -75 -> Color(0xFFFFD600) // Yellow - good
+        btRssi > -85 -> Color(0xFFFF9800) // Orange - fair
+        else -> Color(0xFFFF5252) // Red - poor
     }
 
     // Calculate WiFi icon color based on connection state and RSSI
@@ -729,13 +729,13 @@ fun ConnectionModeSelector(
         wifiConnectionState == WifiConnectionState.DISCONNECTED ->
             Color(0xFFFF5252).copy(alpha = if (selectedMode == ConnectionMode.WIFI) blinkAlpha else 0.5f)
         wifiConnectionState == WifiConnectionState.CONNECTING ->
-            Color(0xFFFFD600)  // Yellow for connecting
+            Color(0xFFFFD600) // Yellow for connecting
         wifiConnectionState == WifiConnectionState.ERROR ->
-            Color(0xFFFF5252)  // Red for error
-        wifiRssi > -50 -> Color(0xFF00E676)  // Green - excellent
-        wifiRssi > -65 -> Color(0xFFFFD600)  // Yellow - good
-        wifiRssi > -75 -> Color(0xFFFF9800)  // Orange - fair
-        else -> Color(0xFFFF5252)  // Red - poor
+            Color(0xFFFF5252) // Red for error
+        wifiRssi > -50 -> Color(0xFF00E676) // Green - excellent
+        wifiRssi > -65 -> Color(0xFFFFD600) // Yellow - good
+        wifiRssi > -75 -> Color(0xFFFF9800) // Orange - fair
+        else -> Color(0xFFFF5252) // Red - poor
     }
 
     // Border color based on selected mode's connection status
@@ -782,7 +782,11 @@ fun ConnectionModeSelector(
                 Icon(
                     imageVector = Icons.Default.Bluetooth,
                     contentDescription = "Bluetooth",
-                    tint = if (selectedMode == ConnectionMode.BLUETOOTH) btIconColor else btIconColor.copy(alpha = 0.6f),
+                    tint = if (selectedMode == ConnectionMode.BLUETOOTH) {
+                        btIconColor
+                    } else {
+                        btIconColor.copy(alpha = 0.6f)
+                    },
                     modifier = Modifier.size(iconSize)
                 )
             }

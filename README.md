@@ -193,6 +193,45 @@ Ardunakon sends a fixed 10-byte packet @ 20Hz:
 *   **[Architecture](docs/ARCHITECTURE.md)** - Component and data-flow diagrams
 *   **In-App Help** - Tap Menu > Help for offline documentation with 4 detailed guides
 
+## Development
+
+### Quality Gates
+**Windows:**
+```powershell
+.\gradlew.bat :app:check
+.\gradlew.bat :app:lintDebug
+```
+
+**macOS/Linux:**
+```bash
+./gradlew :app:check
+./gradlew :app:lintDebug
+```
+
+### Formatting
+**Windows:**
+```powershell
+.\gradlew.bat :app:ktlintFormat
+```
+
+**macOS/Linux:**
+```bash
+./gradlew :app:ktlintFormat
+```
+
+### ProGuard Verification (Release)
+**Windows:**
+```powershell
+.\gradlew.bat :app:assembleRelease
+.\scripts\verify-proguard.ps1
+```
+
+**macOS/Linux:**
+```bash
+./gradlew :app:assembleRelease
+./scripts/verify-proguard.sh
+```
+
 ## Contributors
 
 - **Metelci** - Owner and Lead Contributor

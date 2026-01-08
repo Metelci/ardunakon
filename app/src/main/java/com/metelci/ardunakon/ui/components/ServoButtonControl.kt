@@ -88,7 +88,6 @@ fun ServoButtonControl(
             onMove(servoX, servoY, targetZ)
         }
     }
-
     fun canMove(currentTime: Long): Boolean = currentTime - lastMoveTime >= debounceDelay
 
     fun commitMove(currentTime: Long) {
@@ -114,9 +113,9 @@ fun ServoButtonControl(
                 elevation = defaultElevation,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = when {
-                        isAPressed -> Color(0xFFFFD600)  // Yellow when pressed
-                        servoZ == -1f -> Color(0xFF00C853)  // Green when active
-                        else -> Color(0xFF2D3436)  // Default dark
+                        isAPressed -> Color(0xFFFFD600) // Yellow when pressed
+                        servoZ == -1f -> Color(0xFF00C853) // Green when active
+                        else -> Color(0xFF2D3436) // Default dark
                     },
                     contentColor = if (isAPressed) Color.Black else Color(0xFF00FF00)
                 ),
@@ -168,9 +167,9 @@ fun ServoButtonControl(
                 elevation = defaultElevation,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = when {
-                        isZPressed -> Color(0xFFFFD600)  // Yellow when pressed
-                        servoZ == 1f -> Color(0xFF00C853)  // Green when active
-                        else -> Color(0xFF2D3436)  // Default dark
+                        isZPressed -> Color(0xFFFFD600) // Yellow when pressed
+                        servoZ == 1f -> Color(0xFF00C853) // Green when active
+                        else -> Color(0xFF2D3436) // Default dark
                     },
                     contentColor = if (isZPressed) Color.Black else Color(0xFF00FF00)
                 ),

@@ -11,8 +11,8 @@ class LogEntryTest {
     // ==================== LogType Enum ====================
 
     @Test
-    fun `LogType has 4 values`() {
-        assertEquals(4, LogType.entries.size)
+    fun `LogType has expected values`() {
+        assertEquals(6, LogType.entries.size)
     }
 
     @Test
@@ -33,6 +33,16 @@ class LogEntryTest {
     @Test
     fun `LogType WARNING exists`() {
         assertNotNull(LogType.WARNING)
+    }
+
+    @Test
+    fun `LogType SENT exists`() {
+        assertNotNull(LogType.SENT)
+    }
+
+    @Test
+    fun `LogType RECEIVED exists`() {
+        assertNotNull(LogType.RECEIVED)
     }
 
     // ==================== LogEntry Creation ====================
@@ -138,6 +148,8 @@ class LogEntryTest {
         assertEquals("SUCCESS", LogType.SUCCESS.name)
         assertEquals("ERROR", LogType.ERROR.name)
         assertEquals("WARNING", LogType.WARNING.name)
+        assertEquals("SENT", LogType.SENT.name)
+        assertEquals("RECEIVED", LogType.RECEIVED.name)
     }
 
     // ==================== LogEntry toString ====================

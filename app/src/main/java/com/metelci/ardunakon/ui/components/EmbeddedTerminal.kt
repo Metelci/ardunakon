@@ -288,12 +288,12 @@ fun EmbeddedTerminal(
                         key = { index, log -> "${index}_${log.timestamp}_${log.message.hashCode()}" }
                     ) { _, log ->
                         val color = when (log.type) {
-                            LogType.INFO -> Color(0xFF90CAF9)      // Blue
-                            LogType.SUCCESS -> Color(0xFF00C853)   // Green
-                            LogType.WARNING -> Color(0xFFFFD54F)   // Yellow
-                            LogType.ERROR -> Color(0xFFFF5252)     // Red
-                            LogType.SENT -> Color(0xFF00FF00)      // Bright Green for sent
-                            LogType.RECEIVED -> Color.White        // White for received
+                            LogType.INFO -> Color(0xFF90CAF9) // Blue
+                            LogType.SUCCESS -> Color(0xFF00C853) // Green
+                            LogType.WARNING -> Color(0xFFFFD54F) // Yellow
+                            LogType.ERROR -> Color(0xFFFF5252) // Red
+                            LogType.SENT -> Color(0xFF00FF00) // Bright Green for sent
+                            LogType.RECEIVED -> Color.White // White for received
                         }
 
                         Column(

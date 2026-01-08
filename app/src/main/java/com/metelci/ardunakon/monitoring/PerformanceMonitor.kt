@@ -1,5 +1,6 @@
 package com.metelci.ardunakon.monitoring
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
@@ -50,6 +51,7 @@ class PerformanceMonitor private constructor(private val context: Context) : IPe
         private const val MAX_CRASH_RECORDS = 100
 
         @Volatile
+        @SuppressLint("StaticFieldLeak")
         private var instance: PerformanceMonitor? = null
 
         fun init(context: Context) {

@@ -8,7 +8,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Binder
-import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
@@ -88,11 +87,9 @@ class BluetoothService : Service() {
         val channelId = "ArdunakonConnection"
         val channelName = "Bluetooth Connection"
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW)
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW)
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(channel)
 
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(

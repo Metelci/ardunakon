@@ -87,9 +87,7 @@ class BluetoothScanner(
                     sb.append("  Adv Flags: ${record.advertiseFlags}\n")
                     sb.append("  Local Name: ${record.deviceName ?: "N/A"}\n")
                     sb.append("  Service UUIDs: ${record.serviceUuids?.joinToString(", ") ?: "None"}")
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        sb.append("\n  Connectable: ${result.isConnectable}")
-                    }
+                    sb.append("\n  Connectable: ${result.isConnectable}")
                 }
                 callbacks.onScanLog(sb.toString(), LogType.INFO)
             }
