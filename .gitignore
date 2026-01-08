@@ -37,6 +37,8 @@ captures/
 # IntelliJ / Android Studio
 *.iml
 .idea/
+
+# VS Code
 .vscode/
 
 # Keystore files

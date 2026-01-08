@@ -208,6 +208,7 @@ fun JoystickControl(
         ) {
             val sizePx = size.toPx()
             val ringWidth = 4.dp.toPx()
+            val deadzoneRadius = radius * 0.05f  // 5% deadzone
 
             // Draw Connection Quality Ring (outer ring) if latency provided
             qualityRingColor?.let { ringColor ->
@@ -224,6 +225,34 @@ fun JoystickControl(
                 color = backgroundColor,
                 radius = sizePx / 2 - (if (qualityRingColor != null) ringWidth + 2.dp.toPx() else 0f),
                 center = center
+            )
+
+            // Draw Crosshair Lines (subtle guide lines through center)
+            val crosshairColor = Color.White.copy(alpha = 0.15f)
+            val crosshairWidth = 1.dp.toPx()
+            val innerRadius = sizePx / 2 - (if (qualityRingColor != null) ringWidth + 2.dp.toPx() else 0f)
+            
+            // Horizontal line
+            drawLine(
+                color = crosshairColor,
+                start = Offset(center.x - innerRadius, center.y),
+                end = Offset(center.x + innerRadius, center.y),
+                strokeWidth = crosshairWidth
+            )
+            // Vertical line
+            drawLine(
+                color = crosshairColor,
+                start = Offset(center.x, center.y - innerRadius),
+                end = Offset(center.x, center.y + innerRadius),
+                strokeWidth = crosshairWidth
+            )
+
+            // Draw Deadzone Circle (faint inner circle)
+            drawCircle(
+                color = Color.White.copy(alpha = 0.1f),
+                radius = deadzoneRadius,
+                center = center,
+                style = Stroke(width = 1.dp.toPx())
             )
 
             // Draw Stick/Knob

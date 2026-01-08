@@ -44,10 +44,28 @@ fun ServoButtonControl(
     val debounceDelay = 100L
     val step = 0.1f
 
+    // Interaction sources for all buttons
     val aInteractionSource = remember { MutableInteractionSource() }
     val zInteractionSource = remember { MutableInteractionSource() }
+    val wInteractionSource = remember { MutableInteractionSource() }
+    val bInteractionSource = remember { MutableInteractionSource() }
+    val lInteractionSource = remember { MutableInteractionSource() }
+    val rInteractionSource = remember { MutableInteractionSource() }
+
+    // Collect pressed states
     val isAPressed by aInteractionSource.collectIsPressedAsState()
     val isZPressed by zInteractionSource.collectIsPressedAsState()
+    val isWPressed by wInteractionSource.collectIsPressedAsState()
+    val isBPressed by bInteractionSource.collectIsPressedAsState()
+    val isLPressed by lInteractionSource.collectIsPressedAsState()
+    val isRPressed by rInteractionSource.collectIsPressedAsState()
+
+    // Elevation values for pressed/unpressed states
+    val defaultElevation = ButtonDefaults.buttonElevation(
+        defaultElevation = 4.dp,
+        pressedElevation = 8.dp,
+        hoveredElevation = 6.dp
+    )
 
     val targetZ = when {
         isAPressed && !isZPressed -> -1f
@@ -93,9 +111,14 @@ fun ServoButtonControl(
                     .size(buttonSize)
                     .semantics { contentDescription = "Move third servo negative" },
                 interactionSource = aInteractionSource,
+                elevation = defaultElevation,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoZ == -1f) Color(0xFF00C853) else Color(0xFF2D3436),
-                    contentColor = Color(0xFF00FF00)
+                    containerColor = when {
+                        isAPressed -> Color(0xFFFFD600)  // Yellow when pressed
+                        servoZ == -1f -> Color(0xFF00C853)  // Green when active
+                        else -> Color(0xFF2D3436)  // Default dark
+                    },
+                    contentColor = if (isAPressed) Color.Black else Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
@@ -121,8 +144,10 @@ fun ServoButtonControl(
                 modifier = Modifier
                     .size(buttonSize)
                     .semantics { contentDescription = "Move servo forward" },
+                interactionSource = wInteractionSource,
+                elevation = defaultElevation,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoY == 1f) Color(0xFF00C853) else Color(0xFF2D3436),
+                    containerColor = if (servoY == 1f || isWPressed) Color(0xFF00C853) else Color(0xFF2D3436),
                     contentColor = Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
@@ -140,9 +165,14 @@ fun ServoButtonControl(
                     .size(buttonSize)
                     .semantics { contentDescription = "Move third servo positive" },
                 interactionSource = zInteractionSource,
+                elevation = defaultElevation,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoZ == 1f) Color(0xFF00C853) else Color(0xFF2D3436),
-                    contentColor = Color(0xFF00FF00)
+                    containerColor = when {
+                        isZPressed -> Color(0xFFFFD600)  // Yellow when pressed
+                        servoZ == 1f -> Color(0xFF00C853)  // Green when active
+                        else -> Color(0xFF2D3436)  // Default dark
+                    },
+                    contentColor = if (isZPressed) Color.Black else Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
@@ -174,8 +204,10 @@ fun ServoButtonControl(
                 modifier = Modifier
                     .size(buttonSize)
                     .semantics { contentDescription = "Move servo left" },
+                interactionSource = lInteractionSource,
+                elevation = defaultElevation,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoX == -1f) Color(0xFF00C853) else Color(0xFF2D3436),
+                    containerColor = if (servoX == -1f || isLPressed) Color(0xFF00C853) else Color(0xFF2D3436),
                     contentColor = Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
@@ -202,8 +234,10 @@ fun ServoButtonControl(
                 modifier = Modifier
                     .size(buttonSize)
                     .semantics { contentDescription = "Move servo backward" },
+                interactionSource = bInteractionSource,
+                elevation = defaultElevation,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoY == -1f) Color(0xFF00C853) else Color(0xFF2D3436),
+                    containerColor = if (servoY == -1f || isBPressed) Color(0xFF00C853) else Color(0xFF2D3436),
                     contentColor = Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
@@ -230,8 +264,10 @@ fun ServoButtonControl(
                 modifier = Modifier
                     .size(buttonSize)
                     .semantics { contentDescription = "Move servo right" },
+                interactionSource = rInteractionSource,
+                elevation = defaultElevation,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoX == 1f) Color(0xFF00C853) else Color(0xFF2D3436),
+                    containerColor = if (servoX == 1f || isRPressed) Color(0xFF00C853) else Color(0xFF2D3436),
                     contentColor = Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
