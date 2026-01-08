@@ -8,6 +8,7 @@ import androidx.annotation.VisibleForTesting
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.data.WifiEncryptionPreferences
+import com.metelci.ardunakon.model.ConnectionError
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.security.EncryptionException
 import com.metelci.ardunakon.util.RecoveryManager
@@ -71,6 +72,9 @@ class WifiManager(
      * Current WiFi connection state.
      */
     override val connectionState = _connectionState.asStateFlow()
+
+    private val _lastError = MutableStateFlow<ConnectionError?>(null)
+    override val lastError: StateFlow<ConnectionError?> = _lastError.asStateFlow()
 
     private val _autoReconnectEnabled = MutableStateFlow(false)
 

@@ -10,6 +10,8 @@ import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.data.AutoReconnectPreferences
 import com.metelci.ardunakon.data.ConnectionPreferences
 import com.metelci.ardunakon.data.DeviceNameCache
+import com.metelci.ardunakon.bluetooth.BluetoothDeviceModel
+import com.metelci.ardunakon.model.ConnectionError
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.protocol.ProtocolManager
@@ -105,6 +107,9 @@ class AppBluetoothManager(
      * Current Bluetooth connection state.
      */
     override val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
+    private val _lastError = MutableStateFlow<ConnectionError?>(null)
+    override val lastError: StateFlow<ConnectionError?> = _lastError.asStateFlow()
 
     // Delegated Flows
     /**

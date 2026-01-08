@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.crash.BreadcrumbManager
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.model.ConnectionError
 import com.metelci.ardunakon.protocol.ProtocolManager
 import com.metelci.ardunakon.security.EncryptionException
 import com.metelci.ardunakon.ui.utils.hapticTap
@@ -61,7 +62,8 @@ class ControlViewModel @javax.inject.Inject constructor(
     private val onboardingManager: com.metelci.ardunakon.data.OnboardingManager,
     val customCommandRegistry: com.metelci.ardunakon.protocol.CustomCommandRegistry,
     private val hapticPreferences: com.metelci.ardunakon.data.HapticPreferences,
-    private val raspManager: com.metelci.ardunakon.security.RASPManager
+    private val raspManager: com.metelci.ardunakon.security.RASPManager,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val transmissionDispatcher: CoroutineDispatcher = Dispatchers.Default
@@ -295,6 +297,7 @@ class ControlViewModel @javax.inject.Inject constructor(
         syncReflectionSetting()
         observeConnectionState()
         observeEncryptionErrors()
+        observeConnectionErrors()
 
         // Initialize custom commands registry
         customCommandRegistry.initialize()
@@ -422,6 +425,45 @@ class ControlViewModel @javax.inject.Inject constructor(
                 encryptionError = error
             }
         }
+    }
+
+    /**
+     * Observes connection errors from both managers and shows snackbars.
+     */
+    private fun observeConnectionErrors() {
+        viewModelScope.launch {
+            launch {
+                bluetoothManager.lastError.collect { error ->
+                    handleConnectionError(error)
+                }
+            }
+            launch {
+                wifiManager.lastError.collect { error ->
+                    handleConnectionError(error)
+                }
+            }
+        }
+    }
+
+    private fun handleConnectionError(error: ConnectionError?) {
+        if (error == null) return
+        val resId = when (error) {
+            is ConnectionError.DeviceNotFound -> com.metelci.ardunakon.R.string.error_device_not_found
+            is ConnectionError.ConnectionRejected -> com.metelci.ardunakon.R.string.error_connection_rejected
+            is ConnectionError.Timeout -> com.metelci.ardunakon.R.string.error_timeout
+            is ConnectionError.BluetoothDisabled -> com.metelci.ardunakon.R.string.error_bluetooth_disabled
+            is ConnectionError.WifiDisabled -> com.metelci.ardunakon.R.string.error_wifi_disabled
+            is ConnectionError.MissingPermissions -> com.metelci.ardunakon.R.string.error_missing_permissions
+            is ConnectionError.EncryptionError -> com.metelci.ardunakon.R.string.error_encryption_failed
+            is ConnectionError.UnknownError -> com.metelci.ardunakon.R.string.error_unknown
+        }
+        
+        val message = if (error is ConnectionError.UnknownError) {
+            context.getString(resId, error.message)
+        } else {
+            context.getString(resId)
+        }
+        showMessage(message)
     }
 
     /**

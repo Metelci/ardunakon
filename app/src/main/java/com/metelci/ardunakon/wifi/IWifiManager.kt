@@ -1,6 +1,7 @@
 package com.metelci.ardunakon.wifi
 
 import com.metelci.ardunakon.bluetooth.Telemetry
+import com.metelci.ardunakon.model.ConnectionError
 import com.metelci.ardunakon.security.EncryptionException
 import kotlinx.coroutines.flow.StateFlow
 
@@ -17,6 +18,9 @@ interface IWifiManager {
 
     /** Current WiFi connection state. */
     val connectionState: StateFlow<WifiConnectionState>
+
+    /** Latest connection error. */
+    val lastError: StateFlow<ConnectionError?>
 
     /** Stream of discovered WiFi devices. */
     val scannedDevices: StateFlow<List<WifiDevice>>

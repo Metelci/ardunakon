@@ -1,6 +1,7 @@
 package com.metelci.ardunakon.bluetooth
 
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.model.ConnectionError
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -22,6 +23,9 @@ interface IBluetoothManager {
 
     /** Current Bluetooth connection state. */
     val connectionState: StateFlow<ConnectionState>
+
+    /** Latest connection error. */
+    val lastError: StateFlow<ConnectionError?>
 
     /** Latest RSSI reading in dBm. */
     val rssiValue: StateFlow<Int>

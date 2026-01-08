@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Ardunakon</string>
+    <string name="error_device_not_found">Device not found</string>
+    <string name="error_connection_rejected">Connection rejected by device</string>
+    <string name="error_timeout">Connection timed out</string>
+    <string name="error_bluetooth_disabled">Bluetooth is disabled</string>
+    <string name="error_wifi_disabled">WiFi is disabled</string>
+    <string name="error_missing_permissions">Missing required permissions</string>
+    <string name="error_encryption_failed">Encryption handshake failed</string>
+    <string name="error_unknown">Unknown error: %s</string>
 </resources>
