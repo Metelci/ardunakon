@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.19-alpha] - 2026-01-09
+
+### Added
+- Visual deadzone indicator (30% opacity ring) to joystick.
+- Configurable `deadzoneRatio` parameter in `JoystickControl`.
+- Color coding for terminal logs (TX=Green, RX=White, Error=Red).
+
+### Fixed
+- Crash in `JoystickControl` on small screens/resolutions by ensuring non-negative radius calculations.
+
+---
+
 ## [0.2.17-alpha-hotfix1] - 2025-12-29
 
 ### Fixed

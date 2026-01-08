@@ -1,3 +1,16 @@
+Version 0.2.19-alpha - January 9, 2026
+
+NEW FEATURES:
+• Visual Joystick Deadzone: Configurable deadzone with visible ring indicator (30% opacity)
+• Terminal Colors: Color-coded logs (TX=Green, RX=White, Error=Red)
+
+BUG FIXES:
+• Joystick: Fixed crash on devices with small screens or non-standard resolutions by clamping radius calculation
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.17-alpha-hotfix1 - December 29, 2025
 
 BUG FIXES:
