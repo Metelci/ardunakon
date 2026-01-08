@@ -56,6 +56,7 @@ fun JoystickControl(
     stickColor: Color = Color.Cyan,
     isThrottle: Boolean = false,
     enableHaptics: Boolean = true,
+    deadzoneRatio: Float = 0.05f,
     connectionLatencyMs: Long? = null,
     onMoved: (JoystickState) -> Unit
 ) {
@@ -131,7 +132,7 @@ fun JoystickControl(
                                 (newPos.x - center.x).pow(2) + (newPos.y - center.y).pow(2)
                             )
 
-                            val inDeadzone = distance < radius * 0.05f
+                            val inDeadzone = distance < radius * deadzoneRatio
                             val atEdge = distance >= radius * 0.95f
 
                             // Haptic feedback on state transitions
@@ -208,7 +209,7 @@ fun JoystickControl(
         ) {
             val sizePx = size.toPx()
             val ringWidth = 4.dp.toPx()
-            val deadzoneRadius = radius * 0.05f  // 5% deadzone
+            val deadzoneRadius = radius * deadzoneRatio
 
             // Draw Connection Quality Ring (outer ring) if latency provided
             qualityRingColor?.let { ringColor ->
@@ -249,7 +250,7 @@ fun JoystickControl(
 
             // Draw Deadzone Circle (faint inner circle)
             drawCircle(
-                color = Color.White.copy(alpha = 0.1f),
+                color = Color.White.copy(alpha = 0.3f),
                 radius = deadzoneRadius,
                 center = center,
                 style = Stroke(width = 1.dp.toPx())
