@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.21-alpha (Build 52)
+- **Debug Terminal Controls**: Added visible maximize and minimize buttons to terminal header for quick access.
+- **Cleaner UI**: Removed auto-hide feature for simpler terminal management.
+- **Better UX**: Direct button access to maximize (fullscreen) and minimize (hide) terminal functions.
+
 ## 0.2.20-alpha (Build 51)
 - **Granular Connection Errors**: Added specific error types (Timeout, DeviceNotFound, ConnectionRejected, etc.).
 - **UI Feedback**: Control screen now displays localized, precise error messages via Snackbars.

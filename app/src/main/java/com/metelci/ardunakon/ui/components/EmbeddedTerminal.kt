@@ -35,6 +35,8 @@ import com.metelci.ardunakon.bluetooth.TroubleshootHints
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.ui.utils.hapticTap
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("FunctionName")
@@ -107,16 +109,36 @@ fun EmbeddedTerminal(
                         )
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Export button
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    // Maximize button
                     IconButton(
                         onClick = {
                             view.hapticTap()
-                            onExportLogs()
-                            // Also clear logs via long press ideally, but let's keep simple
-                        }
+                            onMaximize()
+                        },
+                        modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Share, "Export", tint = Color(0xFF00C853), modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Fullscreen,
+                            contentDescription = "Maximize terminal",
+                            tint = Color(0xFF00C853),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    // Minimize/Hide button
+                    IconButton(
+                        onClick = {
+                            view.hapticTap()
+                            onMinimize()
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.FullscreenExit,
+                            contentDescription = "Hide terminal",
+                            tint = Color(0xFFFF9800),
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                     // Search toggle
                     IconButton(
@@ -124,26 +146,24 @@ fun EmbeddedTerminal(
                             view.hapticTap()
                             showSearch = !showSearch
                             if (!showSearch) searchQuery = ""
-                        }
+                        },
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
-                            // Need Search Icon
-                            imageVector = if (showSearch) {
-                                Icons.Default.Close
-                            } else {
-                                Icons.Default.Search
-                            },
+                            imageVector = if (showSearch) Icons.Default.Close else Icons.Default.Search,
                             contentDescription = "Search",
                             tint = if (showSearch) Color(0xFFFFD54F) else Color.White,
                             modifier = Modifier.size(16.dp)
                         )
                     }
+                    // More actions menu
                     Box {
                         IconButton(
                             onClick = {
                                 view.hapticTap()
                                 showActionsMenu = true
-                            }
+                            },
+                            modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
@@ -158,30 +178,21 @@ fun EmbeddedTerminal(
                             onDismissRequest = { showActionsMenu = false }
                         ) {
                             DropdownMenuItem(
+                                text = { Text("Export logs") },
+                                leadingIcon = { Icon(Icons.Default.Share, null) },
+                                onClick = {
+                                    view.hapticTap()
+                                    showActionsMenu = false
+                                    onExportLogs()
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Clear logs") },
                                 leadingIcon = { Icon(Icons.Default.Delete, null) },
                                 onClick = {
                                     view.hapticTap()
                                     showActionsMenu = false
                                     onClearLogs()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Maximize") },
-                                leadingIcon = { Icon(Icons.Default.OpenInNew, null) },
-                                onClick = {
-                                    view.hapticTap()
-                                    showActionsMenu = false
-                                    onMaximize()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Hide") },
-                                leadingIcon = { Icon(Icons.Default.Close, null) },
-                                onClick = {
-                                    view.hapticTap()
-                                    showActionsMenu = false
-                                    onMinimize()
                                 }
                             )
                         }

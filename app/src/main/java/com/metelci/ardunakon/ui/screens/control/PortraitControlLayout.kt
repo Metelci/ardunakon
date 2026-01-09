@@ -22,6 +22,7 @@ import com.metelci.ardunakon.bluetooth.ConnectionState
 import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.ui.components.AppTitleBar
 import com.metelci.ardunakon.ui.components.CustomCommandButtonRow
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.components.PacketLossWarningCard
@@ -63,6 +64,9 @@ fun PortraitControlLayout(
             .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // App Title
+        AppTitleBar()
+
         // Header bar
         ControlHeaderBar(
             connectionMode = viewModel.connectionMode,

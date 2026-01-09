@@ -24,6 +24,7 @@ import com.metelci.ardunakon.bluetooth.IBluetoothManager
 import com.metelci.ardunakon.bluetooth.Telemetry
 import com.metelci.ardunakon.crash.CrashHandler
 import com.metelci.ardunakon.model.LogType
+import com.metelci.ardunakon.ui.components.AppTitleBar
 import com.metelci.ardunakon.ui.components.CustomCommandButtonRow
 import com.metelci.ardunakon.ui.components.EmbeddedTerminal
 import com.metelci.ardunakon.ui.components.PacketLossWarningCard
@@ -73,6 +74,9 @@ fun LandscapeControlLayout(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // App Title
+            AppTitleBar()
+
             // Header
             ControlHeaderBar(
                 connectionMode = viewModel.connectionMode,

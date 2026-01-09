@@ -1,3 +1,14 @@
+Version 0.2.21-alpha - January 10, 2026
+
+IMPROVEMENTS:
+• Debug Terminal Controls: Added visible maximize and minimize buttons to terminal header
+• Cleaner UI: Removed auto-hide feature for simpler terminal management
+• Better UX: Direct button access to maximize (fullscreen) and minimize (hide) terminal functions
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.19-alpha - January 9, 2026
 
 NEW FEATURES:

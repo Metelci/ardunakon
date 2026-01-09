@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.metelci.ardunakon.bluetooth.BluetoothDeviceModel
 import com.metelci.ardunakon.ui.utils.hapticTap
+import androidx.compose.ui.platform.LocalConfiguration
 
 /**
  * Dialog for displaying and selecting Bluetooth devices.
@@ -58,9 +59,15 @@ fun DeviceListDialog(
     view: View,
     modifier: Modifier = Modifier
 ) {
+    // Responsive sizing based on orientation
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+    val dialogWidthFraction = if (isLandscape) 0.7f else 0.95f
+    val dialogHeightFraction = if (isLandscape) 0.95f else 0.8f
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = modifier.fillMaxWidth(0.95f),
+        modifier = modifier.fillMaxWidth(dialogWidthFraction),
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -81,7 +88,7 @@ fun DeviceListDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.9f),
+                    .fillMaxHeight(dialogHeightFraction),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // Compact target slot info
