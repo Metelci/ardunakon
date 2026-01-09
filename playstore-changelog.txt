@@ -1,3 +1,14 @@
+Version 0.2.22-alpha - January 10, 2026
+
+MAINTENANCE:
+• Test Stabilization: Fixed AndroidTest compilation issues (HiltTestActivity)
+• WiFi Reliability: Resolved ClassNotFoundException in WiFi unit tests
+• Coverage: 100% test coverage for Util package
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.21-alpha - January 10, 2026
 
 IMPROVEMENTS:

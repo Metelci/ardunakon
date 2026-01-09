@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.22-alpha (Build 53)
+- **Test Stabilization**: Fixed AndroidTest compilation issues by implementing a custom `HiltTestActivity`.
+- **WiFi Reliability**: Resolved `ClassNotFoundException` in WiFi unit tests.
+- **Coverage**: Added 100% test coverage for Util package (`RecoveryManager`, `ErrorContext`).
+
 ## 0.2.21-alpha (Build 52)
 - **Debug Terminal Controls**: Added visible maximize and minimize buttons to terminal header for quick access.
 - **Cleaner UI**: Removed auto-hide feature for simpler terminal management.

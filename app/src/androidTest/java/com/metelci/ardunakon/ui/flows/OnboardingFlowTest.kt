@@ -14,7 +14,7 @@ import com.metelci.ardunakon.model.InterfaceElement
 import com.metelci.ardunakon.ui.screens.onboarding.OnboardingFlow
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestActivity
+import com.metelci.ardunakon.HiltTestActivity
 import java.util.concurrent.atomic.AtomicBoolean
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue

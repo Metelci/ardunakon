@@ -19,7 +19,7 @@ import com.metelci.ardunakon.data.HapticPreferences
 import com.metelci.ardunakon.ui.screens.ControlScreen
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestActivity
+import com.metelci.ardunakon.HiltTestActivity
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

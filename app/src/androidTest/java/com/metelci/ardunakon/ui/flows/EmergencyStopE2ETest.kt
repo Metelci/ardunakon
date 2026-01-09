@@ -12,7 +12,7 @@ import com.metelci.ardunakon.ui.accessibility.AccessibilityDefaults
 import com.metelci.ardunakon.ui.screens.ControlScreen
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestActivity
+import com.metelci.ardunakon.HiltTestActivity
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test

@@ -15,7 +15,7 @@ import com.metelci.ardunakon.monitoring.SeverityLevel
 import com.metelci.ardunakon.ui.screens.ControlScreen
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestActivity
+import com.metelci.ardunakon.HiltTestActivity
 import java.io.File
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
