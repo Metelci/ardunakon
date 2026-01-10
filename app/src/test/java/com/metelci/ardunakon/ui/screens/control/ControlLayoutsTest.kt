@@ -162,11 +162,13 @@ class ControlLayoutsTest {
                 isWifiEncrypted = false,
                 connectedDeviceInfo = null,
                 safeDrawingPadding = PaddingValues(),
+                showBluetoothTooltip = false,
                 orientationConfig = orientationConfig,
                 view = View(context),
                 context = context,
                 onQuitApp = {},
-                exportLogs = {}
+                exportLogs = {},
+                onDismissBluetoothTooltip = {}
             )
         }
         composeTestRule.mainClock.advanceTimeBy(1000)
@@ -203,11 +205,13 @@ class ControlLayoutsTest {
                 isWifiEncrypted = false,
                 connectedDeviceInfo = null,
                 safeDrawingPadding = PaddingValues(),
+                showBluetoothTooltip = false,
                 orientationConfig = orientationConfig,
                 view = View(context),
                 context = context,
                 onQuitApp = {},
-                exportLogs = {}
+                exportLogs = {},
+                onDismissBluetoothTooltip = {}
             )
         }
         composeTestRule.mainClock.advanceTimeBy(1000)

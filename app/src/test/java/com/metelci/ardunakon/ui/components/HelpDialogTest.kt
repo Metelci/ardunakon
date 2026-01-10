@@ -62,8 +62,8 @@ class HelpDialogTest {
         }
         composeTestRule.mainClock.advanceTimeBy(3000)
 
-        // Scroll to the item containing Tutorial (Index 2)
-        composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(2)
+        // Scroll to the end (buttons are at Index 1)
+        composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(1)
 
         composeTestRule.onNode(hasText("Tutorial", substring = true).and(hasClickAction()))
             .performClick()
@@ -82,8 +82,8 @@ class HelpDialogTest {
         }
         composeTestRule.mainClock.advanceTimeBy(3000)
 
-        // Scroll to the item containing Arduino Cloud (Index 2)
-        composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(2)
+        // Scroll to the end (buttons are at Index 1)
+        composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(1)
 
         composeTestRule.onNode(hasText("Arduino Cloud", substring = true).and(hasClickAction()))
             .performClick()

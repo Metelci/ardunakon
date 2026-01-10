@@ -148,11 +148,11 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // Dynamically load release notes from CHANGELOG.md
+                        // Dynamically load release notes from playstore-changelog.txt
                         val context = LocalContext.current
                         val releaseNotes = remember {
                             try {
-                                val changelog = context.assets.open("CHANGELOG.md")
+                                val changelog = context.assets.open("playstore-changelog.txt")
                                     .bufferedReader()
                                     .use { it.readText() }
                                 com.metelci.ardunakon.util.ChangelogParser.parseLatestRelease(
@@ -160,7 +160,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                                     BuildConfig.VERSION_NAME
                                 )
                             } catch (e: Exception) {
-                                listOf("Unable to load release notes. Check CHANGELOG.md for details.")
+                                listOf("Unable to load release notes. Check playstore-changelog.txt for details.")
                             }
                         }
 

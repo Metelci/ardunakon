@@ -28,8 +28,8 @@ class HelpDialogAccessibilityTest {
         composeTestRule.onNode(hasText("Setup", substring = false).and(hasClickAction())).assertExists()
         composeTestRule.onNode(hasText("Compatibility", substring = false).and(hasClickAction())).assertExists()
 
-        // Scroll to the end to ensure everything is composed (only 3 items total)
-        composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(2)
+        // Scroll to the end to ensure everything is composed (only 2 items total: 0=text, 1=buttons)
+        composeTestRule.onNodeWithTag("HelpLazyColumn").performScrollToIndex(1)
 
         // Items in LazyColumn
         composeTestRule.onNode(hasText("Full Guide", substring = true).and(hasClickAction())).assertExists()

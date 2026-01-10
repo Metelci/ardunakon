@@ -154,7 +154,7 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
                         .testTag("HelpContent")
                 ) {
                     if (isPortrait) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(modifier = Modifier.fillMaxSize().testTag("HelpLazyColumn")) {
                             item {
                                 HelpDescriptionText(selectedTab)
                             }
@@ -163,7 +163,8 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
                                 HelpDialogButtons(
                                     pastelBrush = pastelBrush,
                                     onOpenUrl = { webUrlToOpen = it },
-                                    onTakeTutorial = onTakeTutorial
+                                    onTakeTutorial = onTakeTutorial,
+                                    onDismiss = onDismiss
                                 )
                             }
                         }
@@ -190,7 +191,8 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
                                 HelpDialogButtons(
                                     pastelBrush = pastelBrush,
                                     onOpenUrl = { webUrlToOpen = it },
-                                    onTakeTutorial = onTakeTutorial
+                                    onTakeTutorial = onTakeTutorial,
+                                    onDismiss = onDismiss
                                 )
                             }
                         }
@@ -245,7 +247,8 @@ private fun HelpDescriptionText(selectedTab: Int) {
 private fun HelpDialogButtons(
     pastelBrush: Brush,
     onOpenUrl: (String) -> Unit,
-    onTakeTutorial: (() -> Unit)?
+    onTakeTutorial: (() -> Unit)?,
+    onDismiss: (() -> Unit)? = null
 ) {
     // "View Full Guide" button
     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
@@ -276,7 +279,10 @@ private fun HelpDialogButtons(
     // Take Tutorial button
     if (onTakeTutorial != null) {
         Button(
-            onClick = { onTakeTutorial() },
+            onClick = {
+                onTakeTutorial()
+                onDismiss?.invoke()
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF00C853)
