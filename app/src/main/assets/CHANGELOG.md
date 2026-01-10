@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.24-alpha (Build 55)
+- **Bluetooth Tooltip**: New customized tooltip points to the Bluetooth button when needed.
+- **Improved Dialogs**: "About" and "Help" windows optimized for landscape orientation.
+- **Help Layout**: Two-column layout in landscape mode for better readability without scrolling.
+
 ## 0.2.23-alpha (Build 54)
 - **Startup Reliability**: Added 15-second service binding timeout with user-friendly error dialog instead of infinite loading.
 - **Service Binding Callbacks**: Implemented `onBindingDied` and `onNullBinding` for immediate failure detection.

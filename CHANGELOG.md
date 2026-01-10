@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.2.19-alpha] - 2026-01-09
+## [0.2.24-alpha] - 2026-01-10
+
+### Added
+- **UI**: Contextual "Turn on Bluetooth" tooltip pointing to the Bluetooth icon (replaces blocking dialog).
+- **Start-up**: Improved initial user experience by removing legacy Bluetooth checks.
+
+### Changed
+- **About Dialog**: Maximized horizontal size (100% width) in landscape mode.
+- **Help Dialog**: Implemented two-column layout in landscape (text left, buttons right) to eliminate scrolling.
+- **Help Dialog**: Increased vertical size to 90% in landscape for better visibility.
+
+## [0.2.23-alpha] - 2026-01-10
 
 ### Added
 - Visual deadzone indicator (30% opacity ring) to joystick.

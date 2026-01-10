@@ -55,7 +55,9 @@ fun PortraitControlLayout(
     view: android.view.View,
     context: Context,
     onQuitApp: () -> Unit,
-    exportLogs: () -> Unit
+    exportLogs: () -> Unit,
+    showBluetoothTooltip: Boolean,
+    onDismissBluetoothTooltip: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -104,7 +106,9 @@ fun PortraitControlLayout(
             },
             onQuitApp = onQuitApp,
             context = context,
-            view = view
+            view = view,
+            showBluetoothTooltip = showBluetoothTooltip,
+            onDismissBluetoothTooltip = onDismissBluetoothTooltip,
         )
 
         // Packet Loss Warning

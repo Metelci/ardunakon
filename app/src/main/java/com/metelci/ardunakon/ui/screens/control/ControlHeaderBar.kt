@@ -125,6 +125,10 @@ fun ControlHeaderBar(
     onOpenArduinoCloud: () -> Unit,
     onQuitApp: () -> Unit,
 
+    // Tooltip state
+    showBluetoothTooltip: Boolean = false,
+    onDismissBluetoothTooltip: () -> Unit = {},
+
     // Context for crash log check
     context: Context,
     view: View,
@@ -184,19 +188,29 @@ fun ControlHeaderBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    ConnectionModeSelector(
-                        selectedMode = connectionMode,
-                        onModeSelected = { mode ->
-                            if (mode == ConnectionMode.WIFI) onSwitchToWifi() else onSwitchToBluetooth()
-                        },
-                        view = view,
-                        segmentWidth = modeSelectorWidth,
-                        btConnectionState = bluetoothConnectionState,
-                        wifiConnectionState = wifiConnectionState,
-                        btRssi = rssiValue,
-                        wifiRssi = wifiRssi,
-                        modifier = Modifier.height(widgetHeight)
-                    )
+                    Box(contentAlignment = Alignment.TopCenter) {
+                        ConnectionModeSelector(
+                            selectedMode = connectionMode,
+                            onModeSelected = { mode ->
+                                if (mode == ConnectionMode.WIFI) onSwitchToWifi() else onSwitchToBluetooth()
+                            },
+                            view = view,
+                            segmentWidth = modeSelectorWidth,
+                            btConnectionState = bluetoothConnectionState,
+                            wifiConnectionState = wifiConnectionState,
+                            btRssi = rssiValue,
+                            wifiRssi = wifiRssi,
+                            modifier = Modifier.height(widgetHeight)
+                        )
+
+                        if (showBluetoothTooltip) {
+                            com.metelci.ardunakon.ui.components.Tooltip(
+                                text = "Turn on Bluetooth",
+                                modifier = Modifier.padding(top = widgetHeight + 4.dp),
+                                onDismiss = onDismissBluetoothTooltip
+                            )
+                        }
+                    }
 
                     ConnectionStatusWidget(
                         connectionMode = connectionMode,

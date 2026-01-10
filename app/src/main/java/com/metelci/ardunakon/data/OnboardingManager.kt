@@ -80,4 +80,17 @@ class OnboardingManager @Inject constructor(
     fun updateCurrentStep(step: Int) {
         preferences.setCurrentStep(step)
     }
+
+    /**
+     * Checks if the "Turn on Bluetooth" tooltip should be shown.
+     * Shown if not previously dismissed.
+     */
+    fun shouldShowBluetoothTooltip(): Boolean = !preferences.isBluetoothTooltipShown()
+
+    /**
+     * Marks the Bluetooth tooltip as shown/dismissed.
+     */
+    fun markBluetoothTooltipShown() {
+        preferences.setBluetoothTooltipShown(true)
+    }
 }

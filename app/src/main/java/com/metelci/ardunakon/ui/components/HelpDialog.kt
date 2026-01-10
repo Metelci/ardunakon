@@ -6,7 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.OpenInNew
@@ -39,7 +41,7 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
     var selectedTab by remember { mutableStateOf(0) }
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
     val isPortrait = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
-    val dialogHeight = if (isPortrait) 0.9f else 0.95f
+    val dialogHeight = if (isPortrait) 0.63f else 0.9f
 
     val tabs = listOf("Setup", "Compatibility")
     val contentFiles = listOf(
@@ -71,7 +73,7 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
+                .fillMaxWidth(0.67f)
                 .fillMaxHeight(dialogHeight),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
@@ -134,7 +136,8 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Content area (scrollable) containing text AND buttons
-                LazyColumn(
+                // Content area
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
@@ -148,113 +151,56 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
                             RoundedCornerShape(8.dp)
                         )
                         .padding(12.dp)
-                        .testTag("HelpLazyColumn")
+                        .testTag("HelpContent")
                 ) {
-                    item {
-                        Text(
-                            text = when (selectedTab) {
-                                0 ->
-                                    "Step-by-step instructions for wiring your Arduino, " +
-                                        "configuring Bluetooth modules, and troubleshooting connections."
-                                1 ->
-                                    "Detailed report on supported Bluetooth protocols, UUIDs, " +
-                                        "and hardware version compatibility for various modules."
-                                else -> ""
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFFB0BEC5),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp, vertical = 8.dp)
-                        )
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // "View Full Guide" button
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                            Button(
-                                onClick = {
-                                    // Trigger the dialog with current content
-                                    webUrlToOpen = "offline"
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    if (isPortrait) {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            item {
+                                HelpDescriptionText(selectedTab)
+                            }
+                            item {
+                                Spacer(modifier = Modifier.height(24.dp))
+                                HelpDialogButtons(
+                                    pastelBrush = pastelBrush,
+                                    onOpenUrl = { webUrlToOpen = it },
+                                    onTakeTutorial = onTakeTutorial
+                                )
+                            }
+                        }
+                    } else {
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            // Left Column: Description
+                            Column(
                                 modifier = Modifier
-                                    .shadow(2.dp, RoundedCornerShape(12.dp))
-                                    .background(pastelBrush, RoundedCornerShape(12.dp))
-                                    .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState())
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.OpenInNew,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = Color(0xFF2D3436)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "View Full Guide",
-                                    color = Color(0xFF2D3436)
+                                HelpDescriptionText(selectedTab)
+                            }
+                            
+                            Spacer(modifier = Modifier.width(16.dp))
+                            
+                            // Right Column: Buttons
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                HelpDialogButtons(
+                                    pastelBrush = pastelBrush,
+                                    onOpenUrl = { webUrlToOpen = it },
+                                    onTakeTutorial = onTakeTutorial
                                 )
                             }
                         }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Take Tutorial button (if callback provided)
-                        if (onTakeTutorial != null) {
-                            Button(
-                                onClick = {
-                                    onTakeTutorial()
-                                    onDismiss()
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF00C853)
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    "🎓 Take Tutorial",
-                                    color = Color.White
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-
-                        // Arduino Cloud Link
-                        OutlinedButton(
-                            onClick = {
-                                webUrlToOpen = "https://cloud.arduino.cc"
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color(0xFF00C853)
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                Color(0xFF00C853)
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.OpenInNew,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Open Arduino Cloud")
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
         }
     }
 
-    // In-app web view handling
+    // ... (WebViewDialog code) ...
     webUrlToOpen?.let { urlString ->
         if (urlString.startsWith("http")) {
             WebViewDialog(
@@ -270,5 +216,99 @@ fun HelpDialog(onDismiss: () -> Unit, onTakeTutorial: (() -> Unit)? = null) {
                 onDismiss = { webUrlToOpen = null }
             )
         }
+    }
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun HelpDescriptionText(selectedTab: Int) {
+    Text(
+        text = when (selectedTab) {
+            0 ->
+                "Step-by-step instructions for wiring your Arduino, " +
+                    "configuring Bluetooth modules, and troubleshooting connections."
+            1 ->
+                "Detailed report on supported Bluetooth protocols, UUIDs, " +
+                    "and hardware version compatibility for various modules."
+            else -> ""
+        },
+        style = MaterialTheme.typography.bodyMedium,
+        color = Color(0xFFB0BEC5),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 8.dp)
+    )
+}
+
+@Suppress("FunctionName")
+@Composable
+private fun HelpDialogButtons(
+    pastelBrush: Brush,
+    onOpenUrl: (String) -> Unit,
+    onTakeTutorial: (() -> Unit)?
+) {
+    // "View Full Guide" button
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { onOpenUrl("offline") },
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            modifier = Modifier
+                .shadow(2.dp, RoundedCornerShape(12.dp))
+                .background(pastelBrush, RoundedCornerShape(12.dp))
+                .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(12.dp))
+        ) {
+            Icon(
+                imageVector = Icons.Default.OpenInNew,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = Color(0xFF2D3436)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "View Full Guide",
+                color = Color(0xFF2D3436)
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    // Take Tutorial button
+    if (onTakeTutorial != null) {
+        Button(
+            onClick = { onTakeTutorial() },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF00C853)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                "🎓 Take Tutorial",
+                color = Color.White
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+
+    // Arduino Cloud Link
+    OutlinedButton(
+        onClick = { onOpenUrl("https://cloud.arduino.cc") },
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = Color(0xFF00C853)
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            Color(0xFF00C853)
+        )
+    ) {
+        Icon(
+            imageVector = Icons.Default.OpenInNew,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("Open Arduino Cloud")
     }
 }

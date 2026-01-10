@@ -161,6 +161,10 @@ fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewMo
     val snackbarHostState = androidx.compose.runtime.remember { androidx.compose.material3.SnackbarHostState() }
 
     LaunchedEffect(Unit) {
+        // Check for tooltip on screen launch (after brief delay for animation)
+        kotlinx.coroutines.delay(1000) 
+        viewModel.checkBluetoothTooltip()
+
         viewModel.userMessage.collect { message ->
             snackbarHostState.showSnackbar(message)
         }
@@ -200,7 +204,9 @@ fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewMo
                     view = view,
                     context = context,
                     onQuitApp = { currentActivity?.finish() },
-                    exportLogs = exportLogs
+                    exportLogs = exportLogs,
+                    showBluetoothTooltip = viewModel.showBluetoothTooltip,
+                    onDismissBluetoothTooltip = { viewModel.dismissBluetoothTooltip() }
                 )
             } else {
                 LandscapeControlLayout(
@@ -225,7 +231,9 @@ fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewMo
                     view = view,
                     context = context,
                     onQuitApp = { currentActivity?.finish() },
-                    exportLogs = exportLogs
+                    exportLogs = exportLogs,
+                    showBluetoothTooltip = viewModel.showBluetoothTooltip,
+                    onDismissBluetoothTooltip = { viewModel.dismissBluetoothTooltip() }
                 )
             }
         }

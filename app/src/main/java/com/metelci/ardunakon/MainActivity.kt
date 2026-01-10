@@ -310,7 +310,7 @@ class MainActivity : ComponentActivity() {
         if (hasBluetoothPermissions()) {
             startAndBindServiceIfPermitted()
         }
-        checkBluetoothEnabled()
+        // checkBluetoothEnabled() - Removed per user request
         requestNotificationPermission()
 
         com.metelci.ardunakon.crash.BreadcrumbManager.leave("Lifecycle", "MainActivity Created")
@@ -328,7 +328,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         com.metelci.ardunakon.crash.BreadcrumbManager.leave("Lifecycle", "MainActivity Resumed")
-        checkBluetoothEnabled()
+        // checkBluetoothEnabled() - Removed to prevent startup dialog
         if (hasBluetoothPermissions()) {
             startAndBindServiceIfPermitted()
         }

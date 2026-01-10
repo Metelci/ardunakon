@@ -117,6 +117,28 @@ class ControlViewModel @javax.inject.Inject constructor(
     /** Currently edited custom command, if any. */
     var editingCommand by mutableStateOf<com.metelci.ardunakon.model.CustomCommand?>(null)
 
+    /** Controls "Turn on Bluetooth" tooltip visibility. */
+    var showBluetoothTooltip by mutableStateOf(false)
+
+    fun checkBluetoothTooltip() {
+        if (connectionMode == ConnectionMode.BLUETOOTH &&
+            bluetoothManager.connectionState.value == ConnectionState.DISCONNECTED && // Rough proxy for "off" or "idle"
+            onboardingManager.shouldShowBluetoothTooltip()
+        ) {
+             // We need to know if BT is actually disabled. The VM doesn't track adapter state directly as boolean.
+             // But we can check if we are in an error state due to BT being off.
+             // Simplification: We'll rely on the Screen to pass this info or just check if we should show it.
+             showBluetoothTooltip = true
+        }
+    }
+
+    fun dismissBluetoothTooltip() {
+        showBluetoothTooltip = false
+        viewModelScope.launch {
+            onboardingManager.markBluetoothTooltipShown()
+        }
+    }
+
     // User Feedback (Snackbars)
     private val _userMessage = Channel<String>(Channel.CONFLATED)
 

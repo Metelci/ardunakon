@@ -25,6 +25,7 @@ class OnboardingPreferences @Inject constructor(
         private const val KEY_SKIPPED = "skipped"
         private const val KEY_IN_PROGRESS = "in_progress"
         private const val KEY_CURRENT_STEP = "current_step"
+        private const val KEY_BLUETOOTH_TOOLTIP_SHOWN = "bt_tooltip_shown"
 
         /** Current onboarding version - increment when tutorial content changes significantly */
         const val CURRENT_VERSION = 1
@@ -60,6 +61,12 @@ class OnboardingPreferences @Inject constructor(
 
     fun setCurrentStep(step: Int) {
         prefs.edit().putInt(KEY_CURRENT_STEP, step).apply()
+    }
+
+    fun isBluetoothTooltipShown(): Boolean = prefs.getBoolean(KEY_BLUETOOTH_TOOLTIP_SHOWN, false)
+
+    fun setBluetoothTooltipShown(shown: Boolean) {
+        prefs.edit().putBoolean(KEY_BLUETOOTH_TOOLTIP_SHOWN, shown).apply()
     }
 
     /**

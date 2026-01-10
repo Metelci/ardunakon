@@ -39,11 +39,17 @@ fun AboutDialog(onDismiss: () -> Unit) {
     val view = LocalView.current
     var webUrlToOpen by rememberSaveable { mutableStateOf<String?>(null) }
 
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.85f)
+                .fillMaxWidth(if (isLandscape) 0.6f else 0.95f)
+                .fillMaxHeight(if (isLandscape) 0.95f else 0.85f)
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(

@@ -1,3 +1,17 @@
+Version 0.2.24-alpha - January 10, 2026
+
+NEW FEATURES:
+• Bluetooth Tooltip: Friendly "Turn on Bluetooth" bubble replaces old blocking dialog
+• Landscape Layouts: Optimized "About" and "Help" windows for tablet/landscape use
+
+IMPROVEMENTS:
+• Help Dialog: New two-column layout (text left, buttons right) eliminates scrolling in landscape
+• About Dialog: Full-width layout in landscape for maximum visibility
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.23-alpha - January 10, 2026
 
 BUG FIXES:
