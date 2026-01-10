@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.23-alpha (Build 54)
+- **Startup Reliability**: Added 15-second service binding timeout with user-friendly error dialog instead of infinite loading.
+- **Service Binding Callbacks**: Implemented `onBindingDied` and `onNullBinding` for immediate failure detection.
+- **Foreground Service Fix**: BluetoothService no longer crashes on Android 13+ when notification permission is denied.
+- **Lock Screen Fallback**: SecurityManager now gracefully falls back to non-authenticated keys on devices without secure lock screen (fixes Samsung Galaxy A10 crash).
+- **Diagnostics**: Added comprehensive startup logging for easier troubleshooting.
+
 ## 0.2.22-alpha (Build 53)
 - **Test Stabilization**: Fixed AndroidTest compilation issues by implementing a custom `HiltTestActivity`.
 - **WiFi Reliability**: Resolved `ClassNotFoundException` in WiFi unit tests.

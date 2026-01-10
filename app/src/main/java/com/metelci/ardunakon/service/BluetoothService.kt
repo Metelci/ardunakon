@@ -10,6 +10,7 @@ import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.metelci.ardunakon.MainActivity
 import com.metelci.ardunakon.R
@@ -20,6 +21,10 @@ import kotlinx.coroutines.*
 
 @AndroidEntryPoint
 class BluetoothService : Service() {
+
+    companion object {
+        private const val TAG = "BluetoothService"
+    }
 
     private val binder = LocalBinder()
 
@@ -39,6 +44,7 @@ class BluetoothService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "Service onCreate started")
         // Hilt injects managers automatically
 
         // Setup WakeLock
@@ -75,6 +81,7 @@ class BluetoothService : Service() {
         }
 
         startForegroundService()
+        Log.d(TAG, "Service onCreate completed")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -109,9 +116,13 @@ class BluetoothService : Service() {
 
         try {
             startForeground(1, notification)
+            Log.d(TAG, "Foreground service started successfully")
         } catch (se: SecurityException) {
             // Missing POST_NOTIFICATIONS will prevent foreground start on Android 13+
-            stopSelf()
+            // Don't call stopSelf() - continue running without notification
+            // This allows the app to function even without notification permission
+            Log.w(TAG, "Foreground service failed due to missing notification permission. " +
+                "Service will continue without notification, which may cause issues on Android 13+.", se)
         }
     }
 

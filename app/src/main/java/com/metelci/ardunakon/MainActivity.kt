@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -38,15 +39,22 @@ import com.metelci.ardunakon.service.BluetoothService
 import com.metelci.ardunakon.ui.dialogs.BluetoothOffDialog
 import com.metelci.ardunakon.ui.dialogs.NotificationPermissionDialog
 import com.metelci.ardunakon.ui.dialogs.PermissionDeniedDialog
+import com.metelci.ardunakon.ui.dialogs.ServiceConnectionFailedDialog
 import com.metelci.ardunakon.ui.navigation.AppNavHost
 import com.metelci.ardunakon.ui.navigation.AppRoute
 import com.metelci.ardunakon.ui.screens.ControlScreen
 import com.metelci.ardunakon.ui.screens.control.dialogs.SecurityCompromisedDialog
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        private const val TAG = "MainActivity"
+        private const val SERVICE_BIND_TIMEOUT_MS = 15_000L
+    }
 
     @Inject
     lateinit var onboardingManager: com.metelci.ardunakon.data.OnboardingManager
@@ -64,16 +72,36 @@ class MainActivity : ComponentActivity() {
     private var serviceStarted = false
     private var showOnboarding by mutableStateOf(false)
     private var deepLinkIntent by mutableStateOf<Intent?>(null)
+    private var showServiceConnectionFailedDialog by mutableStateOf(false)
+    private var serviceConnectionFailureReason by mutableStateOf<String?>(null)
+    private var serviceBindingAttempted by mutableStateOf(false)
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            Log.d(TAG, "Service connected successfully")
             val binder = service as BluetoothService.LocalBinder
             bluetoothService = binder.getService()
             isBound = true
+            showServiceConnectionFailedDialog = false
         }
 
         override fun onServiceDisconnected(arg0: ComponentName) {
+            Log.w(TAG, "Service disconnected: $arg0")
             isBound = false
+        }
+
+        override fun onBindingDied(name: ComponentName?) {
+            Log.e(TAG, "Service binding died: $name")
+            isBound = false
+            bluetoothService = null
+            serviceConnectionFailureReason = "Service binding died unexpectedly"
+            showServiceConnectionFailedDialog = true
+        }
+
+        override fun onNullBinding(name: ComponentName) {
+            Log.e(TAG, "Null binding received from service: $name")
+            serviceConnectionFailureReason = "Service returned null binder"
+            showServiceConnectionFailedDialog = true
         }
     }
 
@@ -160,6 +188,18 @@ class MainActivity : ComponentActivity() {
                                 deepLinkIntent?.let { navController.handleDeepLink(it) }
                             }
 
+                            // Service binding timeout detection
+                            LaunchedEffect(serviceBindingAttempted) {
+                                if (serviceBindingAttempted && !isBound) {
+                                    delay(SERVICE_BIND_TIMEOUT_MS)
+                                    if (!isBound && serviceBindingAttempted) {
+                                        Log.w(TAG, "Service binding timeout after ${SERVICE_BIND_TIMEOUT_MS}ms")
+                                        serviceConnectionFailureReason = "Service binding timed out"
+                                        showServiceConnectionFailedDialog = true
+                                    }
+                                }
+                            }
+
                             AppNavHost(
                                 navController = navController,
                                 startDestination = startDestination,
@@ -238,6 +278,28 @@ class MainActivity : ComponentActivity() {
                                 showNotificationPermissionDialog = false
                                 requestNotificationPermission()
                             }
+                        )
+                    }
+
+                    // Service connection failure dialog
+                    if (showServiceConnectionFailedDialog) {
+                        ServiceConnectionFailedDialog(
+                            onRetry = {
+                                showServiceConnectionFailedDialog = false
+                                serviceConnectionFailureReason = null
+                                serviceStarted = false
+                                serviceBindingAttempted = false
+                                startAndBindServiceIfPermitted(forceStart = true)
+                            },
+                            onOpenSettings = {
+                                showServiceConnectionFailedDialog = false
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = android.net.Uri.fromParts("package", packageName, null)
+                                }
+                                startActivity(intent)
+                            },
+                            onDismiss = { showServiceConnectionFailedDialog = false },
+                            reason = serviceConnectionFailureReason
                         )
                     }
                 }
@@ -325,8 +387,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startAndBindServiceIfPermitted(forceStart: Boolean = false) {
-        if (serviceStarted) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasBluetoothPermissions()) return
+        if (serviceStarted) {
+            Log.d(TAG, "Service already started, skipping")
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasBluetoothPermissions()) {
+            Log.w(TAG, "Cannot start service: Bluetooth permissions not granted")
+            return
+        }
+
+        Log.d(TAG, "Starting BluetoothService (forceStart=$forceStart)")
+        Log.d(TAG, "Permission status - BT: ${hasBluetoothPermissions()}, Notification: ${hasNotificationPermission()}")
 
         // Request notification permission but don't block app startup
         if (!hasNotificationPermission() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !forceStart) {
@@ -336,13 +407,16 @@ class MainActivity : ComponentActivity() {
 
         Intent(this, BluetoothService::class.java).also { intent ->
             try {
+                Log.d(TAG, "Attempting to start foreground service")
                 ContextCompat.startForegroundService(this, intent)
             } catch (e: Exception) {
-                // If foreground fails, try regular start
+                Log.w(TAG, "Foreground service start failed, trying regular start", e)
                 startService(intent)
             }
+            Log.d(TAG, "Binding to BluetoothService")
             bindService(intent, connection, Context.BIND_AUTO_CREATE)
             serviceStarted = true
+            serviceBindingAttempted = true
         }
     }
 

@@ -62,29 +62,56 @@ class SecurityManager : CryptoEngine {
         keyStore.load(null)
         if (!keyStore.containsAlias(alias)) {
             val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, provider)
-            keyGenerator.init(
-                KeyGenParameterSpec.Builder(
-                    alias,
-                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-                )
-                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                    .apply {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            setUserAuthenticationParameters(
-                                300,
-                                KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
-                            )
-                        } else {
-                            setUserAuthenticationRequired(true)
-                            @Suppress("DEPRECATION")
-                            setUserAuthenticationValidityDurationSeconds(300)
-                        }
+            
+            try {
+                // Try to create strict key first (requires secure lock screen)
+                val spec = buildKeyGenSpec(requireAuth = true)
+                keyGenerator.init(spec)
+                keyGenerator.generateKey()
+            } catch (e: Exception) {
+                // Check if failure is due to missing secure lock screen
+                val isLockScreenError = e is IllegalStateException || 
+                    (e is java.security.InvalidAlgorithmParameterException && e.cause is IllegalStateException)
+                
+                if (isLockScreenError) {
+                    try {
+                        // Fallback: Create key without authentication requirement
+                        val fallbackSpec = buildKeyGenSpec(requireAuth = false)
+                        keyGenerator.init(fallbackSpec)
+                        keyGenerator.generateKey()
+                    } catch (fallbackEx: Exception) {
+                        // If fallback also fails, propagate original error or wrap
+                        throw AuthRequiredException("Failed to create secure key", fallbackEx)
                     }
-                    .build()
-            )
-            keyGenerator.generateKey()
+                } else {
+                    throw e
+                }
+            }
         }
+    }
+
+    private fun buildKeyGenSpec(requireAuth: Boolean): KeyGenParameterSpec {
+        return KeyGenParameterSpec.Builder(
+            alias,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+        )
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .apply {
+                if (requireAuth) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        setUserAuthenticationParameters(
+                            300,
+                            KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+                        )
+                    } else {
+                        setUserAuthenticationRequired(true)
+                        @Suppress("DEPRECATION")
+                        setUserAuthenticationValidityDurationSeconds(300)
+                    }
+                }
+            }
+            .build()
     }
 
     private fun getKey(): SecretKey {

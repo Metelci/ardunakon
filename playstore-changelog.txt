@@ -1,3 +1,17 @@
+Version 0.2.23-alpha - January 10, 2026
+
+BUG FIXES:
+• Startup Reliability: Added 15-second service binding timeout with error dialog instead of infinite loading
+• Foreground Service Fix: App no longer crashes on Android 13+ when notification permission is denied
+• Lock Screen Fallback: Fixed crash on devices without secure lock screen (Samsung Galaxy A10 and others)
+
+IMPROVEMENTS:
+• Diagnostics: Added comprehensive startup logging for easier troubleshooting
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.22-alpha - January 10, 2026
 
 MAINTENANCE:

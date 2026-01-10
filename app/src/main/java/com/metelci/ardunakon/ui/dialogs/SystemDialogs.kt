@@ -124,3 +124,70 @@ fun PermissionDeniedDialog(onDismiss: () -> Unit, onRetry: () -> Unit, onOpenSet
         }
     )
 }
+
+/**
+ * Dialog shown when the Bluetooth service fails to start or bind.
+ * This can happen due to permission issues, battery optimization, or service crashes.
+ *
+ * @param onRetry Callback to retry starting the service.
+ * @param onOpenSettings Callback to open app settings.
+ * @param onDismiss Callback when user dismisses the dialog.
+ * @param reason Optional reason string describing why the service failed.
+ */
+@Composable
+fun ServiceConnectionFailedDialog(
+    onRetry: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onDismiss: () -> Unit,
+    reason: String? = null
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Connection Service Issue") },
+        text = {
+            Column {
+                Text(
+                    "The Bluetooth connection service couldn't start properly. " +
+                        "This may prevent device connections.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                if (reason != null) {
+                    Text(
+                        "Reason: $reason",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Text(
+                    "Common causes:",
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "• Notification permission denied (Android 13+)",
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Text(
+                    "• Battery optimization killing the service",
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Text(
+                    "• Auto-start permission not granted (MIUI, ColorOS)",
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onRetry) {
+                Text("Retry")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onOpenSettings) {
+                Text("App Settings")
+            }
+        }
+    )
+}
