@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -17,10 +18,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -29,7 +30,8 @@ import com.metelci.ardunakon.R
 
 /**
  * Futuristic app title bar with "Ardunakon" text and geometric underline accent.
- * Style 1E: Ice blue italic with sharp geometric underline design.
+ * Style 1: Ice blue italic with sharp geometric underline design.
+ * Uses canvas skew transformation to achieve italic effect since Orbitron Bold has no native italic.
  */
 @Suppress("FunctionName")
 @Composable
@@ -39,12 +41,12 @@ fun AppTitleBar(
     // Define the ice blue/cyan color palette
     val primaryColor = Color(0xFF00D4FF)  // Bright cyan
     val secondaryColor = Color(0xFF00A8CC)  // Deeper teal
-    val glowColor = Color(0xFF00D4FF).copy(alpha = 0.5f)
+    val glowColor = Color(0xFF00D4FF).copy(alpha = 0.6f)
 
-    // Use Orbitron font family for futuristic look (or fallback to default italic)
+    // Use Audiowide font family for futuristic look (or fallback to default)
     val titleFontFamily = try {
         FontFamily(
-            Font(R.font.orbitron_bold, FontWeight.Bold, FontStyle.Italic)
+            Font(R.font.audiowide, FontWeight.Normal)
         )
     } catch (_: Exception) {
         FontFamily.Default
@@ -56,13 +58,12 @@ fun AppTitleBar(
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Title text with glow effect
+        // Title text with glow effect and synthetic italic via canvas skew
         Text(
             text = "Ardunakon",
             style = TextStyle(
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                fontStyle = FontStyle.Italic,
                 fontFamily = titleFontFamily,
                 letterSpacing = 3.sp,
                 brush = Brush.horizontalGradient(
@@ -77,9 +78,16 @@ fun AppTitleBar(
                 shadow = Shadow(
                     color = glowColor,
                     offset = Offset(0f, 0f),
-                    blurRadius = 16f
+                    blurRadius = 20f
                 )
-            )
+            ),
+            modifier = Modifier.drawWithContent {
+                // Apply horizontal skew for italic effect (negative = lean right like italic)
+                drawContext.canvas.nativeCanvas.save()
+                drawContext.canvas.nativeCanvas.skew(-0.15f, 0f)
+                drawContent()
+                drawContext.canvas.nativeCanvas.restore()
+            }
         )
 
         // Geometric underline accent
