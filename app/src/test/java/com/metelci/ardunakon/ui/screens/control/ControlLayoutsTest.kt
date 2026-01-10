@@ -87,6 +87,7 @@ class ControlLayoutsTest {
         every { bluetoothManager.telemetryHistoryManager } returns TelemetryHistoryManager()
         every { bluetoothManager.connectionState } returns MutableStateFlow(ConnectionState.DISCONNECTED)
         every { bluetoothManager.isEmergencyStopActive } returns MutableStateFlow(false)
+        every { bluetoothManager.lastError } returns MutableStateFlow(null)
         every { bluetoothManager.allowReflectionFallback } returns false
         every { bluetoothManager.allowReflectionFallback = any() } just runs
         every { bluetoothManager.setForegroundMode(any()) } just runs
@@ -102,6 +103,7 @@ class ControlLayoutsTest {
         every { wifiManager.rttHistory } returns MutableStateFlow(emptyList())
         every { wifiManager.telemetry } returns MutableStateFlow(null)
         every { wifiManager.autoReconnectEnabled } returns MutableStateFlow(false)
+        every { wifiManager.lastError } returns MutableStateFlow(null)
         every { wifiManager.encryptionError } returns MutableStateFlow(null)
         every { wifiManager.isEncrypted } returns MutableStateFlow(false)
         every { wifiManager.scannedDevices } returns MutableStateFlow<List<WifiDevice>>(emptyList())

@@ -29,6 +29,7 @@ class CrashHandler private constructor(
         private const val TAG = "CrashHandler"
         private const val CRASH_LOG_FILE = "crash_log.txt"
         private const val MAX_CRASH_LOGS = 5
+        private const val UNIT_TEST_FLAG = "ardunakon.isUnitTest"
 
         @Volatile
         @SuppressLint("StaticFieldLeak")
@@ -167,6 +168,13 @@ class CrashHandler private constructor(
 
             crashLogWriter.write(context, crashInfo)
         }
+
+        private fun isLocalUnitTestEnvironment(): Boolean {
+            if (System.getProperty(UNIT_TEST_FLAG) == "true") return true
+            val fingerprint = runCatching { Build.FINGERPRINT }.getOrNull()
+            if (fingerprint.equals("robolectric", ignoreCase = true)) return true
+            return false
+        }
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
@@ -179,6 +187,11 @@ class CrashHandler private constructor(
             )
 
             val crashData = saveCrashLog(thread, throwable)
+
+            if (isLocalUnitTestEnvironment()) {
+                defaultHandler?.uncaughtException(thread, throwable)
+                return
+            }
 
             // Launch Crash Report Activity
             val intent = Intent(context, CrashReportActivity::class.java).apply {
