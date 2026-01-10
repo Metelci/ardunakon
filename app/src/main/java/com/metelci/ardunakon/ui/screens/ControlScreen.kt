@@ -170,6 +170,13 @@ fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewMo
         }
     }
 
+    val onQuitApp = {
+        val serviceIntent = android.content.Intent(context, com.metelci.ardunakon.service.BluetoothService::class.java)
+        context.stopService(serviceIntent)
+        currentActivity?.finish()
+        Unit
+    }
+
     androidx.compose.material3.Scaffold(
         snackbarHost = { androidx.compose.material3.SnackbarHost(hostState = snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -203,7 +210,7 @@ fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewMo
                     orientationConfig = orientationConfig,
                     view = view,
                     context = context,
-                    onQuitApp = { currentActivity?.finish() },
+                    onQuitApp = onQuitApp,
                     exportLogs = exportLogs,
                     showBluetoothTooltip = viewModel.showBluetoothTooltip,
                     onDismissBluetoothTooltip = { viewModel.dismissBluetoothTooltip() }
@@ -230,7 +237,7 @@ fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewMo
                     orientationConfig = orientationConfig,
                     view = view,
                     context = context,
-                    onQuitApp = { currentActivity?.finish() },
+                    onQuitApp = onQuitApp,
                     exportLogs = exportLogs,
                     showBluetoothTooltip = viewModel.showBluetoothTooltip,
                     onDismissBluetoothTooltip = { viewModel.dismissBluetoothTooltip() }

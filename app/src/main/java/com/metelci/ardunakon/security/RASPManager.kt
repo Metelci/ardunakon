@@ -74,9 +74,10 @@ class RASPManager(private val context: Context) {
 
             // Check for debugging
             if (isDebuggerAttached()) {
+                val type = if (com.metelci.ardunakon.BuildConfig.DEBUG) LogType.WARNING else LogType.ERROR
                 violations.add(
                     LogEntry(
-                        type = LogType.ERROR,
+                        type = type,
                         message = "SECURITY: Debugger detected - potential reverse engineering attempt"
                     )
                 )
@@ -85,9 +86,10 @@ class RASPManager(private val context: Context) {
 
             // Check for root
             if (isDeviceRooted()) {
+                val type = if (com.metelci.ardunakon.BuildConfig.DEBUG) LogType.WARNING else LogType.ERROR
                 violations.add(
                     LogEntry(
-                        type = LogType.ERROR,
+                        type = type,
                         message = "SECURITY: Rooted device detected - security risk"
                     )
                 )
@@ -96,9 +98,10 @@ class RASPManager(private val context: Context) {
 
             // Check app integrity
             if (!verifyAppIntegrity()) {
+                val type = if (com.metelci.ardunakon.BuildConfig.DEBUG) LogType.WARNING else LogType.ERROR
                 violations.add(
                     LogEntry(
-                        type = LogType.ERROR,
+                        type = type,
                         message = "SECURITY: App integrity compromised - APK may be tampered"
                     )
                 )
@@ -107,9 +110,10 @@ class RASPManager(private val context: Context) {
 
             // Check for emulator
             if (isRunningOnEmulator()) {
+                val type = if (com.metelci.ardunakon.BuildConfig.DEBUG) LogType.INFO else LogType.ERROR
                 violations.add(
                     LogEntry(
-                        type = LogType.WARNING,
+                        type = type,
                         message = "SECURITY: Emulator environment detected"
                     )
                 )

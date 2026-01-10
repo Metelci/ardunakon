@@ -1,3 +1,16 @@
+Version 0.2.25-alpha - January 10, 2026
+
+NEW FEATURES:
+• Visual Upgrade: Servo buttons now feature High Contrast theme (Black text on Green/Yellow) with thin electric yellow borders for better visibility and futuristic style.
+• Developer Experience: "Security Alert" screens are now suppressed when running on Emulators in Debug mode.
+
+FIXES:
+• Smart Exit: "Quit App" button now properly shuts down background Bluetooth service and removes persistent notifications.
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.24-alpha - January 10, 2026
 
 NEW FEATURES:

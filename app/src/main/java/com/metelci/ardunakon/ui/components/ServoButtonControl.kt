@@ -111,13 +111,14 @@ fun ServoButtonControl(
                     .semantics { contentDescription = "Move third servo negative" },
                 interactionSource = aInteractionSource,
                 elevation = defaultElevation,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFFF00)),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = when {
                         isAPressed -> Color(0xFFFFD600) // Yellow when pressed
                         servoZ == -1f -> Color(0xFF00C853) // Green when active
-                        else -> Color(0xFF2D3436) // Default dark
+                        else -> Color(0xFF1E1E1E) // High contrast dark
                     },
-                    contentColor = if (isAPressed) Color.Black else Color(0xFF00FF00)
+                    contentColor = if (isAPressed || servoZ == -1f) Color.Black else Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
@@ -145,9 +146,10 @@ fun ServoButtonControl(
                     .semantics { contentDescription = "Move servo forward" },
                 interactionSource = wInteractionSource,
                 elevation = defaultElevation,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFFF00)),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoY == 1f || isWPressed) Color(0xFF00C853) else Color(0xFF2D3436),
-                    contentColor = Color(0xFF00FF00)
+                    containerColor = if (servoY == 1f || isWPressed) Color(0xFF00C853) else Color(0xFF1E1E1E),
+                    contentColor = if (servoY == 1f || isWPressed) Color.Black else Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
@@ -165,13 +167,14 @@ fun ServoButtonControl(
                     .semantics { contentDescription = "Move third servo positive" },
                 interactionSource = zInteractionSource,
                 elevation = defaultElevation,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFFF00)),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = when {
                         isZPressed -> Color(0xFFFFD600) // Yellow when pressed
                         servoZ == 1f -> Color(0xFF00C853) // Green when active
-                        else -> Color(0xFF2D3436) // Default dark
+                        else -> Color(0xFF1E1E1E) // High contrast dark
                     },
-                    contentColor = if (isZPressed) Color.Black else Color(0xFF00FF00)
+                    contentColor = if (isZPressed || servoZ == 1f) Color.Black else Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
@@ -205,9 +208,10 @@ fun ServoButtonControl(
                     .semantics { contentDescription = "Move servo left" },
                 interactionSource = lInteractionSource,
                 elevation = defaultElevation,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFFF00)),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoX == -1f || isLPressed) Color(0xFF00C853) else Color(0xFF2D3436),
-                    contentColor = Color(0xFF00FF00)
+                    containerColor = if (servoX == -1f || isLPressed) Color(0xFF00C853) else Color(0xFF1E1E1E),
+                    contentColor = if (servoX == -1f || isLPressed) Color.Black else Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
@@ -235,9 +239,10 @@ fun ServoButtonControl(
                     .semantics { contentDescription = "Move servo backward" },
                 interactionSource = bInteractionSource,
                 elevation = defaultElevation,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFFF00)),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoY == -1f || isBPressed) Color(0xFF00C853) else Color(0xFF2D3436),
-                    contentColor = Color(0xFF00FF00)
+                    containerColor = if (servoY == -1f || isBPressed) Color(0xFF00C853) else Color(0xFF1E1E1E),
+                    contentColor = if (servoY == -1f || isBPressed) Color.Black else Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {
@@ -265,9 +270,10 @@ fun ServoButtonControl(
                     .semantics { contentDescription = "Move servo right" },
                 interactionSource = rInteractionSource,
                 elevation = defaultElevation,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFFF00)),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (servoX == 1f || isRPressed) Color(0xFF00C853) else Color(0xFF2D3436),
-                    contentColor = Color(0xFF00FF00)
+                    containerColor = if (servoX == 1f || isRPressed) Color(0xFF00C853) else Color(0xFF1E1E1E),
+                    contentColor = if (servoX == 1f || isRPressed) Color.Black else Color(0xFF00FF00)
                 ),
                 contentPadding = PaddingValues(4.dp)
             ) {

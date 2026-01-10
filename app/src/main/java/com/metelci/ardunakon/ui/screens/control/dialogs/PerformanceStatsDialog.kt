@@ -1,6 +1,7 @@
 package com.metelci.ardunakon.ui.screens.control.dialogs
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.view.View
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -67,11 +69,15 @@ fun PerformanceStatsDialog(view: View, onDismiss: () -> Unit) {
     val stats by monitor.stats.collectAsStateWithLifecycle()
     val crashes by monitor.recentCrashes.collectAsStateWithLifecycle()
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val widthFraction = if (isLandscape) 0.75f else 0.98f
+
     AlertDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
         modifier = Modifier
-            .fillMaxWidth(0.98f)
+            .fillMaxWidth(widthFraction)
             .fillMaxHeight(0.9f),
         title = {
             Row(
