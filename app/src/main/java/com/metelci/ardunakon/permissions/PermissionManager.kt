@@ -47,6 +47,21 @@ class PermissionManager @Inject constructor(
     }
 
     /**
+     * Checks if WiFi permissions are granted.
+     * Uses different permissions based on Android version.
+     *
+     * @return true if all required WiFi permissions are granted.
+     */
+    fun hasWifiPermissions(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.NEARBY_WIFI_DEVICES) ==
+            PackageManager.PERMISSION_GRANTED
+    } else {
+        // On older versions, WiFi scanning uses location permission
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+
+    /**
      * Returns the required Bluetooth permissions based on Android version.
      *
      * @return Array of permission strings to request.

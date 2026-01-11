@@ -60,32 +60,51 @@ class SecurityManager : CryptoEngine {
     private fun createKeyIfNeeded() {
         val keyStore = KeyStore.getInstance(provider)
         keyStore.load(null)
-        if (!keyStore.containsAlias(alias)) {
-            val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, provider)
-            
+        
+        // Check if key already exists and is usable
+        if (keyStore.containsAlias(alias)) {
             try {
-                // Try to create strict key first (requires secure lock screen)
-                val spec = buildKeyGenSpec(requireAuth = true)
-                keyGenerator.init(spec)
-                keyGenerator.generateKey()
-            } catch (e: Exception) {
-                // Check if failure is due to missing secure lock screen
-                val isLockScreenError = e is IllegalStateException || 
-                    (e is java.security.InvalidAlgorithmParameterException && e.cause is IllegalStateException)
-                
-                if (isLockScreenError) {
-                    try {
-                        // Fallback: Create key without authentication requirement
-                        val fallbackSpec = buildKeyGenSpec(requireAuth = false)
-                        keyGenerator.init(fallbackSpec)
-                        keyGenerator.generateKey()
-                    } catch (fallbackEx: Exception) {
-                        // If fallback also fails, propagate original error or wrap
-                        throw AuthRequiredException("Failed to create secure key", fallbackEx)
-                    }
-                } else {
-                    throw e
+                // Test if existing key is accessible
+                val existingKey = keyStore.getKey(alias, null) as? SecretKey
+                if (existingKey != null) {
+                    // Try a quick encrypt/decrypt to verify the key works
+                    val testCipher = Cipher.getInstance(transformation)
+                    testCipher.init(Cipher.ENCRYPT_MODE, existingKey)
+                    return // Key exists and is usable
                 }
+            } catch (e: Exception) {
+                // Key exists but is unusable (e.g., lock screen was removed)
+                // Delete it and create a new one
+                try {
+                    keyStore.deleteEntry(alias)
+                } catch (_: Exception) {
+                    // Ignore deletion errors
+                }
+            }
+        }
+        
+        // Create new key without authentication requirement (works on all devices)
+        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, provider)
+        
+        try {
+            // Use non-auth key by default (compatible with devices without lock screen)
+            val spec = buildKeyGenSpec(requireAuth = false)
+            keyGenerator.init(spec)
+            keyGenerator.generateKey()
+        } catch (e: Exception) {
+            // If even the non-auth key fails, try with a minimal spec
+            try {
+                val minimalSpec = KeyGenParameterSpec.Builder(
+                    alias,
+                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                )
+                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                    .build()
+                keyGenerator.init(minimalSpec)
+                keyGenerator.generateKey()
+            } catch (fallbackEx: Exception) {
+                throw AuthRequiredException("Failed to create secure key", fallbackEx)
             }
         }
     }

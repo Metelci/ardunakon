@@ -1,3 +1,16 @@
+Version 0.2.27-alpha - January 11, 2026
+
+NEW FEATURES:
+• Auto-Hide Permission Tooltip: Permission warning now automatically dismisses after 3 seconds for less intrusive UX.
+• Permission Check on Mode Switch: Tapping WiFi or BLE mode buttons now checks for required permissions first and shows warning if denied.
+
+BUG FIXES:
+• Lock Screen Crash Fix: Fixed crash on devices without secure lock screen (Samsung Galaxy S9, A10, and other devices without PIN/pattern).
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.26-alpha - January 11, 2026
 
 NEW FEATURES:

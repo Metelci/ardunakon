@@ -686,8 +686,15 @@ class ControlViewModel @javax.inject.Inject constructor(
 
     /**
      * Switches to WiFi mode and persists the preference.
+     * Shows permission warning if required permissions are denied.
      */
     fun switchToWifi() {
+        // Check WiFi permissions first
+        if (!permissionManager.hasWifiPermissions()) {
+            showPermissionWarning = true
+            return
+        }
+        
         if (connectionMode == ConnectionMode.BLUETOOTH) {
             bluetoothManager.log("Switching from Bluetooth to WiFi mode", LogType.INFO)
             bluetoothManager.disconnect()
@@ -702,8 +709,15 @@ class ControlViewModel @javax.inject.Inject constructor(
 
     /**
      * Switches to Bluetooth mode and persists the preference.
+     * Shows permission warning if required permissions are denied.
      */
     fun switchToBluetooth() {
+        // Check Bluetooth permissions first
+        if (!permissionManager.hasBluetoothPermissions()) {
+            showPermissionWarning = true
+            return
+        }
+        
         if (connectionMode == ConnectionMode.WIFI) {
             bluetoothManager.log("Switching from WiFi to Bluetooth mode", LogType.INFO)
             wifiManager.disconnect()

@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -84,6 +85,12 @@ fun CenteredWarningTooltip(
     onDismiss: () -> Unit
 ) {
     val warningColor = Color(0xFFFFA000) // Amber warning color
+    
+    // Auto-dismiss after 3 seconds
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(3000)
+        onDismiss()
+    }
     
     Box(
         modifier = Modifier
