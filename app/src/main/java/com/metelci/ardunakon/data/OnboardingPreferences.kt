@@ -26,6 +26,7 @@ class OnboardingPreferences @Inject constructor(
         private const val KEY_IN_PROGRESS = "in_progress"
         private const val KEY_CURRENT_STEP = "current_step"
         private const val KEY_BLUETOOTH_TOOLTIP_SHOWN = "bt_tooltip_shown"
+        private const val KEY_PERMISSION_WARNING_DISMISSED = "permission_warning_dismissed"
 
         /** Current onboarding version - increment when tutorial content changes significantly */
         const val CURRENT_VERSION = 1
@@ -67,6 +68,12 @@ class OnboardingPreferences @Inject constructor(
 
     fun setBluetoothTooltipShown(shown: Boolean) {
         prefs.edit().putBoolean(KEY_BLUETOOTH_TOOLTIP_SHOWN, shown).apply()
+    }
+
+    fun isPermissionWarningDismissed(): Boolean = prefs.getBoolean(KEY_PERMISSION_WARNING_DISMISSED, false)
+
+    fun setPermissionWarningDismissed(dismissed: Boolean) {
+        prefs.edit().putBoolean(KEY_PERMISSION_WARNING_DISMISSED, dismissed).apply()
     }
 
     /**

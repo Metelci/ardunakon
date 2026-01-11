@@ -1,3 +1,16 @@
+Version 0.2.26-alpha - January 11, 2026
+
+NEW FEATURES:
+• Permission Warning Tooltip: App no longer blocks on infinite loading when permissions are denied - shows a friendly warning at the bottom of the screen instead.
+• Permission Check on Scan: Tapping "Scan Devices" now checks permissions first and shows a warning if denied.
+
+IMPROVEMENTS:
+• Better UX: Users can explore the app UI even without granting permissions, with clear feedback about limited functionality.
+
+For full changelog, visit: https://github.com/metelci/ardunakon
+
+---
+
 Version 0.2.25-alpha - January 10, 2026
 
 NEW FEATURES:

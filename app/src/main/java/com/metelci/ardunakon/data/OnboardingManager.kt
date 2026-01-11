@@ -93,4 +93,17 @@ class OnboardingManager @Inject constructor(
     fun markBluetoothTooltipShown() {
         preferences.setBluetoothTooltipShown(true)
     }
+
+    /**
+     * Checks if the permission warning tooltip should be shown.
+     * Shown if permissions are missing and user hasn't dismissed the warning.
+     */
+    fun shouldShowPermissionWarning(): Boolean = !preferences.isPermissionWarningDismissed()
+
+    /**
+     * Marks the permission warning as dismissed.
+     */
+    fun markPermissionWarningDismissed() {
+        preferences.setPermissionWarningDismissed(true)
+    }
 }

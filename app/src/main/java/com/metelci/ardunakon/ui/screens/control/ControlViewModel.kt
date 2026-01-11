@@ -53,6 +53,7 @@ enum class ConnectionMode {
  * @param customCommandRegistry Custom command registry.
  * @param hapticPreferences Haptic preference storage.
  * @param raspManager Runtime application self-protection manager.
+ * @param permissionManager Permission checker for Bluetooth/location permissions.
  */
 @dagger.hilt.android.lifecycle.HiltViewModel
 class ControlViewModel @javax.inject.Inject constructor(
@@ -63,6 +64,7 @@ class ControlViewModel @javax.inject.Inject constructor(
     val customCommandRegistry: com.metelci.ardunakon.protocol.CustomCommandRegistry,
     private val hapticPreferences: com.metelci.ardunakon.data.HapticPreferences,
     private val raspManager: com.metelci.ardunakon.security.RASPManager,
+    private val permissionManager: com.metelci.ardunakon.permissions.PermissionManager,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -120,6 +122,9 @@ class ControlViewModel @javax.inject.Inject constructor(
     /** Controls "Turn on Bluetooth" tooltip visibility. */
     var showBluetoothTooltip by mutableStateOf(false)
 
+    /** Controls permission warning tooltip visibility. */
+    var showPermissionWarning by mutableStateOf(false)
+
     fun checkBluetoothTooltip() {
         if (connectionMode == ConnectionMode.BLUETOOTH &&
             bluetoothManager.connectionState.value == ConnectionState.DISCONNECTED && // Rough proxy for "off" or "idle"
@@ -136,6 +141,40 @@ class ControlViewModel @javax.inject.Inject constructor(
         showBluetoothTooltip = false
         viewModelScope.launch {
             onboardingManager.markBluetoothTooltipShown()
+        }
+    }
+
+    /**
+     * Checks if the permission warning tooltip should be shown.
+     * Called by ControlScreen when permissions are missing.
+     */
+    fun checkPermissionWarning(permissionsMissing: Boolean) {
+        if (permissionsMissing && onboardingManager.shouldShowPermissionWarning()) {
+            showPermissionWarning = true
+        }
+    }
+
+    /**
+     * Called when the scan devices button is clicked.
+     * Checks permissions first - if denied, shows warning tooltip instead of device list.
+     */
+    fun onScanDevicesClicked() {
+        if (!permissionManager.hasBluetoothPermissions()) {
+            // Permissions are denied - show warning
+            showPermissionWarning = true
+        } else {
+            // Permissions granted - show device list
+            showDeviceList = true
+        }
+    }
+
+    /**
+     * Dismisses the permission warning tooltip and persists the preference.
+     */
+    fun dismissPermissionWarning() {
+        showPermissionWarning = false
+        viewModelScope.launch {
+            onboardingManager.markPermissionWarningDismissed()
         }
     }
 

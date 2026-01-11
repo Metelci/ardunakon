@@ -32,11 +32,19 @@ import com.metelci.ardunakon.wifi.WifiConnectionState
 /**
  * Main control screen for the Ardunakon application.
  * Refactored to delegate to layout-specific composables and dialog manager.
+ *
+ * @param onTakeTutorial Callback when user requests to take the tutorial again.
+ * @param permissionsDenied True if Bluetooth/location permissions are denied.
+ * @param viewModel The ControlViewModel instance.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("FunctionName")
 @Composable
-fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewModel = hiltViewModel()) {
+fun ControlScreen(
+    onTakeTutorial: (() -> Unit)? = null,
+    permissionsDenied: Boolean = false,
+    viewModel: ControlViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -164,6 +172,9 @@ fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewMo
         // Check for tooltip on screen launch (after brief delay for animation)
         kotlinx.coroutines.delay(1000) 
         viewModel.checkBluetoothTooltip()
+        
+        // Check for permission warning if permissions are denied
+        viewModel.checkPermissionWarning(permissionsDenied)
 
         viewModel.userMessage.collect { message ->
             snackbarHostState.showSnackbar(message)
@@ -244,6 +255,14 @@ fun ControlScreen(onTakeTutorial: (() -> Unit)? = null, viewModel: ControlViewMo
                 )
             }
         }
+    }
+
+    // Permission Warning Overlay
+    if (viewModel.showPermissionWarning) {
+        com.metelci.ardunakon.ui.components.CenteredWarningTooltip(
+            text = "⚠️ Bluetooth permissions were denied.\n\nThe app will not work as intended without these permissions. Please grant them in Settings.",
+            onDismiss = { viewModel.dismissPermissionWarning() }
+        )
     }
 
     // Dialogs

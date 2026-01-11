@@ -8,6 +8,7 @@ import com.metelci.ardunakon.data.ConnectionPreferences
 import com.metelci.ardunakon.data.HapticPreferences
 import com.metelci.ardunakon.data.OnboardingManager
 import com.metelci.ardunakon.data.OnboardingPreferences
+import com.metelci.ardunakon.permissions.PermissionManager
 import com.metelci.ardunakon.model.LogEntry
 import com.metelci.ardunakon.model.LogType
 import com.metelci.ardunakon.wifi.WifiManager
@@ -104,6 +105,9 @@ class ControlViewModelTest {
         every { raspManager.securityViolations } returns MutableStateFlow(emptyList())
         every { raspManager.isSecurityCompromised } returns MutableStateFlow(false)
 
+        val permissionManager = mockk<PermissionManager>(relaxed = true)
+        every { permissionManager.hasBluetoothPermissions() } returns true
+
         return ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
@@ -112,6 +116,7 @@ class ControlViewModelTest {
             customCommandRegistry = customCommandRegistry,
             hapticPreferences = hapticPreferences,
             raspManager = raspManager,
+            permissionManager = permissionManager,
             context = context
         ).also { it.setForegroundActive(false) }
     }
@@ -247,6 +252,9 @@ class ControlViewModelTest {
         every { raspManager.securityViolations } returns MutableStateFlow(emptyList())
         every { raspManager.isSecurityCompromised } returns MutableStateFlow(false)
 
+        val permissionManager = mockk<PermissionManager>(relaxed = true)
+        every { permissionManager.hasBluetoothPermissions() } returns true
+
         val viewModel = ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
@@ -255,6 +263,7 @@ class ControlViewModelTest {
             customCommandRegistry = customCommandRegistry,
             hapticPreferences = hapticPreferences,
             raspManager = raspManager,
+            permissionManager = permissionManager,
             context = context
         ).also { it.setForegroundActive(false) }
 

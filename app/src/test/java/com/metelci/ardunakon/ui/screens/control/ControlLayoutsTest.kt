@@ -16,6 +16,7 @@ import com.metelci.ardunakon.data.HapticPreferences
 import com.metelci.ardunakon.data.OnboardingManager
 import com.metelci.ardunakon.data.OnboardingPreferences
 import com.metelci.ardunakon.protocol.CustomCommandRegistry
+import com.metelci.ardunakon.permissions.PermissionManager
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
 import com.metelci.ardunakon.wifi.WifiConnectionState
@@ -122,6 +123,9 @@ class ControlLayoutsTest {
         every { raspManager.securityViolations } returns MutableStateFlow(emptyList())
         every { raspManager.isSecurityCompromised } returns MutableStateFlow(false)
 
+        val permissionManager = mockk<PermissionManager>(relaxed = true)
+        every { permissionManager.hasBluetoothPermissions() } returns true
+
         val viewModel = ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
@@ -130,6 +134,7 @@ class ControlLayoutsTest {
             customCommandRegistry = customCommandRegistry,
             hapticPreferences = hapticPreferences,
             raspManager = raspManager,
+            permissionManager = permissionManager,
             context = context
         ).also { it.setForegroundActive(false) }
 

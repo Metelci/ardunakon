@@ -14,6 +14,7 @@ import com.metelci.ardunakon.data.HapticPreferences
 import com.metelci.ardunakon.data.OnboardingManager
 import com.metelci.ardunakon.data.OnboardingPreferences
 import com.metelci.ardunakon.protocol.CustomCommandRegistry
+import com.metelci.ardunakon.permissions.PermissionManager
 import com.metelci.ardunakon.telemetry.TelemetryHistoryManager
 import com.metelci.ardunakon.ui.screens.control.ControlViewModel
 import com.metelci.ardunakon.ui.testutils.createRegisteredComposeRule
@@ -117,6 +118,9 @@ class ControlScreenTest {
         every { raspManager.securityViolations } returns MutableStateFlow(emptyList())
         every { raspManager.isSecurityCompromised } returns MutableStateFlow(false)
 
+        val permissionManager = mockk<PermissionManager>(relaxed = true)
+        every { permissionManager.hasBluetoothPermissions() } returns true
+
         val viewModel = ControlViewModel(
             bluetoothManager = bluetoothManager,
             wifiManager = wifiManager,
@@ -125,6 +129,7 @@ class ControlScreenTest {
             customCommandRegistry = customCommandRegistry,
             hapticPreferences = hapticPreferences,
             raspManager = raspManager,
+            permissionManager = permissionManager,
             context = context
         )
 

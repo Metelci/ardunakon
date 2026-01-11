@@ -85,10 +85,10 @@ fun PortraitControlLayout(
 
             buttonSize = 32.dp,
             eStopSize = 56.dp,
-            onScanDevices = { viewModel.showDeviceList = true },
+            onScanDevices = { viewModel.onScanDevicesClicked() },
             onReconnectDevice = {
                 val reconnected = bluetoothManager.reconnectSavedDevice()
-                if (!reconnected) viewModel.showDeviceList = true
+                if (!reconnected) viewModel.onScanDevicesClicked()
             },
             onSwitchToWifi = { viewModel.switchToWifi() },
             onSwitchToBluetooth = { viewModel.switchToBluetooth() },

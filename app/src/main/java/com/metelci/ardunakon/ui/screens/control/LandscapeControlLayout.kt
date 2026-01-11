@@ -135,10 +135,10 @@ fun LandscapeControlLayout(
 
                 buttonSize = 36.dp,
                 eStopSize = 72.dp,
-                onScanDevices = { viewModel.showDeviceList = true },
+                onScanDevices = { viewModel.onScanDevicesClicked() },
                 onReconnectDevice = {
                     val reconnected = bluetoothManager.reconnectSavedDevice()
-                    if (!reconnected) viewModel.showDeviceList = true
+                    if (!reconnected) viewModel.onScanDevicesClicked()
                 },
                 onSwitchToWifi = { viewModel.switchToWifi() },
                 onSwitchToBluetooth = { viewModel.switchToBluetooth() },
@@ -210,7 +210,7 @@ fun LandscapeControlLayout(
                             if (viewModel.connectionMode == ConnectionMode.WIFI) {
                                 viewModel.showWifiConfig = true
                             } else {
-                                viewModel.showDeviceList = true
+                                viewModel.onScanDevicesClicked()
                             }
                         },
                         onCrashLogClick = { viewModel.showCrashLog = true }

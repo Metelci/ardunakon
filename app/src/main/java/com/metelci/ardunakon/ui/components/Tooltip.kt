@@ -3,6 +3,7 @@ package com.metelci.ardunakon.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -11,10 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +66,46 @@ fun Tooltip(
                 text = text,
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                 color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+/**
+ * A warning tooltip that appears at the bottom of the screen.
+ * Used for important warnings like missing permissions.
+ *
+ * @param text The warning message to display.
+ * @param onDismiss Callback when the tooltip is tapped to dismiss.
+ */
+@Composable
+fun CenteredWarningTooltip(
+    text: String,
+    onDismiss: () -> Unit
+) {
+    val warningColor = Color(0xFFFFA000) // Amber warning color
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 32.dp, vertical = 48.dp)
+                .background(
+                    color = warningColor.copy(alpha = 0.95f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .clickable { onDismiss() }
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black,
+                textAlign = TextAlign.Center
             )
         }
     }

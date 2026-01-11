@@ -204,13 +204,16 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 startDestination = startDestination,
                                 controlContent = { onTakeTutorial ->
-                                    if (isBound && bluetoothService != null) {
+                                    // Show ControlScreen when service is bound OR when permissions are denied
+                                    // (so user can see the app with permission warning instead of infinite loading)
+                                    if (isBound && bluetoothService != null || permissionsDenied) {
                                         ControlScreen(
                                             onTakeTutorial = {
                                                 onboardingManager.resetOnboarding()
                                                 showOnboarding = true
                                                 onTakeTutorial()
-                                            }
+                                            },
+                                            permissionsDenied = permissionsDenied
                                         )
                                     } else {
                                         Box(contentAlignment = Alignment.Center) {
